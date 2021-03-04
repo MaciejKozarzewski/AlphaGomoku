@@ -1,0 +1,13 @@
+/Debug/
+/Release/
+/Testing/
+/cpu_only/
+bin/*
+doc/*
+bin/objects/*
+contrib/blis/*
+contrib/openblas/*
+contrib/gtest/*
+contrib/libml/*
+*.pyc
+gmon.out
