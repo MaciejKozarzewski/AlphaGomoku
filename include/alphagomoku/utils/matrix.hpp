@@ -45,6 +45,7 @@ namespace ag
 			void clear()
 			{
 				m_data.clear();
+				fill(static_cast<T>(0));
 			}
 			void fill(T value)
 			{
