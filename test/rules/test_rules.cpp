@@ -125,22 +125,20 @@ namespace ag
 		{
 			return static_cast<int>(patterns.size());
 		}
-		void PatternGenerator::applyPattern(int index, Direction dir, matrix<Sign> &board, int row, int col) const noexcept
+		bool PatternGenerator::applyPattern(int index, Direction dir, matrix<Sign> &board, int row, int col) const noexcept
 		{
 			switch (dir)
 			{
+				default:
+					return false;
 				case Direction::HORIZONTAL:
-					apply_pattern_horizontal(patterns[index], board, row, col);
-					break;
+					return apply_pattern_horizontal(patterns[index], board, row, col);
 				case Direction::VERTICAL:
-					apply_pattern_vertical(patterns[index], board, row, col);
-					break;
+					return apply_pattern_vertical(patterns[index], board, row, col);
 				case Direction::DIAGONAL:
-					apply_pattern_diagonal(patterns[index], board, row, col);
-					break;
+					return apply_pattern_diagonal(patterns[index], board, row, col);
 				case Direction::ANTIDIAGONAL:
-					apply_pattern_antidiagonal(patterns[index], board, row, col);
-					break;
+					return apply_pattern_antidiagonal(patterns[index], board, row, col);
 			}
 		}
 
@@ -156,25 +154,62 @@ namespace ag
 				}
 			}
 		}
-		void PatternGenerator::apply_pattern_horizontal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept
+		bool PatternGenerator::apply_pattern_horizontal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept
 		{
 			for (int i = 0; i < pattern_length; i++)
-				board.at(row, col + i) = pattern[i];
+			{
+				if (row < 0 || (col + i) < 0 || row >= board.rows() || (col + i) >= board.cols())
+				{
+					if (pattern[i] != Sign::NONE)
+						return false;
+				}
+				else
+					board.at(row, col + i) = pattern[i];
+			}
+			return true;
 		}
-		void PatternGenerator::apply_pattern_vertical(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept
+		bool PatternGenerator::apply_pattern_vertical(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept
 		{
 			for (int i = 0; i < pattern_length; i++)
-				board.at(row + i, col) = pattern[i];
+			{
+				if ((row + i) < 0 || col < 0 || (row + i) >= board.rows() || col >= board.cols())
+				{
+					if (pattern[i] != Sign::NONE)
+						return false;
+				}
+				else
+					board.at(row + i, col) = pattern[i];
+			}
+			return true;
 		}
-		void PatternGenerator::apply_pattern_diagonal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept
+		bool PatternGenerator::apply_pattern_diagonal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept
 		{
 			for (int i = 0; i < pattern_length; i++)
-				board.at(row + i, col + i) = pattern[i];
+			{
+				if ((row + i) < 0 || (col + i) < 0 || (row + i) >= board.rows() || (col + i) >= board.cols())
+				{
+					if (pattern[i] != Sign::NONE)
+						return false;
+				}
+				else
+					board.at(row + i, col + i) = pattern[i];
+			}
+			return true;
 		}
-		void PatternGenerator::apply_pattern_antidiagonal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept
+		bool PatternGenerator::apply_pattern_antidiagonal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept
 		{
 			for (int i = 0; i < pattern_length; i++)
-				board.at(row + pattern_length - 1 - i, col + i) = pattern[i];
+			{
+				if ((row + pattern_length - 1 - i) < 0 || (col + i) < 0 || (row + pattern_length - 1 - i) >= board.rows()
+						|| (col + i) >= board.cols())
+				{
+					if (pattern[i] != Sign::NONE)
+						return false;
+				}
+				else
+					board.at(row + pattern_length - 1 - i, col + i) = pattern[i];
+			}
+			return true;
 		}
 	}
 }

@@ -6,8 +6,8 @@
  */
 
 #include <alphagomoku/mcts/Node.hpp>
-#include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
+#include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <gtest/gtest.h>
 
 namespace ag

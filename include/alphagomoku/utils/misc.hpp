@@ -71,6 +71,8 @@ namespace ag
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
 
+	void encodeInputTensor(float* dst, const matrix<Sign> &board, Sign signToMove);
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_UTILS_MISC_HPP_ */

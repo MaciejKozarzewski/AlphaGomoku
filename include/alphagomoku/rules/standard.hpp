@@ -9,12 +9,13 @@
 #define ALPHAGOMOKU_RULES_STANDARD_HPP_
 
 #include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 
 namespace ag
 {
-	Sign getWhoWinsStandard(const matrix<Sign> &board);
-	Sign getWhoWinsStandard(const matrix<Sign> &board, const Move &last_move);
+	GameOutcome getOutcomeStandard(const matrix<Sign> &board);
+	GameOutcome getOutcomeStandard(const matrix<Sign> &board, const Move &last_move);
 }
 
 

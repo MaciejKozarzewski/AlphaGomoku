@@ -15,8 +15,8 @@
 
 namespace ag
 {
-	ZobristHashing::ZobristHashing(int rows, int columns, uint64_t seed) :
-			keys(3 + 3 * rows * columns)
+	ZobristHashing::ZobristHashing(int board_size, uint64_t seed) :
+			keys(3 + 3 * board_size)
 	{
 		if (seed == 0)
 			seed = std::chrono::system_clock::now().time_since_epoch().count();

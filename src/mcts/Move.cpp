@@ -9,6 +9,18 @@
 
 namespace ag
 {
+	Sign signFromString(const std::string &str)
+	{
+		if (str == "CROSS")
+			return Sign::CROSS;
+		else
+		{
+			if (str == "CIRCLE")
+				return Sign::CIRCLE;
+			else
+				return Sign::NONE;
+		}
+	}
 	std::string toString(Sign sign)
 	{
 		switch (sign)

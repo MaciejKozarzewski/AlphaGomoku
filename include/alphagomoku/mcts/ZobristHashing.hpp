@@ -21,7 +21,7 @@ namespace ag
 		private:
 			std::vector<uint64_t> keys;
 		public:
-			ZobristHashing(int rows, int columns, uint64_t seed = 0);
+			ZobristHashing(int board_size, uint64_t seed = 0);
 			uint64_t getHash(const matrix<Sign> &board, Sign signToMove) const noexcept;
 	};
 }

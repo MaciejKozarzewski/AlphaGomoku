@@ -9,12 +9,13 @@
 #define ALPHAGOMOKU_RULES_FREESTYLE_HPP_
 
 #include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 
 namespace ag
 {
-	Sign getWhoWinsFreestyle(const matrix<Sign> &board);
-	Sign getWhoWinsFreestyle(const matrix<Sign> &board, const Move &last_move);
+	GameOutcome getOutcomeFreestyle(const matrix<Sign> &board);
+	GameOutcome getOutcomeFreestyle(const matrix<Sign> &board, const Move &last_move);
 }
 
 #endif /* ALPHAGOMOKU_RULES_FREESTYLE_HPP_ */

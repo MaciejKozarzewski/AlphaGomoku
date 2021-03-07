@@ -16,69 +16,92 @@
 namespace ag
 {
 
-	Sign getWhoWins(GameRules rules, const matrix<Sign> &board)
+	GameRules rulesFromString(const std::string &str)
+	{
+		if (str == "FREESTYLE")
+			return GameRules::FREESTYLE;
+		if (str == "STANDARD")
+			return GameRules::STANDARD;
+		if (str == "RENJU")
+			return GameRules::RENJU;
+		if (str == "CARO")
+			return GameRules::CARO;
+		throw std::logic_error("unknown rule");
+	}
+	std::string rulesToString(GameRules rules)
 	{
 		switch (rules)
 		{
+			case GameRules::FREESTYLE:
+				return "FREESTYLE";
+			case GameRules::STANDARD:
+				return "STANDARD";
+			case GameRules::RENJU:
+				return "RENJU";
+			case GameRules::CARO:
+				return "CARO";
 			default:
 				throw std::logic_error("unknown rule");
-			case GameRules::FREESTYLE:
-				return getWhoWinsFreestyle(board);
-			case GameRules::STANDARD:
-				return getWhoWinsStandard(board);
-			case GameRules::RENJU:
-				return getWhoWinsRenju(board);
-			case GameRules::CARO:
-				return getWhoWinsCaro(board);
-		}
-	}
-	Sign getWhoWins(GameRules rules, const matrix<Sign> &board, const Move &last_move)
-	{
-		switch (rules)
-		{
-			default:
-				throw std::logic_error("unknown rule");
-			case GameRules::FREESTYLE:
-				return getWhoWinsFreestyle(board, last_move);
-			case GameRules::STANDARD:
-				return getWhoWinsStandard(board, last_move);
-			case GameRules::RENJU:
-				return getWhoWinsRenju(board, last_move);
-			case GameRules::CARO:
-				return getWhoWinsCaro(board, last_move);
-		}
-	}
-	bool isGameOver(GameRules rules, const matrix<Sign> &board)
-	{
-		if (getWhoWins(rules, board) == Sign::NONE)
-			return isBoardFull(board);
-		else
-			return true;
-	}
-	bool isGameOver(GameRules rules, const matrix<Sign> &board, const Move &last_move)
-	{
-		if (getWhoWins(rules, board, last_move) == Sign::NONE)
-			return isBoardFull(board);
-		else
-			return true;
-	}
-
-	bool isDraw(GameRules rules, const matrix<Sign> &board)
-	{
-		switch (rules)
-		{
-			default:
-				throw std::logic_error("unknown rule");
-			case GameRules::FREESTYLE:
-				return isBoardFull(board);
-			case GameRules::STANDARD:
-				return isBoardFull(board);
-			case GameRules::RENJU:
-				return isBoardFull(board);
-			case GameRules::CARO:
-				return isBoardFull(board);
 		}
 	}
 
+	GameOutcome outcomeFromString(const std::string &str)
+	{
+		if (str == "DRAW")
+			return GameOutcome::DRAW;
+		if (str == "CROSS_WIN")
+			return GameOutcome::CROSS_WIN;
+		if (str == "CIRCLE_WIN")
+			return GameOutcome::CIRCLE_WIN;
+		return GameOutcome::UNKNOWN;
+	}
+	std::string outcomeToString(GameOutcome outcome)
+	{
+		switch (outcome)
+		{
+			default:
+			case GameOutcome::UNKNOWN:
+				return "UNKNOWN";
+			case GameOutcome::DRAW:
+				return "DRAW";
+			case GameOutcome::CROSS_WIN:
+				return "CROSS_WIN";
+			case GameOutcome::CIRCLE_WIN:
+				return "CIRCLE_WIN";
+		}
+	}
+
+	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board)
+	{
+		switch (rules)
+		{
+			default:
+				throw std::logic_error("unknown rule");
+			case GameRules::FREESTYLE:
+				return getOutcomeFreestyle(board);
+			case GameRules::STANDARD:
+				return getOutcomeStandard(board);
+			case GameRules::RENJU:
+				return getOutcomeRenju(board);
+			case GameRules::CARO:
+				return getOutcomeCaro(board);
+		}
+	}
+	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, const Move &last_move)
+	{
+		switch (rules)
+		{
+			default:
+				throw std::logic_error("unknown rule");
+			case GameRules::FREESTYLE:
+				return getOutcomeFreestyle(board, last_move);
+			case GameRules::STANDARD:
+				return getOutcomeStandard(board, last_move);
+			case GameRules::RENJU:
+				return getOutcomeRenju(board, last_move);
+			case GameRules::CARO:
+				return getOutcomeCaro(board, last_move);
+		}
+	}
 }
 

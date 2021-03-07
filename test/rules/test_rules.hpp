@@ -34,14 +34,14 @@ namespace ag
 				std::string patternToString(int index) const noexcept;
 				int patternLength() const noexcept;
 				int numberOfPatterns() const noexcept;
-				void applyPattern(int index, Direction dir, matrix<Sign> &board, int row, int col) const noexcept;
+				bool applyPattern(int index, Direction dir, matrix<Sign> &board, int row, int col) const noexcept;
 			private:
 				void generate_all_patterns() noexcept;
 
-				void apply_pattern_horizontal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept;
-				void apply_pattern_vertical(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept;
-				void apply_pattern_diagonal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept;
-				void apply_pattern_antidiagonal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept;
+				bool apply_pattern_horizontal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept;
+				bool apply_pattern_vertical(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept;
+				bool apply_pattern_diagonal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept;
+				bool apply_pattern_antidiagonal(const std::array<Sign, 10> &pattern, matrix<Sign> &board, int row, int col) const noexcept;
 		};
 	}
 }

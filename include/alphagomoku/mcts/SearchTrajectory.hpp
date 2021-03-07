@@ -51,12 +51,7 @@ namespace ag
 				visited_nodes.push_back(node);
 				visited_moves.push_back(move);
 			}
-			const Node& getLeafNode() const noexcept
-			{
-				assert(length() > 0);
-				return *(visited_nodes.back());
-			}
-			Node& getLeafNode() noexcept
+			Node& getLeafNode() const noexcept
 			{
 				assert(length() > 0);
 				return *(visited_nodes.back());

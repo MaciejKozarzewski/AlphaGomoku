@@ -31,6 +31,7 @@ namespace ag
 		}
 	}
 
+	Sign signFromString(const std::string &str);
 	std::string toString(Sign sign);
 	std::ostream& operator<<(std::ostream &stream, Sign sign);
 	std::string operator+(const std::string &lhs, Sign rhs);

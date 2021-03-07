@@ -14,9 +14,9 @@ namespace ag
 		if (mode == 0)
 			return move;
 		if (height == width)
-			assert(mode < 8 && mode > -8);
+			assert(-8 < mode && mode < 8);
 		else
-			assert(mode < 4 && mode > -4);
+			assert(-4 < mode && mode < 4);
 
 		// reflect x
 		if (mode == 1 || mode == -1)

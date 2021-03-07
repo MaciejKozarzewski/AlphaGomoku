@@ -16,7 +16,7 @@ namespace
 
 namespace ag
 {
-	Sign getWhoWinsStandard(const matrix<Sign> &board)
+	GameOutcome getOutcomeStandard(const matrix<Sign> &board)
 	{
 		assert(board.isSquare());
 #define CHECK(x, y)\
@@ -24,36 +24,38 @@ namespace ag
 	{\
 		case Sign::NONE:\
 			if (cross == ROW_TO_WIN)\
-				return Sign::CROSS;\
+				return GameOutcome::CROSS_WIN;\
 			if (circle == ROW_TO_WIN)\
-				return Sign::CIRCLE;\
+				return GameOutcome::CIRCLE_WIN;\
 			cross = circle = 0;\
 			break;\
 		case Sign::CROSS:\
 			if (circle == ROW_TO_WIN)\
-				return Sign::CIRCLE;\
+				return GameOutcome::CIRCLE_WIN;\
 			cross++;\
 			circle = 0;\
 			break;\
 		case Sign::CIRCLE:\
 			if (cross == ROW_TO_WIN)\
-				return Sign::CROSS;\
+				return GameOutcome::CROSS_WIN;\
 			cross = 0;\
 			circle++;\
 			break;\
 	}
 #define CHECK_END\
 	if (cross == ROW_TO_WIN)\
-		return Sign::CROSS;\
+		return GameOutcome::CROSS_WIN;\
 	if (circle == ROW_TO_WIN)\
-		return Sign::CIRCLE;
+		return GameOutcome::CIRCLE_WIN;
 
+		int empty_spots = 0;
 		const int size = board.rows();
 		for (int j = 0; j < size; j++)
 		{
 			int cross = 0, circle = 0;
 			for (int i = 0; i < size; i++)
 			{
+				empty_spots += static_cast<int>(board.at(i, j) == Sign::NONE);
 				CHECK(i, j)
 			}
 			CHECK_END
@@ -105,9 +107,12 @@ namespace ag
 		}
 #undef CHECK
 #undef CHECK_END
-		return Sign::NONE;
+		if (empty_spots == 0)
+			return GameOutcome::DRAW;
+		else
+			return GameOutcome::UNKNOWN;
 	}
-	Sign getWhoWinsStandard(const matrix<Sign> &board, const Move &last_move)
+	GameOutcome getOutcomeStandard(const matrix<Sign> &board, const Move &last_move)
 	{
 		assert(board.isSquare());
 		assert(last_move.sign != Sign::NONE);
@@ -123,11 +128,11 @@ namespace ag
 	{\
 		tmp++;\
 		if (tmp >= ROW_TO_WIN)\
-			return last_move.sign;\
+			return static_cast<GameOutcome>(static_cast<int>(last_move.sign) + 1);\
 	}\
 	else\
 		tmp = 0;
-#define CHECK_END if (tmp == ROW_TO_WIN) return last_move.sign;
+#define CHECK_END if (tmp == ROW_TO_WIN) return static_cast<GameOutcome>(static_cast<int>(last_move.sign) + 1);\
 
 		int tmp = 0;
 		for (int i = x0; i <= x1; i++)
@@ -151,7 +156,7 @@ namespace ag
 		CHECK_END
 #undef CHECK
 #undef CHECK_END
-		return Sign::NONE;
+		return GameOutcome::UNKNOWN;
 	}
 }
 

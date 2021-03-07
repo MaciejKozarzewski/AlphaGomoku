@@ -29,25 +29,28 @@ namespace ag
 		testing::PatternGenerator generator(GameRules::FREESTYLE);
 		matrix<Sign> board(15, 15);
 		for (int i = 0; i < generator.numberOfPatterns(); i++)
-			for (int r = 0; r < board.rows() - generator.patternLength(); r++)
-				for (int c = 0; c < board.cols() - generator.patternLength(); c++)
+			for (int r = -generator.patternLength(); r < board.rows() + generator.patternLength(); r++)
+				for (int c = -generator.patternLength(); c < board.cols() + generator.patternLength(); c++)
 					for (int dir = 0; dir < 4; dir++)
 					{
 						board.clear();
-						generator.applyPattern(i, static_cast<testing::Direction>(dir), board, r, c);
-						Sign winner = getWhoWins(generator.rules, board);
-						if (winner == Sign::NONE)
+						bool is_valid = generator.applyPattern(i, static_cast<testing::Direction>(dir), board, r, c);
+						if (is_valid)
 						{
-							EXPECT_FALSE(testing::is_winning(i, cross_winning_patterns));
-							EXPECT_FALSE(testing::is_winning(i, circle_winning_patterns));
-						}
-						if (winner == Sign::CROSS)
-						{
-							EXPECT_TRUE(testing::is_winning(i, cross_winning_patterns));
-						}
-						if (winner == Sign::CIRCLE)
-						{
-							EXPECT_TRUE(testing::is_winning(i, circle_winning_patterns));
+							GameOutcome winner = getOutcome(generator.rules, board);
+							if (winner == GameOutcome::UNKNOWN)
+							{
+								EXPECT_FALSE(testing::is_winning(i, cross_winning_patterns));
+								EXPECT_FALSE(testing::is_winning(i, circle_winning_patterns));
+							}
+							if (winner == GameOutcome::CROSS_WIN)
+							{
+								EXPECT_TRUE(testing::is_winning(i, cross_winning_patterns));
+							}
+							if (winner == GameOutcome::CIRCLE_WIN)
+							{
+								EXPECT_TRUE(testing::is_winning(i, circle_winning_patterns));
+							}
 						}
 					}
 	}
@@ -63,34 +66,36 @@ namespace ag
 		testing::PatternGenerator generator(GameRules::FREESTYLE);
 		matrix<Sign> board(15, 15);
 		for (int i = 0; i < generator.numberOfPatterns(); i++)
-			for (int r = 0; r < board.rows() - generator.patternLength(); r++)
-				for (int c = 0; c < board.cols() - generator.patternLength(); c++)
+			for (int r = -generator.patternLength(); r < board.rows() + generator.patternLength(); r++)
+				for (int c = -generator.patternLength(); c < board.cols() + generator.patternLength(); c++)
 					for (int dir = 0; dir < 4; dir++)
 					{
 						board.clear();
-						generator.applyPattern(i, static_cast<testing::Direction>(dir), board, r, c);
-						for (int x = r; x < r + generator.patternLength(); x++)
-							for (int y = c; y < c + generator.patternLength(); y++)
-							{
-								if (board.at(x, y) == Sign::CROSS)
-								{
-									Sign winner = getWhoWins(generator.rules, board, Move(x, y, board.at(x, y)));
-									Sign winner_full = getWhoWins(generator.rules, board);
-									if (winner_full == Sign::CROSS)
+						bool is_valid = generator.applyPattern(i, static_cast<testing::Direction>(dir), board, r, c);
+						if (is_valid)
+							for (int x = r; x < r + generator.patternLength(); x++)
+								for (int y = c; y < c + generator.patternLength(); y++)
+									if (x >= 0 && x < board.rows() && y >= 0 && y < board.cols())
 									{
-										EXPECT_EQ(winner, winner_full);
+										if (board.at(x, y) == Sign::CROSS)
+										{
+											GameOutcome winner = getOutcome(generator.rules, board, Move(x, y, board.at(x, y)));
+											GameOutcome winner_full = getOutcome(generator.rules, board);
+											if (winner_full == GameOutcome::CROSS_WIN)
+											{
+												EXPECT_EQ(winner, winner_full);
+											}
+										}
+										if (board.at(x, y) == Sign::CIRCLE)
+										{
+											GameOutcome winner = getOutcome(generator.rules, board, Move(x, y, board.at(x, y)));
+											GameOutcome winner_full = getOutcome(generator.rules, board);
+											if (winner_full == GameOutcome::CIRCLE_WIN)
+											{
+												EXPECT_EQ(winner, winner_full);
+											}
+										}
 									}
-								}
-								if (board.at(x, y) == Sign::CIRCLE)
-								{
-									Sign winner = getWhoWins(generator.rules, board, Move(x, y, board.at(x, y)));
-									Sign winner_full = getWhoWins(generator.rules, board);
-									if (winner_full == Sign::CIRCLE)
-									{
-										EXPECT_EQ(winner, winner_full);
-									}
-								}
-							}
 					}
 	}
 }

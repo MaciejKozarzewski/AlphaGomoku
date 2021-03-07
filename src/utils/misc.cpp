@@ -23,12 +23,20 @@ namespace
 {
 	uint32_t get_random_int32()
 	{
+#ifdef NDEBUG
 		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
+#else
+		thread_local std::mt19937 generator(0);
+#endif
 		return generator();
 	}
 	uint64_t get_random_int64()
 	{
+#ifdef NDEBUG
 		thread_local std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
+#else
+		thread_local std::mt19937_64 generator(0);
+#endif
 		return generator();
 	}
 }
@@ -37,12 +45,12 @@ namespace ag
 {
 	float randFloat()
 	{
-		static float tmp = 1.0f / ((1u << 31) - 1);
+		static float tmp = 1.0f / 4294967295;
 		return get_random_int32() * tmp;
 	}
 	double randDouble()
 	{
-		static double tmp = 1.0f / ((1ull << 63) - 1);
+		static double tmp = 1.0f / (4294967296ull * 4294967296ull - 1);
 		return get_random_int64() * tmp;
 	}
 	float randGaussian()
@@ -173,22 +181,24 @@ namespace ag
 				{
 					int t = (int) (1000 * policy.at(i, j));
 					if (t == 0)
-						result += " _ ";
+						result += "  _ ";
 					else
 					{
+						if (t < 1000)
+							result += ' ';
 						if (t < 100)
-							result += " ";
+							result += ' ';
 						if (t < 10)
-							result += " ";
+							result += ' ';
 						result += std::to_string(t);
 					}
 				}
 				else
 				{
 					if (board.at(i, j) == Sign::CROSS)
-						result += " X ";
+						result += "  X ";
 					else
-						result += " O ";
+						result += "  O ";
 				}
 			}
 			if (lastMove.sign != Sign::NONE)
@@ -414,5 +424,36 @@ namespace ag
 								dist.at(i, j) += pow(tmp, -d);
 							}
 				}
+	}
+
+	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove)
+	{
+		assert(signToMove != Sign::NONE);
+		int idx = 0;
+		for (int i = 0; i < board.rows(); i++)
+			for (int j = 0; j < board.cols(); j++, idx += 4)
+			{
+				if (board.at(i, j) == Sign::NONE)
+				{
+					dst[idx] = 1.0f;
+					dst[idx + 1] = 0.0f;
+					dst[idx + 2] = 0.0f;
+				}
+				else
+				{
+					dst[idx] = 0.0f;
+					if (board.at(i, j) == signToMove)
+					{
+						dst[idx + 1] = 1.0f;
+						dst[idx + 2] = 0.0f;
+					}
+					else
+					{
+						dst[idx + 1] = 0.0f;
+						dst[idx + 2] = 1.0f;
+					}
+				}
+				dst[idx + 3] = 1.0f;
+			}
 	}
 }

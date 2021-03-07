@@ -9,13 +9,13 @@
 
 namespace ag
 {
-	Sign getWhoWinsRenju(const matrix<Sign> &board)
+	GameOutcome getOutcomeRenju(const matrix<Sign> &board)
 	{
-		return Sign::NONE; // TODO
+		return GameOutcome::UNKNOWN; // TODO
 	}
-	Sign getWhoWinsRenju(const matrix<Sign> &board, const Move &last_move)
+	GameOutcome getOutcomeRenju(const matrix<Sign> &board, const Move &last_move)
 	{
-		return Sign::NONE; // TODO
+		return GameOutcome::UNKNOWN; // TODO
 	}
 }
 

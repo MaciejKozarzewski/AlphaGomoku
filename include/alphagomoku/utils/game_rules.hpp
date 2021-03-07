@@ -18,13 +18,19 @@ namespace ag
 		FREESTYLE, STANDARD, RENJU, CARO
 	};
 
-	Sign getWhoWins(GameRules rules, const matrix<Sign> &board);
-	Sign getWhoWins(GameRules rules, const matrix<Sign> &board, const Move &last_move);
-	bool isGameOver(GameRules rules, const matrix<Sign> &board);
-	bool isGameOver(GameRules rules, const matrix<Sign> &board, const Move &last_move);
+	enum class GameOutcome
+	{
+		UNKNOWN, DRAW, CROSS_WIN, CIRCLE_WIN
+	};
 
-	bool isDraw(GameRules rules, const matrix<Sign> &board);
+	GameRules rulesFromString(const std::string &str);
+	std::string rulesToString(GameRules rules);
 
+	GameOutcome outcomeFromString(const std::string &str);
+	std::string outcomeToString(GameOutcome outcome);
+
+	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board);
+	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, const Move &last_move);
 }
 
 #endif /* ALPHAGOMOKU_UTILS_GAME_RULES_HPP_ */

@@ -11,3 +11,4 @@ contrib/gtest/*
 contrib/libml/*
 *.pyc
 gmon.out
+test_file.*

@@ -22,10 +22,10 @@ namespace ag
 	{
 		if (mode == 0)
 			return;
-		if (input.rows() == input.cols())
-			assert(mode < 8 && mode > -8);
+		if (input.isSquare())
+			assert(-8 < mode && mode < 8);
 		else
-			assert(mode < 4 && mode > -4);
+			assert(-4 < mode && mode < 4);
 
 		const int height = input.rows();
 		const int width = input.cols();
@@ -111,10 +111,10 @@ namespace ag
 		assert(dst.rows() == src.rows() && dst.cols() == src.cols());
 		if (mode == 0)
 			return;
-		if (src.isSquare())
-			assert(mode < 8 && mode > -8);
+		if (dst.isSquare())
+			assert(-8 < mode && mode < 8);
 		else
-			assert(mode < 4 && mode > -4);
+			assert(-4 < mode && mode < 4);
 
 		const int height = src.rows();
 		const int width = src.cols();
