@@ -11,6 +11,7 @@
 #include <string>
 #include <assert.h>
 
+class Json;
 namespace ag
 {
 	enum class Sign
@@ -32,7 +33,7 @@ namespace ag
 	}
 
 	Sign signFromString(const std::string &str);
-	std::string toString(Sign sign);
+	std::string signToString(Sign sign);
 	std::ostream& operator<<(std::ostream &stream, Sign sign);
 	std::string operator+(const std::string &lhs, Sign rhs);
 	std::string operator+(Sign lhs, const std::string &rhs);
@@ -44,6 +45,7 @@ namespace ag
 			Sign sign = Sign::NONE;
 
 			Move() = default;
+			Move(const Json &json);
 			Move(uint16_t m)
 			{
 				sign = static_cast<Sign>(m & 3);
@@ -68,6 +70,7 @@ namespace ag
 				return static_cast<uint16_t>(sign) + (row << 2) + (col << 9);
 			}
 			std::string toString() const;
+			Json serialize() const;
 
 			static uint16_t move_to_short(int r, int c, Sign s)
 			{

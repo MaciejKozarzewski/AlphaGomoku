@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/mcts/Move.hpp>
+#include <libml/utils/json.hpp>
 
 namespace ag
 {
@@ -21,7 +22,7 @@ namespace ag
 				return Sign::NONE;
 		}
 	}
-	std::string toString(Sign sign)
+	std::string signToString(Sign sign)
 	{
 		switch (sign)
 		{
@@ -36,21 +37,27 @@ namespace ag
 	}
 	std::ostream& operator<<(std::ostream &stream, Sign sign)
 	{
-		stream << toString(sign);
+		stream << signToString(sign);
 		return stream;
 	}
 	std::string operator+(const std::string &lhs, Sign rhs)
 	{
-		return lhs + toString(rhs);
+		return lhs + signToString(rhs);
 	}
 	std::string operator+(Sign lhs, const std::string &rhs)
 	{
-		return toString(lhs) + rhs;
+		return signToString(lhs) + rhs;
 	}
 
+	Move::Move(const Json &json) :
+			row(static_cast<int>(json["row"])),
+			col(static_cast<int>(json["col"])),
+			sign(signFromString(json["sign"].getString()))
+	{
+	}
 	std::string Move::toString() const
 	{
-		std::string result = ag::toString(sign) + " (";
+		std::string result = signToString(sign) + " (";
 		if (row < 10)
 			result += ' ';
 		result += std::to_string((int) row) + ',';
@@ -58,6 +65,10 @@ namespace ag
 			result += ' ';
 		result += std::to_string((int) col) + ')';
 		return result;
+	}
+	Json Move::serialize() const
+	{
+		return Json( { { "row", row }, { "col", col }, { "sign", signToString(sign) } });
 	}
 }
 

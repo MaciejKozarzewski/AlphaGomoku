@@ -23,7 +23,7 @@ namespace ag
 		public:
 			FileSaver(const std::string &path);
 			std::string getPath() const;
-			void save(const Json &json, const SerializedObject &binary_data);
+			void save(const Json &json, const SerializedObject &binary_data, int indent = -1, bool compress = false);
 			void close();
 	};
 
@@ -34,7 +34,7 @@ namespace ag
 			std::string loaded_string;
 			size_t split_point;
 		public:
-			FileLoader(const std::string &path);
+			FileLoader(const std::string &path, bool uncompress = false);
 			const Json& getJson() const noexcept;
 			Json& getJson() noexcept;
 			const SerializedObject& getBinaryData() const noexcept;
