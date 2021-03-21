@@ -33,13 +33,13 @@ namespace ag
 	{
 		private:
 			mutable std::mutex buffer_mutex;
-			int board_size = 0;
 			std::vector<Game> buffer_data;
 		public:
 			GameBufferStats stats;
 
+			GameBuffer() = default;
 			GameBuffer(const std::string &path);
-			GameBuffer(int boardSize);
+
 			int getNumberOfSamples();
 			void addToBuffer(const Game &game);
 			Game& getFromBuffer(int index);

@@ -26,7 +26,7 @@ namespace
 					result.getPolicy().at(i, j) = randFloat();
 			}
 		normalize(result.getPolicy());
-		result.sign_to_move = Sign::CROSS;
+		result.setLastMove( { 0, 0, Sign::CROSS });
 		result.setValue(randFloat());
 		return result;
 	}
@@ -36,7 +36,7 @@ namespace ag
 {
 	TEST(TestCache , init)
 	{
-		Cache cache(20, 1);
+		Cache cache(4, 5, 1);
 		EXPECT_EQ(cache.allocatedElements(), 0);
 		EXPECT_EQ(cache.bufferedElements(), 0);
 		EXPECT_EQ(cache.storedElements(), 0);
@@ -44,7 +44,7 @@ namespace ag
 	}
 	TEST(TestCache, insert)
 	{
-		Cache cache(20, 1);
+		Cache cache(4, 5, 1);
 		EvaluationRequest req(4, 5);
 		req.getBoard().at(2, 3) = Sign::CROSS;
 		req.getPolicy().at(1, 1) = 0.9f;
@@ -58,7 +58,7 @@ namespace ag
 	}
 	TEST(TestCache, seek)
 	{
-		Cache cache(20, 1024);
+		Cache cache(4, 5, 1024);
 		for (int i = 0; i < 1000; i++)
 			cache.insert(getRandomRequest(4, 5));
 
@@ -78,7 +78,7 @@ namespace ag
 	}
 	TEST(TestCache, remove)
 	{
-		Cache cache(20, 1024);
+		Cache cache(4, 5, 1024);
 		for (int i = 0; i < 1000; i++)
 			cache.insert(getRandomRequest(4, 5));
 
@@ -91,7 +91,7 @@ namespace ag
 	}
 	TEST(TestCache, rehash)
 	{
-		Cache cache(20, 1024);
+		Cache cache(4, 5, 1024);
 		for (int i = 0; i < 1000; i++)
 			cache.insert(getRandomRequest(4, 5));
 
@@ -102,6 +102,17 @@ namespace ag
 
 		bool flag = cache.seek(req);
 		EXPECT_TRUE(flag);
+	}
+	TEST(TestCache, cleanup)
+	{
+		Cache cache(4, 5, 1024);
+		std::unique_ptr<Node[]> children_node1 = std::make_unique<Node[]>(12);
+		std::unique_ptr<Node[]> children_node2 = std::make_unique<Node[]>(5);
+		Node node1, node2;
+
+		node1.createChildren(children_node1.get(), 12);
+		node2.createChildren(children_node2.get(), 5);
+
 	}
 }
 

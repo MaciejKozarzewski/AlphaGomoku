@@ -15,15 +15,18 @@
 namespace ag
 {
 	enum class Sign;
+} /* namespace ag */
 
+namespace ag
+{
 	class ZobristHashing
 	{
 		private:
 			std::vector<uint64_t> keys;
 		public:
-			ZobristHashing(int board_size, uint64_t seed = 0);
+			ZobristHashing(int boardSize, uint64_t seed = 0);
 			uint64_t getHash(const matrix<Sign> &board, Sign signToMove) const noexcept;
 	};
-}
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_ZOBRISTHASHING_HPP_ */

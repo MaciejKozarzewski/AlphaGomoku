@@ -32,16 +32,17 @@ namespace ag
 		}
 	}
 
+	std::string toString(Sign sign);
 	Sign signFromString(const std::string &str);
-	std::string signToString(Sign sign);
+
 	std::ostream& operator<<(std::ostream &stream, Sign sign);
 	std::string operator+(const std::string &lhs, Sign rhs);
 	std::string operator+(Sign lhs, const std::string &rhs);
 
 	struct Move
 	{
-			char row = 0;
-			char col = 0;
+			int16_t row = 0;
+			int16_t col = 0;
 			Sign sign = Sign::NONE;
 
 			Move() = default;

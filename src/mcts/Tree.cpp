@@ -11,7 +11,6 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include <libml/utils/json.hpp>
 
 namespace
 {
@@ -19,7 +18,6 @@ namespace
 	Node* select_puct(Node *parent, const float exploration_constant)
 	{
 		assert(not parent->isLeaf());
-
 		int selected = -1;
 		float bestValue = -1.0f;
 		const float sqrt_visit = exploration_constant * sqrt(parent->getVisits());
@@ -36,6 +34,20 @@ namespace
 				}
 			}
 		}
+		assert(selected != -1);
+		return &(parent->getChild(selected));
+	}
+	Node* select_by_visits(Node *parent)
+	{
+		assert(not parent->isLeaf());
+		int selected = -1;
+		int max_visits = -1;
+		for (int i = 0; i < parent->numberOfChildren(); i++)
+			if (parent->getChild(i).getVisits() > max_visits)
+			{
+				selected = i;
+				max_visits = parent->getChild(i).getVisits();
+			}
 		assert(selected != -1);
 		return &(parent->getChild(selected));
 	}
@@ -69,20 +81,36 @@ namespace
 			return false;
 		return true;
 	}
-	void print_subtree(const Node &node, const int max_depth, bool sort, int top_n, int current_depth)
+	void print_subtree(const Node &node, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child = false)
 	{
 		for (int i = 0; i < current_depth - 1; i++)
-			std::cout << "|  ";
+			std::cout << "│  ";
 		if (current_depth > 0)
-			std::cout << "|--";
+		{
+			if (is_last_child)
+				std::cout << "└──";
+			else
+				std::cout << "├──";
+		}
 		std::cout << node.toString() << '\n';
 		if (node.isLeaf())
+		{
+			if (is_last_child)
+			{
+				for (int i = 0; i < current_depth - 1; i++)
+					std::cout << "│  ";
+				std::cout << '\n';
+			}
 			return;
+		}
 		if (max_depth != -1 && current_depth >= max_depth)
 		{
 			for (int i = 0; i < current_depth; i++)
-				std::cout << "|  ";
-			std::cout << "|--skipped subtree...\n";
+				std::cout << "│  ";
+			std::cout << "└──... (subtree skipped)\n";
+			for (int i = 0; i < current_depth; i++)
+				std::cout << "│  ";
+			std::cout << '\n';
 			return;
 		}
 		if (sort)
@@ -90,47 +118,26 @@ namespace
 		if (top_n == -1 || 2 * top_n >= node.numberOfChildren())
 		{
 			for (int i = 0; i < node.numberOfChildren(); i++)
-				print_subtree(node.getChild(i), max_depth, sort, top_n, current_depth + 1);
+				print_subtree(node.getChild(i), max_depth, sort, top_n, current_depth + 1, i == node.numberOfChildren() - 1);
 		}
 		else
 		{
 			for (int i = 0; i < top_n; i++)
 				print_subtree(node.getChild(i), max_depth, sort, top_n, current_depth + 1);
 			for (int i = 0; i < current_depth; i++)
-				std::cout << "|  ";
-			std::cout << "skipped " << (node.numberOfChildren() - 2 * top_n) << " nodes...\n";
+				std::cout << "│  ";
+			std::cout << "├──... (" << (node.numberOfChildren() - 2 * top_n) << " nodes skipped)\n";
 			for (int i = node.numberOfChildren() - top_n; i < node.numberOfChildren(); i++)
-				print_subtree(node.getChild(i), max_depth, sort, top_n, current_depth + 1);
+				print_subtree(node.getChild(i), max_depth, sort, top_n, current_depth + 1, i == node.numberOfChildren() - 1);
 		}
 	}
 }
 
 namespace ag
 {
-	void TreeStats::print() const
-	{
-		std::cout << "----TreeStats----" << std::endl;
-		if (nb_free > 0)
-			std::cout << "avg_used_nodes = " << nb_used_nodes / nb_free << std::endl;
-		std::cout << "max_used_nodes = " << max_used_nodes << std::endl;
-	}
-	TreeStats& TreeStats::operator+=(const TreeStats &other) noexcept
-	{
-		this->nb_used_nodes += other.nb_used_nodes;
-		this->nb_free += other.nb_free;
-		this->max_used_nodes = std::max(this->max_used_nodes, other.max_used_nodes);
-		return *this;
-	}
-
-//	TreeConfig::TreeConfig(const Json &cfg) :
-//			max_number_of_nodes(static_cast<size_t>(cfg["max_number_of_nodes"])),
-//			bucket_size(static_cast<size_t>(cfg["bucket_size"])),
-//			exploration_constant(cfg["exploration_constant"]),
-//			policy_expansion_treshold(cfg["policy_expansion_treshold"])
-//	{
-//	}
-
-	Tree::Tree()
+	Tree::Tree(int maxNumberOfNodes, int bucketSize) :
+			max_number_of_nodes(maxNumberOfNodes),
+			bucket_size(bucketSize)
 	{
 	}
 	void Tree::clear() noexcept
@@ -141,11 +148,11 @@ namespace ag
 	}
 	uint32_t Tree::allocatedNodes() const noexcept
 	{
-		return nodes.size() * config.bucket_size;
+		return nodes.size() * bucket_size;
 	}
 	uint32_t Tree::usedNodes() const noexcept
 	{
-		return current_index.first * config.bucket_size + current_index.second;
+		return current_index.first * bucket_size + current_index.second;
 	}
 	const Node& Tree::getRootNode() const noexcept
 	{
@@ -155,7 +162,11 @@ namespace ag
 	{
 		return root_node;
 	}
-	void Tree::select(SearchTrajectory &trajectory)
+	bool Tree::isRootNode(const Node *node) const noexcept
+	{
+		return node == &root_node;
+	}
+	void Tree::select(SearchTrajectory &trajectory, float explorationConstant)
 	{
 		trajectory.clear();
 		std::lock_guard<std::mutex> lock(tree_mutex);
@@ -165,7 +176,7 @@ namespace ag
 		trajectory.append(current, current->getMove());
 		while (not current->isLeaf())
 		{
-			current = select_puct(current, config.exploration_constant);
+			current = select_puct(current, explorationConstant);
 			current->applyVirtualLoss();
 			trajectory.append(current, current->getMove());
 		}
@@ -177,7 +188,7 @@ namespace ag
 		std::lock_guard<std::mutex> lock(tree_mutex);
 
 		Node *children = reserve_nodes(movesToAdd.size());
-		if (children == nullptr)
+		if (children == nullptr) // there are no nodes left in the tree
 			return;
 
 		parent.createChildren(children, movesToAdd.size());
@@ -243,8 +254,15 @@ namespace ag
 	SearchTrajectory Tree::getPrincipalVariation()
 	{
 		SearchTrajectory result;
-		select(result);
-		cancelVirtualLoss(result);
+		std::lock_guard<std::mutex> lock(tree_mutex);
+
+		Node *current = &getRootNode();
+		result.append(current, current->getMove());
+		while (not current->isLeaf())
+		{
+			current = select_by_visits(current);
+			result.append(current, current->getMove());
+		}
 		return result;
 	}
 	void Tree::printSubtree(const Node &node, int depth, bool sort, int top_n) const
@@ -255,13 +273,13 @@ namespace ag
 
 	Node* Tree::reserve_nodes(int number)
 	{
-		if (usedNodes() + number > config.max_number_of_nodes)
+		if (usedNodes() + number > max_number_of_nodes)
 			return nullptr;
 
 		if (usedNodes() + number > allocatedNodes())
-			nodes.push_back(std::make_unique<Node[]>(config.bucket_size));
+			nodes.push_back(std::make_unique<Node[]>(bucket_size));
 
-		if (current_index.second + number > config.bucket_size)
+		if (current_index.second + number > bucket_size)
 		{
 			current_index.first++;
 			current_index.second = 0;

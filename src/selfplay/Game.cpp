@@ -29,33 +29,33 @@ namespace ag
 		move = so.load<uint16_t>(offset);
 		offset += sizeof(move);
 
-		for (int i = 0; i < state.size(); i++)
-			switch (state.data()[i] & 3)
-			{
-				case 0:
-					state.data()[i] = (state.data()[i] & 65532) | static_cast<int>(Sign::CIRCLE);
-					break;
-				case 1:
-					state.data()[i] = (state.data()[i] & 65532) | static_cast<int>(Sign::NONE);
-					break;
-				case 2:
-					state.data()[i] = (state.data()[i] & 65532) | static_cast<int>(Sign::CROSS);
-					break;
-			}
-		int x = ((move >> 2) & 127) - 64;
-		int y = ((move >> 9) & 127) - 64;
-		switch (move & 3)
-		{
-			case 0:
-				move = Move::move_to_short(x, y, Sign::CIRCLE);
-				break;
-			case 1:
-				move = Move::move_to_short(x, y, Sign::NONE);
-				break;
-			case 2:
-				move = Move::move_to_short(x, y, Sign::CROSS);
-				break;
-		}
+//		for (int i = 0; i < state.size(); i++)
+//			switch (state.data()[i] & 3)
+//			{
+//				case 0:
+//					state.data()[i] = (state.data()[i] & 65532) | static_cast<int>(Sign::CIRCLE);
+//					break;
+//				case 1:
+//					state.data()[i] = (state.data()[i] & 65532) | static_cast<int>(Sign::NONE);
+//					break;
+//				case 2:
+//					state.data()[i] = (state.data()[i] & 65532) | static_cast<int>(Sign::CROSS);
+//					break;
+//			}
+//		int x = ((move >> 2) & 127) - 64;
+//		int y = ((move >> 9) & 127) - 64;
+//		switch (move & 3)
+//		{
+//			case 0:
+//				move = Move::move_to_short(x, y, Sign::CIRCLE);
+//				break;
+//			case 1:
+//				move = Move::move_to_short(x, y, Sign::NONE);
+//				break;
+//			case 2:
+//				move = Move::move_to_short(x, y, Sign::CROSS);
+//				break;
+//		}
 	}
 	GameState::GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m) :
 			minimax_value(minimax),
@@ -64,15 +64,15 @@ namespace ag
 		for (int i = 0; i < board.size(); i++)
 			state.data()[i] = (static_cast<int>(board.data()[i]) & 3) | (static_cast<int>(policy.data()[i] * 16383) << 2);
 	}
-	void GameState::copyTo(EvaluationRequest &request) const
+	void GameState::copyTo(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove) const
 	{
-		request.setSignToMove(Move::getSign(move));
+		signToMove = Move::getSign(move);
 		static const float scale = 1.0f / 16383.0f;
-		for (int i = 0; i < request.getPolicy().size(); i++)
+		for (int i = 0; i < board.size(); i++)
 		{
 			uint16_t tmp = state.data()[i];
-			request.getBoard().data()[i] = static_cast<Sign>(tmp & 3);
-			request.getPolicy().data()[i] = (tmp >> 2) * scale;
+			board.data()[i] = static_cast<Sign>(tmp & 3);
+			policy.data()[i] = (tmp >> 2) * scale;
 		}
 	}
 	void GameState::serialize(SerializedObject &binary_data) const
@@ -96,22 +96,24 @@ namespace ag
 		if (m.sign != Sign::CROSS && m.sign != Sign::CIRCLE)
 			return false;
 
-		EvaluationRequest request(state.rows(), state.cols());
-		copyTo(request);
+		matrix<Sign> board(state.rows(), state.cols());
+		matrix<float> policy(state.rows(), state.cols());
+		Sign sign_to_move;
+		copyTo(board, policy, sign_to_move);
 
 		int count_X = 0, count_O = 0, count_empty = 0;
 		for (int i = 0; i < state.rows(); i++)
 			for (int j = 0; j < state.cols(); j++)
 			{
-				if (request.getBoard().at(i, j) < Sign::CIRCLE || request.getBoard().at(i, j) > Sign::CROSS)
+				if (board.at(i, j) < Sign::CIRCLE || board.at(i, j) > Sign::CROSS)
 					return false;
-				if (request.getBoard().at(i, j) == Sign::NONE)
+				if (board.at(i, j) == Sign::NONE)
 					count_empty++;
 				else
 				{
-					if (request.getBoard().at(i, j) == Sign::CROSS)
+					if (board.at(i, j) == Sign::CROSS)
 						count_X++;
-					if (request.getBoard().at(i, j) == Sign::CIRCLE)
+					if (board.at(i, j) == Sign::CIRCLE)
 						count_O++;
 				}
 			}
@@ -124,32 +126,32 @@ namespace ag
 		for (int i = 0; i < state.rows(); i++)
 			for (int j = 0; j < state.cols(); j++)
 			{
-				if (request.getPolicy().at(i, j) < 0.0f || request.getPolicy().at(i, j) > 1.0f)
+				if (policy.at(i, j) < 0.0f || policy.at(i, j) > 1.0f)
 					return false;
-				policy_sum += request.getPolicy().at(i, j);
+				policy_sum += policy.at(i, j);
 			}
 		if (abs(policy_sum - 1.0f) > 0.1f)
 			return false;
 
 		for (int i = 0; i < state.rows(); i++)
 			for (int j = 0; j < state.cols(); j++)
-				if (request.getBoard().at(i, j) != Sign::NONE && request.getPolicy().at(i, j) != 0.0)
+				if (board.at(i, j) != Sign::NONE && policy.at(i, j) != 0.0)
 				{
-					std::cout << i << "," << j << " " << request.getBoard().at(i, j) << " " << request.getPolicy().at(i, j) << std::endl;
-					std::cout << policyToString(request.getBoard(), request.getPolicy()) << '\n';
-					request.getBoard().clear();
-					std::cout << boardToString(request.getBoard()) << '\n';
+					std::cout << i << "," << j << " " << board.at(i, j) << " " << policy.at(i, j) << std::endl;
+					std::cout << policyToString(board, policy) << '\n';
+					board.clear();
+					std::cout << boardToString(board) << '\n';
 					return false;
 				}
 
 		return true;
 	}
 
-	Game::Game(GameRules rules, int rows, int cols) :
+	Game::Game(const GameConfig &config) :
 			states(),
-			current_board(rows, cols),
+			current_board(config.rows, config.cols),
 			use_count(current_board.size(), 0),
-			rules(rules)
+			rules(config.rules)
 	{
 	}
 	Game::Game(const Json &json, const SerializedObject &binary_data) :
@@ -160,7 +162,6 @@ namespace ag
 	{
 		size_t offset = json["binary_offset"];
 		size_t nb_of_states = json["nb_of_states"];
-		std::cout << offset << " " << nb_of_states << std::endl;
 		for (size_t i = 0; i < nb_of_states; i++)
 			states.push_back(GameState(binary_data, offset));
 	}
@@ -199,47 +200,46 @@ namespace ag
 		for (int i = 0; i < nb_of_states; i++)
 			states.push_back(GameState(so, offset));
 	}
+	int Game::rows() const noexcept
+	{
+		return current_board.rows();
+	}
+	int Game::cols() const noexcept
+	{
+		return current_board.cols();
+	}
 	int Game::length() const noexcept
 	{
 		return states.size();
 	}
-	void Game::beginGame()
+	void Game::beginGame(Sign signToMove)
 	{
 		states.clear();
 		use_count.clear();
 		current_board.clear();
 		outcome = GameOutcome::UNKNOWN;
 		states.clear();
-		if (randBool())
-			sign_to_move = Sign::CROSS;
+		sign_to_move = signToMove;
+	}
+	Sign Game::getSignToMove() const noexcept
+	{
+		return sign_to_move;
+	}
+	Move Game::getLastMove() const noexcept
+	{
+		if (length() == 0)
+			return Move(0, 0, invertSign(sign_to_move));
 		else
-			sign_to_move = Sign::CIRCLE;
+			return Move(states.back().move);
+	}
+	const matrix<Sign>& Game::getBoard() const noexcept
+	{
+		return current_board;
 	}
 	void Game::setBoard(const matrix<Sign> &other, Sign signToMove)
 	{
 		this->current_board = other;
 		this->sign_to_move = signToMove;
-	}
-	bool Game::prepareOpening()
-	{
-		matrix<float> map_dist(current_board.rows(), current_board.cols());
-		bool flag = true;
-		int opening_moves = 0;
-		while (flag)
-		{
-			current_board.clear();
-			opening_moves = randInt(6) + randInt(6) + randInt(6);
-			for (int i = 0; i < opening_moves; i++)
-			{
-				generateOpeningMap(current_board, map_dist);
-				Move move = randomizeMove(map_dist);
-				assert(current_board.at(move.row, move.col) == Sign::NONE);
-				current_board.at(move.row, move.col) = sign_to_move;
-				sign_to_move = invertSign(sign_to_move);
-			}
-			flag = isOver();
-		}
-		return (opening_moves > 1);
 	}
 	void Game::makeMove(Move move, const matrix<float> &policy, float minimax)
 	{
@@ -261,11 +261,15 @@ namespace ag
 	}
 	bool Game::isOver() const
 	{
-//		return isGameOver(rules, current_board);
+		return ag::getOutcome(rules, current_board) != GameOutcome::UNKNOWN;
 	}
 	bool Game::isDraw() const
 	{
 		return isBoardFull(current_board);
+	}
+	GameOutcome Game::getOutcome() const noexcept
+	{
+		return outcome;
 	}
 
 	bool Game::isCorrect() const
@@ -277,24 +281,22 @@ namespace ag
 				return false;
 		return true;
 	}
-	int Game::getNumberOfSamples() const
+	int Game::getNumberOfSamples() const noexcept
 	{
 		return states.size();
 	}
-//	void Game::getSample(NNRequest &request, int index)
-//	{
-//		if (index == -1)
-//			//			index = ml::randInt(states.size());
-//			index = randomizeState();
-//		use_count[index]++;
-//		request.clear();
-//		request.value = outcome;
-//		states[index]->fill(request);
-//		request.is_ready = true;
-//	}
+	void Game::getSample(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove, GameOutcome &gameOutcome, int index)
+	{
+		if (index == -1)
+			index = randomizeState();
+		use_count[index]++;
+
+		states[index].copyTo(board, policy, signToMove);
+		gameOutcome = outcome;
+	}
 	int Game::randomizeState()
 	{
-		float min = use_count[0] + randFloat();
+		float min = use_count[0] + 1.0f;
 		int idx = 0;
 		for (size_t i = 1; i < states.size(); i++)
 		{
@@ -310,31 +312,14 @@ namespace ag
 
 	void Game::printSample(int index) const
 	{
-		EvaluationRequest req(current_board.rows(), current_board.cols());
-		states[index].copyTo(req);
+		matrix<Sign> board(current_board.rows(), current_board.cols());
+		matrix<float> policy(current_board.rows(), current_board.cols());
+		Sign sign_to_move;
+		states[index].copyTo(board, policy, sign_to_move);
 		std::cout << "now moving " << Move(states[index].move).toString() << std::endl;
 		std::cout << "minimax " << 1.0f - states[index].minimax_value << std::endl;
 		std::cout << "outcome " << outcomeToString(outcome) << std::endl;
-		std::cout << policyToString(req.getBoard(), req.getPolicy());
-	}
-
-	Json Game::saveOpening() const
-	{
-//		SerializedObject so;
-//		so.save<int>(sign_to_move);
-//		so += current_board.serialize();
-//		return so;
-	}
-	void Game::loadOpening(SerializedObject &so, bool invert_color)
-	{
-//		sign_to_move = so.load<int>();
-//		current_board = Array2D<char>(so);
-//		if (invert_color)
-//		{
-//			sign_to_move = -sign_to_move;
-//			for (int i = 0; i < current_board.size(); i++)
-//				current_board.data()[i] = -current_board.data()[i];
-//		}
+		std::cout << policyToString(board, policy);
 	}
 
 	Json Game::serialize(SerializedObject &binary_data) const

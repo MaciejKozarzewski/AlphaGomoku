@@ -10,19 +10,7 @@
 
 namespace ag
 {
-	Sign signFromString(const std::string &str)
-	{
-		if (str == "CROSS")
-			return Sign::CROSS;
-		else
-		{
-			if (str == "CIRCLE")
-				return Sign::CIRCLE;
-			else
-				return Sign::NONE;
-		}
-	}
-	std::string signToString(Sign sign)
+	std::string toString(Sign sign)
 	{
 		switch (sign)
 		{
@@ -35,18 +23,31 @@ namespace ag
 				return "CIRCLE";
 		}
 	}
+	Sign signFromString(const std::string &str)
+	{
+		if (str == "CROSS")
+			return Sign::CROSS;
+		else
+		{
+			if (str == "CIRCLE")
+				return Sign::CIRCLE;
+			else
+				return Sign::NONE;
+		}
+	}
+
 	std::ostream& operator<<(std::ostream &stream, Sign sign)
 	{
-		stream << signToString(sign);
+		stream << ag::toString(sign);
 		return stream;
 	}
 	std::string operator+(const std::string &lhs, Sign rhs)
 	{
-		return lhs + signToString(rhs);
+		return lhs + ag::toString(rhs);
 	}
 	std::string operator+(Sign lhs, const std::string &rhs)
 	{
-		return signToString(lhs) + rhs;
+		return ag::toString(lhs) + rhs;
 	}
 
 	Move::Move(const Json &json) :
@@ -57,18 +58,18 @@ namespace ag
 	}
 	std::string Move::toString() const
 	{
-		std::string result = signToString(sign) + " (";
+		std::string result = ag::toString(sign) + " (";
 		if (row < 10)
 			result += ' ';
-		result += std::to_string((int) row) + ',';
-		if (row < 10)
+		result += std::to_string(row) + ',';
+		if (col < 10)
 			result += ' ';
-		result += std::to_string((int) col) + ')';
+		result += std::to_string(col) + ')';
 		return result;
 	}
 	Json Move::serialize() const
 	{
-		return Json( { { "row", row }, { "col", col }, { "sign", signToString(sign) } });
+		return Json( { { "row", row }, { "col", col }, { "sign", ag::toString(sign) } });
 	}
 }
 

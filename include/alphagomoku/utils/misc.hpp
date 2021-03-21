@@ -10,10 +10,20 @@
 
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/mcts/Node.hpp>
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <string>
+#include <chrono>
+
+namespace ag
+{
+	enum class GameRules
+	;
+	enum class GameOutcome
+	;
+}
 
 namespace ag
 {
@@ -26,6 +36,8 @@ namespace ag
 	uint64_t randLong();
 	bool randBool();
 
+	double getTime();
+
 	bool isBoardFull(const matrix<Sign> &board);
 	bool isBoardEmpty(const matrix<Sign> &board);
 
@@ -35,13 +47,13 @@ namespace ag
 
 	int parseLine(char *line);
 	std::string spaces(int number);
-	void print_statistics(const char *name, long number, double time);
+	std::string printStatistics(const char *name, uint64_t number, double time);
 
 	template<typename T>
 	void addVectors(std::vector<T> &dst, const std::vector<T> &src)
 	{
 		assert(dst.size() == src.size());
-		for (int i = 0; i < dst.size(); i++)
+		for (size_t i = 0; i < dst.size(); i++)
 			dst[i] += src[i];
 	}
 
@@ -50,7 +62,8 @@ namespace ag
 
 	void scaleArray(matrix<float> &array, float scale);
 
-	float convertOutcome(int outcome, int signToMove);
+	float convertOutcome(GameOutcome outcome, Sign signToMove);
+	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove);
 	void averageStats(std::vector<float> &stats);
 
 	const std::string currentDateTime();
@@ -70,8 +83,9 @@ namespace ag
 	std::vector<int> permutation(int length);
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
+	Sign prepareOpening(GameRules rules, matrix<Sign> &board);
 
-	void encodeInputTensor(float* dst, const matrix<Sign> &board, Sign signToMove);
+	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove);
 
 } /* namespace ag */
 

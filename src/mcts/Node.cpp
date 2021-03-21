@@ -14,11 +14,28 @@
 
 namespace ag
 {
+	std::string toString(ProvenValue pv)
+	{
+		switch (pv)
+		{
+			default:
+			case ProvenValue::UNKNOWN:
+				return "UNKNOWN";
+			case ProvenValue::WIN:
+				return "WIN";
+			case ProvenValue::LOSS:
+				return "LOSS";
+			case ProvenValue::DRAW:
+				return "DRAW";
+		}
+	}
+
 	std::string Node::toString() const
 	{
 		std::string result = Move(getMove()).toString() + " : ";
 		switch (getProvenValue())
 		{
+			default:
 			case ProvenValue::UNKNOWN:
 				result += 'U';
 				break;

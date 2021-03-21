@@ -8,57 +8,103 @@
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
 
+#include <math.h>
+#include <iostream>
+
 namespace ag
 {
-	Cache::Entry::Entry(int board_size) :
-			data(std::make_unique<uint16_t[]>(board_size))
+	Cache::Entry::Entry(int boardSize) :
+			data(std::make_unique<uint16_t[]>(boardSize))
 	{
+		clearTranspositions();
 	}
 	void Cache::Entry::copyTo(EvaluationRequest &request) const noexcept
 	{
-		static const float tmp = 1.0f / 16383;
-		request.setValue(this->value);
+		const float tmp = 1.0f / 16383;
+		request.setReady();
+		request.setValue(value);
+		request.setProvenValue(proven_value);
 		for (int i = 0; i < request.getPolicy().size(); i++)
 			request.getPolicy().data()[i] = (data[i] >> 2) * tmp;
 	}
-	void Cache::Entry::copyFrom(const EvaluationRequest &request, uint64_t board_hash) noexcept
+	void Cache::Entry::copyFrom(const EvaluationRequest &request, uint64_t boardHash) noexcept
 	{
-		this->hash = board_hash;
-		this->value = request.getValue();
+		clearTranspositions();
+		addTransposition(request.getNode());
+		hash = boardHash;
+		proven_value = ProvenValue::UNKNOWN;
+		value = request.getValue();
 		for (int i = 0; i < request.getPolicy().size(); i++)
-			data[i] = static_cast<int>(request.getBoard().data()[i]) + (static_cast<int>(request.getPolicy().data()[i] * 16383.0f) << 2);
+			data[i] = static_cast<int>(request.getBoard().data()[i]) | (static_cast<int>(request.getPolicy().data()[i] * 16383.0f) << 2);
 	}
 	void Cache::Entry::addTransposition(Node *node) noexcept
 	{
-		if (stored_transpositions < max_number_of_transpositions)
-		{
-			bool is_already_stored = false;
-			for (int i = 0; i < stored_transpositions; i++)
-				if (transpositions[i] == node)
-				{
-					is_already_stored = true;
-					break;
-				}
-			if (is_already_stored == false)
-			{
-				transpositions[stored_transpositions] = node;
-				stored_transpositions++;
-			}
-		}
+		if (stored_transpositions >= max_number_of_transpositions || node == nullptr)
+			return;
+		for (int i = 0; i < stored_transpositions; i++)
+			if (transpositions[i] == node)
+				return;
+		transpositions[stored_transpositions] = node;
+		stored_transpositions++;
+		if (proven_value == ProvenValue::UNKNOWN)
+			proven_value = node->getProvenValue(); // TODO potentially unsafe (lack of synchronization with the node)
 	}
-	bool Cache::Entry::isPossible(const matrix<Sign> &new_board) const noexcept
+	bool Cache::Entry::isPossible(const matrix<Sign> &newBoard) const noexcept
 	{
-		const int length = new_board.size();
-		for (int i = 0; i < length; i++)
-			if (static_cast<Sign>(data[i] & 3) != new_board.data()[i] && new_board.data()[i] != Sign::NONE)
+		for (int i = 0; i < newBoard.size(); i++)
+			if (static_cast<Sign>(data[i] & 3) != newBoard.data()[i] && newBoard.data()[i] != Sign::NONE)
 				return false;
 		return true;
 	}
+	void Cache::Entry::update(int visitTreshold, matrix<int> &workspace)
+	{
+		if (stored_transpositions == 0)
+			return;
 
-	Cache::Cache(int boardSize, int nb_of_bins) :
-			hashing(boardSize),
-			bins(nb_of_bins, nullptr),
-			board_size(boardSize)
+		int total_visits = 0;
+		double total_wins = 0.0;
+		for (int i = 0; i < stored_transpositions; i++)
+		{
+			assert(transpositions[i] != nullptr);
+			total_visits += transpositions[i]->getVisits();
+			total_wins += static_cast<double>(transpositions[i]->getValue()) * transpositions[i]->getVisits();
+			if (proven_value == ProvenValue::UNKNOWN)
+				proven_value = transpositions[i]->getProvenValue();
+		}
+		this->value = total_wins / total_visits;
+
+		if (total_visits >= visitTreshold)
+		{
+			total_visits = 0;
+			workspace.clear();
+			for (int i = 0; i < stored_transpositions; i++)
+				for (int j = 0; j < transpositions[i]->numberOfChildren(); j++)
+				{
+					uint16_t move = transpositions[i]->getChild(j).getMove();
+					workspace.at(Move::getRow(move), Move::getCol(move)) += transpositions[i]->getChild(j).getVisits();
+					total_visits += transpositions[i]->getChild(j).getVisits();
+				}
+
+			const float weight = (total_visits > 1024 * visitTreshold) ? 0.0f : std::pow(0.5f, static_cast<float>(total_visits) / visitTreshold);
+			const float scale = 16383.0f / total_visits;
+			for (int i = 0; i < workspace.size(); i++)
+			{
+				float new_policy = weight * (data[i] >> 2) + (1.0f - weight) * (workspace.data()[i] * scale);
+				data[i] = static_cast<int>(data[i] & 3) | (static_cast<int>(new_policy) << 2);
+			}
+		}
+	}
+	void Cache::Entry::clearTranspositions() noexcept
+	{
+		stored_transpositions = 0;
+		std::memset(transpositions, 0, sizeof(transpositions));
+	}
+
+	Cache::Cache(int rows, int cols, int numberOfBins) :
+			hashing(rows * cols),
+			bins(numberOfBins, nullptr),
+			rows(rows),
+			cols(cols)
 	{
 	}
 	Cache::~Cache()
@@ -75,7 +121,7 @@ namespace ag
 	uint64_t Cache::getMemory() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		return (sizeof(Entry) + sizeof(uint16_t) * board_size) * allocated_entries + sizeof(Entry*) * bins.size();
+		return (sizeof(Entry) + sizeof(uint16_t) * rows * cols) * allocated_entries + sizeof(Entry*) * bins.size();
 	}
 	int Cache::allocatedElements() const noexcept
 	{
@@ -101,6 +147,21 @@ namespace ag
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
 		return static_cast<double>(stored_entries) / bins.size();
+	}
+	int Cache::transpositionCount() const noexcept
+	{
+		std::lock_guard<std::mutex> lock(cache_mutex);
+		int result = 0;
+		for (size_t i = 0; i < bins.size(); i++)
+		{
+			Entry *current = bins[i];
+			while (current != nullptr)
+			{
+				result += current->stored_transpositions;
+				current = current->next_entry;
+			}
+		}
+		return result;
 	}
 	void Cache::clear() noexcept
 	{
@@ -129,7 +190,6 @@ namespace ag
 			{
 				current->copyTo(request);
 				current->addTransposition(request.getNode());
-				request.setReady();
 				return true;
 			}
 			current = current->next_entry;
@@ -151,12 +211,13 @@ namespace ag
 		stored_entries++;
 		assert(stored_entries + buffered_entries == allocated_entries);
 	}
-	void Cache::cleanup(const matrix<Sign> &new_board) noexcept
+	void Cache::cleanup(const matrix<Sign> &newBoard, bool updateFromSearch, int updateVisitTreshold) noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
 		if (stored_entries == 0)
 			return;
 
+		matrix<int> workspace(rows, cols);
 		for (size_t i = 0; i < bins.size(); i++)
 		{
 			Entry *current = bins[i];
@@ -164,8 +225,11 @@ namespace ag
 			while (current != nullptr)
 			{
 				Entry *next = current->next_entry;
-				if (current->isPossible(new_board))
+				if (current->isPossible(newBoard))
 				{
+					if (updateFromSearch)
+						current->update(updateVisitTreshold, workspace);
+					current->clearTranspositions();
 					current->next_entry = bins[i];
 					bins[i] = current;
 				}
@@ -196,7 +260,7 @@ namespace ag
 			current = next;
 		}
 	}
-	void Cache::rehash(int new_nb_of_bins) noexcept
+	void Cache::rehash(int newNumberOfBins) noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
 		if (stored_entries == 0)
@@ -215,7 +279,7 @@ namespace ag
 				current = next;
 			}
 		}
-		bins.resize(new_nb_of_bins, nullptr);
+		bins.resize(newNumberOfBins, nullptr);
 
 		while (tmp != nullptr)
 		{
@@ -232,7 +296,7 @@ namespace ag
 		if (buffer == nullptr)
 		{
 			allocated_entries++;
-			return new Entry(board_size);
+			return new Entry(rows * cols);
 		}
 		else
 		{
@@ -246,11 +310,6 @@ namespace ag
 			assert(stored_entries + buffered_entries == allocated_entries);
 			return result;
 		}
-	}
-	void Cache::add_to_bin(Cache::Entry *entry, size_t bin_index) noexcept
-	{
-		entry->next_entry = bins[bin_index];
-		bins[bin_index] = entry;
 	}
 	void Cache::add_to_buffer(Cache::Entry *entry) noexcept
 	{

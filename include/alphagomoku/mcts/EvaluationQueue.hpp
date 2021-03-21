@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_MCTS_EVALUATIONQUEUE_HPP_
 
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
-#include <libml/graph/Graph.hpp>
+#include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <string>
 #include <vector>
 
@@ -28,7 +28,7 @@ namespace ag
 			double time_unpack = 0.0;
 			double time_idle = 0.0;
 
-			void print() const;
+			std::string toString() const;
 			QueueStats& operator+=(const QueueStats &other);
 	};
 
@@ -36,33 +36,21 @@ namespace ag
 	{
 		private:
 			std::vector<EvaluationRequest*> request_queue;
-			ml::Graph graph;
-
-			ml::Device device;
-			std::unique_ptr<ml::Tensor> input_on_cpu;
-			std::unique_ptr<ml::Tensor> input_on_device;
-			std::unique_ptr<ml::Tensor> policy_on_cpu;
-			std::unique_ptr<ml::Tensor> value_on_cpu;
+			AGNetwork network;
 
 			QueueStats stats;
 			double idle_start = -1.0;
 
 		public:
-			EvaluationQueue(int board_size, int batch_size, ml::Device device);
-
-			ml::Device getDevice() const noexcept;
 			void clearStats() noexcept;
 			QueueStats getStats() const noexcept;
 			int getQueueSize() const noexcept;
 			void clearQueue() noexcept;
 			void loadGraph(const std::string &path);
 			void unloadGraph();
-			void addToQueue(EvaluationRequest *request);
+			void addToQueue(EvaluationRequest &request);
 			void evaluateGraph();
-		private:
-			void packToNetwork(int batch);
-			void unpackFromNetwork(int batch);
 	};
-}
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_EVALUATIONQUEUE_HPP_ */

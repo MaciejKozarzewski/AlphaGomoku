@@ -46,10 +46,6 @@ namespace ag
 	{
 		load(path);
 	}
-	GameBuffer::GameBuffer(int boardSize) :
-			board_size(boardSize)
-	{
-	}
 	int GameBuffer::getNumberOfSamples()
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
@@ -93,27 +89,27 @@ namespace ag
 	void GameBuffer::load(const std::string &path)
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
-//		FileLoader fl(path, true);
-//		size_t size = fl.getJson().size();
-//		for (size_t i = 0; i < size; i++)
-//			buffer_data.push_back(Game(fl.getJson()[i], fl.getBinaryData()));
+		FileLoader fl(path, true);
+		size_t size = fl.getJson().size();
+		for (size_t i = 0; i < size; i++)
+			buffer_data.push_back(Game(fl.getJson()[i], fl.getBinaryData()));
 
-		size_t offset = 0;
-		SerializedObject so(path);
-		int _board_size;
-		so.load(&_board_size, offset, sizeof(int));
-		offset += sizeof(int);
-
-		if (board_size != 0 && _board_size != board_size)
-			throw std::logic_error("board size mismatch");
-		else
-			board_size = _board_size;
-
-		int size;
-		so.load(&size, offset, sizeof(int));
-		offset += sizeof(int);
-		for (int i = 0; i < size; i++)
-			buffer_data.push_back(Game(so, offset));
+//		size_t offset = 0;
+//		SerializedObject so(path);
+//		int _board_size;
+//		so.load(&_board_size, offset, sizeof(int));
+//		offset += sizeof(int);
+//
+//		if (board_size != 0 && _board_size != board_size)
+//			throw std::logic_error("board size mismatch");
+//		else
+//			board_size = _board_size;
+//
+//		int size;
+//		so.load(&size, offset, sizeof(int));
+//		offset += sizeof(int);
+//		for (int i = 0; i < size; i++)
+//			buffer_data.push_back(Game(so, offset));
 	}
 	void GameBuffer::clear()
 	{
@@ -126,21 +122,21 @@ namespace ag
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		GameBufferStats stats;
-//		stats.played_games = buffer_data.size();
-//		for (int i = 0; i < buffer_data.size(); i++)
-//		{
-//			stats.positions += buffer_data[i]->getNumberOfSamples();
-//			stats.game_length += buffer_data[i]->length();
-//			if (buffer_data[i]->getOutcome() == 0)
-//				stats.draws++;
-//			else
-//			{
-//				if (buffer_data[i]->getOutcome() == 1)
-//					stats.cross_win++;
-//				else
-//					stats.circle_win++;
-//			}
-//		}
+		stats.played_games = buffer_data.size();
+		for (size_t i = 0; i < buffer_data.size(); i++)
+		{
+			stats.positions += buffer_data[i].getNumberOfSamples();
+			stats.game_length += buffer_data[i].length();
+			if (buffer_data[i].getOutcome() == GameOutcome::DRAW)
+				stats.draws++;
+			else
+			{
+				if (buffer_data[i].getOutcome() == GameOutcome::CROSS_WIN)
+					stats.cross_win++;
+				else
+					stats.circle_win++;
+			}
+		}
 		return stats;
 	}
 	bool GameBuffer::isCorrect() const

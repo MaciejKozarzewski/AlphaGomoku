@@ -9,13 +9,13 @@
 #define ALPHAGOMOKU_SEARCH_EVALUATIONREQUEST_HPP_
 
 #include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <string>
 
 namespace ag
 {
 	class SearchTrajectory;
-	class Node;
 } /* namespace ag */
 
 namespace ag
@@ -23,29 +23,39 @@ namespace ag
 	class EvaluationRequest
 	{
 		public:
-			int augment_mode = -100;
-			Node *node = nullptr;
-			Sign sign_to_move = Sign::NONE;
-			float value = 0.0f;
-			bool is_ready = false;
 			matrix<Sign> board;
 			matrix<float> policy;
-		public:
+			Node *node = nullptr;
+			int augment_mode = -100;
+			Move last_move;
+			float value = 0.0f;
+			ProvenValue proven_value = ProvenValue::UNKNOWN;
+			bool is_ready = false;
 
+		public:
 			EvaluationRequest(int rows, int cols);
 
+			void clear() noexcept;
 			void setTrajectory(const matrix<Sign> &base_board, const SearchTrajectory &trajectory) noexcept;
 			Node* getNode() const noexcept
 			{
 				return node;
 			}
+			Move getLastMove() const noexcept
+			{
+				return last_move;
+			}
 			Sign getSignToMove() const noexcept
 			{
-				return sign_to_move;
+				return invertSign(last_move.sign);
 			}
 			float getValue() const noexcept
 			{
 				return value;
+			}
+			ProvenValue getProvenValue() const noexcept
+			{
+				return proven_value;
 			}
 			bool isReady() const noexcept
 			{
@@ -72,11 +82,25 @@ namespace ag
 			{
 				is_ready = true;
 			}
-			void setPolicy(const float *p) noexcept;
-			void setValue(float v) noexcept;
-			void setSignToMove(Sign sign) noexcept
+			void setBoard(const matrix<Sign> &other) noexcept
 			{
-				sign_to_move = sign;
+				this->board.copyFrom(other);
+			}
+			void setPolicy(const float *p) noexcept
+			{
+				std::memcpy(policy.data(), p, policy.sizeInBytes());
+			}
+			void setValue(float v) noexcept
+			{
+				value = v;
+			}
+			void setProvenValue(ProvenValue pv) noexcept
+			{
+				proven_value = pv;
+			}
+			void setLastMove(Move move) noexcept
+			{
+				last_move = move;
 			}
 			std::string toString() const;
 			void augment() noexcept;

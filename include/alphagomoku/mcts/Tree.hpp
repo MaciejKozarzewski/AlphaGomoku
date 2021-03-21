@@ -18,7 +18,6 @@
 #include <utility>
 #include <vector>
 
-class Json;
 namespace ag
 {
 	class SearchTrajectory;
@@ -26,24 +25,6 @@ namespace ag
 
 namespace ag
 {
-	struct TreeStats
-	{
-			int64_t nb_used_nodes = 0;
-			int64_t max_used_nodes = 0;
-			int64_t nb_free = 0;
-
-			void print() const;
-			TreeStats& operator+=(const TreeStats &other) noexcept;
-	};
-
-	struct TreeConfig
-	{
-			uint32_t max_number_of_nodes = (1 << 20);
-			uint32_t bucket_size = (1 << 10);
-			float exploration_constant = 1.25f;
-			float expansion_policy_treshold = 0.0f;
-	};
-
 	class Tree
 	{
 		private:
@@ -51,12 +32,12 @@ namespace ag
 			std::pair<uint32_t, uint32_t> current_index { 0, 0 };
 			mutable std::mutex tree_mutex;
 			Node root_node;
-			TreeConfig config;
+
+			uint32_t max_number_of_nodes;
+			uint32_t bucket_size;
 
 		public:
-			TreeStats stats;
-
-			Tree();
+			Tree(int maxNumberOfNodes, int bucketSize);
 
 			void clear() noexcept;
 			uint32_t allocatedNodes() const noexcept;
@@ -64,7 +45,8 @@ namespace ag
 
 			const Node& getRootNode() const noexcept;
 			Node& getRootNode() noexcept;
-			void select(SearchTrajectory &trajectory);
+			bool isRootNode(const Node *node) const noexcept;
+			void select(SearchTrajectory &trajectory, float explorationConstant = 1.25f);
 			void expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
 			void backup(SearchTrajectory &trajectory, float value, ProvenValue provenValue);
 			void cancelVirtualLoss(SearchTrajectory &trajectory);

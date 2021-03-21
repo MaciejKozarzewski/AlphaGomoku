@@ -10,6 +10,7 @@
 
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
+#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <inttypes.h>
 #include <memory>
@@ -19,12 +20,10 @@
 namespace ag
 {
 	class EvaluationRequest;
-	class Node;
 } /* namespace ag */
 
 namespace ag
 {
-
 	class Cache
 	{
 		private:
@@ -32,52 +31,60 @@ namespace ag
 			{
 					static const int max_number_of_transpositions = 10;
 
-					Node *transpositions[max_number_of_transpositions];
-					int stored_transpositions = 0;
-					float value = 0.0f;
+					Node *transpositions[max_number_of_transpositions]; // non-owning
+					Entry *next_entry = nullptr; // non-owning
 					std::unique_ptr<uint16_t[]> data;
 					uint64_t hash = 0;
-					Entry *next_entry = nullptr;
+					float value = 0.0f;
+					ProvenValue proven_value = ProvenValue::UNKNOWN;
+					int stored_transpositions = 0;
 
-					Entry(int board_size);
+					Entry(int boardSize);
 					void copyTo(EvaluationRequest &request) const noexcept;
-					void copyFrom(const EvaluationRequest &request, uint64_t board_hash) noexcept;
+					void copyFrom(const EvaluationRequest &request, uint64_t boardHash) noexcept;
 					void addTransposition(Node *node) noexcept;
-					bool isPossible(const matrix<Sign> &new_board) const noexcept;
+					bool isPossible(const matrix<Sign> &newBoard) const noexcept;
+					void update(int visitTreshold, matrix<int> &workspace);
+					void clearTranspositions() noexcept;
 			};
 
 			ZobristHashing hashing;
-			std::vector<Entry*> bins;
+			std::vector<Entry*> bins; // non-owning
+			mutable std::mutex cache_mutex;
+			Entry *buffer = nullptr; // non-owning
 
 			int allocated_entries = 0;
 			int stored_entries = 0;
 			int buffered_entries = 0;
 
-			int board_size;
-			Entry *buffer = nullptr;
-			mutable std::mutex cache_mutex;
+			int rows, cols;
 		public:
 
-			Cache(int boardSize, int nb_of_bins);
+			Cache(int rows, int cols, int numberOfBins);
+			Cache(const Cache &other) = delete;
+			Cache& operator=(const Cache &other) = delete;
+			Cache(Cache &&other) = delete;
+			Cache& operator=(Cache &&other) = delete;
 			~Cache();
+
 			uint64_t getMemory() const noexcept;
 			int allocatedElements() const noexcept;
 			int storedElements() const noexcept;
 			int bufferedElements() const noexcept;
 			int numberOfBins() const noexcept;
 			double loadFactor() const noexcept;
+			int transpositionCount() const noexcept;
 			void clear() noexcept;
 			bool seek(EvaluationRequest &request) const noexcept;
 			void insert(const EvaluationRequest &request);
-			void cleanup(const matrix<Sign> &new_board) noexcept;
+			void cleanup(const matrix<Sign> &newBoard, bool updateFromSearch = false, int updateVisitTreshold = 10) noexcept;
 			void remove(const matrix<Sign> &board, Sign signToMove) noexcept;
-			void rehash(int new_nb_of_bins) noexcept;
+			void rehash(int newNumberOfBins) noexcept;
 		private:
 			Cache::Entry* get_new_entry();
-			void add_to_bin(Cache::Entry *entry, size_t bin_index) noexcept;
 			void add_to_buffer(Cache::Entry *entry) noexcept;
 	};
 
-}
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_CACHE_HPP_ */

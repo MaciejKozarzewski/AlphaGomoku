@@ -21,6 +21,8 @@ namespace ag
 		UNKNOWN, WIN, LOSS, DRAW
 	};
 
+	std::string toString(ProvenValue pv);
+
 	class Node
 	{
 		private:

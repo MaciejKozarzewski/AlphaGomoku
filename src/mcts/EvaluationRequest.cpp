@@ -17,12 +17,25 @@ namespace ag
 			policy(rows, cols)
 	{
 	}
+	void EvaluationRequest::clear() noexcept
+	{
+		board.clear();
+		policy.clear();
+		node = nullptr;
+		augment_mode = -100;
+		last_move = Move();
+		value = 0.0f;
+		proven_value = ProvenValue::UNKNOWN;
+		is_ready = false;
+
+	}
 	void EvaluationRequest::setTrajectory(const matrix<Sign> &base_board, const SearchTrajectory &trajectory) noexcept
 	{
 		augment_mode = -100;
 		node = &(trajectory.getLeafNode());
-		sign_to_move = invertSign(trajectory.getLastMove().sign);
+		last_move = trajectory.getLastMove();
 		value = 0.0f;
+		proven_value = ProvenValue::UNKNOWN;
 		is_ready = false;
 		board.copyFrom(base_board);
 		policy.clear();
@@ -33,21 +46,16 @@ namespace ag
 		}
 	}
 
-	void EvaluationRequest::setPolicy(const float *p) noexcept
-	{
-		std::memcpy(policy.data(), p, policy.sizeInBytes());
-	}
-	void EvaluationRequest::setValue(float v) noexcept
-	{
-		value = v;
-	}
 	std::string EvaluationRequest::toString() const
 	{
 		std::string result;
-		result += "sign = " + sign_to_move + '\n';
+		result += "sign = " + getSignToMove() + '\n';
 		if (is_ready)
 		{
-			result += "value = " + std::to_string(value) + '\n';
+			result += "value = " + std::to_string(value);
+			if (proven_value != ProvenValue::UNKNOWN)
+				result += " : proven " + ag::toString(proven_value);
+			result += '\n';
 			result += policyToString(board, policy);
 		}
 		else

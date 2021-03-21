@@ -23,6 +23,13 @@ namespace ag
 
 namespace ag
 {
+	struct GameConfig
+	{
+			GameRules rules;
+			int rows;
+			int cols;
+	};
+
 	struct GameState
 	{
 			matrix<uint16_t> state;
@@ -31,7 +38,7 @@ namespace ag
 
 			GameState(const SerializedObject &so, size_t &offset);
 			GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m);
-			void copyTo(EvaluationRequest &request) const;
+			void copyTo(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove) const;
 			void serialize(SerializedObject &binary_data) const;
 			bool isCorrect() const noexcept;
 	};
@@ -47,40 +54,29 @@ namespace ag
 			GameOutcome outcome = GameOutcome::UNKNOWN;
 
 		public:
-			Game(GameRules rules, int rows, int cols);
+			Game(const GameConfig &config);
 			Game(const Json &json, const SerializedObject &binary_data);
 			Game(const SerializedObject &so, size_t &offset);
 
+			int rows() const noexcept;
+			int cols() const noexcept;
 			int length() const noexcept;
-			void beginGame();
-			Sign getSignToMove() const noexcept
-			{
-				return sign_to_move;
-			}
-			const matrix<Sign>& getBoard() const noexcept
-			{
-				return current_board;
-			}
+			void beginGame(Sign signToMove);
+			Sign getSignToMove() const noexcept;
+			Move getLastMove() const noexcept;
+			const matrix<Sign>& getBoard() const noexcept;
 			void setBoard(const matrix<Sign> &other, Sign signToMove);
-			bool prepareOpening();
 			void makeMove(Move move, const matrix<float> &policy, float minimax);
 			void resolveOutcome();
 			bool isOver() const;
 			bool isDraw() const;
-			GameOutcome getOutcome() const noexcept
-			{
-				return outcome;
-			}
+			GameOutcome getOutcome() const noexcept;
 
 			bool isCorrect() const;
-
-			int getNumberOfSamples() const;
-//			void getSample(NNRequest &request, int index = -1);
+			int getNumberOfSamples() const noexcept;
+			void getSample(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove, GameOutcome &gameOutcome, int index = -1);
 			int randomizeState();
 			void printSample(int index) const;
-
-			Json saveOpening() const;
-			void loadOpening(SerializedObject &so, bool invert_color);
 
 			Json serialize(SerializedObject &binary_data) const;
 	};

@@ -5,17 +5,14 @@
  *      Author: maciek
  */
 
+#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/misc.hpp>
-#include <bits/stdint-intn.h>
-#include <bits/stdint-uintn.h>
-#include <bits/types/struct_tm.h>
-#include <bits/types/time_t.h>
-#include <stddef.h>
+#include <inttypes.h>
 #include <chrono>
 #include <cmath>
-#include <ctime>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <numeric>
 #include <random>
 #include <vector>
 
@@ -78,8 +75,15 @@ namespace ag
 		return (get_random_int32() & 1) == 0;
 	}
 
+	double getTime()
+	{
+		return std::chrono::system_clock::now().time_since_epoch().count() * 1.0e-9;
+	}
+
 	bool isBoardFull(const matrix<Sign> &board)
 	{
+//		return std::any_of(board.begin(), board.end(), [](Sign s)
+//		{	return s == Sign::NONE;});
 		for (int i = 0; i < board.size(); i++)
 			if (board.data()[i] == Sign::NONE)
 				return false;
@@ -160,6 +164,8 @@ namespace ag
 	}
 	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy, const Move &lastMove)
 	{
+		assert(board.rows() == policy.rows());
+		assert(board.cols() == policy.cols());
 		std::string result;
 		for (int i = 0; i < board.rows(); i++)
 		{
@@ -223,14 +229,10 @@ namespace ag
 		//TODO
 		return "";
 	}
-	void print_statistics(const char *name, long number, double time)
+	std::string printStatistics(const char *name, uint64_t number, double time)
 	{
-		if (number == 0)
-		{
-			std::cout << name << " = " << time << "s" << std::endl;
-			return;
-		}
-		double t = time / number;
+		std::string result(name);
+		double t = (number == 0) ? 0.0 : time / number;
 		char unit = ' ';
 		if (t < 1.0e-3)
 		{
@@ -245,50 +247,64 @@ namespace ag
 				unit = 'm';
 			}
 		}
-		std::cout << name << " = " << time << "s : " << (float) t << " " << unit << "s" << std::endl;
+		return result + " = " + std::to_string(time) + "s : " + std::to_string(number) + " : " + std::to_string(t) + ' ' + unit + "s\n";
 	}
 
 	void maskIllegalMoves(const matrix<Sign> &board, matrix<float> &policy)
 	{
+		assert(board.rows() == policy.rows());
+		assert(board.cols() == policy.cols());
 		int count = 0;
 		float sum = 0.0f;
 		for (int i = 0; i < board.size(); i++)
-			if (board.data()[i] != Sign::NONE)
-				policy.data()[i] = 0.0f;
-			else
+			if (board.data()[i] == Sign::NONE)
 			{
 				count++;
 				sum += policy.data()[i];
 			}
+			else
+				policy.data()[i] = 0.0f;
+
 		if (sum == 0.0f)
-			std::fill(policy.begin(), policy.end(), 1.0f / count);
+		{
+			sum = 1.0f / count;
+			for (int i = 0; i < board.size(); i++)
+				if (board.data()[i] == Sign::NONE)
+					policy.data()[i] = sum;
+		}
 		else
 		{
 			sum = 1.0f / sum;
-			for (int i = 0; i < board.size(); i++)
+			for (int i = 0; i < policy.size(); i++)
 				policy.data()[i] *= sum;
 		}
 	}
 	void addNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight)
 	{
+		assert(board.rows() == policy.rows());
+		assert(board.cols() == policy.cols());
 		if (noiseWeight == 0.0f)
 			return;
 
 		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
 		const float range = 1.0f / generator.max();
 
-		std::vector<float> noise(policy.size());
+		std::vector<float> noise;
+		noise.reserve(policy.size());
 		float sum = 0.0f;
-		for (size_t i = 0; i < noise.size(); i++)
+		for (int i = 0; i < policy.size(); i++)
 			if (board.data()[i] == Sign::NONE)
 			{
-				noise[i] = pow(generator() * range, 4) * (1.0f - sum);
-				sum += noise[i];
+				noise.push_back(pow(generator() * range, 4) * (1.0f - sum));
+				sum += noise.back();
 			}
 		std::random_shuffle(noise.begin(), noise.end());
-		for (size_t i = 0; i < noise.size(); i++)
+		for (int i = 0, k = 0; i < board.size(); i++)
 			if (board.data()[i] == Sign::NONE)
-				policy.data()[i] = (1.0f - noiseWeight) * policy.data()[i] + noiseWeight * noise[i];
+			{
+				policy.data()[i] = (1.0f - noiseWeight) * policy.data()[i] + noiseWeight * noise[k];
+				k++;
+			}
 	}
 
 	void scaleArray(matrix<float> &array, float scale)
@@ -297,17 +313,26 @@ namespace ag
 			array.data()[i] *= scale;
 	}
 
-	float convertOutcome(Sign outcome, Sign signToMove)
+	float convertOutcome(GameOutcome outcome, Sign signToMove)
 	{
-		if (outcome == Sign::NONE)
+		assert(outcome != GameOutcome::UNKNOWN);
+		if (outcome == GameOutcome::DRAW)
 			return 0.5f;
+		if ((outcome == GameOutcome::CROSS_WIN && signToMove == Sign::CROSS) || (outcome == GameOutcome::CIRCLE_WIN && signToMove == Sign::CIRCLE))
+			return 1.0f;
 		else
-		{
-			if (outcome == signToMove)
-				return 1.0f;
-			else
-				return 0.0f;
-		}
+			return 0.0f;
+	}
+	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove)
+	{
+		if (outcome == GameOutcome::UNKNOWN)
+			return ProvenValue::UNKNOWN;
+		if (outcome == GameOutcome::DRAW)
+			return ProvenValue::DRAW;
+		if ((outcome == GameOutcome::CROSS_WIN && signToMove == Sign::CROSS) || (outcome == GameOutcome::CIRCLE_WIN && signToMove == Sign::CIRCLE))
+			return ProvenValue::WIN;
+		else
+			return ProvenValue::LOSS;
 	}
 	void averageStats(std::vector<float> &stats)
 	{
@@ -350,8 +375,7 @@ namespace ag
 	Move randomizeMove(const matrix<float> &policy)
 	{
 		float r = std::accumulate(policy.begin(), policy.end(), 0.0f);
-
-		if (r == 0.0f)		//special case when policy is completely zero, assumes empty board
+		if (r == 0.0f) // special case when policy is completely zero, assumes empty board
 		{
 			int k = randInt(policy.size());
 			return Move(k / policy.rows(), k % policy.rows());
@@ -394,6 +418,8 @@ namespace ag
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist)
 	{
+		assert(board.rows() == dist.rows());
+		assert(board.cols() == dist.cols());
 		if (isBoardEmpty(board))
 		{
 			for (int i = 0; i < board.rows(); i++)
@@ -424,6 +450,28 @@ namespace ag
 								dist.at(i, j) += pow(tmp, -d);
 							}
 				}
+	}
+	Sign prepareOpening(GameRules rules, matrix<Sign> &board)
+	{
+		Sign sign_to_move = randBool() ? Sign::CROSS : Sign::CIRCLE;
+		matrix<float> map_dist(board.rows(), board.cols());
+		bool flag = true;
+		int opening_moves = 0;
+		while (flag)
+		{
+			board.clear();
+			opening_moves = randInt(6) + randInt(6) + randInt(6);
+			for (int i = 0; i < opening_moves; i++)
+			{
+				generateOpeningMap(board, map_dist);
+				Move move = randomizeMove(map_dist);
+				assert(board.at(move.row, move.col) == Sign::NONE);
+				board.at(move.row, move.col) = sign_to_move;
+				sign_to_move = invertSign(sign_to_move);
+			}
+			flag = getOutcome(rules, board) != GameOutcome::UNKNOWN;
+		}
+		return sign_to_move;
 	}
 
 	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove)
