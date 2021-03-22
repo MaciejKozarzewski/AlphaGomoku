@@ -103,63 +103,113 @@ void test_train()
 
 int main()
 {
-	Tree tree(5000000, 100000);
-	Cache cache(15, 15, 8192);
+	GameConfig game_config;
+	game_config.rules = GameRules::STANDARD;
+	game_config.rows = 15;
+	game_config.cols = 15;
+
+	TreeConfig tree_config;
+	Tree tree(tree_config);
+
+	CacheConfig cache_config;
+	Cache cache(game_config, cache_config);
+
 	EvaluationQueue queue;
-	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin");
+	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 32, ml::Device::cuda(0));
 
-	SearchConfig cfg;
-	cfg.rows = 15;
-	cfg.cols = 15;
-	cfg.rules = GameRules::STANDARD;
-	cfg.batch_size = 4;
-	cfg.exploration_constant = 1.25f;
-	cfg.noise_weight = 0.0f;
-	cfg.expansion_prior_treshold = 1.0e-4f;
-	cfg.augment_position = false;
-	cfg.use_endgame_solver = false;
+	SearchConfig search_config;
+	search_config.batch_size = 32;
+	search_config.exploration_constant = 1.25f;
+	search_config.noise_weight = 0.0f;
+	search_config.expansion_prior_treshold = 1.0e-4f;
+	search_config.augment_position = false;
+	search_config.use_endgame_solver = true;
 
-	Search search(cfg, tree, cache, queue);
+	Search search(game_config, search_config, tree, cache, queue);
 
 	Sign sign_to_move = Sign::CIRCLE;
 	matrix<Sign> board(15, 15);
-	board.at(4, 5) = invertSign(sign_to_move);
-	board.at(6, 5) = sign_to_move;
-	board.at(3, 2) = invertSign(sign_to_move);
+
+//	board = boardFromString(" X X O X X X O X O X X _ O X _\n"
+//							" X _ _ _ O X O O X X X O _ _ X\n"
+//							" X O O _ O X X O X O _ X O _ O\n"
+//							" O X X O X X O O X O O X X _ O\n"
+//							" X X O X O O O X X O X O O O O\n"
+//							" _ X O X O X O O O X O X X X _\n"
+//							" _ X _ X _ X X O O O O X X _ X\n"
+//							" O O X O O _ X O X _ O X _ O O\n"
+//							" X _ X O X O O O O X X X _ O X\n"
+//							" O O O X O X X X X O O O O X X\n"
+//							" O X O O O O X O O X X O O X _\n"
+//							" X X O X X X X O _ O X X X O O\n"
+//							" _ X O _ X _ O X _ _ X O _ _ X\n"
+//							" _ O X O _ X O O X _ X X O O _\n"
+//							" X _ X O _ _ O X _ O O X O _ O\n");
+	board = boardFromString(" X X O X X X O X O X X X O X O\n"
+							" X X O X O X O O X X X O X X X\n"
+							" X O O X O X X O X O X X O O O\n"
+							" O X X O X X O O X O O X X X O\n"
+							" X X O X O O O X X O X O O O O\n"
+							" X X O X O X O O O X O X X X X\n"
+							" O X O X X X X O O O O X X O X\n"
+							" O O X O O X X O X O O X X O O\n"
+							" X X X O X O O O O X X X O O X\n"
+							" O O O X O X X X X O O O O X X\n"
+							" O X O O O O X O O X X O O X O\n"
+							" X X O X X X X O O O X X X O O\n"
+							" X X O O X _ O X _ _ X O _ _ X\n"
+							" O O X O X X O O X _ X X O O _\n"
+							" X X X O X _ O X _ O O X O _ O\n");
+
+	std::cout << "initial board outcome = " << outcomeToString(getOutcome(GameRules::STANDARD, board)) << '\n';
+	std::cout << boardToString(board);
+//	return 0;
+//	for (int i = 0; i < 15; i++)
+//		for (int j = 0; j < 15; j++)
+//			if (rand() % 100 < 80)
+//				board.at(i, j) = (j % 2 == 0) ? Sign::CROSS : Sign::CIRCLE;
+
+//	board.at(4, 5) = invertSign(sign_to_move);
+//	board.at(6, 5) = sign_to_move;
+//	board.at(1, 2) = invertSign(sign_to_move);
+//	board.at(6, 6) = sign_to_move;
+//	board.at(3, 3) = invertSign(sign_to_move);
+//	board.at(5, 6) = sign_to_move;
+//	board.at(3, 7) = invertSign(sign_to_move);
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
 
 	matrix<float> policy(15, 15);
-	for (int i = 0; i <= 10000; i++)
+	for (int i = 0; i <= 1000000; i++)
 	{
-		if (i % 100 == 0)
+		if (i % 1000 == 0)
 		{
 			tree.getPlayoutDistribution(tree.getRootNode(), policy);
 			normalize(policy);
 			std::cout << policyToString(board, policy) << '\n';
 		}
-		search.iterate(10000);
+		search.iterate(1000000);
 		queue.evaluateGraph();
 		search.handleEvaluation();
 	}
 
 //	std::cout << "\n----------------------------------------------------------------------------------\n";
-//	tree.printSubtree(tree.getRootNode(), 2, true, 10);
+//	tree.printSubtree(tree.getRootNode(), 2, true);
 //	std::cout << "\n----------------------------------------------------------------------------------\n";
 	std::cout << tree.getPrincipalVariation().toString() << '\n';
 	std::cout << policyToString(board, policy);
 	std::cout << search.getStats().toString();
 	std::cout << queue.getStats().toString();
-	std::cout << tree.usedNodes() << "/" << tree.allocatedNodes() << " nodes used\n";
-	std::cout << cache.storedElements() << ":" << cache.bufferedElements() << ":" << cache.allocatedElements() << '\n';
+	std::cout << tree.getStats().toString();
+	std::cout << cache.storedElements() << ":" << cache.bufferedElements() << ":" << cache.allocatedElements() << ":" << cache.loadFactor() << '\n';
 	Move move = pickMove(policy);
 	move.sign = sign_to_move;
 	std::cout << "making move " << move.toString() << '\n';
 
 	board.at(move.row, move.col) = move.sign;
 
-	cache.cleanup(board, true, 10);
-	std::cout << cache.storedElements() << ":" << cache.bufferedElements() << ":" << cache.allocatedElements() << '\n';
+	cache.cleanup(board);
+	std::cout << cache.storedElements() << ":" << cache.bufferedElements() << ":" << cache.allocatedElements() << ":" << cache.loadFactor() << '\n';
 
 //	std::string path = "/home/maciek/alphagomoku/";
 //	std::string name = "standard_15x15_correct";

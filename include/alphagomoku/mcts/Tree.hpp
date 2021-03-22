@@ -11,8 +11,8 @@
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <bits/stdint-intn.h>
-#include <bits/stdint-uintn.h>
+#include <alphagomoku/configs.hpp>
+#include <inttypes.h>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -25,23 +25,34 @@ namespace ag
 
 namespace ag
 {
+	struct TreeStats
+	{
+			uint64_t allocated_nodes = 0;
+			uint64_t used_nodes = 0;
+			uint64_t proven_nodes = 0;
+
+			std::string toString() const;
+			TreeStats& operator+=(const TreeStats &other) noexcept;
+	};
+
 	class Tree
 	{
 		private:
 			std::vector<std::unique_ptr<Node[]>> nodes;
-			std::pair<uint32_t, uint32_t> current_index { 0, 0 };
+			std::pair<int, int> current_index { 0, 0 };
 			mutable std::mutex tree_mutex;
 			Node root_node;
 
-			uint32_t max_number_of_nodes;
-			uint32_t bucket_size;
+			TreeConfig config;
 
 		public:
-			Tree(int maxNumberOfNodes, int bucketSize);
+			Tree(TreeConfig treeOptions);
+
+			TreeStats getStats() const noexcept;
 
 			void clear() noexcept;
-			uint32_t allocatedNodes() const noexcept;
-			uint32_t usedNodes() const noexcept;
+			int allocatedNodes() const noexcept;
+			int usedNodes() const noexcept;
 
 			const Node& getRootNode() const noexcept;
 			Node& getRootNode() noexcept;

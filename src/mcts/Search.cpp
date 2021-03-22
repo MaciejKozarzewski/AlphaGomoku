@@ -27,7 +27,7 @@ namespace ag
 		result += printStatistics("game_rules", nb_game_rules, time_game_rules);
 		return result;
 	}
-	SearchStats& SearchStats::operator+=(const SearchStats &other)
+	SearchStats& SearchStats::operator+=(const SearchStats &other) noexcept
 	{
 		this->nb_cache_hits += other.nb_cache_hits;
 		this->nb_cache_calls += other.nb_cache_calls;
@@ -46,16 +46,17 @@ namespace ag
 		return *this;
 	}
 
-	Search::Search(SearchConfig cfg, Tree &tree, Cache &cache, EvaluationQueue &queue) :
+	Search::Search(GameConfig gameOptions, SearchConfig searchOptions, Tree &tree, Cache &cache, EvaluationQueue &queue) :
 			cache(cache),
 			tree(tree),
 			eval_queue(queue),
-			current_board(cfg.rows, cfg.cols),
+			current_board(gameOptions.rows, gameOptions.cols),
 			sign_to_move(Sign::NONE),
-			config(cfg)
+			game_config(gameOptions),
+			search_config(searchOptions)
 	{
-		moves_to_add.reserve(config.rows * config.cols);
-		search_buffer.reserve(config.batch_size);
+		moves_to_add.reserve(gameOptions.rows * gameOptions.cols);
+		search_buffer.reserve(search_config.batch_size);
 	}
 	SearchStats Search::getStats() const noexcept
 	{
@@ -63,7 +64,7 @@ namespace ag
 	}
 	SearchConfig Search::getConfig() const noexcept
 	{
-		return config;
+		return search_config;
 	}
 	int Search::getSimulationCount() const noexcept
 	{
@@ -97,7 +98,8 @@ namespace ag
 	void Search::iterate(int max_iterations)
 	{
 		assert(max_iterations > 0);
-		while (static_cast<int>(search_buffer.size()) < config.batch_size && simulation_count < max_iterations)
+		while (static_cast<int>(search_buffer.size()) < search_config.batch_size and simulation_count < max_iterations
+				and not tree.getRootNode().isProven())
 		{
 			simulation_count++;
 
@@ -128,7 +130,7 @@ namespace ag
 					else
 					{
 						// node is not terminal, not a duplicate and not in cache
-						if (config.augment_position == true)
+						if (search_config.augment_position == true)
 							request.position.augment();
 						eval_queue.addToQueue(request.position);
 					}
@@ -138,6 +140,7 @@ namespace ag
 			{
 				// node is terminal and has already been evaluated from game rules
 				backup(request);
+				search_buffer.pop_back();
 			}
 		}
 	}
@@ -155,8 +158,8 @@ namespace ag
 	Search::SearchRequest& Search::select()
 	{
 		double start = getTime(); // statistics
-		search_buffer.push_back(SearchRequest(config.rows, config.cols)); // add new request
-		tree.select(search_buffer.back().trajectory, config.exploration_constant); // select node to evaluate
+		search_buffer.push_back(SearchRequest(game_config.rows, game_config.cols)); // add new request
+		tree.select(search_buffer.back().trajectory, search_config.exploration_constant); // select node to evaluate
 		search_buffer.back().position.setTrajectory(current_board, search_buffer.back().trajectory); // update board in evaluation request
 
 		stats.nb_select++; //statistics
@@ -166,12 +169,12 @@ namespace ag
 	GameOutcome Search::evaluateFromGameRules(EvaluationRequest &position)
 	{
 		double start = getTime(); // statistics
-		GameOutcome outcome = getOutcome(config.rules, position.getBoard(), position.getLastMove());
+		GameOutcome outcome = getOutcome(game_config.rules, position.getBoard(), position.getLastMove());
 		if (outcome != GameOutcome::UNKNOWN)
 		{
 			position.setReady();
 			position.setValue(convertOutcome(outcome, position.getSignToMove()));
-			if (config.use_endgame_solver)
+			if (search_config.use_endgame_solver)
 				position.setProvenValue(convertProvenValue(outcome, position.getSignToMove()));
 		}
 		stats.nb_game_rules++; // statistics
@@ -181,11 +184,11 @@ namespace ag
 	void Search::evaluate(EvaluationRequest &position)
 	{
 		double start = getTime(); //statistics
-		if (config.augment_position == true)
+		if (search_config.augment_position == true)
 			position.augment();
 
 		if (tree.isRootNode(position.getNode()))
-			addNoise(position.getBoard(), position.getPolicy(), config.noise_weight);
+			addNoise(position.getBoard(), position.getPolicy(), search_config.noise_weight);
 
 		stats.nb_evaluate++; // statistics
 		stats.time_evaluate += getTime() - start; //statistics
@@ -198,7 +201,7 @@ namespace ag
 
 		moves_to_add.clear();
 		for (int i = 0; i < position.getBoard().size(); i++)
-			if (position.getBoard().data()[i] == Sign::NONE && position.getPolicy().data()[i] >= config.expansion_prior_treshold)
+			if (position.getBoard().data()[i] == Sign::NONE and position.getPolicy().data()[i] >= search_config.expansion_prior_treshold)
 				moves_to_add.push_back( { Move::move_to_short(i / cols, i % cols, position.getSignToMove()), position.getPolicy().data()[i] });
 		tree.expand(*position.getNode(), moves_to_add);
 

@@ -41,7 +41,7 @@ namespace ag
 	bool isBoardFull(const matrix<Sign> &board);
 	bool isBoardEmpty(const matrix<Sign> &board);
 
-	matrix<Sign> boardFromString(const std::string &str);
+	matrix<Sign> boardFromString(std::string str);
 	std::string boardToString(const matrix<Sign> &board, const Move &lastMove = Move());
 	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy, const Move &lastMove = Move());
 
@@ -64,6 +64,7 @@ namespace ag
 
 	float convertOutcome(GameOutcome outcome, Sign signToMove);
 	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove);
+
 	void averageStats(std::vector<float> &stats);
 
 	const std::string currentDateTime();

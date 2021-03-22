@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/rules/freestyle.hpp>
+#include <alphagomoku/utils/misc.hpp>
 
 namespace
 {
@@ -138,7 +139,10 @@ namespace ag
 			CHECK(last_move.row + i, last_move.col - i)
 #undef CHECK
 
-		return GameOutcome::UNKNOWN;
+		if (isBoardFull(board))
+			return GameOutcome::DRAW;
+		else
+			return GameOutcome::UNKNOWN;
 	}
 }
 

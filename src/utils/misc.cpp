@@ -97,26 +97,27 @@ namespace ag
 		return true;
 	}
 
-	matrix<Sign> boardFromString(const std::string &str)
+	matrix<Sign> boardFromString(std::string str)
 	{
 		int height = std::count(str.begin(), str.end(), '\n');
-		int width = std::count(str.begin(), str.end(), ' ');
+		auto new_end = std::remove_if(str.begin(), str.end(), [](char c)
+		{	return c == ' ' or c == '\n';});
+		str.erase(new_end, str.end());
+		int width = static_cast<int>(str.size()) / height;
 		matrix<Sign> result(height, width);
-		for (int i = 0; i < height; i++)
-			for (int j = 0; j < width; j++)
-				switch (str.at(i * (width + 1) + 1 + j))
-				{
-					case '_':
-						result.at(i, j) = Sign::NONE;
-						break;
-					case 'X':
-						result.at(i, j) = Sign::CROSS;
-						break;
-					case 'O':
-						result.at(i, j) = Sign::CIRCLE;
-						break;
-
-				}
+		for (int i = 0; i < height * width; i++)
+			switch (str.at(i))
+			{
+				case '_':
+					result.data()[i] = Sign::NONE;
+					break;
+				case 'X':
+					result.data()[i] = Sign::CROSS;
+					break;
+				case 'O':
+					result.data()[i] = Sign::CIRCLE;
+					break;
+			}
 		return result;
 	}
 	std::string boardToString(const matrix<Sign> &board, const Move &lastMove)
@@ -316,23 +317,31 @@ namespace ag
 	float convertOutcome(GameOutcome outcome, Sign signToMove)
 	{
 		assert(outcome != GameOutcome::UNKNOWN);
-		if (outcome == GameOutcome::DRAW)
-			return 0.5f;
-		if ((outcome == GameOutcome::CROSS_WIN && signToMove == Sign::CROSS) || (outcome == GameOutcome::CIRCLE_WIN && signToMove == Sign::CIRCLE))
-			return 1.0f;
-		else
-			return 0.0f;
+		switch (outcome)
+		{
+			default:
+			case GameOutcome::DRAW:
+				return 0.5f;
+			case GameOutcome::CROSS_WIN:
+				return (signToMove == Sign::CIRCLE) ? 1.0f : 0.0f;
+			case GameOutcome::CIRCLE_WIN:
+				return (signToMove == Sign::CROSS) ? 1.0f : 0.0f;
+		}
 	}
 	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove)
 	{
-		if (outcome == GameOutcome::UNKNOWN)
-			return ProvenValue::UNKNOWN;
-		if (outcome == GameOutcome::DRAW)
-			return ProvenValue::DRAW;
-		if ((outcome == GameOutcome::CROSS_WIN && signToMove == Sign::CROSS) || (outcome == GameOutcome::CIRCLE_WIN && signToMove == Sign::CIRCLE))
-			return ProvenValue::WIN;
-		else
-			return ProvenValue::LOSS;
+		switch (outcome)
+		{
+			default:
+			case GameOutcome::UNKNOWN:
+				return ProvenValue::UNKNOWN;
+			case GameOutcome::DRAW:
+				return ProvenValue::DRAW;
+			case GameOutcome::CROSS_WIN:
+				return (signToMove == Sign::CIRCLE) ? ProvenValue::WIN : ProvenValue::LOSS;
+			case GameOutcome::CIRCLE_WIN:
+				return (signToMove == Sign::CROSS) ? ProvenValue::WIN : ProvenValue::LOSS;
+		}
 	}
 	void averageStats(std::vector<float> &stats)
 	{

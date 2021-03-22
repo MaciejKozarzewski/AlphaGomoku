@@ -10,9 +10,11 @@
 
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
 #include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/configs.hpp>
 
 #include <inttypes.h>
 #include <string>
@@ -45,20 +47,7 @@ namespace ag
 			double time_game_rules = 0.0;
 
 			std::string toString() const;
-			SearchStats& operator+=(const SearchStats &other);
-	};
-
-	struct SearchConfig
-	{
-			int rows;
-			int cols;
-			GameRules rules;
-			int batch_size;
-			float exploration_constant;
-			float expansion_prior_treshold;
-			float noise_weight;
-			bool use_endgame_solver;
-			bool augment_position;
+			SearchStats& operator+=(const SearchStats &other) noexcept;
 	};
 
 	class Search
@@ -85,11 +74,12 @@ namespace ag
 			Sign sign_to_move;
 			int simulation_count = 0;
 
-			SearchConfig config;
+			GameConfig game_config;
+			SearchConfig search_config;
 			SearchStats stats;
 
 		public:
-			Search(SearchConfig cfg, Tree &tree, Cache &cache, EvaluationQueue &queue);
+			Search(GameConfig gameOptions, SearchConfig searchOptions, Tree &tree, Cache &cache, EvaluationQueue &queue);
 
 			SearchStats getStats() const noexcept;
 			SearchConfig getConfig() const noexcept;

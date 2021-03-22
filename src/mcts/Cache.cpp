@@ -100,11 +100,11 @@ namespace ag
 		std::memset(transpositions, 0, sizeof(transpositions));
 	}
 
-	Cache::Cache(int rows, int cols, int numberOfBins) :
-			hashing(rows * cols),
-			bins(numberOfBins, nullptr),
-			rows(rows),
-			cols(cols)
+	Cache::Cache(GameConfig gameOptions, CacheConfig cacheOptions) :
+			hashing(gameOptions.rows * gameOptions.cols),
+			bins(cacheOptions.min_cache_size, nullptr),
+			game_config(gameOptions),
+			cache_config(cacheOptions)
 	{
 	}
 	Cache::~Cache()
@@ -121,7 +121,7 @@ namespace ag
 	uint64_t Cache::getMemory() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		return (sizeof(Entry) + sizeof(uint16_t) * rows * cols) * allocated_entries + sizeof(Entry*) * bins.size();
+		return (sizeof(Entry) + sizeof(uint16_t) * game_config.rows * game_config.cols) * allocated_entries + sizeof(Entry*) * bins.size();
 	}
 	int Cache::allocatedElements() const noexcept
 	{
@@ -211,13 +211,13 @@ namespace ag
 		stored_entries++;
 		assert(stored_entries + buffered_entries == allocated_entries);
 	}
-	void Cache::cleanup(const matrix<Sign> &newBoard, bool updateFromSearch, int updateVisitTreshold) noexcept
+	void Cache::cleanup(const matrix<Sign> &newBoard) noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
 		if (stored_entries == 0)
 			return;
 
-		matrix<int> workspace(rows, cols);
+		matrix<int> workspace(game_config.rows, game_config.cols);
 		for (size_t i = 0; i < bins.size(); i++)
 		{
 			Entry *current = bins[i];
@@ -227,8 +227,8 @@ namespace ag
 				Entry *next = current->next_entry;
 				if (current->isPossible(newBoard))
 				{
-					if (updateFromSearch)
-						current->update(updateVisitTreshold, workspace);
+					if (cache_config.update_from_search)
+						current->update(cache_config.update_visit_treshold, workspace);
 					current->clearTranspositions();
 					current->next_entry = bins[i];
 					bins[i] = current;
@@ -296,7 +296,7 @@ namespace ag
 		if (buffer == nullptr)
 		{
 			allocated_entries++;
-			return new Entry(rows * cols);
+			return new Entry(game_config.rows * game_config.cols);
 		}
 		else
 		{

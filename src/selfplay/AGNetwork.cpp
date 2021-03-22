@@ -161,6 +161,9 @@ namespace ag
 	void AGNetwork::setBatchSize(int batchSize)
 	{
 		graph.setInputShape( { batchSize, rows, cols, 4 });
+		input_on_cpu = nullptr;
+		policy_target = nullptr;
+		allocate_tensors();
 	}
 
 	void AGNetwork::create_network(const Json &cfg)

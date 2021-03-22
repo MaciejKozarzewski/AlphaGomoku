@@ -12,14 +12,17 @@
 
 namespace ag
 {
-	GameGenerator::GameGenerator(const GameConfig &gameConfig, GameBuffer &gameBuffer, EvaluationQueue &queue) :
+	GameGenerator::GameGenerator(GameConfig gameConfig, GameBuffer &gameBuffer, EvaluationQueue &queue) :
 			game_buffer(gameBuffer),
 			queue(queue),
 			game(gameConfig),
 			request(gameConfig.rows, gameConfig.cols)
 	{
 	}
+	void GameGenerator::init(const Json &selfplayOptions)
+	{
 
+	}
 	void GameGenerator::clearStats()
 	{
 		assert(search != nullptr);
@@ -37,7 +40,7 @@ namespace ag
 			if (request.is_ready == false)
 				return false;
 			is_request_scheduled = false;
-			if (config.search_config.augment_position)
+			if (search->getConfig().augment_position)
 				request.augment();
 			if (fabsf(request.getValue() - 0.5f) < (0.05f * (1.0f + opening_trials / 10.0f)))
 			{
@@ -49,12 +52,12 @@ namespace ag
 				opening_trials++;
 		}
 
-		matrix<Sign> board(config.game_config.rows, config.game_config.cols);
-		Sign sign_to_start = ag::prepareOpening(config.game_config.rules, board);
+		matrix<Sign> board(game.rows(), game.cols());
+		Sign sign_to_start = ag::prepareOpening(game.getRules(), board);
 		request.clear();
 		request.setBoard(board);
 		request.setLastMove( { 0, 0, sign_to_start });
-		if (config.search_config.augment_position)
+		if (search->getConfig().augment_position)
 			request.augment();
 		queue.addToQueue(request);
 		is_request_scheduled = true;
@@ -118,7 +121,7 @@ namespace ag
 					return;
 				else
 				{
-					matrix<float> policy(config.game_config.rows, config.game_config.cols);
+					matrix<float> policy(game.rows(), game.cols());
 					tree->getPlayoutDistribution(tree->getRootNode(), policy);
 					normalize(policy);
 					makeMove(policy);

@@ -9,6 +9,7 @@
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
+
 #include <gtest/gtest.h>
 
 namespace
@@ -30,13 +31,31 @@ namespace
 		result.setValue(randFloat());
 		return result;
 	}
+
+	GameConfig getGameConfig()
+	{
+		GameConfig result;
+		result.rules = GameRules::STANDARD;
+		result.rows = 4;
+		result.cols = 5;
+		return result;
+	}
+	CacheConfig getCacheConfig(int numberOfBins)
+	{
+		CacheConfig result;
+		result.min_cache_size = numberOfBins;
+		result.max_cache_size = numberOfBins;
+		result.update_from_search = false;
+		result.update_visit_treshold = 10;
+		return result;
+	}
 }
 
 namespace ag
 {
 	TEST(TestCache , init)
 	{
-		Cache cache(4, 5, 1);
+		Cache cache(getGameConfig(), getCacheConfig(1));
 		EXPECT_EQ(cache.allocatedElements(), 0);
 		EXPECT_EQ(cache.bufferedElements(), 0);
 		EXPECT_EQ(cache.storedElements(), 0);
@@ -44,7 +63,7 @@ namespace ag
 	}
 	TEST(TestCache, insert)
 	{
-		Cache cache(4, 5, 1);
+		Cache cache(getGameConfig(), getCacheConfig(1));
 		EvaluationRequest req(4, 5);
 		req.getBoard().at(2, 3) = Sign::CROSS;
 		req.getPolicy().at(1, 1) = 0.9f;
@@ -58,7 +77,7 @@ namespace ag
 	}
 	TEST(TestCache, seek)
 	{
-		Cache cache(4, 5, 1024);
+		Cache cache(getGameConfig(), getCacheConfig(1024));
 		for (int i = 0; i < 1000; i++)
 			cache.insert(getRandomRequest(4, 5));
 
@@ -78,7 +97,7 @@ namespace ag
 	}
 	TEST(TestCache, remove)
 	{
-		Cache cache(4, 5, 1024);
+		Cache cache(getGameConfig(), getCacheConfig(1024));
 		for (int i = 0; i < 1000; i++)
 			cache.insert(getRandomRequest(4, 5));
 
@@ -91,7 +110,7 @@ namespace ag
 	}
 	TEST(TestCache, rehash)
 	{
-		Cache cache(4, 5, 1024);
+		Cache cache(getGameConfig(), getCacheConfig(1024));
 		for (int i = 0; i < 1000; i++)
 			cache.insert(getRandomRequest(4, 5));
 
@@ -105,7 +124,7 @@ namespace ag
 	}
 	TEST(TestCache, cleanup)
 	{
-		Cache cache(4, 5, 1024);
+		Cache cache(getGameConfig(), getCacheConfig(1024));
 		std::unique_ptr<Node[]> children_node1 = std::make_unique<Node[]>(12);
 		std::unique_ptr<Node[]> children_node2 = std::make_unique<Node[]>(5);
 		Node node1, node2;

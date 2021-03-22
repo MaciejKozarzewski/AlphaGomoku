@@ -6,8 +6,7 @@
  */
 
 #include <alphagomoku/rules/standard.hpp>
-
-#include <iostream>
+#include <alphagomoku/utils/misc.hpp>
 
 namespace
 {
@@ -156,7 +155,11 @@ namespace ag
 		CHECK_END
 #undef CHECK
 #undef CHECK_END
-		return GameOutcome::UNKNOWN;
+
+		if (isBoardFull(board))
+			return GameOutcome::DRAW;
+		else
+			return GameOutcome::UNKNOWN;
 	}
 }
 

@@ -8,6 +8,8 @@
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <libml/utils/json.hpp>
+
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -147,7 +149,7 @@ namespace ag
 		return true;
 	}
 
-	Game::Game(const GameConfig &config) :
+	Game::Game(GameConfig config) :
 			states(),
 			current_board(config.rows, config.cols),
 			use_count(current_board.size(), 0),
@@ -208,6 +210,10 @@ namespace ag
 	{
 		return current_board.cols();
 	}
+	GameRules Game::getRules() const noexcept
+	{
+		return rules;
+	}
 	int Game::length() const noexcept
 	{
 		return states.size();
@@ -243,11 +249,11 @@ namespace ag
 	}
 	void Game::makeMove(Move move, const matrix<float> &policy, float minimax)
 	{
-		assert(move.row >= 0 && move.row < current_board.rows());
-		assert(move.col >= 0 && move.col < current_board.cols());
+		assert(move.row >= 0 && move.row < rows());
+		assert(move.col >= 0 && move.col < cols());
 		assert(current_board.at(move.row, move.col) == Sign::NONE);
-		assert(current_board.rows() == policy.rows());
-		assert(current_board.cols() == policy.cols());
+		assert(rows() == policy.rows());
+		assert(cols() == policy.cols());
 		assert(move.sign == sign_to_move);
 
 		states.push_back(GameState(current_board, policy, minimax, move));
@@ -312,8 +318,8 @@ namespace ag
 
 	void Game::printSample(int index) const
 	{
-		matrix<Sign> board(current_board.rows(), current_board.cols());
-		matrix<float> policy(current_board.rows(), current_board.cols());
+		matrix<Sign> board(rows(), cols());
+		matrix<float> policy(rows(), cols());
 		Sign sign_to_move;
 		states[index].copyTo(board, policy, sign_to_move);
 		std::cout << "now moving " << Move(states[index].move).toString() << std::endl;
@@ -325,8 +331,8 @@ namespace ag
 	Json Game::serialize(SerializedObject &binary_data) const
 	{
 		Json result;
-		result["rows"] = current_board.rows();
-		result["cols"] = current_board.cols();
+		result["rows"] = rows();
+		result["cols"] = cols();
 		result["rules"] = rulesToString(rules);
 		result["outcome"] = outcomeToString(outcome);
 		result["nb_of_states"] = states.size();

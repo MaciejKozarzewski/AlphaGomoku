@@ -12,6 +12,7 @@
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/configs.hpp>
 #include <inttypes.h>
 #include <memory>
 #include <vector>
@@ -57,10 +58,11 @@ namespace ag
 			int stored_entries = 0;
 			int buffered_entries = 0;
 
-			int rows, cols;
+			GameConfig game_config;
+			CacheConfig cache_config;
 		public:
 
-			Cache(int rows, int cols, int numberOfBins);
+			Cache(GameConfig gameOptions, CacheConfig cacheOptions);
 			Cache(const Cache &other) = delete;
 			Cache& operator=(const Cache &other) = delete;
 			Cache(Cache &&other) = delete;
@@ -77,7 +79,7 @@ namespace ag
 			void clear() noexcept;
 			bool seek(EvaluationRequest &request) const noexcept;
 			void insert(const EvaluationRequest &request);
-			void cleanup(const matrix<Sign> &newBoard, bool updateFromSearch = false, int updateVisitTreshold = 10) noexcept;
+			void cleanup(const matrix<Sign> &newBoard) noexcept;
 			void remove(const matrix<Sign> &board, Sign signToMove) noexcept;
 			void rehash(int newNumberOfBins) noexcept;
 		private:

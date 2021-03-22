@@ -29,7 +29,7 @@ namespace ag
 			double time_idle = 0.0;
 
 			std::string toString() const;
-			QueueStats& operator+=(const QueueStats &other);
+			QueueStats& operator+=(const QueueStats &other) noexcept;
 	};
 
 	class EvaluationQueue
@@ -46,7 +46,8 @@ namespace ag
 			QueueStats getStats() const noexcept;
 			int getQueueSize() const noexcept;
 			void clearQueue() noexcept;
-			void loadGraph(const std::string &path);
+			void loadGraph(const std::string &path, int batchSize, ml::Device device = ml::Device::cpu());
+			void moveTo(ml::Device device);
 			void unloadGraph();
 			void addToQueue(EvaluationRequest &request);
 			void evaluateGraph();

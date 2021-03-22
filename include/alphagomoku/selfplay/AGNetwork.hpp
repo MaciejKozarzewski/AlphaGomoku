@@ -25,8 +25,7 @@ namespace ml
 
 namespace ag
 {
-	enum class GameOutcome
-	;
+	enum class GameOutcome;
 }
 
 namespace ag

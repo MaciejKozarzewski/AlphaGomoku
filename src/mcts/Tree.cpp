@@ -135,10 +135,43 @@ namespace
 
 namespace ag
 {
-	Tree::Tree(int maxNumberOfNodes, int bucketSize) :
-			max_number_of_nodes(maxNumberOfNodes),
-			bucket_size(bucketSize)
+	std::string TreeStats::toString() const
 	{
+		std::string result;
+		result += "used nodes = " + std::to_string(used_nodes) + '\n';
+		result += "allocated nodes = " + std::to_string(allocated_nodes) + '\n';
+		result += "proven nodes = " + std::to_string(proven_nodes) + '\n';
+		return result;
+	}
+	TreeStats& TreeStats::operator+=(const TreeStats &other) noexcept
+	{
+		this->allocated_nodes += other.allocated_nodes;
+		this->used_nodes += other.used_nodes;
+		this->proven_nodes += other.proven_nodes;
+		return *this;
+	}
+
+	Tree::Tree(TreeConfig treeOptions) :
+			config(treeOptions)
+	{
+	}
+	TreeStats Tree::getStats() const noexcept
+	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+		TreeStats result;
+		result.allocated_nodes = allocatedNodes();
+		result.used_nodes = usedNodes();
+		for (size_t i = 0; i < nodes.size(); i++)
+			for (int j = 0; j < config.bucket_size; j++)
+			{
+				result.proven_nodes += static_cast<int>(nodes[i][j].isProven());
+				if (nodes[i][j].isProven())
+				{
+
+//					printSubtree(nodes[i][j], -1, true);
+				}
+			}
+		return result;
 	}
 	void Tree::clear() noexcept
 	{
@@ -146,13 +179,13 @@ namespace ag
 		current_index = { 0, 0 };
 		root_node.clear();
 	}
-	uint32_t Tree::allocatedNodes() const noexcept
+	int Tree::allocatedNodes() const noexcept
 	{
-		return nodes.size() * bucket_size;
+		return static_cast<int>(nodes.size()) * config.bucket_size;
 	}
-	uint32_t Tree::usedNodes() const noexcept
+	int Tree::usedNodes() const noexcept
 	{
-		return current_index.first * bucket_size + current_index.second;
+		return current_index.first * config.bucket_size + current_index.second;
 	}
 	const Node& Tree::getRootNode() const noexcept
 	{
@@ -273,13 +306,13 @@ namespace ag
 
 	Node* Tree::reserve_nodes(int number)
 	{
-		if (usedNodes() + number > max_number_of_nodes)
+		if (usedNodes() + number > config.max_number_of_nodes)
 			return nullptr;
 
 		if (usedNodes() + number > allocatedNodes())
-			nodes.push_back(std::make_unique<Node[]>(bucket_size));
+			nodes.push_back(std::make_unique<Node[]>(config.bucket_size));
 
-		if (current_index.second + number > bucket_size)
+		if (current_index.second + number > config.bucket_size)
 		{
 			current_index.first++;
 			current_index.second = 0;

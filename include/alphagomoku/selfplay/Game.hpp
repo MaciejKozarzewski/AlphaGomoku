@@ -11,10 +11,11 @@
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <bits/stdint-uintn.h>
-#include <libml/utils/json.hpp>
+#include <alphagomoku/configs.hpp>
 #include <libml/utils/serialization.hpp>
+
 #include <vector>
+#include <bits/stdint-uintn.h>
 
 namespace ag
 {
@@ -23,13 +24,6 @@ namespace ag
 
 namespace ag
 {
-	struct GameConfig
-	{
-			GameRules rules;
-			int rows;
-			int cols;
-	};
-
 	struct GameState
 	{
 			matrix<uint16_t> state;
@@ -54,12 +48,13 @@ namespace ag
 			GameOutcome outcome = GameOutcome::UNKNOWN;
 
 		public:
-			Game(const GameConfig &config);
+			Game(GameConfig config);
 			Game(const Json &json, const SerializedObject &binary_data);
 			Game(const SerializedObject &so, size_t &offset);
 
 			int rows() const noexcept;
 			int cols() const noexcept;
+			GameRules getRules() const noexcept;
 			int length() const noexcept;
 			void beginGame(Sign signToMove);
 			Sign getSignToMove() const noexcept;

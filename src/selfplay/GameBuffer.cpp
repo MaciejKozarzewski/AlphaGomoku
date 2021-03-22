@@ -15,17 +15,7 @@
 
 namespace ag
 {
-	void GameBufferStats::print() const
-	{
-		std::cout << "----GameBufferStats----" << std::endl;
-		std::cout << "played games  = " << played_games << std::endl;
-		std::cout << "positions     = " << positions << std::endl;
-		std::cout << "cross  = " << cross_win << std::endl;
-		std::cout << "draws  = " << draws << std::endl;
-		std::cout << "circle = " << circle_win << std::endl;
-		std::cout << "avg length = " << (float) game_length / played_games << std::endl;
-	}
-	GameBufferStats& GameBufferStats::operator+=(const GameBufferStats &other)
+	GameBufferStats& GameBufferStats::operator+=(const GameBufferStats &other) noexcept
 	{
 		this->played_games += other.played_games;
 		this->positions += other.positions;
@@ -37,8 +27,14 @@ namespace ag
 	}
 	std::string GameBufferStats::toString() const
 	{
-		std::string result = std::to_string(played_games) + " " + std::to_string(positions) + " " + std::to_string(cross_win) + " "
-				+ std::to_string(draws) + " " + std::to_string(circle_win);
+		std::string result;
+		result += "----GameBufferStats----\n";
+		result += "played games  = " + std::to_string(played_games) + '\n';
+		result += "positions     = " + std::to_string(positions) + '\n';
+		result += "cross  = " + std::to_string(cross_win) + '\n';
+		result += "draws  = " + std::to_string(draws) + '\n';
+		result += "circle = " + std::to_string(circle_win) + '\n';
+		result += "avg length = " + std::to_string((float) game_length / played_games) + '\n';
 		return result;
 	}
 

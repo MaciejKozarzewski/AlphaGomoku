@@ -13,6 +13,7 @@
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/Search.hpp>
 
+class Json;
 namespace ag
 {
 	class GameBuffer;
@@ -20,14 +21,6 @@ namespace ag
 
 namespace ag
 {
-	struct GeneratorConfig
-	{
-			GameConfig game_config;
-			SearchConfig search_config;
-			int simulations;
-			float temperature;
-			bool use_opening;
-	};
 
 	class GameGenerator
 	{
@@ -50,9 +43,9 @@ namespace ag
 			int opening_trials = 0;
 			GeneratorConfig config;
 		public:
-			GameGenerator(const GameConfig &gameConfig, GameBuffer &gameBuffer, EvaluationQueue &queue);
+			GameGenerator(GameConfig gameOptions, GameBuffer &gameBuffer, EvaluationQueue &queue);
 
-			// TODO write init search method
+			void init(const Json &selfplayOptions);
 
 			void clearStats();
 			SearchStats getSearchStats() const;

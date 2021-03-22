@@ -24,9 +24,8 @@ namespace ag
 			uint64_t circle_win = 0;
 			uint64_t game_length = 0;
 
-			void print() const;
-			GameBufferStats& operator+=(const GameBufferStats &other);
 			std::string toString() const;
+			GameBufferStats& operator+=(const GameBufferStats &other) noexcept;
 	};
 
 	class GameBuffer

@@ -14,14 +14,16 @@ namespace ag
 {
 	TEST(TestTree, init)
 	{
-		Tree tree(5000000, 100000);
-		EXPECT_EQ(tree.allocatedNodes(), 0u);
-		EXPECT_EQ(tree.usedNodes(), 0u);
+		TreeConfig cfg;
+		Tree tree(cfg);
+		EXPECT_EQ(tree.allocatedNodes(), 0);
+		EXPECT_EQ(tree.usedNodes(), 0);
 	}
 	TEST(TestTree, simulation)
 	{
 		SearchTrajectory trajectory;
-		Tree tree(5000000, 100000);
+		TreeConfig cfg;
+		Tree tree(cfg);
 		tree.getRootNode().setMove(Move(0, 2, Sign::CIRCLE));
 
 		//simulation 1
@@ -66,7 +68,8 @@ namespace ag
 	TEST(TestTree , exactSearch)
 	{
 		SearchTrajectory trajectory;
-		Tree tree(5000000, 100000);
+		TreeConfig cfg;
+		Tree tree(cfg);
 		tree.getRootNode().setMove(Move(0, 2, Sign::CIRCLE));
 
 		//simulation 1

@@ -29,7 +29,7 @@ namespace ag
 		result += "time_idle = " + std::to_string(time_idle) + "s\n";
 		return result;
 	}
-	QueueStats& QueueStats::operator+=(const QueueStats &other)
+	QueueStats& QueueStats::operator+=(const QueueStats &other) noexcept
 	{
 		this->batch_sizes += other.batch_sizes;
 		this->nb_network_eval += other.nb_network_eval;
@@ -59,9 +59,11 @@ namespace ag
 	{
 		request_queue.clear();
 	}
-	void EvaluationQueue::loadGraph(const std::string &path)
+	void EvaluationQueue::loadGraph(const std::string &path, int batchSize, ml::Device device)
 	{
 		network.loadFromFile(path);
+		network.setBatchSize(batchSize);
+		network.getGraph().moveTo(device);
 	}
 	void EvaluationQueue::addToQueue(EvaluationRequest &request)
 	{
