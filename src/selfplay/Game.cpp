@@ -348,7 +348,7 @@ namespace ag
 		states[index].copyTo(board, policy, sign_to_move);
 		std::cout << "now moving " << Move(states[index].move).toString() << std::endl;
 		std::cout << "minimax " << 1.0f - states[index].minimax_value << std::endl;
-		std::cout << "outcome " << outcomeToString(outcome) << std::endl;
+		std::cout << "outcome " << toString(outcome) << std::endl;
 		std::cout << policyToString(board, policy);
 	}
 
@@ -358,7 +358,7 @@ namespace ag
 		result["rows"] = rows();
 		result["cols"] = cols();
 		result["rules"] = toString(rules);
-		result["outcome"] = outcomeToString(outcome);
+		result["outcome"] = toString(outcome);
 		result["nb_of_states"] = states.size();
 		result["binary_offset"] = binary_data.size();
 		for (size_t i = 0; i < states.size(); i++)

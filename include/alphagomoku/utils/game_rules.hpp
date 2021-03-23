@@ -27,7 +27,7 @@ namespace ag
 	std::string toString(GameRules rules);
 
 	GameOutcome outcomeFromString(const std::string &str);
-	std::string outcomeToString(GameOutcome outcome);
+	std::string toString(GameOutcome outcome);
 
 	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board);
 	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, const Move &last_move);

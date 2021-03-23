@@ -55,7 +55,7 @@ namespace ag
 			return GameOutcome::CIRCLE_WIN;
 		return GameOutcome::UNKNOWN;
 	}
-	std::string outcomeToString(GameOutcome outcome)
+	std::string toString(GameOutcome outcome)
 	{
 		switch (outcome)
 		{

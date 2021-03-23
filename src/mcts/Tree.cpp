@@ -33,49 +33,49 @@ namespace
 		assert(selected != parent->end());
 		return selected;
 	}
-	Node* select_by_visit(Node *parent)
-	{
-		auto result = std::max_element(parent->begin(), parent->end(), [](const Node &lhs, const Node &rhs)
-		{
-			return lhs.getVisits() < rhs.getVisits();
-		});
-		assert(result != parent->end());
-		return result;
-	}
+//	Node* select_by_visit(Node *parent)
+//	{
+//		auto result = std::max_element(parent->begin(), parent->end(), [](const Node &lhs, const Node &rhs)
+//		{
+//			return lhs.getVisits() < rhs.getVisits();
+//		});
+//		assert(result != parent->end());
+//		return result;
+//	}
 	Node* select_by_value(Node *parent)
-	{
-		auto selected = parent->end();
-		float max_value = -1.0f;
-		for (auto iter = parent->begin(); iter < parent->end(); iter++)
-			switch (iter->getProvenValue())
-			{
-				case ProvenValue::UNKNOWN:
-					if (iter->getValue() > max_value)
-					{
-						selected = iter;
-						max_value = iter->getValue();
-					}
-					break;
-				case ProvenValue::LOSS:
-					if (iter->getValue() > max_value)
-					{
-						selected = iter;
-						max_value = -1.0f + iter->getValue();
-					}
-					break;
-				case ProvenValue::DRAW:
-					if (0.5f > max_value)
-					{
-						selected = iter;
-						max_value = 0.5f;
-					}
-					break;
-				case ProvenValue::WIN:
-					return iter;
-			}
-		assert(selected != parent->end());
-		return selected;
-	}
+		{
+			auto selected = parent->end();
+			float max_value = -1.0f;
+			for (auto iter = parent->begin(); iter < parent->end(); iter++)
+				switch (iter->getProvenValue())
+				{
+					case ProvenValue::UNKNOWN:
+						if (iter->getValue() > max_value)
+						{
+							selected = iter;
+							max_value = iter->getValue();
+						}
+						break;
+					case ProvenValue::LOSS:
+						if (iter->getValue() > max_value)
+						{
+							selected = iter;
+							max_value = -1.0f + iter->getValue();
+						}
+						break;
+					case ProvenValue::DRAW:
+						if (0.5f > max_value)
+						{
+							selected = iter;
+							max_value = 0.5f;
+						}
+						break;
+					case ProvenValue::WIN:
+						return iter;
+				}
+			assert(selected != parent->end());
+			return selected;
+		}
 	bool update_proven_value(Node &parent)
 	{
 		if (parent.isLeaf())
@@ -166,14 +166,17 @@ namespace ag
 		result += "----TreeStats----\n";
 		result += "used nodes = " + std::to_string(used_nodes) + '\n';
 		result += "allocated nodes = " + std::to_string(allocated_nodes) + '\n';
-		result += "proven nodes = " + std::to_string(proven_nodes) + '\n';
+		result += "proven nodes = " + std::to_string(proven_win) + " : " + std::to_string(proven_draw) + " : " + std::to_string(proven_loss)
+				+ " (win:draw:loss)\n";
 		return result;
 	}
 	TreeStats& TreeStats::operator+=(const TreeStats &other) noexcept
 	{
 		this->allocated_nodes += other.allocated_nodes;
 		this->used_nodes += other.used_nodes;
-		this->proven_nodes += other.proven_nodes;
+		this->proven_loss += other.proven_loss;
+		this->proven_draw += other.proven_draw;
+		this->proven_win += other.proven_win;
 		return *this;
 	}
 
@@ -188,7 +191,21 @@ namespace ag
 		result.used_nodes = usedNodes();
 		for (size_t i = 0; i < nodes.size(); i++)
 			for (int j = 0; j < config.bucket_size; j++)
-				result.proven_nodes += static_cast<int>(nodes[i][j].isProven());
+				switch (nodes[i][j].getProvenValue())
+				{
+					default:
+					case ProvenValue::UNKNOWN:
+						break;
+					case ProvenValue::LOSS:
+						result.proven_loss++;
+						break;
+					case ProvenValue::DRAW:
+						result.proven_draw++;
+						break;
+					case ProvenValue::WIN:
+						result.proven_win++;
+						break;
+				}
 		return result;
 	}
 	void Tree::clear() noexcept

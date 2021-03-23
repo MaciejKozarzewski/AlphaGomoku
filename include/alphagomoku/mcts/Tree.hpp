@@ -29,7 +29,9 @@ namespace ag
 	{
 			uint64_t allocated_nodes = 0;
 			uint64_t used_nodes = 0;
-			uint64_t proven_nodes = 0;
+			uint64_t proven_loss = 0;
+			uint64_t proven_draw = 0;
+			uint64_t proven_win = 0;
 
 			std::string toString() const;
 			TreeStats& operator+=(const TreeStats &other) noexcept;

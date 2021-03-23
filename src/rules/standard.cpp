@@ -8,6 +8,8 @@
 #include <alphagomoku/rules/standard.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <iostream>
+
 namespace
 {
 	const int ROW_TO_WIN = 5;
@@ -124,13 +126,13 @@ namespace ag
 
 #define CHECK(x, y)\
 	if (board.at(x, y) == last_move.sign)\
-	{\
 		tmp++;\
-		if (tmp >= ROW_TO_WIN)\
-			return static_cast<GameOutcome>(static_cast<int>(last_move.sign) + 1);\
-	}\
 	else\
-		tmp = 0;
+	{\
+		if (tmp == ROW_TO_WIN)\
+			return static_cast<GameOutcome>(static_cast<int>(last_move.sign) + 1);\
+		tmp = 0;\
+	}
 #define CHECK_END if (tmp == ROW_TO_WIN) return static_cast<GameOutcome>(static_cast<int>(last_move.sign) + 1);\
 
 		int tmp = 0;

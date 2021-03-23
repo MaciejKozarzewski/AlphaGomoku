@@ -127,19 +127,19 @@ int main()
 	Cache cache(game_config, cache_config);
 
 	EvaluationQueue queue;
-	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 32); //, ml::Device::cuda(0));
+	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 4); //, ml::Device::cuda(0));
 
 	SearchConfig search_config;
-	search_config.batch_size = 32;
+	search_config.batch_size = 4;
 	search_config.exploration_constant = 1.25f;
 	search_config.noise_weight = 0.0f;
-	search_config.expansion_prior_treshold = 1.0e-4f;
+	search_config.expansion_prior_treshold = 1.0e-6f;
 	search_config.augment_position = false;
 	search_config.use_endgame_solver = true;
 
 	Search search(game_config, search_config, tree, cache, queue);
 
-	Sign sign_to_move = Sign::CROSS;
+	Sign sign_to_move = Sign::CIRCLE;
 	matrix<Sign> board(15, 15);
 
 //	board = boardFromString(" X X O X X X O X O X X _ O X _\n"
@@ -172,23 +172,38 @@ int main()
 //							" X X O O X _ O X _ _ X O _ _ X\n"
 //							" O O X O X X O O X _ X X O O _\n"
 //							" X X X O X _ O X _ O O X O _ O\n");
+	board = boardFromString(" _ X _ O _ _ _ _ _ X O X _ O _\n"
+			" X X _ O O O X O X O O O X X _\n"
+			" _ O O X X O X _ X _ O _ X X _\n"
+			" _ O _ X O O O O X X X X O O O\n"
+			" X O X X X X O X O O O O X X O\n"
+			" O X O O X X O _ X O _ O _ _ X\n"
+			" O X X X X O O O O X X X X O O\n"
+			" X X X O _ X _ X O X O O X O O\n"
+			" X O O _ O X O O O X X O O O O\n"
+			" X O X O O X X X X O X O O X O\n"
+			" O O X X X O X O O X X O O X X\n"
+			" X O X _ X O X X X O X X X X O\n"
+			" _ X O X O O _ X O _ O X O O X\n"
+			" O X O O _ X O X _ X O X O X _\n"
+			" X _ O X X X X O _ X O O O O X\n");
 
 //	board.at(4, 5) = Sign::CROSS;
-	board.at(6, 5) = Sign::CIRCLE;
-	board.at(1, 2) = Sign::CROSS;
-	board.at(6, 6) = Sign::CIRCLE;
-	board.at(3, 3) = Sign::CROSS;
-	board.at(5, 6) = Sign::CIRCLE;
+//	board.at(6, 5) = Sign::CIRCLE;
+//	board.at(1, 2) = Sign::CROSS;
+//	board.at(6, 6) = Sign::CIRCLE;
+//	board.at(3, 3) = Sign::CROSS;
+//	board.at(5, 6) = Sign::CIRCLE;
 //	board.at(3, 8) = Sign::CROSS;
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
 
 	matrix<float> policy(15, 15);
-	for (int i = 0; i <= 20; i++)
+	for (int i = 0; i <= 100; i++)
 	{
-		while (search.getSimulationCount() < i * 10000)
+		while (search.getSimulationCount() < i * 1000)
 		{
-			search.simulate(i * 10000);
+			search.simulate(i * 1000);
 			queue.evaluateGraph();
 			search.handleEvaluation();
 			if (tree.getRootNode().isProven())

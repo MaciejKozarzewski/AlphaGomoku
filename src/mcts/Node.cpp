@@ -50,7 +50,7 @@ namespace ag
 				break;
 		}
 		result += " : Q=" + std::to_string(value);
-		result += " : H=" + std::to_string(policy_prior);
+		result += " : P=" + std::to_string(policy_prior);
 		result += " : Visits=" + std::to_string(visits);
 		result += " : Children=" + std::to_string(numberOfChildren());
 		return result;
