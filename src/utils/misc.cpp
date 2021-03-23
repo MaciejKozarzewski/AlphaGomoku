@@ -381,7 +381,7 @@ namespace ag
 		auto idx = std::distance(policy.begin(), std::max_element(policy.begin(), policy.end()));
 		return Move(idx / policy.rows(), idx % policy.rows());
 	}
-	Move randomizeMove(const matrix<float> &policy)
+	Move randomizeMove(const matrix<float> &policy, float temperature)
 	{
 		float r = std::accumulate(policy.begin(), policy.end(), 0.0f);
 		if (r == 0.0f) // special case when policy is completely zero, assumes empty board

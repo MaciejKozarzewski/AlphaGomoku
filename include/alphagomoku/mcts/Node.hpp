@@ -18,7 +18,7 @@ namespace ag
 {
 	enum ProvenValue
 	{
-		UNKNOWN, WIN, LOSS, DRAW
+		UNKNOWN, LOSS, DRAW, WIN
 	};
 
 	std::string toString(ProvenValue pv);
@@ -122,6 +122,23 @@ namespace ag
 			}
 			std::string toString() const;
 			void sortChildren() const;
+
+			Node* begin() noexcept
+			{
+				return children;
+			}
+			Node* end() noexcept
+			{
+				return children + numberOfChildren();
+			}
+			const Node* begin() const noexcept
+			{
+				return children;
+			}
+			const Node* end() const noexcept
+			{
+				return children + numberOfChildren();
+			}
 	};
 
 } /* namespace ag */

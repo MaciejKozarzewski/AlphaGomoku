@@ -14,7 +14,7 @@
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
 #include <alphagomoku/utils/game_rules.hpp>
-#include <alphagomoku/configs.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 #include <inttypes.h>
 #include <string>
@@ -88,7 +88,7 @@ namespace ag
 			void setBoard(const matrix<Sign> &board);
 
 			void handleEvaluation();
-			void iterate(int max_iterations);
+			void simulate(int maxSimulations);
 			void cleanup();
 
 			void clearStats() noexcept;

@@ -28,6 +28,8 @@ namespace ag
 		offset += state.sizeInBytes();
 		minimax_value = so.load<float>(offset);
 		offset += sizeof(minimax_value);
+		proven_value = static_cast<ProvenValue>(so.load<int>(offset));
+		offset += sizeof(int);
 		move = so.load<uint16_t>(offset);
 		offset += sizeof(move);
 
@@ -59,8 +61,10 @@ namespace ag
 //				break;
 //		}
 	}
-	GameState::GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m) :
+	GameState::GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m, ProvenValue pv) :
+			state(board.rows(), board.cols()),
 			minimax_value(minimax),
+			proven_value(pv),
 			move(m.toShort())
 	{
 		for (int i = 0; i < board.size(); i++)
@@ -83,6 +87,7 @@ namespace ag
 		binary_data.save<int>(state.cols());
 		binary_data.save(state.data(), state.sizeInBytes());
 		binary_data.save<float>(minimax_value);
+		binary_data.save<int>(static_cast<int>(proven_value));
 		binary_data.save<uint16_t>(move);
 	}
 	bool GameState::isCorrect() const noexcept
@@ -202,6 +207,15 @@ namespace ag
 		for (int i = 0; i < nb_of_states; i++)
 			states.push_back(GameState(so, offset));
 	}
+
+	GameConfig Game::getConfig() const noexcept
+	{
+		GameConfig result;
+		result.rows = rows();
+		result.cols = cols();
+		result.rules = getRules();
+		return result;
+	}
 	int Game::rows() const noexcept
 	{
 		return current_board.rows();
@@ -247,7 +261,17 @@ namespace ag
 		this->current_board = other;
 		this->sign_to_move = signToMove;
 	}
-	void Game::makeMove(Move move, const matrix<float> &policy, float minimax)
+	void Game::makeMove(Move move)
+	{
+		assert(move.row >= 0 && move.row < rows());
+		assert(move.col >= 0 && move.col < cols());
+		assert(move.sign == sign_to_move);
+		assert(current_board.at(move.row, move.col) == Sign::NONE);
+
+		current_board.at(move.row, move.col) = move.sign;
+		sign_to_move = invertSign(sign_to_move);
+	}
+	void Game::makeMove(Move move, const matrix<float> &policy, float minimax, ProvenValue pv)
 	{
 		assert(move.row >= 0 && move.row < rows());
 		assert(move.col >= 0 && move.col < cols());
@@ -256,7 +280,7 @@ namespace ag
 		assert(cols() == policy.cols());
 		assert(move.sign == sign_to_move);
 
-		states.push_back(GameState(current_board, policy, minimax, move));
+		states.push_back(GameState(current_board, policy, minimax, move, pv));
 
 		current_board.at(move.row, move.col) = move.sign;
 		sign_to_move = invertSign(sign_to_move);
@@ -333,7 +357,7 @@ namespace ag
 		Json result;
 		result["rows"] = rows();
 		result["cols"] = cols();
-		result["rules"] = rulesToString(rules);
+		result["rules"] = toString(rules);
 		result["outcome"] = outcomeToString(outcome);
 		result["nb_of_states"] = states.size();
 		result["binary_offset"] = binary_data.size();

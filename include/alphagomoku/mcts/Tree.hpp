@@ -11,7 +11,7 @@
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/configs.hpp>
+#include <alphagomoku/utils/configs.hpp>
 #include <inttypes.h>
 #include <memory>
 #include <mutex>

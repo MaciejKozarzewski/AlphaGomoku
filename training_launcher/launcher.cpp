@@ -18,12 +18,15 @@
 #include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/selfplay/GeneratorManager.hpp>
+#include <alphagomoku/utils/ThreadPool.hpp>
 #include <libml/graph/Graph.hpp>
 #include <libml/hardware/Device.hpp>
 #include <libml/utils/json.hpp>
 #include <libml/utils/serialization.hpp>
 #include <iostream>
 #include <string>
+#include <thread>
 
 using namespace ag;
 
@@ -103,19 +106,28 @@ void test_train()
 
 int main()
 {
+	FileLoader fl("/home/maciek/alphagomoku/standard_2021/simple_config.json");
+	GeneratorManager manager(fl.getJson());
+	manager.generate("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 200);
+
+	return 0;
+
 	GameConfig game_config;
 	game_config.rules = GameRules::STANDARD;
 	game_config.rows = 15;
 	game_config.cols = 15;
 
 	TreeConfig tree_config;
+	tree_config.max_number_of_nodes = 100000000;
+	tree_config.bucket_size = 1000000;
 	Tree tree(tree_config);
 
 	CacheConfig cache_config;
+	cache_config.min_cache_size = 1024576;
 	Cache cache(game_config, cache_config);
 
 	EvaluationQueue queue;
-	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 32, ml::Device::cuda(0));
+	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 32); //, ml::Device::cuda(0));
 
 	SearchConfig search_config;
 	search_config.batch_size = 32;
@@ -127,7 +139,7 @@ int main()
 
 	Search search(game_config, search_config, tree, cache, queue);
 
-	Sign sign_to_move = Sign::CIRCLE;
+	Sign sign_to_move = Sign::CROSS;
 	matrix<Sign> board(15, 15);
 
 //	board = boardFromString(" X X O X X X O X O X X _ O X _\n"
@@ -145,71 +157,60 @@ int main()
 //							" _ X O _ X _ O X _ _ X O _ _ X\n"
 //							" _ O X O _ X O O X _ X X O O _\n"
 //							" X _ X O _ _ O X _ O O X O _ O\n");
-	board = boardFromString(" X X O X X X O X O X X X O X O\n"
-							" X X O X O X O O X X X O X X X\n"
-							" X O O X O X X O X O X X O O O\n"
-							" O X X O X X O O X O O X X X O\n"
-							" X X O X O O O X X O X O O O O\n"
-							" X X O X O X O O O X O X X X X\n"
-							" O X O X X X X O O O O X X O X\n"
-							" O O X O O X X O X O O X X O O\n"
-							" X X X O X O O O O X X X O O X\n"
-							" O O O X O X X X X O O O O X X\n"
-							" O X O O O O X O O X X O O X O\n"
-							" X X O X X X X O O O X X X O O\n"
-							" X X O O X _ O X _ _ X O _ _ X\n"
-							" O O X O X X O O X _ X X O O _\n"
-							" X X X O X _ O X _ O O X O _ O\n");
+//	board = boardFromString(" X X O X X X O X O X X X O X O\n"
+//							" X X O X O X O O X X X O X X X\n"
+//							" X O O X O X X O X O X X O O O\n"
+//							" O X X O X X O O X O O X X X O\n"
+//							" X X O X O O O X X O X O O O O\n"
+//							" X X O X O X O O O X O X X X X\n"
+//							" O X O X X X X O O O O X X O X\n"
+//							" O O X O O X X O X O O X X O O\n"
+//							" X X X O X O O O O X X X O O X\n"
+//							" O O O X O X X X X O O O O X X\n"
+//							" O X O O O O X O O X X O O X O\n"
+//							" X X O X X X X O O O X X X O O\n"
+//							" X X O O X _ O X _ _ X O _ _ X\n"
+//							" O O X O X X O O X _ X X O O _\n"
+//							" X X X O X _ O X _ O O X O _ O\n");
 
-	std::cout << "initial board outcome = " << outcomeToString(getOutcome(GameRules::STANDARD, board)) << '\n';
-	std::cout << boardToString(board);
-//	return 0;
-//	for (int i = 0; i < 15; i++)
-//		for (int j = 0; j < 15; j++)
-//			if (rand() % 100 < 80)
-//				board.at(i, j) = (j % 2 == 0) ? Sign::CROSS : Sign::CIRCLE;
-
-//	board.at(4, 5) = invertSign(sign_to_move);
-//	board.at(6, 5) = sign_to_move;
-//	board.at(1, 2) = invertSign(sign_to_move);
-//	board.at(6, 6) = sign_to_move;
-//	board.at(3, 3) = invertSign(sign_to_move);
-//	board.at(5, 6) = sign_to_move;
-//	board.at(3, 7) = invertSign(sign_to_move);
+//	board.at(4, 5) = Sign::CROSS;
+	board.at(6, 5) = Sign::CIRCLE;
+	board.at(1, 2) = Sign::CROSS;
+	board.at(6, 6) = Sign::CIRCLE;
+	board.at(3, 3) = Sign::CROSS;
+	board.at(5, 6) = Sign::CIRCLE;
+//	board.at(3, 8) = Sign::CROSS;
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
 
 	matrix<float> policy(15, 15);
-	for (int i = 0; i <= 1000000; i++)
+	for (int i = 0; i <= 20; i++)
 	{
-		if (i % 1000 == 0)
+		while (search.getSimulationCount() < i * 10000)
 		{
-			tree.getPlayoutDistribution(tree.getRootNode(), policy);
-			normalize(policy);
-			std::cout << policyToString(board, policy) << '\n';
+			search.simulate(i * 10000);
+			queue.evaluateGraph();
+			search.handleEvaluation();
+			if (tree.getRootNode().isProven())
+				break;
 		}
-		search.iterate(1000000);
-		queue.evaluateGraph();
-		search.handleEvaluation();
+		tree.getPlayoutDistribution(tree.getRootNode(), policy);
+		normalize(policy);
+
+		std::cout << tree.getPrincipalVariation().toString() << '\n';
+		std::cout << policyToString(board, policy);
+		std::cout << search.getStats().toString();
+		std::cout << queue.getStats().toString();
+		std::cout << tree.getStats().toString();
+		std::cout << cache.storedElements() << ":" << cache.bufferedElements() << ":" << cache.allocatedElements() << ":" << cache.loadFactor()
+				<< '\n';
+		if (tree.getRootNode().isProven())
+			break;
 	}
 
-//	std::cout << "\n----------------------------------------------------------------------------------\n";
-//	tree.printSubtree(tree.getRootNode(), 2, true);
-//	std::cout << "\n----------------------------------------------------------------------------------\n";
-	std::cout << tree.getPrincipalVariation().toString() << '\n';
-	std::cout << policyToString(board, policy);
-	std::cout << search.getStats().toString();
-	std::cout << queue.getStats().toString();
-	std::cout << tree.getStats().toString();
-	std::cout << cache.storedElements() << ":" << cache.bufferedElements() << ":" << cache.allocatedElements() << ":" << cache.loadFactor() << '\n';
-	Move move = pickMove(policy);
-	move.sign = sign_to_move;
-	std::cout << "making move " << move.toString() << '\n';
-
-	board.at(move.row, move.col) = move.sign;
-
-	cache.cleanup(board);
-	std::cout << cache.storedElements() << ":" << cache.bufferedElements() << ":" << cache.allocatedElements() << ":" << cache.loadFactor() << '\n';
+	std::cout << "\n----------------------------------------------------------------------------------\n";
+	tree.printSubtree(tree.getRootNode(), 1, true);
+	std::cout << "\n----------------------------------------------------------------------------------\n";
 
 //	std::string path = "/home/maciek/alphagomoku/";
 //	std::string name = "standard_15x15_correct";

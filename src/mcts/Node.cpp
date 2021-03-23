@@ -21,12 +21,12 @@ namespace ag
 			default:
 			case ProvenValue::UNKNOWN:
 				return "UNKNOWN";
-			case ProvenValue::WIN:
-				return "WIN";
 			case ProvenValue::LOSS:
 				return "LOSS";
 			case ProvenValue::DRAW:
 				return "DRAW";
+			case ProvenValue::WIN:
+				return "WIN";
 		}
 	}
 
@@ -39,14 +39,14 @@ namespace ag
 			case ProvenValue::UNKNOWN:
 				result += 'U';
 				break;
-			case ProvenValue::WIN:
-				result += 'W';
-				break;
 			case ProvenValue::LOSS:
 				result += 'L';
 				break;
 			case ProvenValue::DRAW:
 				result += 'D';
+				break;
+			case ProvenValue::WIN:
+				result += 'W';
 				break;
 		}
 		result += " : Q=" + std::to_string(value);

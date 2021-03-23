@@ -21,16 +21,8 @@ namespace ag
 
 			GameConfig() = default;
 			GameConfig(const Json &cfg);
-	};
 
-	struct GeneratorConfig
-	{
-			int simulations = 0;
-			float temperature = 0.0f;
-			bool use_opening = false;
-
-			GeneratorConfig() = default;
-			GeneratorConfig(const Json &cfg);
+			static Json getDefault();
 	};
 
 	struct TreeConfig
@@ -40,17 +32,21 @@ namespace ag
 
 			TreeConfig() = default;
 			TreeConfig(const Json &cfg);
+
+			static Json getDefault();
 	};
 
 	struct CacheConfig
 	{
 			int min_cache_size = 8192;
 			int max_cache_size = 1048576;
-			int update_from_search = false;
+			bool update_from_search = false;
 			int update_visit_treshold = 10;
 
 			CacheConfig() = default;
 			CacheConfig(const Json &cfg);
+
+			static Json getDefault();
 	};
 
 	struct SearchConfig
@@ -64,7 +60,13 @@ namespace ag
 
 			SearchConfig() = default;
 			SearchConfig(const Json &cfg);
+
+			static Json getDefault();
 	};
+
+	Json getDefaultSelfplayConfig();
+	Json getDefaultTrainingConfig();
+	Json getDefaultEvaluationConfig();
 }
 
 #endif /* ALPHAGOMOKU_CONFIGS_HPP_ */

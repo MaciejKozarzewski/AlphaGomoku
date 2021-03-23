@@ -95,14 +95,12 @@ namespace ag
 		}
 		search_buffer.clear();
 	}
-	void Search::iterate(int max_iterations)
+	void Search::simulate(int maxSimulations)
 	{
-		assert(max_iterations > 0);
-		while (static_cast<int>(search_buffer.size()) < search_config.batch_size and simulation_count < max_iterations
+		assert(maxSimulations > 0);
+		while (static_cast<int>(search_buffer.size()) < search_config.batch_size and simulation_count < maxSimulations
 				and not tree.getRootNode().isProven())
 		{
-			simulation_count++;
-
 			SearchRequest &request = select();
 			if (evaluateFromGameRules(request.position) == GameOutcome::UNKNOWN)
 			{
@@ -114,7 +112,7 @@ namespace ag
 					search_buffer.pop_back();
 					simulation_count--;
 					stats.nb_duplicate_nodes++; //statistics
-					return; // cancelled virtual loss, exiting iteration
+					return;
 				}
 				else
 				{
@@ -146,6 +144,7 @@ namespace ag
 	}
 	void Search::cleanup()
 	{
+		simulation_count = 0;
 		for (auto entry = search_buffer.begin(); entry < search_buffer.end(); entry++)
 			tree.cancelVirtualLoss(entry->trajectory);
 		search_buffer.clear();
@@ -154,10 +153,11 @@ namespace ag
 	{
 		stats = SearchStats();
 	}
-	//private
+//private
 	Search::SearchRequest& Search::select()
 	{
 		double start = getTime(); // statistics
+		simulation_count++;
 		search_buffer.push_back(SearchRequest(game_config.rows, game_config.cols)); // add new request
 		tree.select(search_buffer.back().trajectory, search_config.exploration_constant); // select node to evaluate
 		search_buffer.back().position.setTrajectory(current_board, search_buffer.back().trajectory); // update board in evaluation request

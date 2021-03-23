@@ -42,7 +42,14 @@ namespace ag
 	{
 		load(path);
 	}
-	int GameBuffer::getNumberOfSamples()
+
+	void GameBuffer::clear() noexcept
+	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		buffer_data.clear();
+		stats = GameBufferStats();
+	}
+	int GameBuffer::size() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		return buffer_data.size();
@@ -65,10 +72,15 @@ namespace ag
 //				stats.circle_win++;
 //		}
 	}
+	const Game& GameBuffer::getFromBuffer(int index) const
+	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		return buffer_data.at(index);
+	}
 	Game& GameBuffer::getFromBuffer(int index)
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
-		return buffer_data[index];
+		return buffer_data.at(index);
 	}
 	void GameBuffer::save(const std::string &path) const
 	{
@@ -107,14 +119,7 @@ namespace ag
 //		for (int i = 0; i < size; i++)
 //			buffer_data.push_back(Game(so, offset));
 	}
-	void GameBuffer::clear()
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		buffer_data.clear();
-		buffer_data.clear();
-		stats = GameBufferStats();
-	}
-	GameBufferStats GameBuffer::getStats()
+	GameBufferStats GameBuffer::getStats() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		GameBufferStats stats;
@@ -135,7 +140,7 @@ namespace ag
 		}
 		return stats;
 	}
-	bool GameBuffer::isCorrect() const
+	bool GameBuffer::isCorrect() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		for (size_t i = 0; i < buffer_data.size(); i++)

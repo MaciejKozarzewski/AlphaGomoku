@@ -35,22 +35,23 @@ namespace ag
 			EvaluationRequest request;
 			bool is_request_scheduled = false;
 
-			std::unique_ptr<Tree> tree;
-			std::unique_ptr<Cache> cache;
-			std::unique_ptr<Search> search;
+			Tree tree;
+			Cache cache;
+			Search search;
 
 			GameState state = GAME_NOT_STARTED;
 			int opening_trials = 0;
-			GeneratorConfig config;
-		public:
-			GameGenerator(GameConfig gameOptions, GameBuffer &gameBuffer, EvaluationQueue &queue);
 
-			void init(const Json &selfplayOptions);
+			int simulations = 0;
+			float temperature = 0.0f;
+			bool use_opening = false;
+		public:
+			GameGenerator(const Json &options, GameBuffer &gameBuffer, EvaluationQueue &queue);
 
 			void clearStats();
 			SearchStats getSearchStats() const;
 			bool prepareOpening();
-			void makeMove(const matrix<float> &policy);
+			void makeMove();
 			bool performSearch(int iterations);
 			void generate();
 		private:

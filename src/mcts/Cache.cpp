@@ -177,6 +177,7 @@ namespace ag
 			}
 			bins[i] = nullptr;
 		}
+		assert(stored_entries + buffered_entries == allocated_entries);
 	}
 	bool Cache::seek(EvaluationRequest &request) const noexcept
 	{
@@ -238,6 +239,7 @@ namespace ag
 				current = next;
 			}
 		}
+		assert(stored_entries + buffered_entries == allocated_entries);
 	}
 	void Cache::remove(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
@@ -259,6 +261,7 @@ namespace ag
 			}
 			current = next;
 		}
+		assert(stored_entries + buffered_entries == allocated_entries);
 	}
 	void Cache::rehash(int newNumberOfBins) noexcept
 	{
@@ -289,6 +292,7 @@ namespace ag
 			bins[bin_index] = tmp;
 			tmp = next;
 		}
+		assert(stored_entries + buffered_entries == allocated_entries);
 	}
 // private
 	Cache::Entry* Cache::get_new_entry()
@@ -307,7 +311,6 @@ namespace ag
 			result->next_entry = nullptr;
 
 			assert(buffered_entries >= 0);
-			assert(stored_entries + buffered_entries == allocated_entries);
 			return result;
 		}
 	}
@@ -317,9 +320,7 @@ namespace ag
 		buffer = entry;
 		stored_entries--;
 		buffered_entries++;
-
 		assert(stored_entries >= 0);
-		assert(stored_entries + buffered_entries == allocated_entries);
 	}
 }
 

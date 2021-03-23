@@ -71,7 +71,7 @@ namespace ag
 	void logToFile(const char *file, const char *msg1, const char *msg2);
 
 	Move pickMove(const matrix<float> &policy);
-	Move randomizeMove(const matrix<float> &policy);
+	Move randomizeMove(const matrix<float> &policy, float temperature = 1.0f);
 	void normalize(matrix<float> &policy);
 	float max(const matrix<float> &policy);
 

@@ -39,14 +39,18 @@ namespace ag
 			GameBuffer() = default;
 			GameBuffer(const std::string &path);
 
-			int getNumberOfSamples();
+			void clear() noexcept;
+			int size() const noexcept;
 			void addToBuffer(const Game &game);
+			const Game& getFromBuffer(int index) const;
 			Game& getFromBuffer(int index);
+
 			void save(const std::string &path) const;
 			void load(const std::string &path);
-			void clear();
-			GameBufferStats getStats();
-			bool isCorrect() const;
+
+
+			GameBufferStats getStats() const noexcept;
+			bool isCorrect() const noexcept;
 	};
 }
 

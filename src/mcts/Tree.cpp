@@ -17,39 +17,64 @@ namespace
 	using namespace ag;
 	Node* select_puct(Node *parent, const float exploration_constant)
 	{
-		assert(not parent->isLeaf());
-		int selected = -1;
-		float bestValue = -1.0f;
 		const float sqrt_visit = exploration_constant * sqrt(parent->getVisits());
-		for (int i = 0; i < parent->numberOfChildren(); i++)
-		{
-			const Node &child = parent->getChild(i);
-			if (not child.isProven())
+		auto selected = parent->end();
+		float bestValue = -1.0f;
+		for (auto iter = parent->begin(); iter < parent->end(); iter++)
+			if (not iter->isProven())
 			{
-				float PUCT = child.getValue() + child.getPolicyPrior() * sqrt_visit / (1.0f + child.getVisits());
+				float PUCT = iter->getValue() + iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits());
 				if (PUCT > bestValue)
 				{
-					selected = i;
+					selected = iter;
 					bestValue = PUCT;
 				}
 			}
-		}
-		assert(selected != -1);
-		return &(parent->getChild(selected));
+		assert(selected != parent->end());
+		return selected;
 	}
-	Node* select_by_visits(Node *parent)
+	Node* select_by_visit(Node *parent)
 	{
-		assert(not parent->isLeaf());
-		int selected = -1;
-		int max_visits = -1;
-		for (int i = 0; i < parent->numberOfChildren(); i++)
-			if (parent->getChild(i).getVisits() > max_visits)
+		auto result = std::max_element(parent->begin(), parent->end(), [](const Node &lhs, const Node &rhs)
+		{
+			return lhs.getVisits() < rhs.getVisits();
+		});
+		assert(result != parent->end());
+		return result;
+	}
+	Node* select_by_value(Node *parent)
+	{
+		auto selected = parent->end();
+		float max_value = -1.0f;
+		for (auto iter = parent->begin(); iter < parent->end(); iter++)
+			switch (iter->getProvenValue())
 			{
-				selected = i;
-				max_visits = parent->getChild(i).getVisits();
+				case ProvenValue::UNKNOWN:
+					if (iter->getValue() > max_value)
+					{
+						selected = iter;
+						max_value = iter->getValue();
+					}
+					break;
+				case ProvenValue::LOSS:
+					if (iter->getValue() > max_value)
+					{
+						selected = iter;
+						max_value = -1.0f + iter->getValue();
+					}
+					break;
+				case ProvenValue::DRAW:
+					if (0.5f > max_value)
+					{
+						selected = iter;
+						max_value = 0.5f;
+					}
+					break;
+				case ProvenValue::WIN:
+					return iter;
 			}
-		assert(selected != -1);
-		return &(parent->getChild(selected));
+		assert(selected != parent->end());
+		return selected;
 	}
 	bool update_proven_value(Node &parent)
 	{
@@ -138,6 +163,7 @@ namespace ag
 	std::string TreeStats::toString() const
 	{
 		std::string result;
+		result += "----TreeStats----\n";
 		result += "used nodes = " + std::to_string(used_nodes) + '\n';
 		result += "allocated nodes = " + std::to_string(allocated_nodes) + '\n';
 		result += "proven nodes = " + std::to_string(proven_nodes) + '\n';
@@ -157,20 +183,12 @@ namespace ag
 	}
 	TreeStats Tree::getStats() const noexcept
 	{
-//		std::lock_guard<std::mutex> lock(tree_mutex);
 		TreeStats result;
 		result.allocated_nodes = allocatedNodes();
 		result.used_nodes = usedNodes();
 		for (size_t i = 0; i < nodes.size(); i++)
 			for (int j = 0; j < config.bucket_size; j++)
-			{
 				result.proven_nodes += static_cast<int>(nodes[i][j].isProven());
-				if (nodes[i][j].isProven())
-				{
-
-//					printSubtree(nodes[i][j], -1, true);
-				}
-			}
 		return result;
 	}
 	void Tree::clear() noexcept
@@ -293,7 +311,7 @@ namespace ag
 		result.append(current, current->getMove());
 		while (not current->isLeaf())
 		{
-			current = select_by_visits(current);
+			current = select_by_value(current);
 			result.append(current, current->getMove());
 		}
 		return result;

@@ -56,7 +56,7 @@ namespace ag
 		int rows = shape[1];
 		int cols = shape[2];
 
-		std::vector<int> training_sample_order = permutation(buffer.getNumberOfSamples());
+		std::vector<int> training_sample_order = permutation(buffer.size());
 		size_t training_sample_index = 0;
 
 		std::vector<float> acc(5);
@@ -104,7 +104,7 @@ namespace ag
 		std::vector<float> acc(5);
 		matrix<Sign> board(rows, cols);
 		matrix<float> policy(rows, cols);
-		for (int i = 0; i < buffer.getNumberOfSamples(); i += batch_size)
+		for (int i = 0; i < buffer.size(); i += batch_size)
 		{
 			for (int b = 0; b < batch_size; b++)
 			{

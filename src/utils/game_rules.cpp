@@ -28,7 +28,7 @@ namespace ag
 			return GameRules::CARO;
 		throw std::logic_error("unknown rule");
 	}
-	std::string rulesToString(GameRules rules)
+	std::string toString(GameRules rules)
 	{
 		switch (rules)
 		{

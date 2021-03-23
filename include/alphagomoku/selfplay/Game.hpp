@@ -9,9 +9,10 @@
 #define ALPHAGOMOKU_SELFPLAY_GAME_HPP_
 
 #include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/configs.hpp>
+#include <alphagomoku/utils/configs.hpp>
 #include <libml/utils/serialization.hpp>
 
 #include <vector>
@@ -28,10 +29,11 @@ namespace ag
 	{
 			matrix<uint16_t> state;
 			float minimax_value = 0.0f;
+			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			uint16_t move = 0;
 
 			GameState(const SerializedObject &so, size_t &offset);
-			GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m);
+			GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m, ProvenValue pv);
 			void copyTo(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove) const;
 			void serialize(SerializedObject &binary_data) const;
 			bool isCorrect() const noexcept;
@@ -52,6 +54,7 @@ namespace ag
 			Game(const Json &json, const SerializedObject &binary_data);
 			Game(const SerializedObject &so, size_t &offset);
 
+			GameConfig getConfig() const noexcept;
 			int rows() const noexcept;
 			int cols() const noexcept;
 			GameRules getRules() const noexcept;
@@ -61,7 +64,8 @@ namespace ag
 			Move getLastMove() const noexcept;
 			const matrix<Sign>& getBoard() const noexcept;
 			void setBoard(const matrix<Sign> &other, Sign signToMove);
-			void makeMove(Move move, const matrix<float> &policy, float minimax);
+			void makeMove(Move move);
+			void makeMove(Move move, const matrix<float> &policy, float minimax, ProvenValue pv);
 			void resolveOutcome();
 			bool isOver() const;
 			bool isDraw() const;
