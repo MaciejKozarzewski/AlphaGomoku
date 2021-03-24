@@ -41,6 +41,7 @@ namespace ag
 					int stored_transpositions = 0;
 
 					Entry(int boardSize);
+					void print() const;
 					void copyTo(EvaluationRequest &request) const noexcept;
 					void copyFrom(const EvaluationRequest &request, uint64_t boardHash) noexcept;
 					void addTransposition(Node *node) noexcept;

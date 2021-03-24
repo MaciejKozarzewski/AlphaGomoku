@@ -460,6 +460,32 @@ namespace ag
 							}
 				}
 	}
+	std::vector<Move> prepareOpening(GameConfig config)
+	{
+		matrix<float> map_dist(config.rows, config.cols);
+		matrix<Sign> board(config.rows, config.cols);
+
+		std::vector<Move> result;
+		bool flag = true;
+		while (flag)
+		{
+			board.clear();
+			Sign sign_to_move = Sign::CROSS;
+			int opening_moves = randInt(6) + randInt(6) + randInt(6);
+			for (int i = 0; i < opening_moves; i++)
+			{
+				generateOpeningMap(board, map_dist);
+				Move move = randomizeMove(map_dist);
+				move.sign = sign_to_move;
+				result.push_back(move);
+				assert(board.at(move.row, move.col) == Sign::NONE);
+				board.at(move.row, move.col) = sign_to_move;
+				sign_to_move = invertSign(sign_to_move);
+			}
+			flag = getOutcome(config.rules, board) != GameOutcome::UNKNOWN;
+		}
+		return result;
+	}
 	Sign prepareOpening(GameRules rules, matrix<Sign> &board)
 	{
 		Sign sign_to_move = randBool() ? Sign::CROSS : Sign::CIRCLE;

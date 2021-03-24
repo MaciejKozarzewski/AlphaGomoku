@@ -11,6 +11,7 @@
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/utils/configs.hpp>
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
@@ -84,6 +85,7 @@ namespace ag
 	std::vector<int> permutation(int length);
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
+	std::vector<Move> prepareOpening(GameConfig config);
 	Sign prepareOpening(GameRules rules, matrix<Sign> &board);
 
 	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove);

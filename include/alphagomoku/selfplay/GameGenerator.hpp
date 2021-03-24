@@ -27,7 +27,7 @@ namespace ag
 		private:
 			enum GameState
 			{
-				GAME_NOT_STARTED, PREPARE_OPENING, GAMEPLAY, GAME_ENDED, SEND_RESULTS
+				GAME_NOT_STARTED, PREPARE_OPENING, GAMEPLAY, SEND_RESULTS
 			};
 			GameBuffer &game_buffer;
 			EvaluationQueue &queue;
@@ -52,11 +52,12 @@ namespace ag
 			SearchStats getSearchStats() const;
 			bool prepareOpening();
 			void makeMove();
-			bool performSearch(int iterations);
+			bool performSearch();
 			void generate();
 		private:
 			void prepare_search(const matrix<Sign> &board, Move lastMove);
 	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_SELFPLAY_GAMEGENERATOR_HPP_ */

@@ -56,6 +56,7 @@ namespace ag
 			int allocatedNodes() const noexcept;
 			int usedNodes() const noexcept;
 
+			bool isProven() const noexcept;
 			const Node& getRootNode() const noexcept;
 			Node& getRootNode() noexcept;
 			bool isRootNode(const Node *node) const noexcept;

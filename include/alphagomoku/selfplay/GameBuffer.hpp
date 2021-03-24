@@ -48,7 +48,6 @@ namespace ag
 			void save(const std::string &path) const;
 			void load(const std::string &path);
 
-
 			GameBufferStats getStats() const noexcept;
 			bool isCorrect() const noexcept;
 	};

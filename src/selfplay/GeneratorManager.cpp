@@ -49,9 +49,6 @@ namespace ag
 			generators[i] = std::make_unique<GeneratorThread>(*this, options,
 					ml::Device::fromString(options["selfplay_options"]["threads"][i]["device"]));
 	}
-	GeneratorManager::~GeneratorManager()
-	{
-	}
 
 	const GameBuffer& GeneratorManager::getGameBuffer() const noexcept
 	{

@@ -49,7 +49,9 @@ namespace ag
 	std::string EvaluationRequest::toString() const
 	{
 		std::string result;
-		result += "sign = " + getSignToMove() + '\n';
+		if (node != nullptr)
+			result += node->toString() + '\n';
+		result += "sign to move = " + getSignToMove() + '\n';
 		if (is_ready)
 		{
 			result += "value = " + std::to_string(value);

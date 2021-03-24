@@ -70,6 +70,10 @@ namespace ag
 		for (int i = 0; i < board.size(); i++)
 			state.data()[i] = (static_cast<int>(board.data()[i]) & 3) | (static_cast<int>(policy.data()[i] * 16383) << 2);
 	}
+	GameState::GameState(Move m) :
+			move(m.toShort())
+	{
+	}
 	void GameState::copyTo(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove) const
 	{
 		signToMove = Move::getSign(move);
@@ -232,14 +236,14 @@ namespace ag
 	{
 		return states.size();
 	}
-	void Game::beginGame(Sign signToMove)
+	void Game::beginGame()
 	{
 		states.clear();
 		use_count.clear();
 		current_board.clear();
 		outcome = GameOutcome::UNKNOWN;
 		states.clear();
-		sign_to_move = signToMove;
+		sign_to_move = Sign::CROSS;
 	}
 	Sign Game::getSignToMove() const noexcept
 	{
@@ -261,6 +265,13 @@ namespace ag
 		this->current_board = other;
 		this->sign_to_move = signToMove;
 	}
+	void Game::loadOpening(const std::vector<Move> &moves)
+	{
+		beginGame();
+		sign_to_move = (moves.size() == 0) ? Sign::CROSS : moves[0].sign;
+		for (size_t i = 0; i < moves.size(); i++)
+			makeMove(moves[i]);
+	}
 	void Game::makeMove(Move move)
 	{
 		assert(move.row >= 0 && move.row < rows());
@@ -268,6 +279,7 @@ namespace ag
 		assert(move.sign == sign_to_move);
 		assert(current_board.at(move.row, move.col) == Sign::NONE);
 
+		states.push_back(GameState(move));
 		current_board.at(move.row, move.col) = move.sign;
 		sign_to_move = invertSign(sign_to_move);
 	}

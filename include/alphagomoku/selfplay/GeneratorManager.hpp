@@ -74,7 +74,6 @@ namespace ag
 
 		public:
 			GeneratorManager(const Json &options);
-			~GeneratorManager();
 
 //			NNQueueConfig getQueueConfig() const;
 //			SearchConfig getSearchConfig() const;

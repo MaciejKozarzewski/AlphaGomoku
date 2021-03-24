@@ -7,6 +7,7 @@
 
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
+#include <alphagomoku/utils/misc.hpp>
 
 #include <math.h>
 #include <iostream>
@@ -18,6 +19,21 @@ namespace ag
 	{
 		clearTranspositions();
 	}
+	void Cache::Entry::print() const
+	{
+		const float tmp = 1.0f / 16383;
+		matrix<Sign> board(15, 15);
+		matrix<float> policy(15, 15);
+		for (int i = 0; i < policy.size(); i++)
+		{
+			policy.data()[i] = (data[i] >> 2) * tmp;
+			board.data()[i] = static_cast<Sign>(data[i] & 3);
+		}
+		for (int i = 0; i < stored_transpositions; i++)
+			std::cout << transpositions[i]->toString() << '\n';
+		std::cout << "value = " << value << " : proven " << ag::toString(proven_value) << '\n';
+		std::cout << policyToString(board, policy);
+	}
 	void Cache::Entry::copyTo(EvaluationRequest &request) const noexcept
 	{
 		const float tmp = 1.0f / 16383;
@@ -25,17 +41,22 @@ namespace ag
 		request.setValue(value);
 		request.setProvenValue(proven_value);
 		for (int i = 0; i < request.getPolicy().size(); i++)
+		{
+			assert(request.getBoard().data()[i] == static_cast<Sign>(data[i] & 3)); // check for board correctness
 			request.getPolicy().data()[i] = (data[i] >> 2) * tmp;
+//			request.getBoard().data()[i] = static_cast<Sign>(data[i] & 3);
+		}
 	}
 	void Cache::Entry::copyFrom(const EvaluationRequest &request, uint64_t boardHash) noexcept
 	{
-		clearTranspositions();
-		addTransposition(request.getNode());
+		assert(request.getNode()->getVisits() > 0);
 		hash = boardHash;
 		proven_value = ProvenValue::UNKNOWN;
 		value = request.getValue();
 		for (int i = 0; i < request.getPolicy().size(); i++)
 			data[i] = static_cast<int>(request.getBoard().data()[i]) | (static_cast<int>(request.getPolicy().data()[i] * 16383.0f) << 2);
+		clearTranspositions();
+		addTransposition(request.getNode());
 	}
 	void Cache::Entry::addTransposition(Node *node) noexcept
 	{
@@ -71,6 +92,7 @@ namespace ag
 			if (proven_value == ProvenValue::UNKNOWN)
 				proven_value = transpositions[i]->getProvenValue();
 		}
+		assert(total_visits > 0);
 		this->value = total_wins / total_visits;
 
 		if (total_visits >= visitTreshold)
@@ -78,11 +100,11 @@ namespace ag
 			total_visits = 0;
 			workspace.clear();
 			for (int i = 0; i < stored_transpositions; i++)
-				for (int j = 0; j < transpositions[i]->numberOfChildren(); j++)
+				for (auto iter = transpositions[i]->begin(); iter < transpositions[i]->end(); iter++)
 				{
-					uint16_t move = transpositions[i]->getChild(j).getMove();
-					workspace.at(Move::getRow(move), Move::getCol(move)) += transpositions[i]->getChild(j).getVisits();
-					total_visits += transpositions[i]->getChild(j).getVisits();
+					uint16_t move = iter->getMove();
+					workspace.at(Move::getRow(move), Move::getCol(move)) += iter->getVisits();
+					total_visits += iter->getVisits();
 				}
 
 			const float weight = (total_visits > 1024 * visitTreshold) ? 0.0f : std::pow(0.5f, static_cast<float>(total_visits) / visitTreshold);

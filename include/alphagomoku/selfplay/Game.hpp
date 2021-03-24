@@ -34,6 +34,7 @@ namespace ag
 
 			GameState(const SerializedObject &so, size_t &offset);
 			GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m, ProvenValue pv);
+			GameState(Move m);
 			void copyTo(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove) const;
 			void serialize(SerializedObject &binary_data) const;
 			bool isCorrect() const noexcept;
@@ -59,11 +60,12 @@ namespace ag
 			int cols() const noexcept;
 			GameRules getRules() const noexcept;
 			int length() const noexcept;
-			void beginGame(Sign signToMove);
+			void beginGame();
 			Sign getSignToMove() const noexcept;
 			Move getLastMove() const noexcept;
 			const matrix<Sign>& getBoard() const noexcept;
 			void setBoard(const matrix<Sign> &other, Sign signToMove);
+			void loadOpening(const std::vector<Move> &moves);
 			void makeMove(Move move);
 			void makeMove(Move move, const matrix<float> &policy, float minimax, ProvenValue pv);
 			void resolveOutcome();

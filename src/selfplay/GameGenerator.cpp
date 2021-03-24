@@ -78,10 +78,10 @@ namespace ag
 
 		game.makeMove(move, policy, tree.getRootNode().getValue(), tree.getRootNode().getProvenValue());
 	}
-	bool GameGenerator::performSearch(int iterations)
+	bool GameGenerator::performSearch()
 	{
 		search.handleEvaluation(); //first handle scheduled requests
-		if (search.getSimulationCount() >= iterations or tree.getRootNode().isProven())
+		if (search.getSimulationCount() >= simulations or tree.isProven())
 		{
 //			matrix<float> policy(15, 15);
 //			tree.getPlayoutDistribution(tree.getRootNode(), policy);
@@ -97,7 +97,7 @@ namespace ag
 		}
 		else
 		{
-			search.simulate(iterations); //then perform search and schedule more requests
+			search.simulate(simulations); //then perform search and schedule more requests
 			return true;
 		}
 	}
@@ -112,7 +112,7 @@ namespace ag
 			}
 			else
 			{
-				game.beginGame(randBool() ? Sign::CROSS : Sign::CIRCLE);
+				game.beginGame();
 				prepare_search(game.getBoard(), game.getLastMove());
 				state = GAMEPLAY;
 			}
@@ -134,7 +134,7 @@ namespace ag
 		{
 			while (game.isOver() == false)
 			{
-				bool searchInProgress = performSearch(simulations);
+				bool searchInProgress = performSearch();
 				if (searchInProgress == true)
 					return;
 				else

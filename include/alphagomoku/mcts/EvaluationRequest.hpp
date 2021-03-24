@@ -102,6 +102,10 @@ namespace ag
 			{
 				last_move = move;
 			}
+			void setNode(Node *n) noexcept
+			{
+				node = n;
+			}
 			std::string toString() const;
 			void augment() noexcept;
 	};

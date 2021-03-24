@@ -86,9 +86,10 @@ namespace ag
 			int getSimulationCount() const noexcept;
 
 			void setBoard(const matrix<Sign> &board);
+			matrix<Sign> getBoard() const noexcept;
 
 			void handleEvaluation();
-			void simulate(int maxSimulations);
+			void simulate(int maxSimulations, bool verbose = false);
 			void cleanup();
 
 			void clearStats() noexcept;

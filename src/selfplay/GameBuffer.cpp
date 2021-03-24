@@ -128,14 +128,19 @@ namespace ag
 		{
 			stats.positions += buffer_data[i].getNumberOfSamples();
 			stats.game_length += buffer_data[i].length();
-			if (buffer_data[i].getOutcome() == GameOutcome::DRAW)
-				stats.draws++;
-			else
+			switch (buffer_data[i].getOutcome())
 			{
-				if (buffer_data[i].getOutcome() == GameOutcome::CROSS_WIN)
+				default:
+					break;
+				case GameOutcome::CROSS_WIN:
 					stats.cross_win++;
-				else
+					break;
+				case GameOutcome::DRAW:
+					stats.draws++;
+					break;
+				case GameOutcome::CIRCLE_WIN:
 					stats.circle_win++;
+					break;
 			}
 		}
 		return stats;

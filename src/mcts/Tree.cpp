@@ -43,39 +43,39 @@ namespace
 //		return result;
 //	}
 	Node* select_by_value(Node *parent)
-		{
-			auto selected = parent->end();
-			float max_value = -1.0f;
-			for (auto iter = parent->begin(); iter < parent->end(); iter++)
-				switch (iter->getProvenValue())
-				{
-					case ProvenValue::UNKNOWN:
-						if (iter->getValue() > max_value)
-						{
-							selected = iter;
-							max_value = iter->getValue();
-						}
-						break;
-					case ProvenValue::LOSS:
-						if (iter->getValue() > max_value)
-						{
-							selected = iter;
-							max_value = -1.0f + iter->getValue();
-						}
-						break;
-					case ProvenValue::DRAW:
-						if (0.5f > max_value)
-						{
-							selected = iter;
-							max_value = 0.5f;
-						}
-						break;
-					case ProvenValue::WIN:
-						return iter;
-				}
-			assert(selected != parent->end());
-			return selected;
-		}
+	{
+		auto selected = parent->end();
+		float max_value = -1.0f;
+		for (auto iter = parent->begin(); iter < parent->end(); iter++)
+			switch (iter->getProvenValue())
+			{
+				case ProvenValue::UNKNOWN:
+					if (iter->getValue() > max_value)
+					{
+						selected = iter;
+						max_value = iter->getValue();
+					}
+					break;
+				case ProvenValue::LOSS:
+					if (iter->getValue() > max_value)
+					{
+						selected = iter;
+						max_value = -1.0f + iter->getValue();
+					}
+					break;
+				case ProvenValue::DRAW:
+					if (0.5f > max_value)
+					{
+						selected = iter;
+						max_value = 0.5f;
+					}
+					break;
+				case ProvenValue::WIN:
+					return iter;
+			}
+		assert(selected != parent->end());
+		return selected;
+	}
 	bool update_proven_value(Node &parent)
 	{
 		if (parent.isLeaf())
@@ -221,6 +221,11 @@ namespace ag
 	int Tree::usedNodes() const noexcept
 	{
 		return current_index.first * config.bucket_size + current_index.second;
+	}
+	bool Tree::isProven() const noexcept
+	{
+		std::lock_guard<std::mutex> lock(tree_mutex);
+		return root_node.isProven();
 	}
 	const Node& Tree::getRootNode() const noexcept
 	{

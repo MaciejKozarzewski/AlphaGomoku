@@ -47,7 +47,6 @@ namespace ag
 			int getQueueSize() const noexcept;
 			void clearQueue() noexcept;
 			void loadGraph(const std::string &path, int batchSize, ml::Device device = ml::Device::cpu());
-			void moveTo(ml::Device device);
 			void unloadGraph();
 			void addToQueue(EvaluationRequest &request);
 			void evaluateGraph();

@@ -65,6 +65,11 @@ namespace ag
 		network.setBatchSize(batchSize);
 		network.getGraph().moveTo(device);
 	}
+	void EvaluationQueue::unloadGraph()
+	{
+		network.getGraph().context().synchronize();
+		network.getGraph().clear();
+	}
 	void EvaluationQueue::addToQueue(EvaluationRequest &request)
 	{
 		request_queue.push_back(&request);

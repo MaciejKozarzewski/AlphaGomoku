@@ -79,6 +79,10 @@ namespace ag
 		assert(root_node_move_sign != Sign::NONE);
 		sign_to_move = invertSign(root_node_move_sign);
 	}
+	matrix<Sign> Search::getBoard() const noexcept
+	{
+		return current_board;
+	}
 
 	void Search::handleEvaluation()
 	{
@@ -95,12 +99,16 @@ namespace ag
 		}
 		search_buffer.clear();
 	}
-	void Search::simulate(int maxSimulations)
+	void Search::simulate(int maxSimulations, bool verbose)
 	{
 		assert(maxSimulations > 0);
-		while (static_cast<int>(search_buffer.size()) < search_config.batch_size and simulation_count < maxSimulations
-				and not tree.getRootNode().isProven())
+		while (static_cast<int>(search_buffer.size()) < search_config.batch_size and simulation_count < maxSimulations and not tree.isProven())
 		{
+			if (verbose)
+			{
+				std::cout << '\n';
+				tree.printSubtree(tree.getRootNode(), -1, false, 5);
+			}
 			SearchRequest &request = select();
 			if (evaluateFromGameRules(request.position) == GameOutcome::UNKNOWN)
 			{
@@ -120,6 +128,8 @@ namespace ag
 					if (cache.seek(request.position))
 					{
 						// node is not terminal, not a duplicate, but found in cache
+						if (tree.isRootNode(request.position.getNode()))
+							request.position.setProvenValue(ProvenValue::UNKNOWN); // erase proven value from root to force at least 1-ply search
 						expand(request.position);
 						backup(request);
 						search_buffer.pop_back();
@@ -195,6 +205,9 @@ namespace ag
 	}
 	void Search::expand(EvaluationRequest &position)
 	{
+		if (position.getProvenValue() != ProvenValue::UNKNOWN)
+			return; // do not expand proven nodes
+
 		double start = getTime(); // statistics
 		const int cols = position.getBoard().cols();
 		maskIllegalMoves(position.getBoard(), position.getPolicy());

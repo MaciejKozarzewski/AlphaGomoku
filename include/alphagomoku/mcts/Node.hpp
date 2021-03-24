@@ -88,17 +88,20 @@ namespace ag
 				assert(eval >= 0.0f && eval <= 1.0f);
 				visits++;
 				value += (eval - value) / static_cast<float>(visits);
+				value = std::max(0.0f, std::min(1.0f, value));
 			}
 			void applyVirtualLoss() noexcept
 			{
 				visits++;
 				value -= value / static_cast<float>(visits);
+				value = std::max(0.0f, std::min(1.0f, value));
 			}
 			void cancelVirtualLoss() noexcept
 			{
 				assert(visits > 1);
 				visits--;
 				value *= (1.0f + 1.0f / static_cast<float>(visits));
+				value = std::max(0.0f, std::min(1.0f, value));
 			}
 			void setProvenValue(ProvenValue ev) noexcept
 			{
