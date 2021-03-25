@@ -30,6 +30,7 @@ namespace ag
 
 			std::string toString() const;
 			QueueStats& operator+=(const QueueStats &other) noexcept;
+			QueueStats& operator/=(int i) noexcept;
 	};
 
 	class EvaluationQueue

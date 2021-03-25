@@ -40,6 +40,34 @@ namespace ag
 			queue.evaluateGraph();
 		}
 	}
+	QueueStats GeneratorThread::getQueueStats() const noexcept
+	{
+		return queue.getStats();
+	}
+	TreeStats GeneratorThread::getTreeStats() const noexcept
+	{
+		TreeStats result;
+		for (size_t i = 0; i < generators.size(); i++)
+			result += generators[i]->getTreeStats();
+		result /= static_cast<int>(generators.size());
+		return result;
+	}
+	CacheStats GeneratorThread::getCacheStats() const noexcept
+	{
+		CacheStats result;
+		for (size_t i = 0; i < generators.size(); i++)
+			result += generators[i]->getCacheStats();
+		result /= static_cast<int>(generators.size());
+		return result;
+	}
+	SearchStats GeneratorThread::getSearchStats() const noexcept
+	{
+		SearchStats result;
+		for (size_t i = 0; i < generators.size(); i++)
+			result += generators[i]->getSearchStats();
+		result /= static_cast<int>(generators.size());
+		return result;
+	}
 
 	GeneratorManager::GeneratorManager(const Json &options) :
 			thread_pool(options["selfplay_options"]["threads"].size()),
@@ -77,9 +105,34 @@ namespace ag
 
 		while (not thread_pool.isReady())
 		{
-			std::cout << game_buffer.size() << "/" << numberOfGames << '\n';
-			std::this_thread::sleep_for(std::chrono::seconds(5));
+			std::this_thread::sleep_for(std::chrono::seconds(30));
+			printStats();
 		}
+	}
+	void GeneratorManager::printStats()
+	{
+		std::cout << "Played games = " << game_buffer.size() << "/" << games_to_generate << '\n';
+		std::cout << game_buffer.getStats().toString() << '\n';
+
+		QueueStats queue_stats;
+		SearchStats search_stats;
+		TreeStats tree_stats;
+		CacheStats cache_stats;
+		for (size_t i = 0; i < generators.size(); i++)
+		{
+			queue_stats += generators[i]->getQueueStats();
+			search_stats += generators[i]->getSearchStats();
+			tree_stats += generators[i]->getTreeStats();
+			cache_stats += generators[i]->getCacheStats();
+		}
+		queue_stats /= static_cast<int>(generators.size());
+		search_stats /= static_cast<int>(generators.size());
+		tree_stats /= static_cast<int>(generators.size());
+		cache_stats /= static_cast<int>(generators.size());
+		std::cout << queue_stats.toString();
+		std::cout << search_stats.toString();
+		std::cout << tree_stats.toString();
+		std::cout << cache_stats.toString() << '\n';
 	}
 
 } /* namespace ag */

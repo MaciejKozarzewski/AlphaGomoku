@@ -35,6 +35,7 @@ namespace ag
 
 			std::string toString() const;
 			TreeStats& operator+=(const TreeStats &other) noexcept;
+			TreeStats& operator/=(int i) noexcept;
 	};
 
 	class Tree
@@ -50,6 +51,7 @@ namespace ag
 		public:
 			Tree(TreeConfig treeOptions);
 
+			void clearStats() noexcept;
 			TreeStats getStats() const noexcept;
 
 			void clear() noexcept;

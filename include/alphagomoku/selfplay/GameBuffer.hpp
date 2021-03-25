@@ -34,7 +34,6 @@ namespace ag
 			mutable std::mutex buffer_mutex;
 			std::vector<Game> buffer_data;
 		public:
-			GameBufferStats stats;
 
 			GameBuffer() = default;
 			GameBuffer(const std::string &path);
@@ -50,6 +49,8 @@ namespace ag
 
 			GameBufferStats getStats() const noexcept;
 			bool isCorrect() const noexcept;
+
+			std::string generatePGN(const std::string &crossPlayer, const std::string &circlePlayer, bool justOutcomes = true);
 	};
 }
 

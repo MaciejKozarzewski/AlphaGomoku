@@ -15,22 +15,17 @@ namespace ag
 {
 	std::string SearchStats::toString() const
 	{
-		std::string result;
-		result += "----SearchStats----\n";
-		result += "nb_cache_hits = " + std::to_string(nb_cache_hits) + '\n';
-		result += "nb_cache_calls = " + std::to_string(nb_cache_calls) + '\n';
+		std::string result = "----SearchStats----\n";
 		result += "nb_duplicate_nodes = " + std::to_string(nb_duplicate_nodes) + '\n';
-		result += printStatistics("select", nb_select, time_select);
-		result += printStatistics("expand", nb_expand, time_expand);
-		result += printStatistics("backup", nb_backup, time_backup);
-		result += printStatistics("evaluate", nb_evaluate, time_evaluate);
+		result += printStatistics("select    ", nb_select, time_select);
+		result += printStatistics("expand    ", nb_expand, time_expand);
+		result += printStatistics("backup    ", nb_backup, time_backup);
+		result += printStatistics("evaluate  ", nb_evaluate, time_evaluate);
 		result += printStatistics("game_rules", nb_game_rules, time_game_rules);
 		return result;
 	}
 	SearchStats& SearchStats::operator+=(const SearchStats &other) noexcept
 	{
-		this->nb_cache_hits += other.nb_cache_hits;
-		this->nb_cache_calls += other.nb_cache_calls;
 		this->nb_select += other.nb_select;
 		this->nb_expand += other.nb_expand;
 		this->nb_backup += other.nb_backup;
@@ -45,6 +40,22 @@ namespace ag
 		this->time_game_rules += other.time_game_rules;
 		return *this;
 	}
+	SearchStats& SearchStats::operator/=(int i) noexcept
+	{
+		this->nb_select /= i;
+		this->nb_expand /= i;
+		this->nb_backup /= i;
+		this->nb_evaluate /= i;
+		this->nb_game_rules /= i;
+		this->nb_duplicate_nodes /= i;
+
+		this->time_select /= i;
+		this->time_expand /= i;
+		this->time_backup /= i;
+		this->time_evaluate /= i;
+		this->time_game_rules /= i;
+		return *this;
+	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions, Tree &tree, Cache &cache, EvaluationQueue &queue) :
 			cache(cache),
@@ -57,6 +68,10 @@ namespace ag
 	{
 		moves_to_add.reserve(gameOptions.rows * gameOptions.cols);
 		search_buffer.reserve(search_config.batch_size);
+	}
+	void Search::clearStats() noexcept
+	{
+		stats = SearchStats();
 	}
 	SearchStats Search::getStats() const noexcept
 	{
@@ -99,16 +114,11 @@ namespace ag
 		}
 		search_buffer.clear();
 	}
-	void Search::simulate(int maxSimulations, bool verbose)
+	void Search::simulate(int maxSimulations)
 	{
 		assert(maxSimulations > 0);
 		while (static_cast<int>(search_buffer.size()) < search_config.batch_size and simulation_count < maxSimulations and not tree.isProven())
 		{
-			if (verbose)
-			{
-				std::cout << '\n';
-				tree.printSubtree(tree.getRootNode(), -1, false, 5);
-			}
 			SearchRequest &request = select();
 			if (evaluateFromGameRules(request.position) == GameOutcome::UNKNOWN)
 			{
@@ -124,7 +134,6 @@ namespace ag
 				}
 				else
 				{
-					stats.nb_cache_calls++; // statistics
 					if (cache.seek(request.position))
 					{
 						// node is not terminal, not a duplicate, but found in cache
@@ -133,7 +142,6 @@ namespace ag
 						expand(request.position);
 						backup(request);
 						search_buffer.pop_back();
-						stats.nb_cache_hits++; // statistics
 					}
 					else
 					{
@@ -158,10 +166,6 @@ namespace ag
 		for (auto entry = search_buffer.begin(); entry < search_buffer.end(); entry++)
 			tree.cancelVirtualLoss(entry->trajectory);
 		search_buffer.clear();
-	}
-	void Search::clearStats() noexcept
-	{
-		stats = SearchStats();
 	}
 //private
 	Search::SearchRequest& Search::select()

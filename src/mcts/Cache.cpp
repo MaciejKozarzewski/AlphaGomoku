@@ -14,25 +14,59 @@
 
 namespace ag
 {
+	std::string CacheStats::toString() const
+	{
+		std::string result = "----CacheStats----\n";
+		if (calls == 0)
+			result += "hit rate = 0%\n";
+		else
+			result += "hit rate = " + std::to_string(static_cast<int>(1000.0 * static_cast<double>(hits) / calls) / 10.0) + "%\n";
+		result += printStatistics("time_seek   ", nb_seek, time_seek);
+		result += printStatistics("time_insert ", nb_insert, time_insert);
+		result += printStatistics("time_cleanup", nb_cleanup, time_cleanup);
+		result += "entries = " + std::to_string(stored_entries) + " : " + std::to_string(buffered_entries) + " : " + std::to_string(allocated_entries)
+				+ " (stored:buffered:allocated)\n";
+		return result;
+	}
+	CacheStats& CacheStats::operator+=(const CacheStats &other) noexcept
+	{
+		this->hits += other.hits;
+		this->calls += other.calls;
+		this->allocated_entries += other.allocated_entries;
+		this->stored_entries += other.stored_entries;
+		this->buffered_entries += other.buffered_entries;
+
+		this->nb_seek += other.nb_seek;
+		this->nb_insert += other.nb_insert;
+		this->nb_cleanup += other.nb_cleanup;
+
+		this->time_seek += other.time_seek;
+		this->time_insert += other.time_insert;
+		this->time_cleanup += other.time_cleanup;
+		return *this;
+	}
+	CacheStats& CacheStats::operator/=(int i) noexcept
+	{
+		this->hits /= i;
+		this->calls /= i;
+		this->allocated_entries /= i;
+		this->stored_entries /= i;
+		this->buffered_entries /= i;
+
+		this->nb_seek /= i;
+		this->nb_insert /= i;
+		this->nb_cleanup /= i;
+
+		this->time_seek /= i;
+		this->time_insert /= i;
+		this->time_cleanup /= i;
+		return *this;
+	}
+
 	Cache::Entry::Entry(int boardSize) :
 			data(std::make_unique<uint16_t[]>(boardSize))
 	{
 		clearTranspositions();
-	}
-	void Cache::Entry::print() const
-	{
-		const float tmp = 1.0f / 16383;
-		matrix<Sign> board(15, 15);
-		matrix<float> policy(15, 15);
-		for (int i = 0; i < policy.size(); i++)
-		{
-			policy.data()[i] = (data[i] >> 2) * tmp;
-			board.data()[i] = static_cast<Sign>(data[i] & 3);
-		}
-		for (int i = 0; i < stored_transpositions; i++)
-			std::cout << transpositions[i]->toString() << '\n';
-		std::cout << "value = " << value << " : proven " << ag::toString(proven_value) << '\n';
-		std::cout << policyToString(board, policy);
 	}
 	void Cache::Entry::copyTo(EvaluationRequest &request) const noexcept
 	{
@@ -44,7 +78,6 @@ namespace ag
 		{
 			assert(request.getBoard().data()[i] == static_cast<Sign>(data[i] & 3)); // check for board correctness
 			request.getPolicy().data()[i] = (data[i] >> 2) * tmp;
-//			request.getBoard().data()[i] = static_cast<Sign>(data[i] & 3);
 		}
 	}
 	void Cache::Entry::copyFrom(const EvaluationRequest &request, uint64_t boardHash) noexcept
@@ -140,25 +173,37 @@ namespace ag
 			buffer = next;
 		}
 	}
+	void Cache::clearStats() noexcept
+	{
+		std::lock_guard<std::mutex> lock(cache_mutex);
+		stats.hits = stats.calls = 0;
+		stats.nb_seek = stats.nb_insert = stats.nb_cleanup = 0;
+		stats.time_seek = stats.time_insert = stats.time_cleanup = 0.0;
+	}
+	CacheStats Cache::getStats() const noexcept
+	{
+		std::lock_guard<std::mutex> lock(cache_mutex);
+		return stats;
+	}
 	uint64_t Cache::getMemory() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		return (sizeof(Entry) + sizeof(uint16_t) * game_config.rows * game_config.cols) * allocated_entries + sizeof(Entry*) * bins.size();
+		return (sizeof(Entry) + sizeof(uint16_t) * game_config.rows * game_config.cols) * stats.allocated_entries + sizeof(Entry*) * bins.size();
 	}
 	int Cache::allocatedElements() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		return allocated_entries;
+		return stats.allocated_entries;
 	}
 	int Cache::storedElements() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		return stored_entries;
+		return stats.stored_entries;
 	}
 	int Cache::bufferedElements() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		return buffered_entries;
+		return stats.buffered_entries;
 	}
 	int Cache::numberOfBins() const noexcept
 	{
@@ -168,7 +213,7 @@ namespace ag
 	double Cache::loadFactor() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		return static_cast<double>(stored_entries) / bins.size();
+		return static_cast<double>(stats.stored_entries) / bins.size();
 	}
 	int Cache::transpositionCount() const noexcept
 	{
@@ -199,12 +244,15 @@ namespace ag
 			}
 			bins[i] = nullptr;
 		}
-		assert(stored_entries + buffered_entries == allocated_entries);
+		assert(stats.stored_entries + stats.buffered_entries == stats.allocated_entries);
 	}
 	bool Cache::seek(EvaluationRequest &request) const noexcept
 	{
+		double start = getTime(); // statistics
 		uint64_t hash = hashing.getHash(request.getBoard(), request.getSignToMove());
 		std::lock_guard<std::mutex> lock(cache_mutex);
+		stats.calls++; // statistics
+		stats.nb_seek++; // statistics
 
 		Entry *current = bins[hash % bins.size()];
 		while (current != nullptr)
@@ -213,16 +261,21 @@ namespace ag
 			{
 				current->copyTo(request);
 				current->addTransposition(request.getNode());
+				stats.hits++; // statistics
+				stats.time_seek += getTime() - start; // statistics
 				return true;
 			}
 			current = current->next_entry;
 		}
+		stats.time_seek += getTime() - start; // statistics
 		return false;
 	}
 	void Cache::insert(const EvaluationRequest &request)
 	{
+		double start = getTime(); // statistics
 		uint64_t hash = hashing.getHash(request.getBoard(), request.getSignToMove());
 		std::lock_guard<std::mutex> lock(cache_mutex);
+		stats.nb_insert++; // statistics
 
 		Entry *entry = get_new_entry();
 		entry->hash = hash;
@@ -231,14 +284,20 @@ namespace ag
 
 		entry->next_entry = bins[bin_index];
 		bins[bin_index] = entry;
-		stored_entries++;
-		assert(stored_entries + buffered_entries == allocated_entries);
+		stats.stored_entries++;
+		stats.time_insert += getTime() - start;
+		assert(stats.stored_entries + stats.buffered_entries == stats.allocated_entries);
 	}
 	void Cache::cleanup(const matrix<Sign> &newBoard) noexcept
 	{
+		double start = getTime(); // statistics
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		if (stored_entries == 0)
+		stats.nb_cleanup++; // statistics
+		if (stats.stored_entries == 0)
+		{
+			stats.time_cleanup += getTime() - start; // statistics
 			return;
+		}
 
 		matrix<int> workspace(game_config.rows, game_config.cols);
 		for (size_t i = 0; i < bins.size(); i++)
@@ -261,7 +320,8 @@ namespace ag
 				current = next;
 			}
 		}
-		assert(stored_entries + buffered_entries == allocated_entries);
+		stats.time_cleanup += getTime() - start; // statistics
+		assert(stats.stored_entries + stats.buffered_entries == stats.allocated_entries);
 	}
 	void Cache::remove(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
@@ -283,12 +343,12 @@ namespace ag
 			}
 			current = next;
 		}
-		assert(stored_entries + buffered_entries == allocated_entries);
+		assert(stats.stored_entries + stats.buffered_entries == stats.allocated_entries);
 	}
 	void Cache::rehash(int newNumberOfBins) noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		if (stored_entries == 0)
+		if (stats.stored_entries == 0)
 			return;
 
 		Entry *tmp = nullptr;
@@ -314,25 +374,24 @@ namespace ag
 			bins[bin_index] = tmp;
 			tmp = next;
 		}
-		assert(stored_entries + buffered_entries == allocated_entries);
+		assert(stats.stored_entries + stats.buffered_entries == stats.allocated_entries);
 	}
 // private
 	Cache::Entry* Cache::get_new_entry()
 	{
 		if (buffer == nullptr)
 		{
-			allocated_entries++;
+			stats.allocated_entries++;
 			return new Entry(game_config.rows * game_config.cols);
 		}
 		else
 		{
-			buffered_entries--;
+			assert(stats.buffered_entries > 0);
+			stats.buffered_entries--;
 			Entry *result = buffer;
 			buffer = result->next_entry;
 			result->stored_transpositions = 0;
 			result->next_entry = nullptr;
-
-			assert(buffered_entries >= 0);
 			return result;
 		}
 	}
@@ -340,9 +399,9 @@ namespace ag
 	{
 		entry->next_entry = buffer;
 		buffer = entry;
-		stored_entries--;
-		buffered_entries++;
-		assert(stored_entries >= 0);
+		assert(stats.stored_entries > 0);
+		stats.stored_entries--;
+		stats.buffered_entries++;
 	}
 }
 

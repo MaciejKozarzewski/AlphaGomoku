@@ -60,6 +60,10 @@ namespace ag
 		public:
 			GeneratorThread(GeneratorManager &manager, const Json &options, ml::Device device);
 			void run();
+			QueueStats getQueueStats() const noexcept;
+			TreeStats getTreeStats() const noexcept;
+			CacheStats getCacheStats() const noexcept;
+			SearchStats getSearchStats() const noexcept;
 	};
 
 	class GeneratorManager
@@ -75,10 +79,6 @@ namespace ag
 		public:
 			GeneratorManager(const Json &options);
 
-//			NNQueueConfig getQueueConfig() const;
-//			SearchConfig getSearchConfig() const;
-//			GameConfig getGameConfig() const;
-
 			const GameBuffer& getGameBuffer() const noexcept;
 			GameBuffer& getGameBuffer() noexcept;
 			std::string getPathToNetwork() const;
@@ -86,11 +86,7 @@ namespace ag
 			void generate(const std::string &pathToNetwork, int numberOfGames);
 			bool hasEnoughGames() const noexcept;
 
-			void clearStats();
 			void printStats();
-
-			SelfPlayStats getStats();
-			GameBufferStats getBufferStats();
 	};
 
 } /* namespace ag */

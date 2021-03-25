@@ -29,7 +29,15 @@ namespace ag
 	{
 		search.clearStats();
 	}
-	SearchStats GameGenerator::getSearchStats() const
+	TreeStats GameGenerator::getTreeStats() const noexcept
+	{
+		return tree.getStats();
+	}
+	CacheStats GameGenerator::getCacheStats() const noexcept
+	{
+		return cache.getStats();
+	}
+	SearchStats GameGenerator::getSearchStats() const noexcept
 	{
 		return search.getStats();
 	}

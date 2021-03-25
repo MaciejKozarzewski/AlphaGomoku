@@ -7,8 +7,10 @@
 
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/utils/file_util.hpp>
+#include <alphagomoku/utils/misc.hpp>
 #include <libml/utils/json.hpp>
 #include <libml/utils/serialization.hpp>
+
 #include <stddef.h>
 #include <iostream>
 #include <stdexcept>
@@ -47,7 +49,6 @@ namespace ag
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		buffer_data.clear();
-		stats = GameBufferStats();
 	}
 	int GameBuffer::size() const noexcept
 	{
@@ -152,6 +153,39 @@ namespace ag
 			if (buffer_data[i].isCorrect() == false)
 				return false;
 		return true;
+	}
+
+	std::string GameBuffer::generatePGN(const std::string &crossPlayer, const std::string &circlePlayer, bool justOutcomes)
+	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		std::string result;
+		for (size_t i = 0; i < buffer_data.size(); i++)
+		{
+			result += "[Event \"Evaluation\"]\n";
+			result += "[Site \"N/A\"]\n";
+			result += "[Date \"" + currentDateTime() + "\"]\n";
+			result += "[Round \"0\"]\n";
+			result += "[White \"" + circlePlayer + "\"]\n";
+			result += "[Black \"" + crossPlayer + "\"]\n";
+
+			GameOutcome game_result = buffer_data[i].getOutcome();
+			if (game_result == GameOutcome::DRAW)
+				result += "[Result \"1/2-1/2\"]\n";
+			else
+			{
+				if (game_result == GameOutcome::CIRCLE_WIN)
+					result += "[Result \"1-0\"]\n";
+				else
+					result += "[Result \"0-1\"]\n";
+			}
+			if (justOutcomes)
+				result += "1. N/A\n";
+			else
+			{
+				// TODO add saving entire game history
+			}
+		}
+		return result;
 	}
 
 } /* namespace alfa */

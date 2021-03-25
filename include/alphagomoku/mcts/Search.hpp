@@ -31,8 +31,6 @@ namespace ag
 {
 	struct SearchStats
 	{
-			uint64_t nb_cache_hits = 0;
-			uint64_t nb_cache_calls = 0;
 			uint64_t nb_select = 0;
 			uint64_t nb_expand = 0;
 			uint64_t nb_backup = 0;
@@ -48,6 +46,7 @@ namespace ag
 
 			std::string toString() const;
 			SearchStats& operator+=(const SearchStats &other) noexcept;
+			SearchStats& operator/=(int i) noexcept;
 	};
 
 	class Search
@@ -81,6 +80,7 @@ namespace ag
 		public:
 			Search(GameConfig gameOptions, SearchConfig searchOptions, Tree &tree, Cache &cache, EvaluationQueue &queue);
 
+			void clearStats() noexcept;
 			SearchStats getStats() const noexcept;
 			SearchConfig getConfig() const noexcept;
 			int getSimulationCount() const noexcept;
@@ -89,10 +89,9 @@ namespace ag
 			matrix<Sign> getBoard() const noexcept;
 
 			void handleEvaluation();
-			void simulate(int maxSimulations, bool verbose = false);
+			void simulate(int maxSimulations);
 			void cleanup();
 
-			void clearStats() noexcept;
 		private:
 			SearchRequest& select();
 			GameOutcome evaluateFromGameRules(EvaluationRequest &position);

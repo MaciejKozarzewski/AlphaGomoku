@@ -25,6 +25,27 @@ namespace ag
 
 namespace ag
 {
+	struct CacheStats
+	{
+			uint64_t hits = 0;
+			uint64_t calls = 0;
+			uint64_t allocated_entries = 0;
+			uint64_t stored_entries = 0;
+			uint64_t buffered_entries = 0;
+
+			uint64_t nb_seek = 0;
+			uint64_t nb_insert = 0;
+			uint64_t nb_cleanup = 0;
+
+			double time_seek = 0.0;
+			double time_insert = 0.0;
+			double time_cleanup = 0.0;
+
+			std::string toString() const;
+			CacheStats& operator+=(const CacheStats &other) noexcept;
+			CacheStats& operator/=(int i) noexcept;
+	};
+
 	class Cache
 	{
 		private:
@@ -41,7 +62,6 @@ namespace ag
 					int stored_transpositions = 0;
 
 					Entry(int boardSize);
-					void print() const;
 					void copyTo(EvaluationRequest &request) const noexcept;
 					void copyFrom(const EvaluationRequest &request, uint64_t boardHash) noexcept;
 					void addTransposition(Node *node) noexcept;
@@ -55,9 +75,7 @@ namespace ag
 			mutable std::mutex cache_mutex;
 			Entry *buffer = nullptr; // non-owning
 
-			int allocated_entries = 0;
-			int stored_entries = 0;
-			int buffered_entries = 0;
+			mutable CacheStats stats;
 
 			GameConfig game_config;
 			CacheConfig cache_config;
@@ -70,6 +88,9 @@ namespace ag
 			Cache& operator=(Cache &&other) = delete;
 			~Cache();
 
+			void clearStats() noexcept;
+			CacheStats getStats() const noexcept;
+
 			uint64_t getMemory() const noexcept;
 			int allocatedElements() const noexcept;
 			int storedElements() const noexcept;
@@ -78,6 +99,7 @@ namespace ag
 			double loadFactor() const noexcept;
 			int transpositionCount() const noexcept;
 			void clear() noexcept;
+
 			bool seek(EvaluationRequest &request) const noexcept;
 			void insert(const EvaluationRequest &request);
 			void cleanup(const matrix<Sign> &newBoard) noexcept;

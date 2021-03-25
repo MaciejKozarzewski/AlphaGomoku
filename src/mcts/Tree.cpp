@@ -162,11 +162,10 @@ namespace ag
 {
 	std::string TreeStats::toString() const
 	{
-		std::string result;
-		result += "----TreeStats----\n";
-		result += "used nodes = " + std::to_string(used_nodes) + '\n';
+		std::string result = "----TreeStats----\n";
+		result += "used nodes      = " + std::to_string(used_nodes) + '\n';
 		result += "allocated nodes = " + std::to_string(allocated_nodes) + '\n';
-		result += "proven nodes = " + std::to_string(proven_win) + " : " + std::to_string(proven_draw) + " : " + std::to_string(proven_loss)
+		result += "proven nodes    = " + std::to_string(proven_win) + " : " + std::to_string(proven_draw) + " : " + std::to_string(proven_loss)
 				+ " (win:draw:loss)\n";
 		return result;
 	}
@@ -179,13 +178,26 @@ namespace ag
 		this->proven_win += other.proven_win;
 		return *this;
 	}
+	TreeStats& TreeStats::operator/=(int i) noexcept
+	{
+		this->allocated_nodes /= i;
+		this->used_nodes /= i;
+		this->proven_loss /= i;
+		this->proven_draw /= i;
+		this->proven_win /= i;
+		return *this;
+	}
 
 	Tree::Tree(TreeConfig treeOptions) :
 			config(treeOptions)
 	{
 	}
+	void Tree::clearStats() noexcept
+	{
+	}
 	TreeStats Tree::getStats() const noexcept
 	{
+		std::lock_guard<std::mutex> lock(tree_mutex);
 		TreeStats result;
 		result.allocated_nodes = allocatedNodes();
 		result.used_nodes = usedNodes();

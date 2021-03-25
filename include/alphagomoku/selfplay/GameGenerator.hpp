@@ -49,7 +49,10 @@ namespace ag
 			GameGenerator(const Json &options, GameBuffer &gameBuffer, EvaluationQueue &queue);
 
 			void clearStats();
-			SearchStats getSearchStats() const;
+			TreeStats getTreeStats() const noexcept;
+			CacheStats getCacheStats() const noexcept;
+			SearchStats getSearchStats() const noexcept;
+
 			bool prepareOpening();
 			void makeMove();
 			bool performSearch();

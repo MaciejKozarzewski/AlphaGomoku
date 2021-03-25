@@ -27,6 +27,7 @@
 #include <libml/utils/serialization.hpp>
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <thread>
 
 using namespace ag;
@@ -108,17 +109,21 @@ void test_train()
 int main()
 {
 	FileLoader fl("/home/maciek/alphagomoku/standard_2021/simple_config.json");
-	EvaluationManager manager(fl.getJson());
-	Json config = fl.getJson()["evaluation_options"];
-	manager.setCrossPlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin");
-	config["search_options"]["use_endgame_solver"] = true;
-	config["cache_options"]["update_from_search"] = true;
-	manager.setCirclePlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin");
+//	EvaluationManager manager(fl.getJson());
+//	Json config = fl.getJson()["evaluation_options"];
+//	manager.setCrossPlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin");
+//	config["simulations"] = 100;
+//	manager.setCirclePlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin");
 
-	manager.generate(1000);
+//	manager.generate(1000);
+//	std::string to_save = manager.getGameBuffer().generatePGN("AG_800", "AG_100");
+//	std::ofstream file("/home/maciek/alphagomoku/standard_2021/games.pgn");
+//	file.write(to_save.data(), to_save.size());
+//	file.close();
 
-//	GeneratorManager manager(fl.getJson());
-//	manager.generate("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 200);
+	GeneratorManager manager(fl.getJson());
+	manager.generate("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 2000);
+//	manager.generate("/home/maciek/alphagomoku/standard_2021/network_10x128/network_opt.bin", 200);
 
 	return 0;
 
@@ -134,7 +139,7 @@ int main()
 
 	CacheConfig cache_config;
 	cache_config.min_cache_size = 1024576;
-	cache_config.update_from_search = true;
+	cache_config.update_from_search = false;
 	Cache cache(game_config, cache_config);
 
 	EvaluationQueue queue;
@@ -146,7 +151,7 @@ int main()
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-6f;
 	search_config.augment_position = false;
-	search_config.use_endgame_solver = true;
+	search_config.use_endgame_solver = false;
 
 	Search search(game_config, search_config, tree, cache, queue);
 
@@ -211,7 +216,7 @@ int main()
 	search.setBoard(board);
 
 	matrix<float> policy(15, 15);
-	for (int i = 0; i <= 100; i++)
+	for (int i = 0; i <= 10; i++)
 	{
 		while (search.getSimulationCount() < i * 100000)
 		{
@@ -226,48 +231,13 @@ int main()
 
 		std::cout << tree.getPrincipalVariation().toString() << '\n';
 		std::cout << policyToString(board, policy);
-		std::cout << search.getStats().toString();
 		std::cout << queue.getStats().toString();
+		std::cout << search.getStats().toString();
 		std::cout << tree.getStats().toString();
-		std::cout << cache.storedElements() << " : " << cache.bufferedElements() << " : " << cache.allocatedElements() << " : " << cache.loadFactor()
-				<< '\n';
+		std::cout << cache.getStats().toString() << '\n';
 		if (tree.isProven())
 			break;
 	}
-	search.cleanup();
-	cache.cleanup(board);
-
-//	std::cout << "\n----------------------------------------------------------------------------------\n";
-//	tree.printSubtree(tree.getRootNode(), -1, true);
-//	std::cout << "\n----------------------------------------------------------------------------------\n";
-	tree.clear();
-
-	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
-	search.setBoard(board);
-	for (int i = 0; i <= 1; i++)
-	{
-		while (search.getSimulationCount() < i * 1000)
-		{
-			search.simulate(i * 1000, true);
-			queue.evaluateGraph();
-			search.handleEvaluation();
-			if (tree.isProven())
-				break;
-		}
-		tree.getPlayoutDistribution(tree.getRootNode(), policy);
-		normalize(policy);
-
-		std::cout << tree.getPrincipalVariation().toString() << '\n';
-		std::cout << policyToString(board, policy);
-		std::cout << search.getStats().toString();
-		std::cout << queue.getStats().toString();
-		std::cout << tree.getStats().toString();
-		std::cout << cache.storedElements() << " : " << cache.bufferedElements() << " : " << cache.allocatedElements() << " : " << cache.loadFactor()
-				<< '\n';
-		if (tree.isProven())
-			break;
-	}
-
 	std::cout << "\n----------------------------------------------------------------------------------\n";
 	tree.printSubtree(tree.getRootNode(), 1, true);
 	std::cout << "\n----------------------------------------------------------------------------------\n";

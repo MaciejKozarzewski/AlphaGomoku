@@ -20,12 +20,11 @@ namespace ag
 {
 	std::string QueueStats::toString() const
 	{
-		std::string result;
-		result += "----EvaluationQueue----\n";
-		result += "avg batch_size = " + std::to_string(static_cast<double>(batch_sizes) / nb_network_eval) + '\n';
-		result += printStatistics("network_eval", nb_network_eval, time_network_eval);
-		result += printStatistics("pack", nb_pack, time_pack);
-		result += printStatistics("unpack", nb_unpack, time_unpack);
+		std::string result = "----EvaluationQueue----\n";
+		result += "avg batch size = " + std::to_string(static_cast<double>(batch_sizes) / nb_network_eval) + '\n';
+		result += printStatistics("network  ", nb_network_eval, time_network_eval);
+		result += printStatistics("pack     ", nb_pack, time_pack);
+		result += printStatistics("unpack   ", nb_unpack, time_unpack);
 		result += "time_idle = " + std::to_string(time_idle) + "s\n";
 		return result;
 	}
@@ -40,6 +39,19 @@ namespace ag
 		this->time_pack += other.time_pack;
 		this->time_unpack += other.time_unpack;
 		this->time_idle += other.time_idle;
+		return *this;
+	}
+	QueueStats& QueueStats::operator/=(int i) noexcept
+	{
+		this->batch_sizes /= i;
+		this->nb_network_eval /= i;
+		this->nb_pack /= i;
+		this->nb_unpack /= i;
+
+		this->time_network_eval /= i;
+		this->time_pack /= i;
+		this->time_unpack /= i;
+		this->time_idle /= i;
 		return *this;
 	}
 

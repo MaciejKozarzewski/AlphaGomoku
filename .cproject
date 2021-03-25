@@ -112,6 +112,7 @@
 									<listOptionValue builtIn="false" value="NDEBUG"/>
 									<listOptionValue builtIn="false" value="USE_CUDA"/>
 								</option>
+								<option id="gnu.cpp.compiler.option.optimization.flags.326481915" superClass="gnu.cpp.compiler.option.optimization.flags" useByScannerDiscovery="false" value="-mavx2" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1027177222" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.cross.c.linker.2001626245" name="Cross GCC Linker" superClass="cdt.managedbuild.tool.gnu.cross.c.linker"/>
