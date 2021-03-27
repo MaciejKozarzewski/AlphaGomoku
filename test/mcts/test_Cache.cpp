@@ -28,7 +28,7 @@ namespace
 			}
 		normalize(result.getPolicy());
 		result.setLastMove( { 0, 0, Sign::CROSS });
-		result.setValue(randFloat());
+		result.setValue(Value(randFloat(), 0.0f, 0.0f));
 		return result;
 	}
 
@@ -67,7 +67,7 @@ namespace ag
 		EvaluationRequest req(4, 5);
 		req.getBoard().at(2, 3) = Sign::CROSS;
 		req.getPolicy().at(1, 1) = 0.9f;
-		req.setValue(0.54f);
+		req.setValue(Value(0.54f));
 
 		cache.insert(req);
 		EXPECT_EQ(cache.allocatedElements(), 1);
@@ -84,14 +84,14 @@ namespace ag
 		EvaluationRequest req = getRandomRequest(4, 5);
 		cache.insert(req);
 		matrix<float> policy = req.getPolicy();
-		float value = req.getValue();
+		Value value = req.getValue();
 
 		req.getPolicy().clear();
-		req.setValue(0.0f);
+		req.setValue(Value());
 
 		bool flag = cache.seek(req);
 		EXPECT_TRUE(flag);
-		EXPECT_FLOAT_EQ(req.getValue(), value);
+		EXPECT_FLOAT_EQ(req.getValue().win, value.win);
 		for (int i = 0; i < policy.size(); i++)
 			EXPECT_NEAR(req.getPolicy().data()[i], policy.data()[i], 0.0001f);
 	}

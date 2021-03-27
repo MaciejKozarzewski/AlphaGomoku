@@ -11,6 +11,7 @@
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <inttypes.h>
@@ -57,7 +58,7 @@ namespace ag
 					Entry *next_entry = nullptr; // non-owning
 					std::unique_ptr<uint16_t[]> data;
 					uint64_t hash = 0;
-					float value = 0.0f;
+					Value value;
 					ProvenValue proven_value = ProvenValue::UNKNOWN;
 					int stored_transpositions = 0;
 

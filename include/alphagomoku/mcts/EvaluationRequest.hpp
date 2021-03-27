@@ -28,7 +28,7 @@ namespace ag
 			Node *node = nullptr;
 			int augment_mode = -100;
 			Move last_move;
-			float value = 0.0f;
+			Value value;
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			bool is_ready = false;
 
@@ -49,7 +49,7 @@ namespace ag
 			{
 				return invertSign(last_move.sign);
 			}
-			float getValue() const noexcept
+			Value getValue() const noexcept
 			{
 				return value;
 			}
@@ -90,7 +90,7 @@ namespace ag
 			{
 				std::memcpy(policy.data(), p, policy.sizeInBytes());
 			}
-			void setValue(float v) noexcept
+			void setValue(Value v) noexcept
 			{
 				value = v;
 			}

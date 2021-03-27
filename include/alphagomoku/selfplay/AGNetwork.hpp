@@ -26,6 +26,7 @@ namespace ml
 namespace ag
 {
 	enum class GameOutcome;
+	struct Value;
 }
 
 namespace ag
@@ -54,7 +55,7 @@ namespace ag
 
 			void packData(int index, const matrix<Sign> &board, Sign signToMove);
 			void packData(int index, const matrix<Sign> &board, const matrix<float> &policy, GameOutcome outcome, Sign signToMove);
-			float unpackOutput(int index, matrix<float> &policy) const;
+			Value unpackOutput(int index, matrix<float> &policy) const;
 
 			void forward(int batch_size);
 			void backward(int batch_size);
@@ -77,7 +78,6 @@ namespace ag
 		private:
 			void create_network(const Json &cfg);
 			void allocate_tensors();
-			void allocate_targets();
 	};
 }
 

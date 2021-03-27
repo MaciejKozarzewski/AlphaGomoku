@@ -24,7 +24,7 @@ namespace ag
 		node = nullptr;
 		augment_mode = -100;
 		last_move = Move();
-		value = 0.0f;
+		value = Value();
 		proven_value = ProvenValue::UNKNOWN;
 		is_ready = false;
 
@@ -34,7 +34,7 @@ namespace ag
 		augment_mode = -100;
 		node = &(trajectory.getLeafNode());
 		last_move = trajectory.getLastMove();
-		value = 0.0f;
+		value = Value();
 		proven_value = ProvenValue::UNKNOWN;
 		is_ready = false;
 		board.copyFrom(base_board);
@@ -54,7 +54,7 @@ namespace ag
 		result += "sign to move = " + getSignToMove() + '\n';
 		if (is_ready)
 		{
-			result += "value = " + std::to_string(value);
+			result += "value = " + std::to_string(value.win); // FIXME
 			if (proven_value != ProvenValue::UNKNOWN)
 				result += " : proven " + ag::toString(proven_value);
 			result += '\n';

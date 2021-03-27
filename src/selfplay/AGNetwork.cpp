@@ -9,6 +9,7 @@
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/mcts/Value.hpp>
 #include <libml/graph/optimization/graph_optimizers.hpp>
 #include <libml/hardware/Device.hpp>
 #include <libml/hardware/DeviceContext.hpp>
@@ -76,13 +77,26 @@ namespace ag
 		assert(index >= 0 && index < input_on_cpu->firstDim());
 		encodeInputTensor(input_on_cpu->data<float>( { index, 0, 0, 0 }), board, signToMove);
 		std::memcpy(policy_target->data<float>( { index, 0 }), policy.data(), policy.sizeInBytes());
-		value_target->set(convertOutcome(outcome, signToMove), { index, 0 });
+
+		Value tmp = convertOutcome(outcome, signToMove);
+		if (graph.getOutputShape(1).lastDim() == 1)
+			value_target->set(tmp.win + 0.5 * tmp.draw, { index, 0 });
+		else
+		{
+			value_target->set(tmp.win, { index, 0 });
+			value_target->set(tmp.draw, { index, 1 });
+			value_target->set(tmp.loss, { index, 2 });
+
+		}
 	}
-	float AGNetwork::unpackOutput(int index, matrix<float> &policy) const
+	Value AGNetwork::unpackOutput(int index, matrix<float> &policy) const
 	{
 		assert(index >= 0 && index < input_on_cpu->firstDim());
 		std::memcpy(policy.data(), policy_on_cpu->data<float>( { index, 0 }), policy.sizeInBytes());
-		return value_on_cpu->get<float>( { index, 0 });
+		if (graph.getOutputShape(1).lastDim() == 1)
+			return Value(value_on_cpu->get<float>( { index, 0 }), 0.0f, 1.0f - value_on_cpu->get<float>( { index, 0 }));
+		else
+			return Value(value_on_cpu->get<float>( { index, 0 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 2 }));
 	}
 
 	void AGNetwork::forward(int batch_size)
@@ -94,12 +108,14 @@ namespace ag
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
 		graph.context().synchronize();
 		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *policy_on_cpu);
-		ml::math::nonlinearityForwardInPlace(ml::DeviceContext(), *value_on_cpu, ml::NonlinearityType::SIGMOID);
+		if (graph.getOutputShape(1).lastDim() == 1)
+			ml::math::nonlinearityForwardInPlace(ml::DeviceContext(), *value_on_cpu, ml::NonlinearityType::SIGMOID);
+		else
+			ml::math::softmaxForwardInPlace(ml::DeviceContext(), *value_on_cpu);
 	}
 	void AGNetwork::backward(int batch_size)
 	{
 		assert(graph.isTrainable());
-		allocate_targets();
 		graph.getTarget(0).copyFrom(graph.context(), *policy_target);
 		graph.getTarget(1).copyFrom(graph.context(), *value_target);
 
@@ -206,6 +222,8 @@ namespace ag
 		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
 		v = graph.add(ml::Dense(1, "linear"), v);
 		graph.addOutput(v, ml::CrossEntropyLoss().applySigmoid());
+//		v = graph.add(ml::Dense(3, "linear"), v);
+//		graph.addOutput(v, ml::CrossEntropyLoss().applySoftmax());
 
 		graph.init();
 		graph.setOptimizer(ml::ADAM());
@@ -220,18 +238,12 @@ namespace ag
 			input_on_cpu = std::make_unique<ml::Tensor>(graph.getInputShape(), ml::DataType::FLOAT32, ml::Device::cpu());
 			policy_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(0), ml::DataType::FLOAT32, ml::Device::cpu());
 			value_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(1), ml::DataType::FLOAT32, ml::Device::cpu());
+			policy_target = std::make_unique<ml::Tensor>(graph.getOutputShape(0), ml::DataType::FLOAT32, ml::Device::cpu());
+			value_target = std::make_unique<ml::Tensor>(graph.getOutputShape(1), ml::DataType::FLOAT32, ml::Device::cpu());
 
 			input_on_cpu->pageLock();
 			policy_on_cpu->pageLock();
 			value_on_cpu->pageLock();
-		}
-	}
-	void AGNetwork::allocate_targets()
-	{
-		if (policy_target == nullptr)
-		{
-			policy_target = std::make_unique<ml::Tensor>(graph.getOutputShape(0), ml::DataType::FLOAT32, ml::Device::cpu());
-			value_target = std::make_unique<ml::Tensor>(graph.getOutputShape(1), ml::DataType::FLOAT32, ml::Device::cpu());
 			policy_target->pageLock();
 			value_target->pageLock();
 		}

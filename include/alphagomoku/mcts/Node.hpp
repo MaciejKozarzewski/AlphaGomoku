@@ -9,33 +9,33 @@
 #define ALPHAGOMOKU_MCTS_NODE_HPP_
 
 #include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/mcts/Value.hpp>
 #include <string>
 #include <assert.h>
 #include <inttypes.h>
+#include <math.h>
 #include <cstring>
 
 namespace ag
 {
-	enum ProvenValue
-	{
-		UNKNOWN, LOSS, DRAW, WIN
-	};
-
-	std::string toString(ProvenValue pv);
-
 	class Node
 	{
 		private:
 			Node *children = nullptr;
 			float policy_prior = 0.0f;
-			float value = 0.0f;
+			Value value;
+
 			int32_t visits = 0;
 			uint16_t move = 0;
-			uint16_t data = 0; // 0:2 exact value, 2:16 number of children
+			uint16_t data = 0; // 0:2 proven value, 2:16 number of children
 		public:
 			void clear() noexcept
 			{
-				std::memset(this, 0, sizeof(Node));
+				children = nullptr;
+				policy_prior = 0.0f;
+				value = { 0.0f, 0.0f, 0.0f };
+				visits = 0;
+				move = data = 0;
 			}
 			const Node& getChild(int index) const noexcept
 			{
@@ -51,7 +51,7 @@ namespace ag
 			{
 				return policy_prior;
 			}
-			float getValue() const noexcept
+			Value getValue() const noexcept
 			{
 				return value;
 			}
@@ -83,25 +83,30 @@ namespace ag
 				assert(p >= 0.0f && p <= 1.0f);
 				policy_prior = p;
 			}
-			void updateValue(float eval) noexcept
+			void updateValue(Value eval) noexcept
 			{
-				assert(eval >= 0.0f && eval <= 1.0f);
 				visits++;
-				value += (eval - value) / static_cast<float>(visits);
-				value = std::max(0.0f, std::min(1.0f, value));
+				const float tmp = 1.0f / static_cast<float>(visits);
+				value.win += (eval.win - value.win) * tmp;
+				value.draw += (eval.draw - value.draw) * tmp;
+				value.loss += (eval.loss - value.loss) * tmp;
 			}
 			void applyVirtualLoss() noexcept
 			{
 				visits++;
-				value -= value / static_cast<float>(visits);
-				value = std::max(0.0f, std::min(1.0f, value));
+				const float tmp = 1.0f / static_cast<float>(visits);
+				value.win -= value.win * tmp;
+				value.draw -= value.draw * tmp;
+				value.loss += (1.0f - value.loss) * tmp;
 			}
 			void cancelVirtualLoss() noexcept
 			{
 				assert(visits > 1);
 				visits--;
-				value *= (1.0f + 1.0f / static_cast<float>(visits));
-				value = std::max(0.0f, std::min(1.0f, value));
+				const float tmp = 1.0f / static_cast<float>(visits);
+				value.win += value.win * tmp;
+				value.draw += value.draw * tmp;
+				value.loss -= (1.0f - value.loss) * tmp;
 			}
 			void setProvenValue(ProvenValue ev) noexcept
 			{
@@ -141,6 +146,35 @@ namespace ag
 			const Node* end() const noexcept
 			{
 				return children + numberOfChildren();
+			}
+	};
+
+	struct MaxExpectation
+	{
+			float operator()(const Node *n) const noexcept
+			{
+				return n->getValue().win + 0.5f * n->getValue().draw;
+			}
+	};
+	struct MaxWin
+	{
+			float operator()(const Node *n) const noexcept
+			{
+				return n->getValue().win;
+			}
+	};
+	struct MaxNonLoss
+	{
+			float operator()(const Node *n) const noexcept
+			{
+				return n->getValue().win + n->getValue().draw;
+			}
+	};
+	struct MaxBalance
+	{
+			float operator()(const Node *n) const noexcept
+			{
+				return -fabsf(n->getValue().win - n->getValue().loss);
 			}
 	};
 

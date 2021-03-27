@@ -38,7 +38,7 @@ void test_train()
 
 	SupervisedLearning sl(config);
 	AGNetwork model(config);
-	//	AGNetwork model(std::string("/home/maciek/alphagomoku/standard_2021/network.bin"));
+//	AGNetwork model(std::string("/home/maciek/alphagomoku/standard_2021/network.bin"));
 	GameBuffer buffer;
 	for (int i = 80; i < 100; i++)
 		buffer.load("/home/maciek/alphagomoku/standard_2021/train_buffer/buffer_" + std::to_string(i) + ".zip");
@@ -67,7 +67,7 @@ void test_train()
 	{
 		SerializedObject so;
 		Json json = model.getGraph().save(so);
-		FileSaver fs("/home/maciek/alphagomoku/standard_2021/network_5x64.bin");
+		FileSaver fs("/home/maciek/alphagomoku/standard_2021/network_5x64new.bin");
 		fs.save(json, so, 2);
 	}
 	std::cout << "model saved\n";
@@ -77,55 +77,54 @@ void test_train()
 	{
 		SerializedObject so;
 		Json json = model.getGraph().save(so);
-		FileSaver fs("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin");
+		FileSaver fs("/home/maciek/alphagomoku/standard_2021/network_5x64new_opt.bin");
 		fs.save(json, so, 2);
 	}
 	std::cout << "optimized model saved\n";
 
-	matrix<Sign> board(15, 15);
-	matrix<float> policy(15, 15);
-	Sign sign_to_move;
-	GameOutcome outcome;
-
-	int batch_size = buffer.getFromBuffer(0).length();
-	for (int i = 0; i < batch_size; i++)
-	{
-		buffer.getFromBuffer(0).getSample(board, policy, sign_to_move, outcome, i);
-		buffer.getFromBuffer(0).printSample(i);
-
-		model.packData(0, board, policy, outcome, sign_to_move);
-		model.forward(1);
-
-		buffer.getFromBuffer(0).getSample(board, policy, sign_to_move, outcome, i);
-		policy.clear();
-		float value = model.unpackOutput(0, policy);
-		std::cout << "-----------------------------------------------------------\n";
-		std::cout << "value = " << value << '\n';
-		std::cout << policyToString(board, policy);
-		std::cout << "-----------------------------------------------------------\n\n";
-	}
+//	matrix<Sign> board(15, 15);
+//	matrix<float> policy(15, 15);
+//	Sign sign_to_move;
+//	GameOutcome outcome;
+//
+//	int batch_size = buffer.getFromBuffer(0).length();
+//	for (int i = 0; i < batch_size; i++)
+//	{
+//		buffer.getFromBuffer(0).getSample(board, policy, sign_to_move, outcome, i);
+//		buffer.getFromBuffer(0).printSample(i);
+//
+//		model.packData(0, board, policy, outcome, sign_to_move);
+//		model.forward(1);
+//
+//		buffer.getFromBuffer(0).getSample(board, policy, sign_to_move, outcome, i);
+//		policy.clear();
+//		float value = model.unpackOutput(0, policy);
+//		std::cout << "-----------------------------------------------------------\n";
+//		std::cout << "value = " << value << '\n';
+//		std::cout << policyToString(board, policy);
+//		std::cout << "-----------------------------------------------------------\n\n";
+//	}
 }
 
 int main()
 {
-	FileLoader fl("/home/maciek/alphagomoku/standard_2021/simple_config.json");
+//	FileLoader fl("/home/maciek/alphagomoku/standard_2021/simple_config.json");
 //	EvaluationManager manager(fl.getJson());
 //	Json config = fl.getJson()["evaluation_options"];
-//	manager.setCrossPlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin");
-//	config["simulations"] = 100;
-//	manager.setCirclePlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin");
+//	manager.setCrossPlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
+//	manager.setCirclePlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
 
-//	manager.generate(1000);
-//	std::string to_save = manager.getGameBuffer().generatePGN("AG_800", "AG_100");
+//	manager.generate(1);
+//	std::string to_save = manager.getGameBuffer().generatePGN("AG_wdl", "AG_new");
 //	std::ofstream file("/home/maciek/alphagomoku/standard_2021/games.pgn");
 //	file.write(to_save.data(), to_save.size());
 //	file.close();
 
-	GeneratorManager manager(fl.getJson());
-	manager.generate("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 2000);
+//	GeneratorManager manager(fl.getJson());
+//	manager.generate("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 2000);
 //	manager.generate("/home/maciek/alphagomoku/standard_2021/network_10x128/network_opt.bin", 200);
 
-	return 0;
+//	return 0;
 
 	GameConfig game_config;
 	game_config.rules = GameRules::STANDARD;
@@ -143,14 +142,14 @@ int main()
 	Cache cache(game_config, cache_config);
 
 	EvaluationQueue queue;
-	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 32, ml::Device::cuda(0));
+	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
 
 	SearchConfig search_config;
-	search_config.batch_size = 4;
+	search_config.batch_size = 32;
 	search_config.exploration_constant = 1.25f;
 	search_config.noise_weight = 0.0f;
-	search_config.expansion_prior_treshold = 1.0e-6f;
-	search_config.augment_position = false;
+	search_config.expansion_prior_treshold = 1.0e-5f;
+	search_config.augment_position = true;
 	search_config.use_endgame_solver = false;
 
 	Search search(game_config, search_config, tree, cache, queue);
@@ -173,21 +172,88 @@ int main()
 //							" _ X O _ X _ O X _ _ X O _ _ X\n"
 //							" _ O X O _ X O O X _ X X O O _\n"
 //							" X _ X O _ _ O X _ O O X O _ O\n");
-//	board = boardFromString(" X X O X X X O X O X X X O X O\n"
-//							" X X O X O X O O X X X O X X X\n"
-//							" X O O X O X X O X O X X O O O\n"
-//							" O X X O X X O O X O O X X X O\n"
-//							" X X O X O O O X X O X O O O O\n"
-//							" X X O X O X O O O X O X X X X\n"
-//							" O X O X X X X O O O O X X O X\n"
-//							" O O X O O X X O X O O X X O O\n"
-//							" X X X O X O O O O X X X O O X\n"
-//							" O O O X O X X X X O O O O X X\n"
-//							" O X O O O O X O O X X O O X O\n"
-//							" X X O X X X X O O O X X X O O\n"
-//							" X X O O X _ O X _ _ X O _ _ X\n"
-//							" O O X O X X O O X _ X X O O _\n"
-//							" X X X O X _ O X _ O O X O _ O\n");
+	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+	board.at(11, 6) = Sign::CIRCLE;
+//	board.at(9, 6) = Sign::CROSS;
+	board.at(8, 6) = Sign::CROSS;
+
+//	board.at(10, 5) = Sign::CIRCLE;
+//	board.at(9, 4) = Sign::CROSS;
+//	board.at(8, 8) = Sign::CIRCLE;
+//	board.at(9, 7) = Sign::CROSS;
+//	board.at(10, 8) = Sign::CIRCLE;
+//	board.at(11, 8) = Sign::CROSS;
+//	board.at(9, 6) = Sign::CIRCLE;
+//	board.at(7, 8) = Sign::CROSS;
+//	board.at(11, 7) = Sign::CIRCLE;
+//	board.at(12, 6) = Sign::CROSS;
+//	board.at(7, 5) = Sign::CIRCLE;
+//	board.at(9, 5) = Sign::CROSS;
+//	board.at(7, 7) = Sign::CIRCLE;
+//	board.at(6, 6) = Sign::CROSS;
+//	board.at(11, 4) = Sign::CIRCLE;
+//	board.at(12, 3) = Sign::CROSS;
+//	board.at(9, 10) = Sign::CIRCLE;
+//	board.at(8, 10) = Sign::CROSS;
+//	board.at(6, 5) = Sign::CIRCLE;
+//	board.at(5, 4) = Sign::CROSS;
+//	board.at(10, 11) = Sign::CIRCLE;
+//	board.at(9, 11) = Sign::CROSS;
+//	board.at(11, 12) = Sign::CIRCLE;
+//	board.at(8, 9) = Sign::CROSS;
+//	board.at(5, 6) = Sign::CIRCLE;
+//	board.at(4, 7) = Sign::CROSS;
+//	board.at(10, 9) = Sign::CIRCLE;
+//	board.at(10, 12) = Sign::CROSS;
+//	board.at(11, 13) = Sign::CIRCLE;
+//	board.at(11, 10) = Sign::CROSS;
+//	board.at(5, 8) = Sign::CIRCLE;
+//	board.at(5, 9) = Sign::CROSS;
+//	board.at(4, 9) = Sign::CIRCLE;
+//	board.at(6, 7) = Sign::CROSS;
+//	board.at(5, 10) = Sign::CIRCLE;
+//	board.at(3, 7) = Sign::CROSS;
+//	board.at(7, 6) = Sign::CIRCLE;
+//	board.at(8, 7) = Sign::CROSS;
+//	board.at(12, 13) = Sign::CIRCLE;
+//	board.at(13, 14) = Sign::CROSS;
+//	board.at(4, 8) = Sign::CIRCLE;
+//	board.at(2, 7) = Sign::CROSS;
+//	board.at(5, 7) = Sign::CIRCLE;
+//	board.at(3, 6) = Sign::CROSS;
+//	board.at(6, 3) = Sign::CIRCLE;
+//	board.at(3, 5) = Sign::CROSS;
+//	board.at(7, 4) = Sign::CIRCLE;
+//	board.at(7, 3) = Sign::CROSS;
+//	board.at(3, 8) = Sign::CIRCLE;
+//	board.at(6, 8) = Sign::CROSS;
+//	board.at(7, 9) = Sign::CIRCLE;
+//	board.at(4, 4) = Sign::CROSS;
+//	board.at(11, 5) = Sign::CIRCLE;
+//	board.at(11, 3) = Sign::CROSS;
+//	board.at(8, 3) = Sign::CIRCLE;
+//	board.at(9, 2) = Sign::CROSS;
+//	board.at(8, 5) = Sign::CIRCLE;
+//	board.at(5, 2) = Sign::CROSS;
+//	board.at(2, 8) = Sign::CIRCLE;
+//	board.at(1, 8) = Sign::CROSS;
+//	board.at(4, 5) = Sign::CIRCLE;
+//	sign_to_move = Sign::CROSS;
+
 //	board = boardFromString(" _ X _ O _ _ _ _ _ X O X _ O _\n"
 //			" X X _ O O O X O X O O O X X _\n"
 //			" _ O O X X O X _ X _ O _ X X _\n"
@@ -204,19 +270,19 @@ int main()
 //			" O X O O _ X O X _ X O X O X _\n"
 //			" X _ O X X X X O _ X O O O O X\n");
 
-	board.at(4, 5) = Sign::CROSS;
-	board.at(6, 5) = Sign::CIRCLE;
-	board.at(1, 2) = Sign::CROSS;
-	board.at(6, 6) = Sign::CIRCLE;
-	board.at(3, 3) = Sign::CROSS;
-	board.at(5, 6) = Sign::CIRCLE;
-	board.at(3, 8) = Sign::CROSS;
+//	board.at(4, 5) = Sign::CROSS;
+//	board.at(6, 5) = Sign::CIRCLE;
+//	board.at(1, 2) = Sign::CROSS;
+//	board.at(6, 6) = Sign::CIRCLE;
+//	board.at(3, 3) = Sign::CROSS;
+//	board.at(4, 6) = Sign::CIRCLE;
+//	board.at(3, 8) = Sign::CROSS;
 //	board.at(7, 6) = Sign::CIRCLE;
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
 
 	matrix<float> policy(15, 15);
-	for (int i = 0; i <= 10; i++)
+	for (int i = 0; i <= 20; i++)
 	{
 		while (search.getSimulationCount() < i * 100000)
 		{
@@ -235,6 +301,7 @@ int main()
 		std::cout << search.getStats().toString();
 		std::cout << tree.getStats().toString();
 		std::cout << cache.getStats().toString() << '\n';
+		std::cout << "Memory : cache = " << cache.getMemory() / 1048576 << "MB, tree = " << tree.getMemory() / 1048576 << "MB\n";
 		if (tree.isProven())
 			break;
 	}

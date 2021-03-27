@@ -7,23 +7,27 @@
 
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <limits>
 
 namespace
 {
 	using namespace ag;
-	Node* select_puct(Node *parent, const float exploration_constant)
+
+	template<typename T>
+	Node* select_puct(Node *parent, const float exploration_constant, const T &get_value)
 	{
 		const float sqrt_visit = exploration_constant * sqrt(parent->getVisits());
 		auto selected = parent->end();
-		float bestValue = -1.0f;
+		float bestValue = std::numeric_limits<float>::lowest();
 		for (auto iter = parent->begin(); iter < parent->end(); iter++)
 			if (not iter->isProven())
 			{
-				float PUCT = iter->getValue() + iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits());
+				float PUCT = get_value(iter) + iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits());
 				if (PUCT > bestValue)
 				{
 					selected = iter;
@@ -33,47 +37,69 @@ namespace
 		assert(selected != parent->end());
 		return selected;
 	}
-//	Node* select_by_visit(Node *parent)
-//	{
-//		auto result = std::max_element(parent->begin(), parent->end(), [](const Node &lhs, const Node &rhs)
-//		{
-//			return lhs.getVisits() < rhs.getVisits();
-//		});
-//		assert(result != parent->end());
-//		return result;
-//	}
+	Node* select_balanced(Node *parent)
+	{
+		MaxBalance get_value;
+		auto selected = parent->end();
+		float bestValue = std::numeric_limits<float>::lowest();
+		for (auto iter = parent->begin(); iter < parent->end(); iter++)
+			if (get_value(iter) > bestValue)
+			{
+				selected = iter;
+				bestValue = get_value(iter);
+			}
+		assert(selected != parent->end());
+		return selected;
+	}
+	Node* select_by_visit(Node *parent)
+	{
+		auto selected = parent->end();
+		float bestValue = std::numeric_limits<float>::lowest();
+		for (auto iter = parent->begin(); iter < parent->end(); iter++)
+		{
+			if (iter->getProvenValue() == ProvenValue::WIN)
+				return iter;
+			if (iter->getVisits() > bestValue)
+			{
+				selected = iter;
+				bestValue = iter->getVisits();
+			}
+		}
+		assert(selected != parent->end());
+		return selected;
+	}
 	Node* select_by_value(Node *parent)
 	{
 		auto selected = parent->end();
-		float max_value = -1.0f;
-		for (auto iter = parent->begin(); iter < parent->end(); iter++)
-			switch (iter->getProvenValue())
-			{
-				case ProvenValue::UNKNOWN:
-					if (iter->getValue() > max_value)
-					{
-						selected = iter;
-						max_value = iter->getValue();
-					}
-					break;
-				case ProvenValue::LOSS:
-					if (iter->getValue() > max_value)
-					{
-						selected = iter;
-						max_value = -1.0f + iter->getValue();
-					}
-					break;
-				case ProvenValue::DRAW:
-					if (0.5f > max_value)
-					{
-						selected = iter;
-						max_value = 0.5f;
-					}
-					break;
-				case ProvenValue::WIN:
-					return iter;
-			}
-		assert(selected != parent->end());
+//		float max_value = std::numeric_limits<float>::lowest();
+//		for (auto iter = parent->begin(); iter < parent->end(); iter++)
+//			switch (iter->getProvenValue())
+//			{
+//				case ProvenValue::UNKNOWN:
+//					if (iter->getValue() > max_value)
+//					{
+//						selected = iter;
+//						max_value = iter->getValue();
+//					}
+//					break;
+//				case ProvenValue::LOSS:
+//					if (iter->getValue() > max_value)
+//					{
+//						selected = iter;
+//						max_value = -1.0f + iter->getValue();
+//					}
+//					break;
+//				case ProvenValue::DRAW:
+//					if (0.5f > max_value)
+//					{
+//						selected = iter;
+//						max_value = 0.5f;
+//					}
+//					break;
+//				case ProvenValue::WIN:
+//					return iter;
+//			}
+//		assert(selected != parent->end());
 		return selected;
 	}
 	bool update_proven_value(Node &parent)
@@ -192,6 +218,10 @@ namespace ag
 			config(treeOptions)
 	{
 	}
+	uint64_t Tree::getMemory() const noexcept
+	{
+		return sizeof(Node) * allocatedNodes();
+	}
 	void Tree::clearStats() noexcept
 	{
 	}
@@ -259,11 +289,16 @@ namespace ag
 		Node *current = &getRootNode();
 		current->applyVirtualLoss();
 		trajectory.append(current, current->getMove());
+		int depth = 1;
 		while (not current->isLeaf())
 		{
-			current = select_puct(current, explorationConstant);
+//			if (depth > 2)
+				current = select_puct(current, explorationConstant, MaxExpectation());
+//			else
+//				current = select_balanced(current);
 			current->applyVirtualLoss();
 			trajectory.append(current, current->getMove());
+			depth++;
 		}
 	}
 	void Tree::expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
@@ -285,18 +320,17 @@ namespace ag
 			parent.getChild(i).setPolicyPrior(movesToAdd[i].second);
 		}
 	}
-	void Tree::backup(SearchTrajectory &trajectory, float value, ProvenValue provenValue)
+	void Tree::backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue)
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 
-		const Sign sign = trajectory.getLastMove().sign;
+		if (trajectory.getMove(0).sign != trajectory.getLastMove().sign)
+			value.invert();
 		for (int i = 0; i < trajectory.length(); i++)
 		{
-			if (trajectory.getMove(i).sign == sign)
-				trajectory.getNode(i).updateValue(value);
-			else
-				trajectory.getNode(i).updateValue(1.0f - value);
+			trajectory.getNode(i).updateValue(value);
 			trajectory.getNode(i).cancelVirtualLoss();
+			value.invert();
 		}
 		trajectory.getLeafNode().setProvenValue(provenValue);
 		for (int i = trajectory.length() - 1; i >= 0; i--)
@@ -345,7 +379,7 @@ namespace ag
 		result.append(current, current->getMove());
 		while (not current->isLeaf())
 		{
-			current = select_by_value(current);
+			current = select_by_visit(current);
 			result.append(current, current->getMove());
 		}
 		return result;

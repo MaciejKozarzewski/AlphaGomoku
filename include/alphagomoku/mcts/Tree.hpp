@@ -50,7 +50,7 @@ namespace ag
 
 		public:
 			Tree(TreeConfig treeOptions);
-
+			uint64_t getMemory() const noexcept;
 			void clearStats() noexcept;
 			TreeStats getStats() const noexcept;
 
@@ -64,7 +64,7 @@ namespace ag
 			bool isRootNode(const Node *node) const noexcept;
 			void select(SearchTrajectory &trajectory, float explorationConstant = 1.25f);
 			void expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
-			void backup(SearchTrajectory &trajectory, float value, ProvenValue provenValue);
+			void backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue);
 			void cancelVirtualLoss(SearchTrajectory &trajectory);
 
 			void getPlayoutDistribution(const Node &node, matrix<float> &result) const;

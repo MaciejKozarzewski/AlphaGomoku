@@ -28,12 +28,12 @@ namespace ag
 	struct GameState
 	{
 			matrix<uint16_t> state;
-			float minimax_value = 0.0f;
+			Value minimax_value = 0.0f;
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			uint16_t move = 0;
 
 			GameState(const SerializedObject &so, size_t &offset);
-			GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m, ProvenValue pv);
+			GameState(const matrix<Sign> &board, const matrix<float> &policy, Value minimax, Move m, ProvenValue pv);
 			GameState(Move m);
 			void copyTo(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove) const;
 			void serialize(SerializedObject &binary_data) const;
@@ -67,7 +67,7 @@ namespace ag
 			void setBoard(const matrix<Sign> &other, Sign signToMove);
 			void loadOpening(const std::vector<Move> &moves);
 			void makeMove(Move move);
-			void makeMove(Move move, const matrix<float> &policy, float minimax, ProvenValue pv);
+			void makeMove(Move move, const matrix<float> &policy, Value minimax, ProvenValue pv);
 			void resolveOutcome();
 			bool isOver() const;
 			bool isDraw() const;

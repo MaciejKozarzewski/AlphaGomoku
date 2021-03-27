@@ -5,8 +5,8 @@
  *      Author: maciek
  */
 
-#include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/mcts/Move.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -14,22 +14,6 @@
 
 namespace ag
 {
-	std::string toString(ProvenValue pv)
-	{
-		switch (pv)
-		{
-			default:
-			case ProvenValue::UNKNOWN:
-				return "UNKNOWN";
-			case ProvenValue::LOSS:
-				return "LOSS";
-			case ProvenValue::DRAW:
-				return "DRAW";
-			case ProvenValue::WIN:
-				return "WIN";
-		}
-	}
-
 	std::string Node::toString() const
 	{
 		std::string result = Move(getMove()).toString() + " : ";
@@ -49,7 +33,7 @@ namespace ag
 				result += 'W';
 				break;
 		}
-		result += " : Q=" + std::to_string(value);
+		result += " : Q=" + value.toString();
 		result += " : P=" + std::to_string(policy_prior);
 		result += " : Visits=" + std::to_string(visits);
 		result += " : Children=" + std::to_string(numberOfChildren());
@@ -57,8 +41,9 @@ namespace ag
 	}
 	void Node::sortChildren() const
 	{
-		std::sort(children, children + numberOfChildren(), [](const Node &lhs, const Node &rhs)
-		{	return (lhs.visits + lhs.value + 0.001f * lhs.policy_prior) > (rhs.visits + rhs.value + 0.001f * rhs.policy_prior);});
+		MaxExpectation expectation;
+		std::sort(children, children + numberOfChildren(), [expectation](const Node &lhs, const Node &rhs)
+		{	return (lhs.visits + expectation(&lhs) + 0.001f * lhs.policy_prior) > (rhs.visits + expectation(&rhs) + 0.001f * rhs.policy_prior);});
 	}
 }
 

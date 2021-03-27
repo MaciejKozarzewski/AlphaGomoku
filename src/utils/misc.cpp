@@ -5,8 +5,9 @@
  *      Author: maciek
  */
 
-#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/mcts/Node.hpp>
 #include <inttypes.h>
 #include <chrono>
 #include <cmath>
@@ -314,35 +315,6 @@ namespace ag
 			array.data()[i] *= scale;
 	}
 
-	float convertOutcome(GameOutcome outcome, Sign signToMove)
-	{
-		assert(outcome != GameOutcome::UNKNOWN);
-		switch (outcome)
-		{
-			default:
-			case GameOutcome::DRAW:
-				return 0.5f;
-			case GameOutcome::CROSS_WIN:
-				return (signToMove == Sign::CIRCLE) ? 1.0f : 0.0f;
-			case GameOutcome::CIRCLE_WIN:
-				return (signToMove == Sign::CROSS) ? 1.0f : 0.0f;
-		}
-	}
-	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove)
-	{
-		switch (outcome)
-		{
-			default:
-			case GameOutcome::UNKNOWN:
-				return ProvenValue::UNKNOWN;
-			case GameOutcome::DRAW:
-				return ProvenValue::DRAW;
-			case GameOutcome::CROSS_WIN:
-				return (signToMove == Sign::CIRCLE) ? ProvenValue::WIN : ProvenValue::LOSS;
-			case GameOutcome::CIRCLE_WIN:
-				return (signToMove == Sign::CROSS) ? ProvenValue::WIN : ProvenValue::LOSS;
-		}
-	}
 	void averageStats(std::vector<float> &stats)
 	{
 		if (stats[0] == 0.0f)

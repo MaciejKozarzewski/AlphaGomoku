@@ -26,7 +26,7 @@ namespace ag
 		state = matrix<uint16_t>(rows, cols);
 		so.load(state.data(), offset, state.sizeInBytes());
 		offset += state.sizeInBytes();
-		minimax_value = so.load<float>(offset);
+		minimax_value = so.load<Value>(offset);
 		offset += sizeof(minimax_value);
 		proven_value = static_cast<ProvenValue>(so.load<int>(offset));
 		offset += sizeof(int);
@@ -61,7 +61,7 @@ namespace ag
 //				break;
 //		}
 	}
-	GameState::GameState(const matrix<Sign> &board, const matrix<float> &policy, float minimax, Move m, ProvenValue pv) :
+	GameState::GameState(const matrix<Sign> &board, const matrix<float> &policy, Value minimax, Move m, ProvenValue pv) :
 			state(board.rows(), board.cols()),
 			minimax_value(minimax),
 			proven_value(pv),
@@ -90,14 +90,14 @@ namespace ag
 		binary_data.save<int>(state.rows());
 		binary_data.save<int>(state.cols());
 		binary_data.save(state.data(), state.sizeInBytes());
-		binary_data.save<float>(minimax_value);
+		binary_data.save<Value>(minimax_value);
 		binary_data.save<int>(static_cast<int>(proven_value));
 		binary_data.save<uint16_t>(move);
 	}
 	bool GameState::isCorrect() const noexcept
 	{
-		if (minimax_value < 0.0f || minimax_value > 1.0f)
-			return false;
+//		if (minimax_value < 0.0f || minimax_value > 1.0f)
+//			return false;
 
 		Move m(move);
 		if (m.row < 0 || m.row >= state.rows())
@@ -283,7 +283,7 @@ namespace ag
 		current_board.at(move.row, move.col) = move.sign;
 		sign_to_move = invertSign(sign_to_move);
 	}
-	void Game::makeMove(Move move, const matrix<float> &policy, float minimax, ProvenValue pv)
+	void Game::makeMove(Move move, const matrix<float> &policy, Value minimax, ProvenValue pv)
 	{
 		assert(move.row >= 0 && move.row < rows());
 		assert(move.col >= 0 && move.col < cols());
@@ -359,7 +359,7 @@ namespace ag
 		Sign sign_to_move;
 		states[index].copyTo(board, policy, sign_to_move);
 		std::cout << "now moving " << Move(states[index].move).toString() << std::endl;
-		std::cout << "minimax " << 1.0f - states[index].minimax_value << std::endl;
+		std::cout << "minimax " << states[index].minimax_value.toString() << std::endl;
 		std::cout << "outcome " << toString(outcome) << std::endl;
 		std::cout << policyToString(board, policy);
 	}

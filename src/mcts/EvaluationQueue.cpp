@@ -109,8 +109,8 @@ namespace ag
 			start = getTime();
 			for (int i = 0; i < batch; i++)
 			{
-				float value = network.unpackOutput(i, request_queue[i]->getPolicy());
-				request_queue[i]->setValue(1.0f - value);
+				Value value = network.unpackOutput(i, request_queue[i]->getPolicy());
+				request_queue[i]->setValue(value);
 				request_queue[i]->setReady();
 			}
 			request_queue.erase(request_queue.begin(), request_queue.begin() + batch);

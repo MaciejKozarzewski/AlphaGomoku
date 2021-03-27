@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <gtest/gtest.h>
@@ -33,7 +34,7 @@ namespace ag
 		moves.push_back( { Move::move_to_short(0, 6, Sign::CROSS), 0.1f });
 		tree.select(trajectory);
 		tree.expand(trajectory.getLeafNode(), moves);
-		tree.backup(trajectory, 0.9f, ProvenValue::UNKNOWN);
+		tree.backup(trajectory, Value(0.9f), ProvenValue::UNKNOWN);
 
 		// simulation 2
 		moves.clear();
@@ -41,11 +42,11 @@ namespace ag
 		moves.push_back( { Move::move_to_short(3, 3, Sign::CIRCLE), 0.03f });
 		tree.select(trajectory);
 		tree.expand(trajectory.getLeafNode(), moves);
-		tree.backup(trajectory, 0.94f, ProvenValue::UNKNOWN);
+		tree.backup(trajectory, Value(0.94f), ProvenValue::UNKNOWN);
 
 		//simulation 3
 		tree.select(trajectory);
-		tree.backup(trajectory, 0.0f, ProvenValue::UNKNOWN);
+		tree.backup(trajectory, Value(0.0f), ProvenValue::UNKNOWN);
 
 		//depth 0
 		EXPECT_EQ(tree.getRootNode().getVisits(), 3);
@@ -80,7 +81,7 @@ namespace ag
 		moves.push_back( { Move::move_to_short(0, 6, Sign::CROSS), 0.1f });
 
 		tree.expand(trajectory.getLeafNode(), moves);
-		tree.backup(trajectory, 0.9f, ProvenValue::UNKNOWN);
+		tree.backup(trajectory, Value(0.9f), ProvenValue::UNKNOWN);
 
 		// simulation 2
 		tree.select(trajectory);
@@ -89,35 +90,35 @@ namespace ag
 		moves.push_back( { Move::move_to_short(3, 3, Sign::CIRCLE), 0.03f });
 
 		tree.expand(trajectory.getLeafNode(), moves);
-		tree.backup(trajectory, 0.94f, ProvenValue::UNKNOWN);
+		tree.backup(trajectory, Value(0.94f), ProvenValue::UNKNOWN);
 
 		//simulation 3
 		tree.select(trajectory);
-		tree.backup(trajectory, 0.0f, ProvenValue::LOSS);
+		tree.backup(trajectory, Value(0.0f), ProvenValue::LOSS);
 		tree.select(trajectory);
-		tree.backup(trajectory, 0.5f, ProvenValue::DRAW);
+		tree.backup(trajectory, Value(0.5f), ProvenValue::DRAW);
 
 		tree.select(trajectory);
-		tree.backup(trajectory, 0.5f, ProvenValue::DRAW);
+		tree.backup(trajectory, Value(0.5f), ProvenValue::DRAW);
 		tree.select(trajectory);
-		tree.backup(trajectory, 1.0f, ProvenValue::WIN);
+		tree.backup(trajectory, Value(1.0f), ProvenValue::WIN);
 		//depth 0
 		EXPECT_EQ(tree.getRootNode().getVisits(), 6);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getProvenValue(), ProvenValue::LOSS);
+		EXPECT_EQ(tree.getRootNode().getProvenValue(), ProvenValue::LOSS);
 
 		//depth 1
 		EXPECT_EQ(tree.getRootNode().getChild(0).getVisits(), 1);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(0).getProvenValue(), ProvenValue::DRAW);
+		EXPECT_EQ(tree.getRootNode().getChild(0).getProvenValue(), ProvenValue::DRAW);
 		EXPECT_EQ(tree.getRootNode().getChild(1).getVisits(), 3);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getProvenValue(), ProvenValue::DRAW);
+		EXPECT_EQ(tree.getRootNode().getChild(1).getProvenValue(), ProvenValue::DRAW);
 		EXPECT_EQ(tree.getRootNode().getChild(2).getVisits(), 1);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(2).getProvenValue(), ProvenValue::WIN);
+		EXPECT_EQ(tree.getRootNode().getChild(2).getProvenValue(), ProvenValue::WIN);
 
 		//depth 2
 		EXPECT_EQ(tree.getRootNode().getChild(1).getChild(0).getVisits(), 1);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getChild(0).getProvenValue(), ProvenValue::DRAW);
+		EXPECT_EQ(tree.getRootNode().getChild(1).getChild(0).getProvenValue(), ProvenValue::DRAW);
 		EXPECT_EQ(tree.getRootNode().getChild(1).getChild(1).getVisits(), 1);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getChild(1).getProvenValue(), ProvenValue::LOSS);
+		EXPECT_EQ(tree.getRootNode().getChild(1).getChild(1).getProvenValue(), ProvenValue::LOSS);
 	}
 }
 

@@ -113,7 +113,7 @@ namespace ag
 				return false;
 			is_request_scheduled = false;
 			request.augment();
-			if (fabsf(request.getValue() - 0.5f) < (0.05f + opening_trials * 0.01f))
+			if (fabsf((request.getValue().win + 0.5f * request.getValue().draw) - 0.5f) < (0.05f + opening_trials * 0.01f))
 			{
 				opening_trials = 0;
 				game.loadOpening(opening);

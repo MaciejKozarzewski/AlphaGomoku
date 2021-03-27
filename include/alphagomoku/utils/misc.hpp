@@ -10,7 +10,6 @@
 
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <algorithm>
 #include <cassert>
@@ -23,6 +22,8 @@ namespace ag
 	enum class GameRules
 	;
 	enum class GameOutcome
+	;
+	enum class ProvenValue
 	;
 }
 
@@ -62,10 +63,6 @@ namespace ag
 	void addNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight);
 
 	void scaleArray(matrix<float> &array, float scale);
-
-	float convertOutcome(GameOutcome outcome, Sign signToMove);
-	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove);
-
 	void averageStats(std::vector<float> &stats);
 
 	const std::string currentDateTime();

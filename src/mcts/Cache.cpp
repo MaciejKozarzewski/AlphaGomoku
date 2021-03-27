@@ -82,7 +82,6 @@ namespace ag
 	}
 	void Cache::Entry::copyFrom(const EvaluationRequest &request, uint64_t boardHash) noexcept
 	{
-		assert(request.getNode()->getVisits() > 0);
 		hash = boardHash;
 		proven_value = ProvenValue::UNKNOWN;
 		value = request.getValue();
@@ -116,17 +115,17 @@ namespace ag
 			return;
 
 		int total_visits = 0;
-		double total_wins = 0.0;
+//		double total_wins = 0.0;
 		for (int i = 0; i < stored_transpositions; i++)
 		{
 			assert(transpositions[i] != nullptr);
 			total_visits += transpositions[i]->getVisits();
-			total_wins += static_cast<double>(transpositions[i]->getValue()) * transpositions[i]->getVisits();
+//			total_wins += static_cast<double>(transpositions[i]->getValue()) * transpositions[i]->getVisits();
 			if (proven_value == ProvenValue::UNKNOWN)
 				proven_value = transpositions[i]->getProvenValue();
 		}
 		assert(total_visits > 0);
-		this->value = total_wins / total_visits;
+//		this->value = total_wins / total_visits; // FIXME
 
 		if (total_visits >= visitTreshold)
 		{
