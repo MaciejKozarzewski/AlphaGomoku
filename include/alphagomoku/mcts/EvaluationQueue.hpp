@@ -26,7 +26,6 @@ namespace ag
 			double time_network_eval = 0.0;
 			double time_pack = 0.0;
 			double time_unpack = 0.0;
-			double time_idle = 0.0;
 
 			std::string toString() const;
 			QueueStats& operator+=(const QueueStats &other) noexcept;
@@ -40,8 +39,6 @@ namespace ag
 			AGNetwork network;
 
 			QueueStats stats;
-			double idle_start = -1.0;
-
 		public:
 			void clearStats() noexcept;
 			QueueStats getStats() const noexcept;

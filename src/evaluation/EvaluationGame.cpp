@@ -116,7 +116,6 @@ namespace ag
 			if (fabsf((request.getValue().win + 0.5f * request.getValue().draw) - 0.5f) < (0.05f + opening_trials * 0.01f))
 			{
 				opening_trials = 0;
-				game.loadOpening(opening);
 				has_stored_opening = true;
 				return true;
 			}

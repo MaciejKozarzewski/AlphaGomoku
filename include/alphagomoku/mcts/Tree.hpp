@@ -62,7 +62,7 @@ namespace ag
 			const Node& getRootNode() const noexcept;
 			Node& getRootNode() noexcept;
 			bool isRootNode(const Node *node) const noexcept;
-			void select(SearchTrajectory &trajectory, float explorationConstant = 1.25f);
+			void select(SearchTrajectory &trajectory, float explorationConstant = 1.25f, int balanceDepth = -1);
 			void expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
 			void backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue);
 			void cancelVirtualLoss(SearchTrajectory &trajectory);

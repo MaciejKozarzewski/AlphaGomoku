@@ -40,6 +40,12 @@ namespace ag
 			queue.evaluateGraph();
 		}
 	}
+	void GeneratorThread::clearStats() noexcept
+	{
+		queue.clearStats();
+		for (size_t i = 0; i < generators.size(); i++)
+			generators[i]->clearStats();
+	}
 	QueueStats GeneratorThread::getQueueStats() const noexcept
 	{
 		return queue.getStats();
@@ -101,12 +107,21 @@ namespace ag
 		path_to_network = pathToNetwork;
 
 		for (size_t i = 0; i < generators.size(); i++)
+		{
+			generators[i]->clearStats();
 			thread_pool.addJob(generators[i].get());
+		}
 
+		int counter = 0;
 		while (not thread_pool.isReady())
 		{
-			std::this_thread::sleep_for(std::chrono::seconds(30));
-			printStats();
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			counter++;
+			if (counter % 60 == 0)
+			{
+				printStats();
+				counter = 0;
+			}
 		}
 	}
 	void GeneratorManager::printStats()

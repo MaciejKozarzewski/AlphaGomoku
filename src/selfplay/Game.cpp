@@ -116,7 +116,7 @@ namespace ag
 		for (int i = 0; i < state.rows(); i++)
 			for (int j = 0; j < state.cols(); j++)
 			{
-				if (board.at(i, j) < Sign::CIRCLE || board.at(i, j) > Sign::CROSS)
+				if (board.at(i, j) < Sign::NONE || board.at(i, j) > Sign::CIRCLE)
 					return false;
 				if (board.at(i, j) == Sign::NONE)
 					count_empty++;
@@ -131,29 +131,32 @@ namespace ag
 		if ((count_O + count_X + count_empty) != state.size())
 			return false;
 		if (abs(count_O - count_X) > 1)
+		{
+			std::cout << count_O << " " << count_X << " " << count_empty << '\n';
 			return false;
+		}
 
-		float policy_sum = 0.0f;
-		for (int i = 0; i < state.rows(); i++)
-			for (int j = 0; j < state.cols(); j++)
-			{
-				if (policy.at(i, j) < 0.0f || policy.at(i, j) > 1.0f)
-					return false;
-				policy_sum += policy.at(i, j);
-			}
-		if (abs(policy_sum - 1.0f) > 0.1f)
-			return false;
+//		float policy_sum = 0.0f;
+//		for (int i = 0; i < state.rows(); i++)
+//			for (int j = 0; j < state.cols(); j++)
+//			{
+//				if (policy.at(i, j) < 0.0f || policy.at(i, j) > 1.0f)
+//					return false;
+//				policy_sum += policy.at(i, j);
+//			}
+//		if (abs(policy_sum - 1.0f) > 0.1f)
+//			return false;
 
-		for (int i = 0; i < state.rows(); i++)
-			for (int j = 0; j < state.cols(); j++)
-				if (board.at(i, j) != Sign::NONE && policy.at(i, j) != 0.0)
-				{
-					std::cout << i << "," << j << " " << board.at(i, j) << " " << policy.at(i, j) << std::endl;
-					std::cout << policyToString(board, policy) << '\n';
-					board.clear();
-					std::cout << boardToString(board) << '\n';
-					return false;
-				}
+//		for (int i = 0; i < state.rows(); i++)
+//			for (int j = 0; j < state.cols(); j++)
+//				if (board.at(i, j) != Sign::NONE && policy.at(i, j) != 0.0)
+//				{
+//					std::cout << i << "," << j << " " << board.at(i, j) << " " << policy.at(i, j) << std::endl;
+//					std::cout << policyToString(board, policy) << '\n';
+//					board.clear();
+//					std::cout << boardToString(board) << '\n';
+//					return false;
+//				}
 
 		return true;
 	}
@@ -296,6 +299,7 @@ namespace ag
 
 		current_board.at(move.row, move.col) = move.sign;
 		sign_to_move = invertSign(sign_to_move);
+		assert(states.back().isCorrect());
 	}
 	void Game::resolveOutcome()
 	{
@@ -361,6 +365,7 @@ namespace ag
 		std::cout << "now moving " << Move(states[index].move).toString() << std::endl;
 		std::cout << "minimax " << states[index].minimax_value.toString() << std::endl;
 		std::cout << "outcome " << toString(outcome) << std::endl;
+		std::cout << boardToString(board);
 		std::cout << policyToString(board, policy);
 	}
 

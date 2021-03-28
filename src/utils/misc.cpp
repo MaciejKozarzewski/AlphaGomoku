@@ -460,18 +460,19 @@ namespace ag
 	}
 	Sign prepareOpening(GameRules rules, matrix<Sign> &board)
 	{
-		Sign sign_to_move = randBool() ? Sign::CROSS : Sign::CIRCLE;
 		matrix<float> map_dist(board.rows(), board.cols());
 		bool flag = true;
-		int opening_moves = 0;
+		Sign sign_to_move = Sign::CROSS;
 		while (flag)
 		{
+			sign_to_move = Sign::CROSS;
 			board.clear();
-			opening_moves = randInt(6) + randInt(6) + randInt(6);
+			int opening_moves = randInt(6) + randInt(6) + randInt(6);
 			for (int i = 0; i < opening_moves; i++)
 			{
 				generateOpeningMap(board, map_dist);
 				Move move = randomizeMove(map_dist);
+				move.sign = sign_to_move;
 				assert(board.at(move.row, move.col) == Sign::NONE);
 				board.at(move.row, move.col) = sign_to_move;
 				sign_to_move = invertSign(sign_to_move);
@@ -511,4 +512,5 @@ namespace ag
 				dst[idx + 3] = 1.0f;
 			}
 	}
+
 }

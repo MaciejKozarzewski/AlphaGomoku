@@ -115,19 +115,21 @@ namespace ag
 			return;
 
 		int total_visits = 0;
-//		double total_wins = 0.0;
+		double total_wins = 0.0, total_draws = 0.0, total_losses = 0.0;
 		for (int i = 0; i < stored_transpositions; i++)
 		{
 			assert(transpositions[i] != nullptr);
 			total_visits += transpositions[i]->getVisits();
-//			total_wins += static_cast<double>(transpositions[i]->getValue()) * transpositions[i]->getVisits();
+			total_wins += static_cast<double>(transpositions[i]->getValue().win) * transpositions[i]->getVisits();
+			total_draws += static_cast<double>(transpositions[i]->getValue().draw) * transpositions[i]->getVisits();
+			total_losses += static_cast<double>(transpositions[i]->getValue().loss) * transpositions[i]->getVisits();
 			if (proven_value == ProvenValue::UNKNOWN)
 				proven_value = transpositions[i]->getProvenValue();
 		}
 		assert(total_visits > 0);
-//		this->value = total_wins / total_visits; // FIXME
+		this->value = Value(total_wins / total_visits, total_draws / total_visits, total_losses / total_visits);
 
-		if (total_visits >= visitTreshold)
+		if (total_visits >= visitTreshold and visitTreshold != -1)
 		{
 			total_visits = 0;
 			workspace.clear();

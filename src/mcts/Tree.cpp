@@ -281,7 +281,7 @@ namespace ag
 	{
 		return node == &root_node;
 	}
-	void Tree::select(SearchTrajectory &trajectory, float explorationConstant)
+	void Tree::select(SearchTrajectory &trajectory, float explorationConstant, int balanceDepth)
 	{
 		trajectory.clear();
 		std::lock_guard<std::mutex> lock(tree_mutex);
@@ -289,16 +289,14 @@ namespace ag
 		Node *current = &getRootNode();
 		current->applyVirtualLoss();
 		trajectory.append(current, current->getMove());
-		int depth = 1;
 		while (not current->isLeaf())
 		{
-//			if (depth > 2)
+			if (trajectory.length() <= balanceDepth)
+				current = select_balanced(current);
+			else
 				current = select_puct(current, explorationConstant, MaxExpectation());
-//			else
-//				current = select_balanced(current);
 			current->applyVirtualLoss();
 			trajectory.append(current, current->getMove());
-			depth++;
 		}
 	}
 	void Tree::expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)

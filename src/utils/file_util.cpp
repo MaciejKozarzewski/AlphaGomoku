@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iterator>
 #include <iostream>
+#include <filesystem>
 
 namespace ag
 {
@@ -39,6 +40,9 @@ namespace ag
 
 	FileLoader::FileLoader(const std::string &path, bool uncompress)
 	{
+		if (not std::filesystem::exists(path))
+			throw std::runtime_error("File '" + path + "' does not exist");
+
 		std::fstream file(path, std::fstream::in);
 		loaded_string = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 		file.close();

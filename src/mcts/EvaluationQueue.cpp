@@ -25,7 +25,6 @@ namespace ag
 		result += printStatistics("network  ", nb_network_eval, time_network_eval);
 		result += printStatistics("pack     ", nb_pack, time_pack);
 		result += printStatistics("unpack   ", nb_unpack, time_unpack);
-		result += "time_idle = " + std::to_string(time_idle) + "s\n";
 		return result;
 	}
 	QueueStats& QueueStats::operator+=(const QueueStats &other) noexcept
@@ -38,7 +37,6 @@ namespace ag
 		this->time_network_eval += other.time_network_eval;
 		this->time_pack += other.time_pack;
 		this->time_unpack += other.time_unpack;
-		this->time_idle += other.time_idle;
 		return *this;
 	}
 	QueueStats& QueueStats::operator/=(int i) noexcept
@@ -51,7 +49,6 @@ namespace ag
 		this->time_network_eval /= i;
 		this->time_pack /= i;
 		this->time_unpack /= i;
-		this->time_idle /= i;
 		return *this;
 	}
 
@@ -88,9 +85,6 @@ namespace ag
 	}
 	void EvaluationQueue::evaluateGraph()
 	{
-		if (idle_start != -1)
-			stats.time_idle += getTime() - idle_start; // statistics
-
 		double start = getTime(); // statistics
 		int batch = std::min(network.getBatchSize(), static_cast<int>(request_queue.size()));
 		if (batch > 0)
@@ -117,7 +111,6 @@ namespace ag
 			stats.time_unpack += getTime() - start; // statistics
 			stats.nb_unpack++;
 		}
-		idle_start = getTime(); // statistics
 	}
 }
 

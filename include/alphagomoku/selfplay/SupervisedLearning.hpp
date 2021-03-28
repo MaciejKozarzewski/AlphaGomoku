@@ -21,8 +21,6 @@ namespace ag
 
 namespace ag
 {
-	void createFolder(const std::string &folder);
-
 	class SupervisedLearning
 	{
 			int learning_steps = 0;

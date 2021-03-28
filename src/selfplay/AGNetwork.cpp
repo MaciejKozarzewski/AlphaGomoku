@@ -79,24 +79,15 @@ namespace ag
 		std::memcpy(policy_target->data<float>( { index, 0 }), policy.data(), policy.sizeInBytes());
 
 		Value tmp = convertOutcome(outcome, signToMove);
-		if (graph.getOutputShape(1).lastDim() == 1)
-			value_target->set(tmp.win + 0.5 * tmp.draw, { index, 0 });
-		else
-		{
-			value_target->set(tmp.win, { index, 0 });
-			value_target->set(tmp.draw, { index, 1 });
-			value_target->set(tmp.loss, { index, 2 });
-
-		}
+		value_target->set(tmp.win, { index, 0 });
+		value_target->set(tmp.draw, { index, 1 });
+		value_target->set(tmp.loss, { index, 2 });
 	}
 	Value AGNetwork::unpackOutput(int index, matrix<float> &policy) const
 	{
 		assert(index >= 0 && index < input_on_cpu->firstDim());
 		std::memcpy(policy.data(), policy_on_cpu->data<float>( { index, 0 }), policy.sizeInBytes());
-		if (graph.getOutputShape(1).lastDim() == 1)
-			return Value(value_on_cpu->get<float>( { index, 0 }), 0.0f, 1.0f - value_on_cpu->get<float>( { index, 0 }));
-		else
-			return Value(value_on_cpu->get<float>( { index, 0 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 2 }));
+		return Value(value_on_cpu->get<float>( { index, 0 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 2 }));
 	}
 
 	void AGNetwork::forward(int batch_size)
@@ -108,10 +99,7 @@ namespace ag
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
 		graph.context().synchronize();
 		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *policy_on_cpu);
-		if (graph.getOutputShape(1).lastDim() == 1)
-			ml::math::nonlinearityForwardInPlace(ml::DeviceContext(), *value_on_cpu, ml::NonlinearityType::SIGMOID);
-		else
-			ml::math::softmaxForwardInPlace(ml::DeviceContext(), *value_on_cpu);
+		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *value_on_cpu);
 	}
 	void AGNetwork::backward(int batch_size)
 	{
@@ -220,10 +208,8 @@ namespace ag
 
 		v = graph.add(ml::Dense(std::min(256, 2 * filters), "linear"), v);
 		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-		v = graph.add(ml::Dense(1, "linear"), v);
-		graph.addOutput(v, ml::CrossEntropyLoss().applySigmoid());
-//		v = graph.add(ml::Dense(3, "linear"), v);
-//		graph.addOutput(v, ml::CrossEntropyLoss().applySoftmax());
+		v = graph.add(ml::Dense(3, "linear"), v);
+		graph.addOutput(v, ml::CrossEntropyLoss().applySoftmax());
 
 		graph.init();
 		graph.setOptimizer(ml::ADAM());

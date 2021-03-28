@@ -51,7 +51,7 @@ namespace ag
 	}
 	void SupervisedLearning::train(AGNetwork &model, GameBuffer &buffer, int steps)
 	{
-		ml::Shape shape = model.getGraph().getInput(0).shape();
+		ml::Shape shape = model.getGraph().getInputShape();
 		int batch_size = shape[0];
 		int rows = shape[1];
 		int cols = shape[2];
@@ -78,7 +78,7 @@ namespace ag
 					training_sample_index = 0;
 				}
 
-				if (config["training_options"]["augment"])
+				if (config["training_options"]["augment_training_data"])
 				{
 					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
 					augment(board, r);
@@ -97,29 +97,33 @@ namespace ag
 	}
 	void SupervisedLearning::validate(AGNetwork &model, GameBuffer &buffer)
 	{
-		ml::Shape shape = model.getGraph().getInput(0).shape();
+		ml::Shape shape = model.getGraph().getInputShape();
 		int batch_size = shape[0];
 		int rows = shape[1];
 		int cols = shape[2];
 		std::vector<float> acc(5);
 		matrix<Sign> board(rows, cols);
 		matrix<float> policy(rows, cols);
-		for (int i = 0; i < buffer.size(); i += batch_size)
+		int counter = 0;
+		while (counter < buffer.size())
 		{
-			for (int b = 0; b < batch_size; b++)
+			int this_batch = 0;
+			while (counter < buffer.size() and this_batch < batch_size)
 			{
 				Sign sign_to_move;
 				GameOutcome outcome;
-				buffer.getFromBuffer(i + b).getSample(board, policy, sign_to_move, outcome);
+				buffer.getFromBuffer(counter).getSample(board, policy, sign_to_move, outcome);
 
-				if (config["training_options"]["augment"])
+				if (config["training_options"]["augment_training_data"])
 				{
 					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
 					augment(board, r);
 					augment(policy, r);
 				}
 
-				model.packData(b, board, policy, outcome, sign_to_move);
+				model.packData(this_batch, board, policy, outcome, sign_to_move);
+				counter++;
+				this_batch++;
 			}
 			model.forward(batch_size);
 

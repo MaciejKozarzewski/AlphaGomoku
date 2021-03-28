@@ -18,8 +18,7 @@
 #include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
-#include <alphagomoku/selfplay/GeneratorManager.hpp>
-#include <alphagomoku/evaluation/EvaluationManager.hpp>
+#include <alphagomoku/selfplay/TrainingManager.hpp>
 #include <alphagomoku/utils/ThreadPool.hpp>
 #include <libml/graph/Graph.hpp>
 #include <libml/hardware/Device.hpp>
@@ -108,23 +107,11 @@ void test_train()
 
 int main()
 {
-//	FileLoader fl("/home/maciek/alphagomoku/standard_2021/simple_config.json");
-//	EvaluationManager manager(fl.getJson());
-//	Json config = fl.getJson()["evaluation_options"];
-//	manager.setCrossPlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
-//	manager.setCirclePlayer(config, "/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
+	TrainingManager tm("/home/maciek/alphagomoku/test_2021/");
+	for (int i = 0; i < 20; i++)
+		tm.runIterationRL();
 
-//	manager.generate(1);
-//	std::string to_save = manager.getGameBuffer().generatePGN("AG_wdl", "AG_new");
-//	std::ofstream file("/home/maciek/alphagomoku/standard_2021/games.pgn");
-//	file.write(to_save.data(), to_save.size());
-//	file.close();
-
-//	GeneratorManager manager(fl.getJson());
-//	manager.generate("/home/maciek/alphagomoku/standard_2021/network_5x64_opt.bin", 2000);
-//	manager.generate("/home/maciek/alphagomoku/standard_2021/network_10x128/network_opt.bin", 200);
-
-//	return 0;
+	return 0;
 
 	GameConfig game_config;
 	game_config.rules = GameRules::STANDARD;
@@ -150,7 +137,7 @@ int main()
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-5f;
 	search_config.augment_position = true;
-	search_config.use_endgame_solver = false;
+	search_config.use_endgame_solver = true;
 
 	Search search(game_config, search_config, tree, cache, queue);
 
@@ -172,87 +159,37 @@ int main()
 //							" _ X O _ X _ O X _ _ X O _ _ X\n"
 //							" _ O X O _ X O O X _ X X O O _\n"
 //							" X _ X O _ _ O X _ O O X O _ O\n");
-	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-	board.at(11, 6) = Sign::CIRCLE;
-//	board.at(9, 6) = Sign::CROSS;
-	board.at(8, 6) = Sign::CROSS;
-
-//	board.at(10, 5) = Sign::CIRCLE;
-//	board.at(9, 4) = Sign::CROSS;
-//	board.at(8, 8) = Sign::CIRCLE;
-//	board.at(9, 7) = Sign::CROSS;
-//	board.at(10, 8) = Sign::CIRCLE;
-//	board.at(11, 8) = Sign::CROSS;
-//	board.at(9, 6) = Sign::CIRCLE;
-//	board.at(7, 8) = Sign::CROSS;
-//	board.at(11, 7) = Sign::CIRCLE;
-//	board.at(12, 6) = Sign::CROSS;
-//	board.at(7, 5) = Sign::CIRCLE;
-//	board.at(9, 5) = Sign::CROSS;
-//	board.at(7, 7) = Sign::CIRCLE;
-//	board.at(6, 6) = Sign::CROSS;
-//	board.at(11, 4) = Sign::CIRCLE;
-//	board.at(12, 3) = Sign::CROSS;
-//	board.at(9, 10) = Sign::CIRCLE;
-//	board.at(8, 10) = Sign::CROSS;
-//	board.at(6, 5) = Sign::CIRCLE;
-//	board.at(5, 4) = Sign::CROSS;
-//	board.at(10, 11) = Sign::CIRCLE;
-//	board.at(9, 11) = Sign::CROSS;
-//	board.at(11, 12) = Sign::CIRCLE;
-//	board.at(8, 9) = Sign::CROSS;
-//	board.at(5, 6) = Sign::CIRCLE;
-//	board.at(4, 7) = Sign::CROSS;
-//	board.at(10, 9) = Sign::CIRCLE;
-//	board.at(10, 12) = Sign::CROSS;
-//	board.at(11, 13) = Sign::CIRCLE;
-//	board.at(11, 10) = Sign::CROSS;
-//	board.at(5, 8) = Sign::CIRCLE;
-//	board.at(5, 9) = Sign::CROSS;
-//	board.at(4, 9) = Sign::CIRCLE;
-//	board.at(6, 7) = Sign::CROSS;
-//	board.at(5, 10) = Sign::CIRCLE;
-//	board.at(3, 7) = Sign::CROSS;
-//	board.at(7, 6) = Sign::CIRCLE;
-//	board.at(8, 7) = Sign::CROSS;
-//	board.at(12, 13) = Sign::CIRCLE;
-//	board.at(13, 14) = Sign::CROSS;
-//	board.at(4, 8) = Sign::CIRCLE;
-//	board.at(2, 7) = Sign::CROSS;
-//	board.at(5, 7) = Sign::CIRCLE;
-//	board.at(3, 6) = Sign::CROSS;
-//	board.at(6, 3) = Sign::CIRCLE;
-//	board.at(3, 5) = Sign::CROSS;
-//	board.at(7, 4) = Sign::CIRCLE;
-//	board.at(7, 3) = Sign::CROSS;
-//	board.at(3, 8) = Sign::CIRCLE;
-//	board.at(6, 8) = Sign::CROSS;
-//	board.at(7, 9) = Sign::CIRCLE;
-//	board.at(4, 4) = Sign::CROSS;
-//	board.at(11, 5) = Sign::CIRCLE;
-//	board.at(11, 3) = Sign::CROSS;
-//	board.at(8, 3) = Sign::CIRCLE;
-//	board.at(9, 2) = Sign::CROSS;
-//	board.at(8, 5) = Sign::CIRCLE;
-//	board.at(5, 2) = Sign::CROSS;
-//	board.at(2, 8) = Sign::CIRCLE;
-//	board.at(1, 8) = Sign::CROSS;
-//	board.at(4, 5) = Sign::CIRCLE;
-//	sign_to_move = Sign::CROSS;
+//	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+	board = boardFromString(" X _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+			" _ O X X X X O X O X _ _ _ _ _\n"
+			" _ _ O _ _ O X O O O O X _ _ _\n"
+			" _ _ O O X O X X X X O O _ _ _\n"
+			" _ X O X O O O X O X _ X O _ _\n"
+			" O O O X _ X O O O X O X X X _\n"
+			" X _ X O X X X _ X X X O O X _\n"
+			" X X _ _ O X O O O O X O O O O\n"
+			" X O O _ O X O O X X X O X X O\n"
+			" _ X _ O O O X X O O X X _ X O\n"
+			" _ _ _ X O _ X O X X O O O X X\n"
+			" _ _ X X X O X O O X O O X O _\n"
+			" _ _ _ O _ _ X O _ O O X _ _ _\n"
+			" _ _ _ _ _ _ O X X _ O _ _ _ _\n"
+			" _ _ _ _ _ _ _ O X O X X X X O\n");
+	sign_to_move = Sign::CROSS;
 
 //	board = boardFromString(" _ X _ O _ _ _ _ _ X O X _ O _\n"
 //			" X X _ O O O X O X O O O X X _\n"
@@ -295,13 +232,15 @@ int main()
 		tree.getPlayoutDistribution(tree.getRootNode(), policy);
 		normalize(policy);
 
-		std::cout << tree.getPrincipalVariation().toString() << '\n';
-		std::cout << policyToString(board, policy);
 		std::cout << queue.getStats().toString();
 		std::cout << search.getStats().toString();
 		std::cout << tree.getStats().toString();
 		std::cout << cache.getStats().toString() << '\n';
 		std::cout << "Memory : cache = " << cache.getMemory() / 1048576 << "MB, tree = " << tree.getMemory() / 1048576 << "MB\n";
+		std::cout << '\n' << tree.getPrincipalVariation().toString() << '\n';
+		std::cout << policyToString(board, policy);
+		std::cout << tree.getRootNode().toString() << '\n';
+
 		if (tree.isProven())
 			break;
 	}

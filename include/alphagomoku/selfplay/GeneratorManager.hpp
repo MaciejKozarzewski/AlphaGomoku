@@ -60,6 +60,7 @@ namespace ag
 		public:
 			GeneratorThread(GeneratorManager &manager, const Json &options, ml::Device device);
 			void run();
+			void clearStats() noexcept;
 			QueueStats getQueueStats() const noexcept;
 			TreeStats getTreeStats() const noexcept;
 			CacheStats getCacheStats() const noexcept;

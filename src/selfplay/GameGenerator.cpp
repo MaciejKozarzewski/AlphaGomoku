@@ -64,7 +64,7 @@ namespace ag
 		Sign sign_to_start = ag::prepareOpening(game.getRules(), board);
 		request.clear();
 		request.setBoard(board);
-		request.setLastMove( { 0, 0, sign_to_start });
+		request.setLastMove( { 0, 0, invertSign(sign_to_start) });
 		if (search.getConfig().augment_position)
 			request.augment();
 		queue.addToQueue(request);
@@ -113,6 +113,7 @@ namespace ag
 	{
 		if (state == GAME_NOT_STARTED)
 		{
+			game.beginGame();
 			if (use_opening)
 			{
 				opening_trials = 0;
@@ -120,7 +121,6 @@ namespace ag
 			}
 			else
 			{
-				game.beginGame();
 				prepare_search(game.getBoard(), game.getLastMove());
 				state = GAMEPLAY;
 			}

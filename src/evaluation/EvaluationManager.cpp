@@ -89,10 +89,18 @@ namespace ag
 		for (size_t i = 0; i < evaluators.size(); i++)
 			thread_pool.addJob(evaluators[i].get());
 
+		int time_counter = 0;
+		int game_counter = numberOfGames / 4;
 		while (not thread_pool.isReady())
 		{
-			std::this_thread::sleep_for(std::chrono::seconds(5));
-			std::cout << getGameBuffer().getStats().toString() << '\n';
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			time_counter++;
+			if (time_counter % 60 == 0 or game_buffer.size() >= game_counter)
+			{
+				std::cout << getGameBuffer().getStats().toString() << '\n';
+				time_counter = 0;
+				game_counter += numberOfGames / 4;
+			}
 		}
 	}
 

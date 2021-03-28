@@ -16,7 +16,9 @@ namespace ag
 {
 	enum class Sign
 	{
-		NONE, CROSS, CIRCLE
+		NONE,
+		CROSS,
+		CIRCLE
 	};
 
 	inline Sign invertSign(Sign sign) noexcept
