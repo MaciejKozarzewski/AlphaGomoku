@@ -61,6 +61,7 @@ namespace ag
 			GeneratorThread(GeneratorManager &manager, const Json &options, ml::Device device);
 			void run();
 			void clearStats() noexcept;
+			void resetGames();
 			QueueStats getQueueStats() const noexcept;
 			TreeStats getTreeStats() const noexcept;
 			CacheStats getCacheStats() const noexcept;
@@ -84,6 +85,7 @@ namespace ag
 			GameBuffer& getGameBuffer() noexcept;
 			std::string getPathToNetwork() const;
 
+			void resetGames();
 			void generate(const std::string &pathToNetwork, int numberOfGames);
 			bool hasEnoughGames() const noexcept;
 

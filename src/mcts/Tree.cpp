@@ -24,10 +24,17 @@ namespace
 		const float sqrt_visit = exploration_constant * sqrt(parent->getVisits());
 		auto selected = parent->end();
 		float bestValue = std::numeric_limits<float>::lowest();
+		float my_value = 1.0f - get_value(parent); // TODO later maybe remove this
 		for (auto iter = parent->begin(); iter < parent->end(); iter++)
 			if (not iter->isProven())
 			{
-				float PUCT = get_value(iter) + iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits());
+//				float PUCT = get_value(iter) + iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits());
+
+				float PUCT = iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits()); // TODO later maybe remove this
+				if (iter->getVisits() == 0)
+					PUCT += my_value;
+				else
+					PUCT += get_value(iter);
 				if (PUCT > bestValue)
 				{
 					selected = iter;

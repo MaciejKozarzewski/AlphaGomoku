@@ -275,6 +275,17 @@ namespace ag
 		for (size_t i = 0; i < moves.size(); i++)
 			makeMove(moves[i]);
 	}
+	void Game::undoMove(Move move)
+	{
+		assert(move.row >= 0 && move.row < rows());
+		assert(move.col >= 0 && move.col < cols());
+		assert(move.sign == invertSign(sign_to_move));
+		assert(current_board.at(move.row, move.col) != Sign::NONE);
+
+		states.pop_back();
+		current_board.at(move.row, move.col) = Sign::NONE;
+		sign_to_move = invertSign(sign_to_move);
+	}
 	void Game::makeMove(Move move)
 	{
 		assert(move.row >= 0 && move.row < rows());

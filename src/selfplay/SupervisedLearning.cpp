@@ -175,7 +175,9 @@ namespace ag
 
 	Json SupervisedLearning::saveProgress() const
 	{
-		return Json( { { "learning_steps" }, { learning_steps } });
+		Json result;
+		result["learning_steps"] = learning_steps;
+		return result;
 	}
 	void SupervisedLearning::loadProgress(const Json &json)
 	{

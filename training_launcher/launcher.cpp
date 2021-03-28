@@ -107,11 +107,10 @@ void test_train()
 
 int main()
 {
-	TrainingManager tm("/home/maciek/alphagomoku/test_2021/");
-	for (int i = 0; i < 20; i++)
-		tm.runIterationRL();
-
-	return 0;
+//	TrainingManager tm("/home/maciek/alphagomoku/test2_10x10_standard/");
+//	for (int i = 0; i < 100; i++)
+//		tm.runIterationRL();
+//	return 0;
 
 	GameConfig game_config;
 	game_config.rules = GameRules::STANDARD;
@@ -129,6 +128,7 @@ int main()
 	Cache cache(game_config, cache_config);
 
 	EvaluationQueue queue;
+//	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
 	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
 
 	SearchConfig search_config;
@@ -142,7 +142,7 @@ int main()
 	Search search(game_config, search_config, tree, cache, queue);
 
 	Sign sign_to_move = Sign::CIRCLE;
-	matrix<Sign> board(15, 15);
+	matrix<Sign> board(game_config.rows, game_config.cols);
 
 //	board = boardFromString(" X X O X X X O X O X X _ O X _\n"
 //							" X _ _ _ O X O O X X X O _ _ X\n"
@@ -174,22 +174,50 @@ int main()
 //			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _\n"
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-	board = boardFromString(" X _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-			" _ O X X X X O X O X _ _ _ _ _\n"
-			" _ _ O _ _ O X O O O O X _ _ _\n"
-			" _ _ O O X O X X X X O O _ _ _\n"
-			" _ X O X O O O X O X _ X O _ _\n"
-			" O O O X _ X O O O X O X X X _\n"
-			" X _ X O X X X _ X X X O O X _\n"
-			" X X _ _ O X O O O O X O O O O\n"
-			" X O O _ O X O O X X X O X X O\n"
-			" _ X _ O O O X X O O X X _ X O\n"
-			" _ _ _ X O _ X O X X O O O X X\n"
-			" _ _ X X X O X O O X O O X O _\n"
-			" _ _ _ O _ _ X O _ O O X _ _ _\n"
-			" _ _ _ _ _ _ O X X _ O _ _ _ _\n"
-			" _ _ _ _ _ _ _ O X O X X X X O\n");
+//	board = boardFromString(" _ _ X _ _ _ _ _ _ _\n"
+//							" _ X _ O X X _ _ _ _\n"
+//							" _ _ O _ O X _ _ _ _\n"
+//							" _ X _ O O O X X _ _\n"
+//							" X O _ O O X O O O _\n"
+//							" _ _ O X X O X X O _\n"
+//							" _ _ X O O O X X _ _\n"
+//							" _ _ _ O _ O X _ _ _\n"
+//							" _ _ X _ X X X X O O\n"
+//							" _ _ _ _ _ _ O _ _ _\n");
+
+	board = boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
+							" _ _ _ _ _ O X X X X O X _ _ X\n"// 1
+							" _ _ _ _ _ _ O _ O X _ O _ O _\n"// 2
+							" _ _ _ _ _ _ _ X O _ X O O _ _\n"// 3
+							" _ _ _ _ _ _ X O X O O O X X _\n"// 4
+							" _ _ _ _ _ _ _ O _ X O _ _ _ _\n"// 5
+							" _ _ _ _ O _ X _ O X O X X _ _\n"// 6
+							" _ _ _ _ _ X _ _ _ _ _ X O _ _\n"// 7
+							" _ _ _ X X _ _ _ X O X O _ _ X\n"// 8
+							" _ _ _ X _ O X X O O _ X O O _\n"// 9
+							" _ _ O _ _ _ O O O X O X O _ _\n"// 10
+							" _ _ _ _ _ _ X _ O _ X O X _ _\n"// 11
+							" _ _ _ _ _ _ _ _ _ O O X X _ _\n"// 12
+							" _ _ _ _ _ _ _ _ _ X O O O O X\n"// 13
+							" _ _ _ _ _ _ _ _ _ _ _ X _ X _\n");// 14
+
+//	board = boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
+//							" _ _ _ _ _ O X X X X O _ _ _ _\n" // 1
+//							" _ _ _ _ _ _ O _ O X _ O _ _ _\n" // 2
+//							" _ _ _ _ _ _ _ X O _ X _ O _ _\n" // 3
+//							" _ _ _ _ _ _ X O X O O O X X _\n" // 4
+//							" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" // 5
+//							" _ _ _ _ _ _ _ _ O X O X _ _ _\n" // 6
+//							" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" // 7
+//							" _ _ _ _ _ _ _ _ X O X _ _ _ _\n" // 8
+//							" _ _ _ _ _ _ X X O O _ X O _ _\n" // 9
+//							" _ _ _ _ _ _ O O _ X O X O _ _\n" // 10
+//							" _ _ _ _ _ _ X _ O _ X O X _ _\n" // 11
+//							" _ _ _ _ _ _ _ _ _ O O X _ _ _\n" // 12
+//							" _ _ _ _ _ _ _ _ _ X O _ _ O _\n" // 13
+//							" _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"); // 14
 	sign_to_move = Sign::CROSS;
+//	return 0;
 
 //	board = boardFromString(" _ X _ O _ _ _ _ _ X O X _ O _\n"
 //			" X X _ O O O X O X O O O X X _\n"
@@ -206,7 +234,6 @@ int main()
 //			" _ X O X O O _ X O _ O X O O X\n"
 //			" O X O O _ X O X _ X O X O X _\n"
 //			" X _ O X X X X O _ X O O O O X\n");
-
 //	board.at(4, 5) = Sign::CROSS;
 //	board.at(6, 5) = Sign::CIRCLE;
 //	board.at(1, 2) = Sign::CROSS;
@@ -218,8 +245,8 @@ int main()
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
 
-	matrix<float> policy(15, 15);
-	for (int i = 0; i <= 20; i++)
+	matrix<float> policy(board.rows(), board.cols());
+	for (int i = 0; i <= 200; i++)
 	{
 		while (search.getSimulationCount() < i * 100000)
 		{

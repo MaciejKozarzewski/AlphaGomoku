@@ -44,11 +44,6 @@ namespace ag
 			void splitBuffer(const GameBuffer &buffer, int training_games, int validation_games);
 			void loadBuffer(GameBuffer &result, const std::string &path);
 
-			void saveSelfPlayStats(int total_time);
-			void saveGameBufferStats();
-			void saveTrainingStats(const std::string &stats);
-			void saveEvaluatorStats(int total_time);
-
 			int get_last_checkpoint() const;
 			int get_best_checkpoint() const;
 			float get_learning_rate() const;

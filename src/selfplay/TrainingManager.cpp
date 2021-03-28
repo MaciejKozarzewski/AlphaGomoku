@@ -28,7 +28,7 @@ namespace ag
 {
 	TrainingManager::TrainingManager(const std::string &workingDirectory) :
 			config(FileLoader(workingDirectory + "config.json").getJson()),
-			metadata( { { "last_checkpoint", 0 }, { "best_checkpoint", 0 } }),
+			metadata( { { "last_checkpoint", 0 }, { "best_checkpoint", 0 }, { "learning_steps", 0 } }),
 			working_dir(workingDirectory),
 			generator(config),
 			evaluator(config),
@@ -53,7 +53,7 @@ namespace ag
 		generateGames();
 
 		train();
-//		validate(); // FIXME
+		validate();
 		supervised_learning.saveTrainingHistory();
 
 		evaluate();
@@ -127,7 +127,9 @@ namespace ag
 		model.getGraph().moveTo(ml::Device::fromString(config["training_options"]["device"]));
 		model.changeLearningRate(get_learning_rate());
 
+		supervised_learning.loadProgress(metadata);
 		supervised_learning.train(model, buffer, static_cast<int>(config["training_options"]["steps_per_iteration"]));
+		metadata["learning_steps"] = supervised_learning.saveProgress()["learning_steps"];
 
 		model.saveToFile(working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint() + 1) + ".bin");
 		model.getGraph().moveTo(ml::Device::cpu());
@@ -141,16 +143,20 @@ namespace ag
 		loadBuffer(buffer, working_dir + "/valid_buffer/");
 
 		AGNetwork model;
-		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint() + 1) + "_opt.bin");
+		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint() + 1) + ".bin");
 		model.setBatchSize(static_cast<int>(config["training_options"]["batch_size"]));
 		model.getGraph().moveTo(ml::Device::fromString(config["training_options"]["device"]));
 
 		supervised_learning.validate(model, buffer);
+		std::cout << "Validation finished\n";
 	}
 	void TrainingManager::evaluate()
 	{
 		if (static_cast<bool>(config["evaluation_options"]["use_evaluation"]) == false)
+		{
+			metadata["best_network"] = get_last_checkpoint() + 1;
 			return;
+		}
 
 		evaluator.getGameBuffer().clear();
 		evaluator.setCrossPlayer(config["evaluation_options"],
@@ -158,6 +164,7 @@ namespace ag
 		evaluator.setCirclePlayer(config["evaluation_options"],
 				working_dir + "/checkpoint/network_" + std::to_string(get_best_checkpoint()) + "_opt.bin");
 
+		std::cout << "Evaluating network " << get_last_checkpoint() + 1 << " against " << get_best_checkpoint() << '\n';
 		evaluator.generate(static_cast<int>(config["evaluation_options"]["games_per_iteration"]));
 		std::string to_save = evaluator.getGameBuffer().generatePGN(get_name(get_last_checkpoint() + 1), get_name(get_last_checkpoint()));
 		std::ofstream file(working_dir + "/rating.pgn", std::fstream::app);
@@ -166,7 +173,9 @@ namespace ag
 
 		if (config["evaluation_options"]["gating"]["use_gating"])
 		{
-			// TODO check win rate and accordingly accept or reject new network
+			GameBufferStats stats = evaluator.getGameBuffer().getStats();
+			if (stats.cross_win + 0.5 * stats.draws >= static_cast<float>(config["evaluation_options"]["gating"]["treshold"]))
+				metadata["best_network"] = get_last_checkpoint() + 1;
 		}
 		else
 			metadata["best_checkpoint"] = get_last_checkpoint() + 1;
@@ -189,26 +198,14 @@ namespace ag
 	}
 	void TrainingManager::loadBuffer(GameBuffer &result, const std::string &path)
 	{
-		std::cout << "Loading buffer\n";
 		int last_checkpoint = metadata["last_checkpoint"];
 		int iterations = static_cast<int>(std::max(10.0, 0.999 + last_checkpoint * 0.2));
+
+		std::cout << "Loading buffers from " << std::max(0, last_checkpoint + 1 - iterations) << " to " << last_checkpoint << '\n';
 		for (int i = std::max(0, last_checkpoint + 1 - iterations); i <= last_checkpoint; i++)
 			result.load(path + "buffer_" + std::to_string(i) + ".bin");
 		if (result.isCorrect() == false)
 			throw std::runtime_error("loaded buffer is invalid");
-	}
-
-	void TrainingManager::saveSelfPlayStats(int total_time)
-	{
-	}
-	void TrainingManager::saveGameBufferStats()
-	{
-	}
-	void TrainingManager::saveTrainingStats(const std::string &stats)
-	{
-	}
-	void TrainingManager::saveEvaluatorStats(int total_time)
-	{
 	}
 
 	int TrainingManager::get_last_checkpoint() const

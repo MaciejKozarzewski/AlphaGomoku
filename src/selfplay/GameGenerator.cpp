@@ -28,6 +28,8 @@ namespace ag
 	void GameGenerator::clearStats()
 	{
 		search.clearStats();
+		tree.clearStats();
+		cache.clearStats();
 	}
 	TreeStats GameGenerator::getTreeStats() const noexcept
 	{
@@ -40,6 +42,11 @@ namespace ag
 	SearchStats GameGenerator::getSearchStats() const noexcept
 	{
 		return search.getStats();
+	}
+	void GameGenerator::reset()
+	{
+		state = GAME_NOT_STARTED;
+		is_request_scheduled = false;
 	}
 	bool GameGenerator::prepareOpening()
 	{
@@ -121,8 +128,8 @@ namespace ag
 			}
 			else
 			{
-				prepare_search(game.getBoard(), game.getLastMove());
 				state = GAMEPLAY;
+				prepare_search(game.getBoard(), game.getLastMove());
 			}
 		}
 

@@ -66,6 +66,7 @@ namespace ag
 			const matrix<Sign>& getBoard() const noexcept;
 			void setBoard(const matrix<Sign> &other, Sign signToMove);
 			void loadOpening(const std::vector<Move> &moves);
+			void undoMove(Move move);
 			void makeMove(Move move);
 			void makeMove(Move move, const matrix<float> &policy, Value minimax, ProvenValue pv);
 			void resolveOutcome();

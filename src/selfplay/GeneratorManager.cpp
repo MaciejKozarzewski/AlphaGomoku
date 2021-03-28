@@ -40,6 +40,11 @@ namespace ag
 			queue.evaluateGraph();
 		}
 	}
+	void GeneratorThread::resetGames()
+	{
+		for (size_t i = 0; i < generators.size(); i++)
+			generators[i]->reset();
+	}
 	void GeneratorThread::clearStats() noexcept
 	{
 		queue.clearStats();
@@ -100,7 +105,11 @@ namespace ag
 	{
 		return game_buffer.size() >= games_to_generate;
 	}
-
+	void GeneratorManager::resetGames()
+	{
+		for (size_t i = 0; i < generators.size(); i++)
+			generators[i]->resetGames();
+	}
 	void GeneratorManager::generate(const std::string &pathToNetwork, int numberOfGames)
 	{
 		games_to_generate = numberOfGames;

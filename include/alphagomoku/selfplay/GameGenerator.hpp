@@ -53,6 +53,7 @@ namespace ag
 			CacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
 
+			void reset();
 			bool prepareOpening();
 			void makeMove();
 			bool performSearch();
