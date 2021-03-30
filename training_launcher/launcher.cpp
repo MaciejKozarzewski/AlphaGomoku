@@ -19,6 +19,7 @@
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
+#include <alphagomoku/evaluation/EvaluationManager.hpp>
 #include <alphagomoku/utils/ThreadPool.hpp>
 #include <libml/graph/Graph.hpp>
 #include <libml/hardware/Device.hpp>
@@ -28,6 +29,18 @@
 #include <string>
 #include <fstream>
 #include <thread>
+
+namespace
+{
+	std::string get_name(const std::string &name, int id)
+	{
+		if (id < 10)
+			return name + "_00" + std::to_string(id);
+		if (id < 100)
+			return name + "_0" + std::to_string(id);
+		return name + "_" + std::to_string(id);
+	}
+}
 
 using namespace ag;
 
@@ -107,10 +120,28 @@ void test_train()
 
 int main()
 {
+//	FileLoader fl("/home/maciek/alphagomoku/test_10x10_standard/config.json");
+//	EvaluationManager manager(fl.getJson());
+//	Json config = fl.getJson()["evaluation_options"];
+//
+//	for (int i = 0; i < 65; i++)
+//	{
+//		manager.setCrossPlayer(config, "/home/maciek/alphagomoku/test2_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
+//		manager.setCirclePlayer(config, "/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
+//
+//		manager.getGameBuffer().clear();
+//		manager.generate(400);
+//		std::string to_save = manager.getGameBuffer().generatePGN(get_name("parent", i), get_name("loss", i));
+//		std::ofstream file("/home/maciek/alphagomoku/compare/compare.pgn", std::fstream::app);
+//		file << to_save;
+//		file.close();
+//		std::cout << "finished " << i << '\n';
+//	}
+
 //	TrainingManager tm("/home/maciek/alphagomoku/test2_10x10_standard/");
 //	for (int i = 0; i < 100; i++)
 //		tm.runIterationRL();
-//	return 0;
+	return 0;
 
 	GameConfig game_config;
 	game_config.rules = GameRules::STANDARD;
@@ -135,7 +166,7 @@ int main()
 	search_config.batch_size = 32;
 	search_config.exploration_constant = 1.25f;
 	search_config.noise_weight = 0.0f;
-	search_config.expansion_prior_treshold = 1.0e-5f;
+	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.augment_position = true;
 	search_config.use_endgame_solver = true;
 
@@ -186,20 +217,20 @@ int main()
 //							" _ _ _ _ _ _ O _ _ _\n");
 
 	board = boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
-							" _ _ _ _ _ O X X X X O X _ _ X\n"// 1
-							" _ _ _ _ _ _ O _ O X _ O _ O _\n"// 2
-							" _ _ _ _ _ _ _ X O _ X O O _ _\n"// 3
-							" _ _ _ _ _ _ X O X O O O X X _\n"// 4
-							" _ _ _ _ _ _ _ O _ X O _ _ _ _\n"// 5
-							" _ _ _ _ O _ X _ O X O X X _ _\n"// 6
-							" _ _ _ _ _ X _ _ _ _ _ X O _ _\n"// 7
-							" _ _ _ X X _ _ _ X O X O _ _ X\n"// 8
-							" _ _ _ X _ O X X O O _ X O O _\n"// 9
-							" _ _ O _ _ _ O O O X O X O _ _\n"// 10
-							" _ _ _ _ _ _ X _ O _ X O X _ _\n"// 11
-							" _ _ _ _ _ _ _ _ _ O O X X _ _\n"// 12
-							" _ _ _ _ _ _ _ _ _ X O O O O X\n"// 13
-							" _ _ _ _ _ _ _ _ _ _ _ X _ X _\n");// 14
+					" _ _ _ _ _ O X X X X O X _ _ X\n"// 1
+					" _ _ _ _ _ _ O _ O X _ O _ O _\n"// 2
+					" _ _ _ _ _ _ _ X O _ X O O _ _\n"// 3
+					" _ _ _ _ _ _ X O X O O O X X _\n"// 4
+					" _ _ _ _ _ _ _ O _ X O _ _ _ _\n"// 5
+					" _ _ _ _ O _ X _ O X O X X _ _\n"// 6
+					" _ _ _ _ _ X _ _ _ _ _ X O _ _\n"// 7
+					" _ _ _ X X _ _ _ X O X O _ _ X\n"// 8
+					" _ _ _ X _ O X X O O _ X O O _\n"// 9
+					" _ _ O _ _ _ O O O X O X O _ _\n"// 10
+					" _ _ _ _ _ _ X _ O _ X O X _ _\n"// 11
+					" _ _ _ _ _ _ _ _ _ O O X X _ _\n"// 12
+					" _ _ _ _ _ _ _ _ _ X O O O O X\n"// 13
+					" _ _ _ _ _ _ _ _ _ _ _ X _ X _\n");// 14
 
 //	board = boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
 //							" _ _ _ _ _ O X X X X O _ _ _ _\n" // 1

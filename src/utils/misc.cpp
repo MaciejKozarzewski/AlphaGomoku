@@ -80,22 +80,27 @@ namespace ag
 	{
 		return std::chrono::system_clock::now().time_since_epoch().count() * 1.0e-9;
 	}
+	std::string currentDateTime()
+	{
+		time_t now = time(0);
+		struct tm tstruct;
+		char buf[80];
+		tstruct = *localtime(&now);
+		// Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+		// for more information about date/time format
+		strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+		return buf;
+	}
 
 	bool isBoardFull(const matrix<Sign> &board)
 	{
-//		return std::any_of(board.begin(), board.end(), [](Sign s)
-//		{	return s == Sign::NONE;});
-		for (int i = 0; i < board.size(); i++)
-			if (board.data()[i] == Sign::NONE)
-				return false;
-		return true;
+		return std::none_of(board.begin(), board.end(), [](Sign s)
+		{	return s == Sign::NONE;});
 	}
 	bool isBoardEmpty(const matrix<Sign> &board)
 	{
-		for (int i = 0; i < board.size(); i++)
-			if (board.data()[i] != Sign::NONE)
-				return false;
-		return true;
+		return std::all_of(board.begin(), board.end(), [](Sign s)
+		{	return s == Sign::NONE;});
 	}
 
 	matrix<Sign> boardFromString(std::string str)
@@ -221,16 +226,6 @@ namespace ag
 		return result;
 	}
 
-	int parseLine(char *line)
-	{
-		//TODO
-		return 0;
-	}
-	std::string spaces(int number)
-	{
-		//TODO
-		return "";
-	}
 	std::string printStatistics(const char *name, uint64_t number, double time)
 	{
 		std::string result(name);
@@ -322,30 +317,6 @@ namespace ag
 		else
 			for (size_t i = 1; i < stats.size(); i++)
 				stats[i] /= stats[0];
-	}
-
-	const std::string currentDateTime()
-	{
-		time_t now = time(0);
-		struct tm tstruct;
-		char buf[80];
-		tstruct = *localtime(&now);
-		// Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
-		// for more information about date/time format
-		strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
-		return buf;
-	}
-	void logToFile(const char *file, const char *msg1, const char *msg2)
-	{
-		std::ofstream output;
-		output.open(file, std::ios::app);
-		output << currentDateTime() << " ";
-		if (msg1 != NULL)
-			output << msg1;
-		if (msg2 != NULL)
-			output << msg2;
-		output << std::endl;
-		output.close();
 	}
 
 	Move pickMove(const matrix<float> &policy)
@@ -513,4 +484,58 @@ namespace ag
 			}
 	}
 
+	std::string getLine()
+	{
+		std::string line;
+		getline(std::cin, line);
+
+		if (line[line.length() - 1] == '\r')
+			return line.substr(0, line.length() - 1);
+		else
+			return line;
+	}
+	void printLine(const std::string &msg)
+	{
+		if (msg.length() > 0)
+			std::cout << msg.data() << std::endl;
+	}
+	std::string moveToString(const ag::Move &m)
+	{
+		return std::to_string(m.row) + "," + std::to_string(m.col);
+	}
+	ag::Move moveFromString(const std::string &str, ag::Sign sign)
+	{
+		assert(std::count(str.begin(), str.end(), ',') == 1);
+		int pos = str.find(',');
+		int row = std::stoi(str.substr(0, pos));
+		int col = std::stoi(str.substr(pos + 1, str.length()));
+		return ag::Move(row, col, sign);
+	}
+	bool startsWith(const std::string &line, const std::string &prefix)
+	{
+		if (prefix.length() > line.length())
+			return false;
+		else
+		{
+			if (prefix.length() == line.length())
+				return line == prefix;
+			else
+				return line.substr(0, prefix.length()) == prefix;
+		}
+	}
+	std::vector<std::string> split(const std::string &str, char delimiter)
+	{
+		if (str.empty())
+			return std::vector<std::string>();
+		int count = std::count(str.begin(), str.end(), delimiter) + 1;
+		std::vector<std::string> result(count);
+		size_t pos = 0;
+		for (int i = 0; i < count; i++)
+		{
+			auto tmp = std::min(str.length(), str.find(delimiter, pos));
+			result[i] = str.substr(pos, tmp - pos);
+			pos = tmp + 1;
+		}
+		return result;
+	}
 }

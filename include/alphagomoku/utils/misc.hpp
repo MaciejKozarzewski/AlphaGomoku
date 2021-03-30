@@ -19,12 +19,9 @@
 
 namespace ag
 {
-	enum class GameRules
-	;
-	enum class GameOutcome
-	;
-	enum class ProvenValue
-	;
+	enum class GameRules;
+	enum class GameOutcome;
+	enum class ProvenValue;
 }
 
 namespace ag
@@ -39,6 +36,7 @@ namespace ag
 	bool randBool();
 
 	double getTime();
+	std::string currentDateTime();
 
 	bool isBoardFull(const matrix<Sign> &board);
 	bool isBoardEmpty(const matrix<Sign> &board);
@@ -47,8 +45,6 @@ namespace ag
 	std::string boardToString(const matrix<Sign> &board, const Move &lastMove = Move());
 	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy, const Move &lastMove = Move());
 
-	int parseLine(char *line);
-	std::string spaces(int number);
 	std::string printStatistics(const char *name, uint64_t number, double time);
 
 	template<typename T>
@@ -64,9 +60,6 @@ namespace ag
 
 	void scaleArray(matrix<float> &array, float scale);
 	void averageStats(std::vector<float> &stats);
-
-	const std::string currentDateTime();
-	void logToFile(const char *file, const char *msg1, const char *msg2);
 
 	Move pickMove(const matrix<float> &policy);
 	Move randomizeMove(const matrix<float> &policy, float temperature = 1.0f);
@@ -86,6 +79,13 @@ namespace ag
 	Sign prepareOpening(GameRules rules, matrix<Sign> &board);
 
 	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove);
+
+	std::string getLine();
+	void printLine(const std::string &msg);
+	std::string moveToString(const ag::Move &m);
+	ag::Move moveFromString(const std::string &str, ag::Sign sign);
+	bool startsWith(const std::string &line, const std::string &prefix);
+	std::vector<std::string> split(const std::string &str, char delimiter);
 
 } /* namespace ag */
 

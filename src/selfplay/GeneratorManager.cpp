@@ -39,6 +39,7 @@ namespace ag
 				generators[i]->generate();
 			queue.evaluateGraph();
 		}
+		queue.unloadGraph();
 	}
 	void GeneratorThread::resetGames()
 	{

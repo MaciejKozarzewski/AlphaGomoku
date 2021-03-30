@@ -34,7 +34,7 @@ namespace ag
 		moves.push_back( { Move::move_to_short(0, 6, Sign::CROSS), 0.1f });
 		tree.select(trajectory);
 		tree.expand(trajectory.getLeafNode(), moves);
-		tree.backup(trajectory, Value(0.9f), ProvenValue::UNKNOWN);
+		tree.backup(trajectory, Value(0.9f, 0.0f, 0.1f), ProvenValue::UNKNOWN);
 
 		// simulation 2
 		moves.clear();
@@ -42,32 +42,33 @@ namespace ag
 		moves.push_back( { Move::move_to_short(3, 3, Sign::CIRCLE), 0.03f });
 		tree.select(trajectory);
 		tree.expand(trajectory.getLeafNode(), moves);
-		tree.backup(trajectory, Value(0.94f), ProvenValue::UNKNOWN);
+		tree.backup(trajectory, Value(0.94f, 0.0f, 0.06), ProvenValue::UNKNOWN);
 
 		//simulation 3
 		tree.select(trajectory);
-		tree.backup(trajectory, Value(0.0f), ProvenValue::UNKNOWN);
+		tree.backup(trajectory, Value(0.0f, 0.0f, 1.0f), ProvenValue::UNKNOWN);
 
 		//depth 0
 		EXPECT_EQ(tree.getRootNode().getVisits(), 3);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getValue(), (0.9 + 0.06 + 0) / 3);
+		EXPECT_FLOAT_EQ(tree.getRootNode().getValue().win, (0.9f + 0.06f + 0.0f) / 3);
 
 		//depth 1
 		EXPECT_EQ(tree.getRootNode().getChild(0).getVisits(), 0);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(0).getValue(), 0);
+		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(0).getValue().win, 0);
 		EXPECT_EQ(tree.getRootNode().getChild(1).getVisits(), 2);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getValue(), (0.94 + 1.0) / 2);
+		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getValue().win, (0.94f + 1.0f) / 2);
 		EXPECT_EQ(tree.getRootNode().getChild(2).getVisits(), 0);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(2).getValue(), 0);
+		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(2).getValue().win, 0);
 
 		//depth 2
 		EXPECT_EQ(tree.getRootNode().getChild(1).getChild(0).getVisits(), 0);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getChild(0).getValue(), 0);
+		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getChild(0).getValue().win, 0);
 		EXPECT_EQ(tree.getRootNode().getChild(1).getChild(1).getVisits(), 1);
-		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getChild(1).getValue(), 0);
+		EXPECT_FLOAT_EQ(tree.getRootNode().getChild(1).getChild(1).getValue().win, 0);
 	}
 	TEST(TestTree , exactSearch)
 	{
+		GTEST_SKIP();// test was created for "init to loss" select strategy
 		SearchTrajectory trajectory;
 		TreeConfig cfg;
 		Tree tree(cfg);
@@ -102,6 +103,8 @@ namespace ag
 		tree.backup(trajectory, Value(0.5f), ProvenValue::DRAW);
 		tree.select(trajectory);
 		tree.backup(trajectory, Value(1.0f), ProvenValue::WIN);
+
+		tree.printSubtree(tree.getRootNode());
 		//depth 0
 		EXPECT_EQ(tree.getRootNode().getVisits(), 6);
 		EXPECT_EQ(tree.getRootNode().getProvenValue(), ProvenValue::LOSS);

@@ -15,7 +15,9 @@ namespace ag
 	{
 		Node node;
 		EXPECT_EQ(node.getPolicyPrior(), 0.0f);
-		EXPECT_EQ(node.getValue(), 0.0f);
+		EXPECT_EQ(node.getValue().win, 0.0f);
+		EXPECT_EQ(node.getValue().draw, 0.0f);
+		EXPECT_EQ(node.getValue().loss, 0.0f);
 		EXPECT_EQ(node.getVisits(), 0);
 		EXPECT_EQ(node.getProvenValue(), ProvenValue::UNKNOWN);
 		EXPECT_EQ(node.getMove(), 0);
@@ -42,10 +44,10 @@ namespace ag
 		for (int i = 0; i < 1000; i++)
 		{
 			sum += fabsf(sin(i));
-			node.updateValue(fabsf(sin(i)));
+			node.updateValue(Value(fabsf(sin(i))));
 		}
 		EXPECT_EQ(node.getVisits(), 1000);
-		EXPECT_NEAR(node.getValue(), sum / 1000, 1.0e-4f);
+		EXPECT_NEAR(node.getValue().win, sum / 1000, 1.0e-4f);
 	}
 	TEST(TestNode, applyVirtualLoss)
 	{
@@ -55,7 +57,7 @@ namespace ag
 		{
 			node.applyVirtualLoss();
 			EXPECT_EQ(node.getVisits(), i + 2);
-			EXPECT_NEAR(node.getValue(), 1.0f / (i + 2), 1.0e-4f);
+			EXPECT_NEAR(node.getValue().win, 1.0f / (i + 2), 1.0e-4f);
 		}
 	}
 	TEST(TestNode, cancelVirtualLoss)
@@ -73,7 +75,9 @@ namespace ag
 			node2.cancelVirtualLoss();
 		EXPECT_EQ(node1.getVisits(), 1000);
 		EXPECT_EQ(node1.getVisits(), node2.getVisits());
-		EXPECT_NEAR(node1.getValue(), node2.getValue(), 1.0e-4f);
+		EXPECT_NEAR(node1.getValue().win, node2.getValue().win, 1.0e-4f);
+		EXPECT_NEAR(node1.getValue().draw, node2.getValue().draw, 1.0e-4f);
+		EXPECT_NEAR(node1.getValue().loss, node2.getValue().loss, 1.0e-4f);
 	}
 	TEST(TestNode, setProvenValue)
 	{
