@@ -8,12 +8,12 @@
 #ifndef ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 #define ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 
-#include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/ThreadPool.hpp>
 #include <libml/utils/json.hpp>
 
 namespace ag
 {
+	class Game;
 	class GomocupPlayer;
 }
 
@@ -24,16 +24,19 @@ namespace ag
 	{
 		private:
 			ThreadPool threads;
-			Game game;
+			GameConfig game_config;
+			GomocupPlayer &player;
+
+//			Tree tree;
+//			Cache cache;
 
 		public:
-			SearchEngine(const Json &cfg, GameConfig gameConfig,GomocupPlayer &player);
-			void setState(const Game &game);
+			SearchEngine(const Json &cfg, GameConfig gameConfig, GomocupPlayer &player);
 
 			void stop();
-			void makeMove();
-			void ponder();
-			void swap2();
+			void makeMove(const matrix<Sign> &board, Sign signToMove);
+			void ponder(const matrix<Sign> &board, Sign signToMove);
+			void swap2(const matrix<Sign> &board, Sign signToMove);
 	};
 
 } /* namespace ag */

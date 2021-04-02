@@ -20,6 +20,7 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
 #include <alphagomoku/evaluation/EvaluationManager.hpp>
+#include <alphagomoku/player/GomocupPlayer.hpp>
 #include <alphagomoku/utils/ThreadPool.hpp>
 #include <libml/graph/Graph.hpp>
 #include <libml/hardware/Device.hpp>
@@ -28,6 +29,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <istream>
 #include <thread>
 
 namespace
@@ -118,29 +120,33 @@ void test_train()
 //	}
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-//	FileLoader fl("/home/maciek/alphagomoku/test_10x10_standard/config.json");
+	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
+	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/test2_15x15_standard/";
+
+//	FileLoader fl(path + "config.json");
 //	EvaluationManager manager(fl.getJson());
 //	Json config = fl.getJson()["evaluation_options"];
 //
-//	for (int i = 0; i < 65; i++)
+//	for (int i = 0; i <= 65; i++)
 //	{
-//		manager.setCrossPlayer(config, "/home/maciek/alphagomoku/test2_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
-//		manager.setCirclePlayer(config, "/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
+//		manager.setCrossPlayer(config, "/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
+//		manager.setCirclePlayer(config, "/home/maciek/alphagomoku/test2_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
 //
 //		manager.getGameBuffer().clear();
-//		manager.generate(400);
-//		std::string to_save = manager.getGameBuffer().generatePGN(get_name("parent", i), get_name("loss", i));
-//		std::ofstream file("/home/maciek/alphagomoku/compare/compare.pgn", std::fstream::app);
+//		manager.generate(240);
+//		std::string to_save = manager.getGameBuffer().generatePGN(get_name("loss", i), get_name("parent", i));
+//		std::ofstream file(path + "new_compare.pgn", std::fstream::app);
 //		file << to_save;
 //		file.close();
 //		std::cout << "finished " << i << '\n';
 //	}
 
-//	TrainingManager tm("/home/maciek/alphagomoku/test2_10x10_standard/");
-//	for (int i = 0; i < 100; i++)
-//		tm.runIterationRL();
+//
+	TrainingManager tm(path);
+	for (int i = 0; i < 200; i++)
+		tm.runIterationRL();
 	return 0;
 
 	GameConfig game_config;
@@ -160,7 +166,8 @@ int main()
 
 	EvaluationQueue queue;
 //	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
-	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
+//	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
+	queue.loadGraph("/home/maciek/alphagomoku/test_15x15_standard/checkpoint/network_80_opt.bin", 32, ml::Device::cuda(0));
 
 	SearchConfig search_config;
 	search_config.batch_size = 32;

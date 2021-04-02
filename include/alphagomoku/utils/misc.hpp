@@ -80,8 +80,6 @@ namespace ag
 
 	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove);
 
-	std::string getLine();
-	void printLine(const std::string &msg);
 	std::string moveToString(const ag::Move &m);
 	ag::Move moveFromString(const std::string &str, ag::Sign sign);
 	bool startsWith(const std::string &line, const std::string &prefix);

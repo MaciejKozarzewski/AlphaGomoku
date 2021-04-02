@@ -82,9 +82,7 @@ namespace ag
 		circle_player.reset();
 		state = GAME_NOT_STARTED;
 		is_request_scheduled = false;
-		state = GAME_NOT_STARTED;
 		opening_trials = 0;
-		use_opening = false;
 		has_stored_opening = false;
 	}
 	void EvaluationGame::setCrossPlayer(const Json &options, EvaluationQueue &queue)

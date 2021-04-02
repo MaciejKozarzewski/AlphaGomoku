@@ -484,21 +484,6 @@ namespace ag
 			}
 	}
 
-	std::string getLine()
-	{
-		std::string line;
-		getline(std::cin, line);
-
-		if (line[line.length() - 1] == '\r')
-			return line.substr(0, line.length() - 1);
-		else
-			return line;
-	}
-	void printLine(const std::string &msg)
-	{
-		if (msg.length() > 0)
-			std::cout << msg.data() << std::endl;
-	}
 	std::string moveToString(const ag::Move &m)
 	{
 		return std::to_string(m.row) + "," + std::to_string(m.col);

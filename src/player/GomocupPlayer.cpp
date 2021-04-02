@@ -18,7 +18,11 @@
 namespace ag
 {
 
-	GomocupPlayer::GomocupPlayer(const std::string &launch_path)
+	GomocupPlayer::GomocupPlayer(const std::string &launchPath, std::istream &inputStream, std::ostream &outputStream, std::ostream &loggingStream) :
+			local_launch_path(launchPath),
+			input_stream(inputStream),
+			output_stream(outputStream),
+			logging_stream(loggingStream)
 	{
 	}
 	GomocupPlayer::~GomocupPlayer()
@@ -26,95 +30,135 @@ namespace ag
 		if (search_engine != nullptr)
 			search_engine->stop();
 	}
-	void GomocupPlayer::run()
+	bool GomocupPlayer::isRunning() const noexcept
 	{
-		while (is_running)
-		{
-			std::string line = getLine();
-			if (config.use_logging)
-				std::clog << "Got: " << line << '\n';
-			processInput(line);
-		}
+		return is_running;
 	}
 
-	void GomocupPlayer::processInput(const std::string &msg)
+	void GomocupPlayer::processInput()
 	{
-		if (startsWith(msg, "INFO"))
+		std::string line = get_line();
+		log_line("Got: " + line);
+
+		if (startsWith(line, "INFO"))
 		{
-			INFO(msg);
+			INFO(line);
 			return;
 		}
-		if (startsWith(msg, "START"))
+		if (startsWith(line, "START"))
 		{
-			START(msg);
+			START(line);
 			return;
 		}
-		if (startsWith(msg, "RECTSTART"))
+		if (startsWith(line, "RECTSTART"))
 		{
-			RECTSTART(msg);
+			RECTSTART(line);
 			return;
 		}
-		if (startsWith(msg, "RESTART"))
+		if (startsWith(line, "RESTART"))
 		{
 			RESTART();
 			return;
 		}
-		if (startsWith(msg, "SWAP2BOARD"))
+		if (startsWith(line, "SWAP2BOARD"))
 		{
 			SWAP2BOARD();
 			return;
 		}
-		if (startsWith(msg, "BEGIN"))
+		if (startsWith(line, "BEGIN"))
 		{
 			BEGIN();
 			return;
 		}
-		if (startsWith(msg, "BOARD"))
+		if (startsWith(line, "BOARD"))
 		{
 			BOARD();
 			return;
 		}
-		if (startsWith(msg, "TURN"))
+		if (startsWith(line, "TURN"))
 		{
-			TURN(msg);
+			TURN(line);
 			return;
 		}
-		if (startsWith(msg, "TAKEBACK"))
+		if (startsWith(line, "TAKEBACK"))
 		{
-			TAKEBACK(msg);
+			TAKEBACK(line);
 			return;
 		}
-		if (startsWith(msg, "END"))
+		if (startsWith(line, "END"))
 		{
 			END();
 			return;
 		}
-		if (startsWith(msg, "PLAY"))
+		if (startsWith(line, "PLAY"))
 		{
-			PLAY(msg);
+			PLAY(line);
 			return;
 		}
-		if (startsWith(msg, "ABOUT"))
+		if (startsWith(line, "ABOUT"))
 		{
 			ABOUT();
 			return;
 		}
-		if (startsWith(msg, "YXSHOWINFO"))
+		if (startsWith(line, "YXSHOWINFO"))
 		{
 			YXSHOWINFO();
 			return;
 		}
-		return UNKNOWN(msg);
+		UNKNOWN(line);
 	}
 	void GomocupPlayer::respondWith(const std::string &answer)
 	{
-		std::clog << "Answered: " << answer << '\n';
-		printLine(answer);
+		log_line("Answered: " + answer);
+		print_line(answer);
+	}
+
+	void GomocupPlayer::makeMove(Move move)
+	{
+		assert(move.row >= 0 && move.row < getBoard().rows());
+		assert(move.col >= 0 && move.col < getBoard().cols());
+		assert(move.sign == sign_to_move);
+		assert(getBoard().at(move.row, move.col) == Sign::NONE);
+
+		getBoard().at(move.row, move.col) = move.sign;
+		sign_to_move = invertSign(sign_to_move);
+	}
+	GomocupPlayerConfig GomocupPlayer::getConfig() const noexcept
+	{
+		return config;
+	}
+	SearchEngine& GomocupPlayer::getSearchEngine()
+	{
+		if (search_engine == nullptr)
+		{
+			if (config.game_config.rows != config.game_config.cols)
+				ERROR("board is not square");
+			if (config.game_config.rules != GameRules::FREESTYLE and config.game_config.rules != GameRules::STANDARD)
+				ERROR("only freestyle and standard rules are supported");
+			if (config.game_config.rules == GameRules::FREESTYLE and config.game_config.rows != 20)
+				ERROR("freestyle rules is supported only on 20x20 board");
+			if (config.game_config.rules == GameRules::STANDARD and config.game_config.rows != 15)
+				ERROR("standard rules is supported only on 15x15 board");
+
+			Json cfg = loadConfig();
+			search_engine = std::make_unique<SearchEngine>(cfg, config.game_config, *this);
+		}
+		return *search_engine;
+	}
+	matrix<Sign>& GomocupPlayer::getBoard()
+	{
+		if (board.size() == 0 and sign_to_move == Sign::NONE) // board is uninitialized
+		{
+			board = matrix<Sign>(config.game_config.rows, config.game_config.cols);
+			sign_to_move = Sign::CROSS;
+		}
+		return board;
 	}
 
 	void GomocupPlayer::INFO(const std::string &msg)
 	{
 		auto tmp = split(msg, ' ');
+		assert(tmp.size() == 3u);
 		if (tmp[1] == "timeout_turn")
 		{
 			config.info_timeout_turn = std::stoll(tmp[2]);
@@ -174,6 +218,7 @@ namespace ag
 	void GomocupPlayer::START(const std::string &msg)
 	{
 		auto tmp = split(msg, ' ');
+		assert(tmp.size() == 2u);
 		config.game_config.rows = std::stoi(tmp[1]);
 		config.game_config.cols = std::stoi(tmp[1]);
 
@@ -192,88 +237,89 @@ namespace ag
 	void GomocupPlayer::RESTART()
 	{
 		getSearchEngine().stop();
-		getGame().beginGame();
-
 		last_time = getTime();
 		respondWith("OK");
 	}
 	void GomocupPlayer::SWAP2BOARD()
 	{
-		getGame().beginGame();
-		std::string line1 = getLine();
+		std::string line1 = get_line();
 		if (line1 != "DONE") // place first three stones
 		{
-			std::string line2 = getLine();
-			std::string line3 = getLine();
-			getGame().makeMove(moveFromString(line1, Sign::CROSS));
-			getGame().makeMove(moveFromString(line2, Sign::CIRCLE));
-			getGame().makeMove(moveFromString(line3, Sign::CROSS));
+			std::string line2 = get_line();
+			std::string line3 = get_line();
+			makeMove(moveFromString(line1, Sign::CROSS));
+			makeMove(moveFromString(line2, Sign::CIRCLE));
+			makeMove(moveFromString(line3, Sign::CROSS));
 
-			std::string line4 = getLine();
+			std::string line4 = get_line();
 			if (line4 != "DONE")
 			{
 				// 5 stones were placed
-				std::string line5 = getLine();
-				std::string line6 = getLine(); // DONE
+				std::string line5 = get_line();
+				std::string line6 = get_line(); // DONE
 				assert(line6 == "DONE");
-				getGame().makeMove(moveFromString(line4, Sign::CIRCLE));
-				getGame().makeMove(moveFromString(line5, Sign::CROSS));
+				makeMove(moveFromString(line4, Sign::CROSS));
+				makeMove(moveFromString(line5, Sign::CIRCLE));
 			}
 		}
-		getSearchEngine().setState(getGame());
-		getSearchEngine().swap2();
+		getSearchEngine().swap2(board, sign_to_move);
 	}
 	void GomocupPlayer::BEGIN()
 	{
-		getGame().beginGame();
-		getSearchEngine().setState(getGame());
-		getSearchEngine().makeMove();
+		getBoard().clear();
+		sign_to_move = Sign::CROSS;
+		getSearchEngine().makeMove(board, sign_to_move);
 	}
 	void GomocupPlayer::BOARD()
 	{
-		matrix<Sign> board(config.game_config.rows, config.game_config.cols);
-		Sign my_sign = Sign::NONE;
+		getBoard().clear();
+		sign_to_move = Sign::NONE;
 		while (true)
 		{
-			std::string line = getLine();
+			std::string line = get_line();
 			if (line == "DONE")
 				break;
 			auto tmp = split(line, ',');
-			int x = std::stoi(tmp[1]);
-			int y = std::stoi(tmp[0]);
+			assert(tmp.size() == 3u);
+			int row = std::stoi(tmp[1]);
+			int col = std::stoi(tmp[0]);
 			int sign = std::stoi(tmp[2]);
-			if (my_sign == Sign::NONE)
+			if (sign_to_move == Sign::NONE)
 			{
 				if (sign == 1) //own stone
-					my_sign = Sign::CROSS;
+					sign_to_move = Sign::CROSS;
 				else
-					my_sign = Sign::CIRCLE;
+					sign_to_move = Sign::CIRCLE;
 			}
-			board.at(x, y) = (sign == 1) ? my_sign : invertSign(my_sign);
+			getBoard().at(row, col) = (sign == 1) ? sign_to_move : invertSign(sign_to_move);
 		}
 
-		getGame().beginGame();
-		getGame().setBoard(board, my_sign);
-		getSearchEngine().setState(getGame());
-		getSearchEngine().makeMove();
+		getSearchEngine().makeMove(board, sign_to_move);
 	}
 	void GomocupPlayer::TURN(const std::string &msg)
 	{
+		if (isBoardEmpty(getBoard()))
+		{
+			getBoard().clear();
+			sign_to_move = Sign::CROSS;
+		}
 		auto tmp = split(msg, ' ');
-		Move move = moveFromString(tmp[1], getGame().getSignToMove());
-		getGame().makeMove(move);
-		getSearchEngine().setState(getGame());
-		getSearchEngine().makeMove();
+		assert(tmp.size() == 2u);
+		Move move = moveFromString(tmp[1], sign_to_move);
+		std::cout << "got " << move.toString() << '\n';
+		makeMove(move);
+		getSearchEngine().makeMove(board, sign_to_move);
 	}
 	void GomocupPlayer::TAKEBACK(const std::string &msg)
 	{
 		auto tmp = split(msg, ' ');
+		assert(tmp.size() == 2u);
 		Move move = moveFromString(tmp[1], Sign::NONE);
 
-		move.sign = getGame().getBoard().at(move.row, move.col);
+		assert(getBoard().at(move.row, move.col) != Sign::NONE);
+		getBoard().at(move.row, move.col) = Sign::NONE;
 
 		getSearchEngine().stop();
-		getGame().makeMove(move);
 		respondWith("OK");
 	}
 	void GomocupPlayer::END()
@@ -288,17 +334,17 @@ namespace ag
 	void GomocupPlayer::PLAY(const std::string &msg)
 	{
 		auto tmp = split(msg, ' ');
-		Move move = moveFromString(tmp[1], getGame().getSignToMove());
+		assert(tmp.size() == 2u);
+		Move move = moveFromString(tmp[1], sign_to_move);
 		getSearchEngine().stop();
-		getGame().makeMove(move);
-		getSearchEngine().ponder();
+		makeMove(move);
 	}
 
 	void GomocupPlayer::ABOUT()
 	{
 		std::string result;
 		result += "name=\"AlphaGomoku\", ";
-		result += "version=\"4.1\", ";
+		result += "version=\"5.0\", ";
 		result += "author=\"Maciej Kozarzewski\", ";
 		result += "country=\"Poland\", ";
 		result += "www=\"https://github.com/MaciejKozarzewski/AlphaGomoku\", ";
@@ -327,32 +373,6 @@ namespace ag
 		respondWith(std::string("UNKNOWN ") + msg);
 	}
 
-	Game& GomocupPlayer::getGame()
-	{
-		if (game == nullptr)
-		{
-			if (config.game_config.rows != config.game_config.cols)
-				ERROR("board is not square");
-			if (config.game_config.rules != GameRules::FREESTYLE and config.game_config.rules != GameRules::STANDARD)
-				ERROR("only freestyle and standard rules are supported");
-			if (config.game_config.rules == GameRules::FREESTYLE and config.game_config.rows != 20)
-				ERROR("freestyle rules is supported only on 20x20 board");
-			if (config.game_config.rules == GameRules::STANDARD and config.game_config.rows != 15)
-				ERROR("standard rules is supported only on 15x15 board");
-			game = std::make_unique<Game>(config.game_config);
-		}
-		return *game;
-	}
-	SearchEngine& GomocupPlayer::getSearchEngine()
-	{
-		if (search_engine == nullptr)
-		{
-			Json cfg = loadConfig();
-			search_engine = std::make_unique<SearchEngine>(cfg, config.game_config, *this);
-		}
-		return *search_engine;
-	}
-
 	Json GomocupPlayer::loadConfig()
 	{
 		if (not std::filesystem::exists(local_launch_path + "config.json"))
@@ -363,11 +383,32 @@ namespace ag
 	void GomocupPlayer::createDefaultConfig() const
 	{
 		Json result;
+		result["threads"][0] = Json( { { "device", "CPU" } });
 		result["search_options"] = SearchConfig::getDefault();
 		result["tree_options"] = TreeConfig::getDefault();
 		result["cache_options"] = CacheConfig::getDefault();
 		FileSaver fs(local_launch_path + "config.json");
 		fs.save(result, SerializedObject(), 2);
+	}
+
+	std::string GomocupPlayer::get_line()
+	{
+		std::string line;
+		getline(input_stream, line);
+
+		if (line[line.length() - 1] == '\r')
+			return line.substr(0, line.length() - 1);
+		else
+			return line;
+	}
+	void GomocupPlayer::print_line(const std::string &line)
+	{
+		output_stream << line << '\n';
+	}
+	void GomocupPlayer::log_line(const std::string &line)
+	{
+		if (config.use_logging)
+			logging_stream << line << '\n';
 	}
 
 } /* namespace ag */

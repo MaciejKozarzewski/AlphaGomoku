@@ -12,9 +12,10 @@
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/utils/configs.hpp>
-#include <bits/stdint-uintn.h>
+#include <inttypes.h>
 #include <memory>
 #include <string>
+#include <iostream>
 
 namespace ag
 {
@@ -32,32 +33,40 @@ namespace ag
 
 			bool is_using_yixin_board = false;
 
-			//non gomocup options
+			// non Gomocup options
 			bool use_logging = false;
-			bool use_pondering = false;
 	};
 
 	class GomocupPlayer
 	{
 		private:
 			std::string local_launch_path;
+			std::istream &input_stream;
+			std::ostream &output_stream;
+			std::ostream &logging_stream;
+
 			bool is_running = true;
 
 			double last_time = 0.0;
 			GomocupPlayerConfig config;
 
-			std::unique_ptr<Game> game;
+			matrix<Sign> board;
+			Sign sign_to_move = Sign::NONE;
 			std::unique_ptr<SearchEngine> search_engine;
 
 		public:
-			GomocupPlayer(const std::string &launch_path);
+			GomocupPlayer(const std::string &launchPath, std::istream &inputStream = std::cin, std::ostream &outputStream = std::cout,
+					std::ostream &loggingStream = std::clog);
 			~GomocupPlayer();
-			void run();
-			void processInput(const std::string &msg);
+			bool isRunning() const noexcept;
+			void processInput();
 			void respondWith(const std::string &answer);
 
-			Game& getGame();
+			void makeMove(Move move);
+			GomocupPlayerConfig getConfig() const noexcept;
 			SearchEngine& getSearchEngine();
+			matrix<Sign>& getBoard();
+
 		private:
 			void INFO(const std::string &msg);
 			void START(const std::string &msg);
@@ -82,6 +91,10 @@ namespace ag
 
 			Json loadConfig();
 			void createDefaultConfig() const;
+
+			std::string get_line();
+			void print_line(const std::string &line);
+			void log_line(const std::string &line);
 	};
 
 } /* namespace ag */
