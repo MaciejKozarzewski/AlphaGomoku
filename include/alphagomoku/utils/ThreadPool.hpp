@@ -48,6 +48,7 @@ namespace ag
 
 		private:
 			static void thread_run(ThreadPool *arg);
+			bool is_ready() const noexcept;
 	};
 
 } /* namespace ag */

@@ -41,37 +41,43 @@ namespace ag
 	bool ThreadPool::isReady() const noexcept
 	{
 		std::lock_guard lock(queue_mutex);
-		return number_of_working_threads == 0 and queue.empty();
+		return is_ready();
 	}
 	void ThreadPool::waitForFinish()
 	{
 		std::unique_lock lock(queue_mutex);
 		ready_cond.wait(lock, [this] // @suppress("Invalid arguments")
-		{	return (number_of_working_threads == 0 and queue.empty()) or not is_running;});
+		{	return this->is_ready() or is_running == false;});
 	}
 	void ThreadPool::thread_run(ThreadPool *arg)
 	{
 		assert(arg != nullptr);
+
+		std::unique_lock lock(arg->queue_mutex);
 		while (arg->is_running)
 		{
-			std::unique_lock lock(arg->queue_mutex);
 			arg->queue_cond.wait(lock, [arg]() // @suppress("Invalid arguments")
-					{	return not arg->queue.empty() or not arg->is_running;});
+					{	return arg->queue.empty() == false or arg->is_running == false;});
 			if (arg->is_running == false)
 				break;
-
+			assert(arg->queue.size() > 0);
 			Job *job = arg->queue.front();
 			arg->queue.pop();
 			arg->number_of_working_threads++;
 			lock.unlock();
 
+			assert(job != nullptr);
 			job->run();
 
 			lock.lock();
 			arg->number_of_working_threads--;
-			if (arg->number_of_working_threads == 0)
+			if (arg->is_ready())
 				arg->ready_cond.notify_all();
 		}
+	}
+	bool ThreadPool::is_ready() const noexcept
+	{
+		return number_of_working_threads == 0 and queue.empty();
 	}
 } /* namespace ag */
 
