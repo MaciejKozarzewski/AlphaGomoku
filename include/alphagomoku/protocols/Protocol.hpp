@@ -31,7 +31,11 @@ namespace ag
 			bool is_running = true;
 
 		public:
-			InputListener(std::istream &inputStream = std::cin);
+			/**
+			 * Default constructor that does not start separate thread. Can only receive input via 'pushLine' method.
+			 */
+			InputListener();
+			InputListener(std::istream &inputStream);
 			InputListener(const InputListener &other) = delete;
 			InputListener(InputListener &&other) = default;
 			InputListener& operator=(const InputListener &other) = delete;
@@ -53,7 +57,7 @@ namespace ag
 	{
 			std::ostream &output_stream;
 		public:
-			OutputSender(std::ostream &outputStream = std::cout);
+			OutputSender(std::ostream &outputStream);
 			void send(const std::string &msg) const noexcept;
 	};
 

@@ -10,6 +10,10 @@
 namespace ag
 {
 
+	InputListener::InputListener():
+			input_stream(std::cin)
+	{
+	}
 	InputListener::InputListener(std::istream &inputStream):
 			input_stream(inputStream)
 	{
@@ -21,7 +25,8 @@ namespace ag
 			std::lock_guard lock(listener_mutex);
 			is_running = false;
 		}
-		listener_thread.join();
+		if (listener_thread.joinable())
+			listener_thread.join();
 	}
 	bool InputListener::isRunning() const noexcept
 	{
@@ -68,7 +73,7 @@ namespace ag
 		while(arg->isRunning())
 		{
 			std::string line;
-			getline(std::cin, line);
+			getline(arg->input_stream, line);
 			if (line[line.length() - 1] == '\r')
 				line = line.substr(0, line.length() - 1);
 			if(Protocol::isExitCommand(line))
