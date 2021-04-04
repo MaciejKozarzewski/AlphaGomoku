@@ -7,7 +7,7 @@
 
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/mcts/Node.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 
 #include <assert.h>
 

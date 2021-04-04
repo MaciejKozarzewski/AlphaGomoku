@@ -9,13 +9,17 @@
 #define ALPHAGOMOKU_RULES_RENJU_HPP_
 
 #include <alphagomoku/mcts/Move.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+
+namespace ag
+{
+	enum class GameOutcome;
+} /* namespace ag */
 
 namespace ag
 {
 	GameOutcome getOutcomeRenju(const matrix<Sign> &board);
 	GameOutcome getOutcomeRenju(const matrix<Sign> &board, const Move &last_move);
-}
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_RULES_RENJU_HPP_ */

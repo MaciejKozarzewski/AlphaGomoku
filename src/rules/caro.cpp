@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/rules/caro.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 
 namespace ag
 {

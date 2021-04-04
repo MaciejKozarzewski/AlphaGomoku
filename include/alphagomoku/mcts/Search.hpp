@@ -13,7 +13,6 @@
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <inttypes.h>

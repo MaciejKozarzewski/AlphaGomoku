@@ -15,7 +15,7 @@
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 #include <alphagomoku/utils/file_util.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
@@ -144,9 +144,9 @@ int main(int argc, char *argv[])
 //	}
 
 //
-	TrainingManager tm(path);
-	for (int i = 0; i < 200; i++)
-		tm.runIterationRL();
+//	TrainingManager tm(path);
+//	for (int i = 0; i < 200; i++)
+//		tm.runIterationRL();
 	return 0;
 
 	GameConfig game_config;

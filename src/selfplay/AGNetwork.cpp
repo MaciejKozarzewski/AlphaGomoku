@@ -7,7 +7,6 @@
 
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/utils/file_util.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/mcts/Value.hpp>
 #include <libml/graph/optimization/graph_optimizers.hpp>

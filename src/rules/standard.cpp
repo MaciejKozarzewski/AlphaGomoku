@@ -6,9 +6,8 @@
  */
 
 #include <alphagomoku/rules/standard.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/misc.hpp>
-
-#include <iostream>
 
 namespace
 {

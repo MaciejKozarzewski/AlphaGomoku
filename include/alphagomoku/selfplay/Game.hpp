@@ -10,7 +10,7 @@
 
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/mcts/Node.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <libml/utils/serialization.hpp>

@@ -6,7 +6,7 @@
  */
 
 #include <alphagomoku/player/GomocupPlayer.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/file_util.hpp>
@@ -324,6 +324,8 @@ namespace ag
 	}
 	void GomocupPlayer::END()
 	{
+		if(search_engine != nullptr) // if search_engine has not been created there's no need to do it here
+			search_engine->stop();
 		is_running = false;
 	}
 
@@ -383,6 +385,12 @@ namespace ag
 	void GomocupPlayer::createDefaultConfig() const
 	{
 		Json result;
+		result["use_logging"] = false;
+		result["use_pondering"] = false;
+		result["networks"] = {	{"freestyle", "/networks/freestyle_10x128.bin"},
+								{"standard", "/networks/standard_10x128.bin"},
+								{"renju", ""},
+								{"caro", ""}};
 		result["threads"][0] = Json( { { "device", "CPU" } });
 		result["search_options"] = SearchConfig::getDefault();
 		result["tree_options"] = TreeConfig::getDefault();

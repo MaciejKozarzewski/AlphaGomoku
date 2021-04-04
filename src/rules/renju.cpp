@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/rules/renju.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 namespace ag

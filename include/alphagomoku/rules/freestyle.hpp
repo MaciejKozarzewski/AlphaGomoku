@@ -9,13 +9,17 @@
 #define ALPHAGOMOKU_RULES_FREESTYLE_HPP_
 
 #include <alphagomoku/mcts/Move.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+
+namespace ag
+{
+	enum class GameOutcome;
+} /* namespace ag */
 
 namespace ag
 {
 	GameOutcome getOutcomeFreestyle(const matrix<Sign> &board);
 	GameOutcome getOutcomeFreestyle(const matrix<Sign> &board, const Move &last_move);
-}
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_RULES_FREESTYLE_HPP_ */

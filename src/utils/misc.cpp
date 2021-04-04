@@ -6,7 +6,7 @@
  */
 
 #include <alphagomoku/utils/misc.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <inttypes.h>
 #include <chrono>
@@ -486,14 +486,16 @@ namespace ag
 
 	std::string moveToString(const ag::Move &m)
 	{
-		return std::to_string(m.row) + "," + std::to_string(m.col);
+		// coordinates in Gomocup protocol are inverted relative to those used internally here
+		return std::to_string(m.col) + "," + std::to_string(m.row);
 	}
 	ag::Move moveFromString(const std::string &str, ag::Sign sign)
 	{
-		assert(std::count(str.begin(), str.end(), ',') == 1);
-		int pos = str.find(',');
-		int row = std::stoi(str.substr(0, pos));
-		int col = std::stoi(str.substr(pos + 1, str.length()));
+		auto tmp = split(str, ',');
+		assert(tmp.size() == 2u);
+		// coordinates in Gomocup protocol are inverted relative to those used internally here
+		int row = std::stoi(tmp[1]);
+		int col = std::stoi(tmp[0]);
 		return ag::Move(row, col, sign);
 	}
 	bool startsWith(const std::string &line, const std::string &prefix)

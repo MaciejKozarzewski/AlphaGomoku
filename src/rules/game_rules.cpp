@@ -5,7 +5,7 @@
  *      Author: maciek
  */
 
-#include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/rules/freestyle.hpp>
 #include <alphagomoku/rules/standard.hpp>
 #include <alphagomoku/rules/renju.hpp>

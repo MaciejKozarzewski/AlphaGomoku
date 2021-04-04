@@ -10,7 +10,6 @@
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
-#include <alphagomoku/utils/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <libml/Tensor.hpp>

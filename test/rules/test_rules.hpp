@@ -8,7 +8,7 @@
 #ifndef RULES_TEST_RULES_HPP_
 #define RULES_TEST_RULES_HPP_
 
-#include <alphagomoku/utils/game_rules.hpp>
+#include <alphagomoku/rules/game_rules.hpp>
 
 namespace ag
 {
