@@ -5,14 +5,13 @@ from utils import get_platform, run_commands, find_sources, remove_ext, setup_ms
 
 
 class LibBuilder:
-    def __init__(self, build_target: str, main_compiler: str, use_cuda: bool, sm_arch: int = 61):
+    def __init__(self, build_target: str, main_compiler: str, use_cuda: bool):
         assert (main_compiler == 'gcc' or main_compiler == 'msvc')
         self._build_target = build_target
         self._platform = get_platform()
         if self._platform == 'linux':
             assert (main_compiler == 'gcc')
         self._main_compiler = main_compiler
-        self._use_cuda = use_cuda
         self._sm_arch = sm_arch
         self._objects = []
         self._path_to_cuda = 'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v9.0\\'
