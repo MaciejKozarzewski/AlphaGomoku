@@ -1,0 +1,45 @@
+/*
+ * Logger.cpp
+ *
+ *  Created on: 4 kwi 2021
+ *      Author: maciek
+ */
+
+#include <alphagomoku/utils/Logger.hpp>
+
+#include <assert.h>
+
+namespace ag
+{
+	void Logger::enable() noexcept
+	{
+		std::lock_guard lock(get_instance().logger_mutex);
+		get_instance().is_enabled = true;
+	}
+	void Logger::disable() noexcept
+	{
+		std::lock_guard lock(get_instance().logger_mutex);
+		get_instance().is_enabled = false;
+	}
+	void Logger::write(const std::string &str)
+	{
+		std::lock_guard lock(get_instance().logger_mutex);
+		if (get_instance().is_enabled)
+		{
+			assert(get_instance().output_stream != nullptr);
+			get_instance().output_stream->write(str.data(), str.size());
+		}
+	}
+	void Logger::redirectTo(std::ostream &stream)
+	{
+		std::lock_guard lock(get_instance().logger_mutex);
+		get_instance().output_stream = &stream;
+	}
+	Logger& Logger::get_instance() noexcept
+	{
+		static Logger logger;
+		return logger;
+	}
+
+} /* namespace ag */
+
