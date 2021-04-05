@@ -20,6 +20,9 @@ namespace ag
 			int cols = 0;
 
 			GameConfig() = default;
+			GameConfig(int rows, int cols);
+			GameConfig(GameRules rules);
+			GameConfig(int rows, int cols, GameRules rules);
 			GameConfig(const Json &cfg);
 
 			static Json getDefault();

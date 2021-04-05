@@ -55,10 +55,16 @@ namespace ag
 		std::unique_lock lock(listener_mutex);
 		listener_cond.wait(lock, [this] // @suppress("Invalid arguments")
 		{	return this->input_queue.empty() == false; });
-
 		std::string result = input_queue.front();
 		input_queue.pop();
 		return result;
+	}
+	std::string InputListener::peekLine()
+	{
+		std::unique_lock lock(listener_mutex);
+		listener_cond.wait(lock, [this] // @suppress("Invalid arguments")
+		{	return this->input_queue.empty() == false; });
+		return input_queue.front();
 	}
 	void InputListener::pushLine(const std::string &line)
 	{
@@ -94,26 +100,42 @@ namespace ag
 		output_stream << msg << std::endl;
 	}
 
-	Message::Message(MessageType mt):
-			type(mt),
-			data(NoData())
+	bool Message::holdsNoData() const noexcept
 	{
+		return std::holds_alternative<NoData>(data);
 	}
-	bool Message::isEmpty() const noexcept
+	bool Message::holdsGameConfig() const noexcept
 	{
-		return type == MessageType::EMPTY_MESSAGE;
+		return std::holds_alternative<GameConfig>(data);
 	}
+	bool Message::holdsListOfMoves() const noexcept
+	{
+		return std::holds_alternative<std::vector<Move>>(data);
+	}
+	bool Message::holdsOption() const noexcept
+	{
+		return std::holds_alternative<Option>(data);
+	}
+	bool Message::holdsMove() const noexcept
+	{
+		return std::holds_alternative<Move>(data);
+	}
+	bool Message::holdsString() const noexcept
+	{
+		return std::holds_alternative<std::string>(data);
+	}
+
 	MessageType Message::getType() const noexcept
 	{
 		return type;
 	}
-	BoardSize Message::getBoardSize() const
+	GameConfig Message::getGameConfig() const
 	{
-		return std::get<BoardSize>(data);
+		return std::get<GameConfig>(data);
 	}
-	Position Message::getPosition() const
+	std::vector<Move> Message::getListOfMoves() const
 	{
-		return std::get<Position>(data);
+		return std::get<std::vector<Move>>(data);
 	}
 	Option Message::getOption() const
 	{

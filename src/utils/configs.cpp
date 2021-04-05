@@ -12,6 +12,21 @@
 
 namespace ag
 {
+	GameConfig::GameConfig(int rows, int cols) :
+			rows(rows),
+			cols(cols)
+	{
+	}
+	GameConfig::GameConfig(GameRules rules) :
+			rules(rules)
+	{
+	}
+	GameConfig::GameConfig(int rows, int cols, GameRules rules) :
+			rows(rows),
+			cols(cols),
+			rules(rules)
+	{
+	}
 	GameConfig::GameConfig(const Json &cfg) :
 			rules(rulesFromString(cfg["rules"])),
 			rows(static_cast<int>(cfg["rows"])),

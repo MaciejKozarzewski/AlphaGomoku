@@ -14,7 +14,7 @@ namespace ag
 
 	TEST(TestInputListener, from_stringstream)
 	{
-		std::istringstream iss("command\nEND\n");
+		std::istringstream iss("command\nexit\n");
 		InputListener listener(iss);
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 		EXPECT_FALSE(listener.isEmpty());
@@ -24,7 +24,7 @@ namespace ag
 		std::string second_line = listener.getLine();
 
 		EXPECT_EQ(first_line, "command");
-		EXPECT_EQ(second_line, "END");
+		EXPECT_EQ(second_line, "exit");
 		EXPECT_TRUE(listener.isEmpty());
 	}
 	TEST(TestInputListener, push_line)

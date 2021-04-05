@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_PROTOCOLS_PROTOCOL_HPP_
 
 #include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 #include <variant>
 #include <queue>
@@ -32,7 +33,7 @@ namespace ag
 
 		public:
 			/**
-			 * Default constructor that does not start separate thread. Can only receive input via 'pushLine' method.
+			 * Default constructor does not start separate thread. Can only receive input via 'pushLine' method.
 			 */
 			InputListener();
 			InputListener(std::istream &inputStream);
@@ -48,6 +49,7 @@ namespace ag
 
 			void waitForInput();
 			std::string getLine();
+			std::string peekLine();
 			void pushLine(const std::string &line);
 		private:
 			static void run(InputListener *arg);
@@ -55,6 +57,7 @@ namespace ag
 
 	class OutputSender
 	{
+		private:
 			std::ostream &output_stream;
 		public:
 			OutputSender(std::ostream &outputStream);
@@ -63,16 +66,6 @@ namespace ag
 
 	struct NoData
 	{
-	};
-	struct BoardSize
-	{
-			int rows = 0;
-			int cols = 0;
-	};
-	struct Position
-	{
-			std::vector<Move> moves;
-			Sign sign_to_move = Sign::CROSS;
 	};
 	struct Option
 	{
@@ -91,24 +84,44 @@ namespace ag
 		SET_POSITION, // used to set specific position
 		MAKE_MOVE, // used to send move made either by user or engine
 		ABOUT_ENGINE, // request to send some information about the engine
-		STOP_SEARCH, // send to immediately stop search
+		STOP_SEARCH, // request to immediately stop search
 		EXIT_PROGRAM, // send to exit the program
 		EMPTY_MESSAGE, // specifies empty message with no data
 		PLAIN_STRING, // message containing string with no specific structure
 		UNKNOWN_MESSAGE, // used as a response after unknown message from user
-		ERROR // used as a response after an error
+		ERROR, // used as a response after an error
+		OPENING_PRO,
+		OPENING_LONG_PRO,
+		OPENING_SWAP,
+		OPENING_SWAP2
 	};
 	class Message
 	{
 		private:
 			MessageType type;
-			std::variant<NoData, BoardSize, Position, Option, Move, std::string> data;
+			std::variant<NoData, GameConfig, std::vector<Move>, Option, Move, std::string> data;
 		public:
-			Message(MessageType mt = MessageType::EMPTY_MESSAGE);
-			bool isEmpty() const noexcept;
+			Message(MessageType mt = MessageType::EMPTY_MESSAGE) :
+					type(mt)
+			{
+			}
+			template<typename T>
+			Message(MessageType mt, const T &arg) :
+					type(mt),
+					data(arg)
+			{
+			}
+
+			bool holdsNoData() const noexcept;
+			bool holdsGameConfig() const noexcept;
+			bool holdsListOfMoves() const noexcept;
+			bool holdsOption() const noexcept;
+			bool holdsMove() const noexcept;
+			bool holdsString() const noexcept;
+
 			MessageType getType() const noexcept;
-			BoardSize getBoardSize() const;
-			Position getPosition() const;
+			GameConfig getGameConfig() const;
+			std::vector<Move> getListOfMoves() const;
 			Option getOption() const;
 			Move getMove() const;
 			std::string getString() const;
@@ -130,14 +143,12 @@ namespace ag
 			virtual ~Protocol() = default;
 
 			virtual ProtocolType getType() const noexcept = 0;
-			virtual Message processInput(InputListener &listener) const = 0;
-			virtual bool processOutput(const Message &msg, OutputSender &sender) const  = 0;
+			virtual Message processInput(InputListener &listener) = 0;
+			virtual bool processOutput(const Message &msg, OutputSender &sender) = 0;
 
 			static bool isExitCommand(const std::string &str) noexcept;
 	};
 
 } /* namespace ag */
-
-
 
 #endif /* ALPHAGOMOKU_PROTOCOLS_PROTOCOL_HPP_ */
