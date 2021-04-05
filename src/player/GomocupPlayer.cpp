@@ -141,7 +141,7 @@ namespace ag
 				ERROR("standard rules is supported only on 15x15 board");
 
 			Json cfg = loadConfig();
-			search_engine = std::make_unique<SearchEngine>(cfg, config.game_config, *this);
+//			search_engine = std::make_unique<SearchEngine>(cfg, config.game_config, *this);
 		}
 		return *search_engine;
 	}

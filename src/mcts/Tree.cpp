@@ -60,19 +60,18 @@ namespace
 	}
 	Node* select_by_visit(Node *parent)
 	{
-		auto selected = parent->end();
-		float bestValue = std::numeric_limits<float>::lowest();
+		auto selected = parent->begin();
+		int bestValue = selected->getVisits();
 		for (auto iter = parent->begin(); iter < parent->end(); iter++)
 		{
 			if (iter->getProvenValue() == ProvenValue::WIN)
 				return iter;
-			if (iter->getVisits() > bestValue)
+			if (iter->getVisits() > bestValue and iter->getProvenValue() != ProvenValue::LOSS)
 			{
 				selected = iter;
 				bestValue = iter->getVisits();
 			}
 		}
-		assert(selected != parent->end());
 		return selected;
 	}
 	Node* select_by_value(Node *parent)
@@ -360,17 +359,31 @@ namespace ag
 			case 0:
 				break;
 			case 1:
-				for (int i = 0; i < node.numberOfChildren(); i++)
+				for (auto iter = node.begin(); iter < node.end(); iter++)
 				{
-					Move move = node.getChild(i).getMove();
-					result.at(move.row, move.col) = node.getChild(i).getPolicyPrior();
+					Move move = iter->getMove();
+					result.at(move.row, move.col) = iter->getPolicyPrior();
 				}
 				break;
 			default:
-				for (int i = 0; i < node.numberOfChildren(); i++)
+				for (auto iter = node.begin(); iter < node.end(); iter++)
 				{
-					Move move = node.getChild(i).getMove();
-					result.at(move.row, move.col) = node.getChild(i).getVisits();
+					Move move = iter->getMove();
+					switch (iter->getProvenValue())
+					{
+						case ProvenValue::UNKNOWN:
+							result.at(move.row, move.col) = iter->getVisits();
+							break;
+						case ProvenValue::LOSS:
+							break;
+						case ProvenValue::DRAW:
+							result.at(move.row, move.col) = iter->getVisits();
+							break;
+						case ProvenValue::WIN:
+							result.clear();
+							result.at(move.row, move.col) = 1.0f;
+							return;
+					}
 				}
 				break;
 		}

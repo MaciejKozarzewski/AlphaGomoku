@@ -19,7 +19,6 @@ namespace ag
 	Message GomocupProtocol::processInput(InputListener &listener)
 	{
 		std::string line = listener.peekLine();
-		Logger::write("GomocupProtocol got: " + line);
 
 		if (startsWith(line, "INFO"))
 			return INFO(listener);
@@ -53,8 +52,6 @@ namespace ag
 
 		if (startsWith(line, "PLAY"))
 			return PLAY(listener);
-		if (startsWith(line, "SUGGEST"))
-			return SUGGEST(listener);
 
 		if (startsWith(line, "ABOUT"))
 			return ABOUT(listener);

@@ -22,7 +22,7 @@ namespace ag
 			GameConfig() = default;
 			GameConfig(int rows, int cols);
 			GameConfig(GameRules rules);
-			GameConfig(int rows, int cols, GameRules rules);
+			GameConfig(GameRules rules, int rows, int cols);
 			GameConfig(const Json &cfg);
 
 			static Json getDefault();

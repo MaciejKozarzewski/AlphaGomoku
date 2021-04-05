@@ -21,10 +21,10 @@ namespace ag
 			rules(rules)
 	{
 	}
-	GameConfig::GameConfig(int rows, int cols, GameRules rules) :
+	GameConfig::GameConfig(GameRules rules, int rows, int cols) :
+			rules(rules),
 			rows(rows),
-			cols(cols),
-			rules(rules)
+			cols(cols)
 	{
 	}
 	GameConfig::GameConfig(const Json &cfg) :

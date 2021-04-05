@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/protocols/Protocol.hpp>
+#include <alphagomoku/utils/Logger.hpp>
 
 namespace ag
 {
@@ -68,6 +69,7 @@ namespace ag
 	}
 	void InputListener::pushLine(const std::string &line)
 	{
+		Logger::write("Received: " + line + '\n');
 		std::lock_guard lock(listener_mutex);
 		input_queue.push(line);
 		listener_cond.notify_all();
@@ -97,6 +99,7 @@ namespace ag
 	}
 	void OutputSender::send(const std::string &msg) const noexcept
 	{
+		Logger::write("Answered: " + msg + '\n');
 		output_stream << msg << std::endl;
 	}
 

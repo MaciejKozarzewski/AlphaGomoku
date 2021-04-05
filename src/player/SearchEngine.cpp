@@ -16,9 +16,9 @@
 namespace ag
 {
 
-	SearchEngine::SearchEngine(const Json &cfg, GameConfig gameConfig, GomocupPlayer &player) :
+	SearchEngine::SearchEngine(const Json &cfg, GomocupPlayer &player) :
 			threads(1),
-			game_config(gameConfig),
+			game_config(cfg["game_options"]),
 			player(player)
 	{
 

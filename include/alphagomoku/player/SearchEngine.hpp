@@ -9,6 +9,8 @@
 #define ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 
 #include <alphagomoku/utils/ThreadPool.hpp>
+#include <alphagomoku/mcts/Tree.hpp>
+#include <alphagomoku/mcts/Cache.hpp>
 #include <libml/utils/json.hpp>
 
 namespace ag
@@ -31,7 +33,7 @@ namespace ag
 //			Cache cache;
 
 		public:
-			SearchEngine(const Json &cfg, GameConfig gameConfig, GomocupPlayer &player);
+			SearchEngine(const Json &cfg, GomocupPlayer &player);
 
 			void stop();
 			void makeMove(const matrix<Sign> &board, Sign signToMove);
