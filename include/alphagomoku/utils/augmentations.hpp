@@ -75,7 +75,7 @@ namespace ag
 			return;
 		}
 
-		// rotate 90
+		// rotate 90 to the left
 		if (mode == 6 || mode == -7)
 		{
 			for (int i = 0; i < height / 2; i++)
@@ -89,7 +89,7 @@ namespace ag
 				}
 			return;
 		}
-		// rotate 270
+		// rotate 270 to the left
 		if (mode == 7 || mode == -6)
 		{
 			for (int i = 0; i < height / 2; i++)
@@ -108,9 +108,13 @@ namespace ag
 	template<typename T>
 	void augment(matrix<T> &dst, const matrix<T> &src, int mode)
 	{
+		assert(&dst != &src); // will not work 'in-place'
 		assert(dst.rows() == src.rows() && dst.cols() == src.cols());
 		if (mode == 0)
+		{
+			dst.copyFrom(src);
 			return;
+		}
 		if (dst.isSquare())
 			assert(-8 < mode && mode < 8);
 		else
@@ -158,20 +162,20 @@ namespace ag
 			return;
 		}
 
-		// rotate 90
+		// rotate 90 to the left
 		if (mode == 6 || mode == -7)
 		{
 			for (int i = 0; i < height; i++)
 				for (int j = 0; j < width; j++)
-					dst.at(i, j) = src.at(height1 - j, i);
+					dst.at(i, j) = src.at(j, height1 - i);
 			return;
 		}
-		// rotate 270
+		// rotate 270 to the left
 		if (mode == 7 || mode == -6)
 		{
 			for (int i = 0; i < height; i++)
 				for (int j = 0; j < width; j++)
-					dst.at(i, j) = src.at(j, height1 - i);
+					dst.at(i, j) = src.at(height1 - j, i);
 			return;
 		}
 	}
