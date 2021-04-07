@@ -68,6 +68,8 @@ namespace ag
 			void cancelVirtualLoss(SearchTrajectory &trajectory);
 
 			void getPlayoutDistribution(const Node &node, matrix<float> &result) const;
+			void getProvenValues(const Node &node, matrix<ProvenValue> &result) const;
+			void getActionValues(const Node &node, matrix<Value> &result) const;
 			SearchTrajectory getPrincipalVariation();
 			void printSubtree(const Node &node, int depth = -1, bool sort = false, int top_n = -1) const;
 		private:

@@ -21,16 +21,25 @@ namespace
 	template<typename T>
 	Node* select_puct(Node *parent, const float exploration_constant, const T &get_value)
 	{
-		const float sqrt_visit = exploration_constant * sqrt(parent->getVisits());
+		assert(parent->getVisits() > 0);
+//		const float sqrt_visit = 1.25f * sqrtf((exploration_constant == 0.0f) ? std::max(parent->getVisits() - 1, 1) : parent->getVisits());
+		const float sqrt_visit = exploration_constant * sqrtf(parent->getVisits());
 		auto selected = parent->end();
 		float bestValue = std::numeric_limits<float>::lowest();
 		float my_value = 1.0f - get_value(parent); // TODO later maybe remove this
 		for (auto iter = parent->begin(); iter < parent->end(); iter++)
 			if (not iter->isProven())
 			{
+				float PUCT;
 //				float PUCT = get_value(iter) + iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits());
 
-				float PUCT = iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits()); // TODO later maybe remove this
+//				float PUCT = iter->getPolicyPrior() / (1.0f + iter->getVisits());// + sqrtf(logf(parent->getVisits()) / (1.0f + iter->getVisits()));
+//				if (exploration_constant == 0.0f)
+					PUCT = iter->getPolicyPrior() / (1.0f + iter->getVisits()); // no exploration term
+//				else
+//					PUCT = iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits()); // classical PUCT formula
+//				float PUCT = iter->getPolicyPrior() / (1.0f + iter->getVisits()); // no exploration term
+
 				if (iter->getVisits() == 0)
 					PUCT += my_value;
 				else
@@ -354,38 +363,33 @@ namespace ag
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 
-		switch (node.getVisits())
+		result.fill(0.0f);
+		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
-			case 0:
-				break;
-			case 1:
-				for (auto iter = node.begin(); iter < node.end(); iter++)
-				{
-					Move move = iter->getMove();
-					result.at(move.row, move.col) = iter->getPolicyPrior();
-				}
-				break;
-			default:
-				for (auto iter = node.begin(); iter < node.end(); iter++)
-				{
-					Move move = iter->getMove();
-					switch (iter->getProvenValue())
-					{
-						case ProvenValue::UNKNOWN:
-							result.at(move.row, move.col) = iter->getVisits();
-							break;
-						case ProvenValue::LOSS:
-							break;
-						case ProvenValue::DRAW:
-							result.at(move.row, move.col) = iter->getVisits();
-							break;
-						case ProvenValue::WIN:
-							result.clear();
-							result.at(move.row, move.col) = 1.0f;
-							return;
-					}
-				}
-				break;
+			Move move = iter->getMove();
+			result.at(move.row, move.col) = iter->getVisits();
+		}
+	}
+	void Tree::getProvenValues(const Node &node, matrix<ProvenValue> &result) const
+	{
+		std::lock_guard<std::mutex> lock(tree_mutex);
+
+		result.fill(ProvenValue::UNKNOWN);
+		for (auto iter = node.begin(); iter < node.end(); iter++)
+		{
+			Move move = iter->getMove();
+			result.at(move.row, move.col) = iter->getProvenValue();
+		}
+	}
+	void Tree::getActionValues(const Node &node, matrix<Value> &result) const
+	{
+		std::lock_guard<std::mutex> lock(tree_mutex);
+
+		result.fill(Value());
+		for (auto iter = node.begin(); iter < node.end(); iter++)
+		{
+			Move move = iter->getMove();
+			result.at(move.row, move.col) = iter->getValue();
 		}
 	}
 	SearchTrajectory Tree::getPrincipalVariation()
