@@ -57,6 +57,7 @@ namespace ag
 			std::vector<std::unique_ptr<GameGenerator>> generators;
 			ml::Device device;
 			int batch_size;
+			bool use_symmetries;
 		public:
 			GeneratorThread(GeneratorManager &manager, const Json &options, ml::Device device);
 			void run();

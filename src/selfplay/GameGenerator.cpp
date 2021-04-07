@@ -6,9 +6,10 @@
  */
 
 #include <alphagomoku/selfplay/GameGenerator.hpp>
+#include <alphagomoku/selfplay/GameBuffer.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/mcts/EvaluationQueue.hpp>
 #include <alphagomoku/utils/misc.hpp>
-#include <alphagomoku/selfplay/GameBuffer.hpp>
 
 namespace ag
 {
@@ -55,8 +56,6 @@ namespace ag
 			if (request.is_ready == false)
 				return false;
 			is_request_scheduled = false;
-			if (search.getConfig().augment_position)
-				request.augment();
 			if (fabsf((request.getValue().win + 0.5f * request.getValue().draw) - 0.5f) < (0.05f + opening_trials * 0.01f))
 			{
 				opening_trials = 0;
@@ -72,8 +71,6 @@ namespace ag
 		request.clear();
 		request.setBoard(board);
 		request.setLastMove( { 0, 0, invertSign(sign_to_start) });
-		if (search.getConfig().augment_position)
-			request.augment();
 		queue.addToQueue(request);
 		is_request_scheduled = true;
 		return false;
@@ -91,7 +88,15 @@ namespace ag
 			move = randomizeMove(policy, temperature);
 		move.sign = game.getSignToMove();
 
-		game.makeMove(move, policy, tree.getRootNode().getValue(), tree.getRootNode().getProvenValue());
+		SearchData state(policy.rows(), policy.cols());
+		state.setBoard(game.getBoard());
+		state.setPolicy(policy);
+		state.setMinimaxValue(tree.getRootNode().getValue());
+		state.setProvenValue(tree.getRootNode().getProvenValue());
+		state.setMove(move);
+
+		game.makeMove(move);
+		game.addSearchData(state);
 	}
 	bool GameGenerator::performSearch()
 	{

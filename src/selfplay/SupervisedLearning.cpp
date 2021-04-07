@@ -8,6 +8,7 @@
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/matrix.hpp>
@@ -67,9 +68,7 @@ namespace ag
 				std::cout << i << '\n';
 			for (int b = 0; b < batch_size; b++)
 			{
-				Sign sign_to_move;
-				GameOutcome outcome;
-				buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample(board, policy, sign_to_move, outcome);
+				const SearchData &sample = buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample();
 				training_sample_index++;
 				if (training_sample_index >= training_sample_order.size())
 				{
@@ -77,6 +76,8 @@ namespace ag
 					training_sample_index = 0;
 				}
 
+				sample.getBoard(board);
+				sample.getPolicy(policy);
 				if (config["training_options"]["augment_training_data"])
 				{
 					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
@@ -84,7 +85,7 @@ namespace ag
 					augment(policy, r);
 				}
 
-				model.packData(b, board, policy, outcome, sign_to_move);
+				model.packData(b, board, policy, sample.getOutcome(), sample.getMove().sign);
 			}
 			model.forward(batch_size);
 			auto accuracy = model.getAccuracy(batch_size, 4);
@@ -109,10 +110,10 @@ namespace ag
 			int this_batch = 0;
 			while (counter < buffer.size() and this_batch < batch_size)
 			{
-				Sign sign_to_move;
-				GameOutcome outcome;
-				buffer.getFromBuffer(counter).getSample(board, policy, sign_to_move, outcome);
+				const SearchData &sample = buffer.getFromBuffer(counter).getSample();
 
+				sample.getBoard(board);
+				sample.getPolicy(policy);
 				if (config["training_options"]["augment_training_data"])
 				{
 					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
@@ -120,7 +121,7 @@ namespace ag
 					augment(policy, r);
 				}
 
-				model.packData(this_batch, board, policy, outcome, sign_to_move);
+				model.packData(this_batch, board, policy, sample.getOutcome(), sample.getMove().sign);
 				counter++;
 				this_batch++;
 			}

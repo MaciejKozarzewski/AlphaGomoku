@@ -391,6 +391,7 @@ namespace ag
 								{"standard", "/networks/standard_10x128.bin"},
 								{"renju", ""},
 								{"caro", ""}};
+		result["use_symmetries"] = false;
 		result["threads"][0] = Json( { { "device", "CPU" } });
 		result["search_options"] = SearchConfig::getDefault();
 		result["tree_options"] = TreeConfig::getDefault();

@@ -110,7 +110,6 @@ namespace ag
 			if (request.is_ready == false)
 				return false;
 			is_request_scheduled = false;
-			request.augment();
 			if (fabsf((request.getValue().win + 0.5f * request.getValue().draw) - 0.5f) < (0.05f + opening_trials * 0.01f))
 			{
 				opening_trials = 0;
@@ -126,7 +125,6 @@ namespace ag
 		request.clear();
 		request.setBoard(game.getBoard());
 		request.setLastMove(game.getLastMove());
-		request.augment();
 		cross_player->scheduleSingleRequest(request);
 		is_request_scheduled = true;
 		return false;

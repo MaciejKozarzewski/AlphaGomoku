@@ -22,7 +22,6 @@ namespace ag
 		board.clear();
 		policy.clear();
 		node = nullptr;
-		augment_mode = -100;
 		last_move = Move();
 		value = Value();
 		proven_value = ProvenValue::UNKNOWN;
@@ -31,7 +30,6 @@ namespace ag
 	}
 	void EvaluationRequest::setTrajectory(const matrix<Sign> &base_board, const SearchTrajectory &trajectory) noexcept
 	{
-		augment_mode = -100;
 		node = &(trajectory.getLeafNode());
 		last_move = trajectory.getLastMove();
 		value = Value();
@@ -63,20 +61,6 @@ namespace ag
 		else
 			result += boardToString(board);
 		return result;
-	}
-	void EvaluationRequest::augment() noexcept
-	{
-		if (augment_mode == -100)
-		{
-			augment_mode = randInt(4 + 4 * static_cast<int>(board.isSquare()));
-			ag::augment(board, augment_mode);
-		}
-		else
-		{
-			ag::augment(board, -augment_mode);
-			ag::augment(policy, -augment_mode);
-			augment_mode = -100;
-		}
 	}
 }
 

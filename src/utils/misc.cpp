@@ -169,7 +169,41 @@ namespace ag
 		}
 		return result;
 	}
-	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy, const Move &lastMove)
+	std::string provenValuesToString(const matrix<Sign> &board, const matrix<ProvenValue> &pv)
+	{
+		assert(board.rows() == pv.rows());
+		assert(board.cols() == pv.cols());
+		std::string result;
+		for (int i = 0; i < board.rows(); i++)
+		{
+			for (int j = 0; j < board.cols(); j++)
+			{
+				if (board.at(i, j) == Sign::NONE)
+				{
+					switch (pv.at(i, j))
+					{
+						case ProvenValue::UNKNOWN:
+							result += " _ ";
+							break;
+						case ProvenValue::LOSS:
+							result += ">L<";
+							break;
+						case ProvenValue::DRAW:
+							result += ">D<";
+							break;
+						case ProvenValue::WIN:
+							result += ">W<";
+							break;
+					}
+				}
+				else
+					result += (board.at(i, j) == Sign::CROSS) ? " X " : " O ";
+			}
+			result += '\n';
+		}
+		return result;
+	}
+	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy)
 	{
 		assert(board.rows() == policy.rows());
 		assert(board.cols() == policy.cols());
@@ -178,18 +212,6 @@ namespace ag
 		{
 			for (int j = 0; j < board.cols(); j++)
 			{
-				if (lastMove.sign != Sign::NONE)
-				{
-					if (i == lastMove.row && j == lastMove.col)
-						result += '>';
-					else
-					{
-						if (i == lastMove.row && j == lastMove.col + 1)
-							result += '<';
-						else
-							result += ' ';
-					}
-				}
 				if (board.at(i, j) == Sign::NONE)
 				{
 					int t = (int) (1000 * policy.at(i, j));
@@ -197,8 +219,7 @@ namespace ag
 						result += "  _ ";
 					else
 					{
-						if (t < 1000)
-							result += ' ';
+						result += ' ';
 						if (t < 100)
 							result += ' ';
 						if (t < 10)
@@ -207,19 +228,38 @@ namespace ag
 					}
 				}
 				else
-				{
-					if (board.at(i, j) == Sign::CROSS)
-						result += "  X ";
-					else
-						result += "  O ";
-				}
+					result += (board.at(i, j) == Sign::CROSS) ? "  X " : "  O ";
 			}
-			if (lastMove.sign != Sign::NONE)
+			result += '\n';
+		}
+		return result;
+	}
+	std::string actionValuesToString(const matrix<Sign> &board, const matrix<Value> &actionValues)
+	{
+		assert(board.rows() == actionValues.rows());
+		assert(board.cols() == actionValues.cols());
+		std::string result;
+		for (int i = 0; i < board.rows(); i++)
+		{
+			for (int j = 0; j < board.cols(); j++)
 			{
-				if (i == lastMove.row && board.cols() == lastMove.col + 1)
-					result += '<';
+				if (board.at(i, j) == Sign::NONE)
+				{
+					int t = (int) (999 * (actionValues.at(i, j).win + 0.5f * actionValues.at(i, j).draw));
+					if (t == 0)
+						result += "  _ ";
+					else
+					{
+						result += ' ';
+						if (t < 100)
+							result += ' ';
+						if (t < 10)
+							result += ' ';
+						result += std::to_string(t);
+					}
+				}
 				else
-					result += ' ';
+					result += (board.at(i, j) == Sign::CROSS) ? "  X " : "  O ";
 			}
 			result += '\n';
 		}

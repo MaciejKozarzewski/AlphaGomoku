@@ -24,7 +24,8 @@ namespace ag
 			manager(manager),
 			generators(static_cast<int>(options["selfplay_options"]["games_per_thread"])),
 			device(device),
-			batch_size(generators.size() * static_cast<int>(options["selfplay_options"]["search_options"]["batch_size"]))
+			batch_size(generators.size() * static_cast<int>(options["selfplay_options"]["search_options"]["batch_size"])),
+			use_symmetries(static_cast<bool>(options["use_symmetries"]))
 	{
 		for (size_t i = 0; i < generators.size(); i++)
 			generators[i] = std::make_unique<GameGenerator>(options, manager.getGameBuffer(), queue);
@@ -32,7 +33,7 @@ namespace ag
 	void GeneratorThread::run()
 	{
 		ml::Device::cpu().setNumberOfThreads(1);
-		queue.loadGraph(manager.getPathToNetwork(), batch_size, device);
+		queue.loadGraph(manager.getPathToNetwork(), batch_size, device, use_symmetries);
 		while (not manager.hasEnoughGames())
 		{
 			for (size_t i = 0; i < generators.size(); i++)

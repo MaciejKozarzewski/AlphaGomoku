@@ -26,7 +26,6 @@ namespace ag
 			matrix<Sign> board;
 			matrix<float> policy;
 			Node *node = nullptr;
-			int augment_mode = -100;
 			Move last_move;
 			Value value;
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
@@ -107,7 +106,6 @@ namespace ag
 				node = n;
 			}
 			std::string toString() const;
-			void augment() noexcept;
 	};
 }
 

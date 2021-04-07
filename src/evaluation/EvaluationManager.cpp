@@ -22,13 +22,13 @@ namespace ag
 	}
 	void EvaluatorThread::setCrossPlayer(const Json &options, const std::string pathToNetwork)
 	{
-		cross_queue.loadGraph(pathToNetwork, batch_size, device);
+		cross_queue.loadGraph(pathToNetwork, batch_size, device, static_cast<bool>(options["use_symmetries"]));
 		for (size_t i = 0; i < evaluators.size(); i++)
 			evaluators[i]->setCrossPlayer(options, cross_queue);
 	}
 	void EvaluatorThread::setCirclePlayer(const Json &options, const std::string pathToNetwork)
 	{
-		circle_queue.loadGraph(pathToNetwork, batch_size, device);
+		circle_queue.loadGraph(pathToNetwork, batch_size, device, static_cast<bool>(options["use_symmetries"]));
 		for (size_t i = 0; i < evaluators.size(); i++)
 			evaluators[i]->setCirclePlayer(options, circle_queue);
 	}

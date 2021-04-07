@@ -59,7 +59,6 @@ namespace ag
 			float expansion_prior_treshold = 0.0f;
 			float noise_weight = 0.0f;
 			bool use_endgame_solver = false;
-			bool augment_position = false;
 
 			SearchConfig() = default;
 			SearchConfig(const Json &cfg);

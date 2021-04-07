@@ -126,14 +126,25 @@ void test_train()
 int main(int argc, char *argv[])
 {
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
-	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/test2_15x15_standard/";
+	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/test3_10x10_standard/";
 
-	test_train();
-	return 0;
+//	test_train();
+//	return 0;
 //	FileLoader fl(path + "config.json");
 //	EvaluationManager manager(fl.getJson());
 //	Json config = fl.getJson()["evaluation_options"];
+
+//	manager.setCrossPlayer(config, "/home/maciek/alphagomoku/test2_15x15_standard/checkpoint/network_164_opt.bin");
 //
+//	config["exploration_constant"] = 0.0f;
+//	manager.setCirclePlayer(config, "/home/maciek/alphagomoku/test2_15x15_standard/checkpoint/network_164_opt.bin");
+//
+//	manager.generate(1000);
+//	std::string to_save = manager.getGameBuffer().generatePGN("one_symmetry_c1_25", "one_symmetry_no_exploration_q0");
+//	std::ofstream file(path + "testowy.pgn", std::fstream::app);
+//	file << to_save;
+//	file.close();
+
 //	for (int i = 0; i <= 65; i++)
 //	{
 //		manager.setCrossPlayer(config, "/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
@@ -148,11 +159,10 @@ int main(int argc, char *argv[])
 //		std::cout << "finished " << i << '\n';
 //	}
 
-//
-//	TrainingManager tm(path);
-//	for (int i = 0; i < 200; i++)
-//		tm.runIterationRL();
-//	return 0;
+	TrainingManager tm(path);
+	for (int i = 0; i < 200; i++)
+		tm.runIterationRL();
+	return 0;
 
 	GameConfig game_config;
 	game_config.rules = GameRules::STANDARD;
@@ -169,18 +179,17 @@ int main(int argc, char *argv[])
 	cache_config.update_from_search = false;
 	Cache cache(game_config, cache_config);
 
-	EvaluationQueue queue;
-//	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
-//	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
-	queue.loadGraph("/home/maciek/alphagomoku/test2_15x15_standard/checkpoint/network_164_opt.bin", 32, ml::Device::cuda(0));
-
 	SearchConfig search_config;
-	search_config.batch_size = 32;
+	search_config.batch_size = 64;
 	search_config.exploration_constant = 1.25f;
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-3f;
-	search_config.augment_position = true;
 	search_config.use_endgame_solver = true;
+
+	EvaluationQueue queue;
+//	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
+//	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
+	queue.loadGraph("/home/maciek/alphagomoku/test2_15x15_standard/checkpoint/network_164_opt.bin", 64, ml::Device::cuda(0), true);
 
 	Search search(game_config, search_config, tree, cache, queue);
 
@@ -229,20 +238,21 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ O _ _ _\n");
 
 //	board = boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
-//							" _ _ _ _ _ O X X X X O X _ _ X\n" // 1
-//							" _ _ _ _ _ _ O _ O X _ O _ O _\n" // 2
-//							" _ _ _ _ _ _ _ X O _ X O O _ _\n" // 3
-//							" _ _ _ _ _ _ X O X O O O X X _\n" // 4
-//							" _ _ _ _ _ _ _ O _ X O _ _ _ _\n" // 5
-//							" _ _ _ _ O _ X _ O X O X X _ _\n" // 6
-//							" _ _ _ _ _ X _ _ _ _ _ X O _ _\n" // 7
-//							" _ _ _ X X _ _ _ X O X O _ _ X\n" // 8
-//							" _ _ _ X _ O X X O O _ X O O _\n" // 9
-//							" _ _ O _ _ _ O O O X O X O _ _\n" // 10
-//							" _ _ _ _ _ _ X _ O _ X O X _ _\n" // 11
-//							" _ _ _ _ _ _ _ _ _ O O X X _ _\n" // 12
-//							" _ _ _ _ _ _ _ _ _ X O O O O X\n" // 13
+//							" _ _ _ _ _ O X X X X O X _ _ X\n"// 1
+//							" _ _ _ _ _ _ O _ O X _ O _ O _\n"// 2
+//							" _ _ _ _ _ _ _ X O _ X O O _ _\n"// 3
+//							" _ _ _ _ _ _ X O X O O O X X X\n"// 4
+//							" _ _ _ _ _ _ _ O _ X O _ _ O _\n"// 5
+//							" _ _ _ _ O _ X _ O X O X X _ _\n"// 6
+//							" _ _ _ _ _ X _ _ _ _ _ X O _ _\n"// 7
+//							" _ _ _ X X _ _ _ X O X O _ _ X\n"// 8
+//							" _ _ _ X _ O X X O O _ X O O _\n"// 9
+//							" _ _ O _ _ _ O O O X O X O _ _\n"// 10
+//							" _ _ _ _ _ _ X _ O _ X O X _ _\n"// 11
+//							" _ _ _ _ _ _ _ _ _ O O X X _ _\n"// 12
+//							" _ _ _ _ _ _ _ _ _ X O O O O X\n"// 13
 //							" _ _ _ _ _ _ _ _ _ _ _ X _ X _\n");// 14
+//	sign_to_move = Sign::CROSS;
 
 //	board = boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
 //							" _ _ _ _ _ O X X X X O _ _ _ _\n" // 1
@@ -256,26 +266,26 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ X X O O _ X O _ _\n" // 9
 //							" _ _ _ _ _ _ O O _ X O X O _ _\n" // 10
 //							" _ _ _ _ _ _ X _ O _ X O X _ _\n" // 11
-//							" _ _ _ _ _ _ _ _ _ O O X _ _ _\n" // 12
+//							" _ _ _ _ _ _ _ _ _ O O X X _ _\n" // 12
 //							" _ _ _ _ _ _ _ _ _ X O _ _ O _\n" // 13
 //							" _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"); // 14
 
 	board = boardFromString(" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" // 0
-							" _ _ _ _ _ _ _ _ O _ X _ _ _ _\n" // 1
-							" _ _ _ _ _ _ _ _ _ X O O O _ _\n" // 2
-							" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" // 3
-							" _ _ _ _ _ _ X _ O O O X O _ _\n" // 4
-							" _ _ _ _ _ _ _ _ X O X X X X O\n" // 5
-							" _ _ _ _ _ _ _ _ X O X _ _ _ _\n" // 6
-							" _ _ _ _ _ _ _ _ _ _ X _ X _ _\n" // 7
-							" _ _ _ _ _ _ _ _ _ X O O _ _ _\n" // 8
-							" _ _ _ _ _ _ _ _ O X O _ _ _ _\n" // 9
-							" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 10
-							" _ _ _ _ _ _ _ _ O _ O _ _ _ _\n" // 11
-							" _ _ _ _ _ _ _ X _ _ _ X _ _ _\n" // 12
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" // 13
+							" _ _ _ _ _ _ _ _ O _ X _ _ _ _\n"// 1
+							" _ _ _ _ _ _ _ _ _ _ O O O _ _\n"// 2
+							" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n"// 3
+							" _ _ _ _ _ _ X _ O O O X O _ _\n"// 4
+							" _ _ _ _ _ _ _ _ X O X X X X O\n"// 5
+							" _ _ _ _ _ _ _ _ X O X _ _ _ _\n"// 6
+							" _ _ _ _ _ _ _ _ _ _ X _ X _ _\n"// 7
+							" _ _ _ _ _ _ _ _ _ X O O _ _ _\n"// 8
+							" _ _ _ _ _ _ _ _ O X O _ _ _ _\n"// 9
+							" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n"// 10
+							" _ _ _ _ _ _ _ _ O _ O _ _ _ _\n"// 11
+							" _ _ _ _ _ _ _ X _ _ _ X _ _ _\n"// 12
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"// 13
 							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");// 14
-	sign_to_move = Sign::CIRCLE;
+	sign_to_move = Sign::CROSS;
 //	return 0;
 
 //	board = boardFromString(" _ X _ O _ _ _ _ _ X O X _ O _\n"
@@ -305,7 +315,7 @@ int main(int argc, char *argv[])
 	search.setBoard(board);
 
 	matrix<float> policy(board.rows(), board.cols());
-	for (int i = 0; i <= 200; i++)
+	for (int i = 0; i <= 20; i++)
 	{
 		while (search.getSimulationCount() < i * 100000)
 		{
@@ -333,6 +343,28 @@ int main(int argc, char *argv[])
 	std::cout << "\n----------------------------------------------------------------------------------\n";
 	tree.printSubtree(tree.getRootNode(), 1, true);
 	std::cout << "\n----------------------------------------------------------------------------------\n";
+
+//	return 0;
+	matrix<ProvenValue> proven_values(15, 15);
+	matrix<Value> action_values(15, 15);
+	tree.getPlayoutDistribution(tree.getRootNode(), policy);
+	tree.getProvenValues(tree.getRootNode(), proven_values);
+	tree.getActionValues(tree.getRootNode(), action_values);
+	normalize(policy);
+
+	Move move = pickMove(policy);
+	move.sign = sign_to_move;
+
+	SearchData state(policy.rows(), policy.cols());
+	state.setBoard(board);
+	state.setActionProvenValues(proven_values);
+	state.setPolicy(policy);
+	state.setActionValues(action_values);
+	state.setMinimaxValue(tree.getRootNode().getValue());
+	state.setProvenValue(tree.getRootNode().getProvenValue());
+	state.setMove(move);
+
+	state.print();
 
 //	std::string path = "/home/maciek/alphagomoku/";
 //	std::string name = "standard_15x15_correct";

@@ -12,6 +12,7 @@
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <string>
 #include <vector>
+#include <utility>
 
 namespace ag
 {
@@ -35,19 +36,25 @@ namespace ag
 	class EvaluationQueue
 	{
 		private:
-			std::vector<EvaluationRequest*> request_queue;
+			std::vector<std::pair<EvaluationRequest*, int>> request_queue;
 			AGNetwork network;
 
 			QueueStats stats;
+			bool use_symmetries = false;
+			int available_symmetries = 1;
 		public:
+
 			void clearStats() noexcept;
 			QueueStats getStats() const noexcept;
 			int getQueueSize() const noexcept;
 			void clearQueue() noexcept;
-			void loadGraph(const std::string &path, int batchSize, ml::Device device = ml::Device::cpu());
+			void loadGraph(const std::string &path, int batchSize, ml::Device device = ml::Device::cpu(), bool useSymmetries = false);
 			void unloadGraph();
 			void addToQueue(EvaluationRequest &request);
 			void evaluateGraph();
+		private:
+			void pack(int batch_size);
+			void unpack(int batch_size);
 	};
 } /* namespace ag */
 

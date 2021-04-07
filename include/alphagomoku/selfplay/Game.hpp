@@ -13,10 +13,11 @@
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
 #include <libml/utils/serialization.hpp>
 
 #include <vector>
-#include <bits/stdint-uintn.h>
+#include <inttypes.h>
 
 namespace ag
 {
@@ -25,25 +26,12 @@ namespace ag
 
 namespace ag
 {
-	struct GameState
-	{
-			matrix<uint16_t> state;
-			Value minimax_value = 0.0f;
-			ProvenValue proven_value = ProvenValue::UNKNOWN;
-			uint16_t move = 0;
-
-			GameState(const SerializedObject &so, size_t &offset);
-			GameState(const matrix<Sign> &board, const matrix<float> &policy, Value minimax, Move m, ProvenValue pv);
-			GameState(Move m);
-			void copyTo(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove) const;
-			void serialize(SerializedObject &binary_data) const;
-			bool isCorrect() const noexcept;
-	};
 
 	class Game
 	{
 		private:
-			std::vector<GameState> states;
+			std::vector<SearchData> search_data;
+			std::vector<Move> played_moves;
 			matrix<Sign> current_board;
 			std::vector<int> use_count;
 			GameRules rules;
@@ -53,7 +41,6 @@ namespace ag
 		public:
 			Game(GameConfig config);
 			Game(const Json &json, const SerializedObject &binary_data);
-			Game(const SerializedObject &so, size_t &offset);
 
 			GameConfig getConfig() const noexcept;
 			int rows() const noexcept;
@@ -68,7 +55,7 @@ namespace ag
 			void loadOpening(const std::vector<Move> &moves);
 			void undoMove(Move move);
 			void makeMove(Move move);
-			void makeMove(Move move, const matrix<float> &policy, Value minimax, ProvenValue pv);
+			void addSearchData(const SearchData &state);
 			void resolveOutcome();
 			bool isOver() const;
 			bool isDraw() const;
@@ -76,9 +63,8 @@ namespace ag
 
 			bool isCorrect() const;
 			int getNumberOfSamples() const noexcept;
-			void getSample(matrix<Sign> &board, matrix<float> &policy, Sign &signToMove, GameOutcome &gameOutcome, int index = -1);
+			const SearchData& getSample(int index = -1);
 			int randomizeState();
-			void printSample(int index) const;
 
 			Json serialize(SerializedObject &binary_data) const;
 	};

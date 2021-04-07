@@ -7,6 +7,7 @@
 
 #include <alphagomoku/mcts/EvaluationQueue.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <libml/hardware/Device.hpp>
 #include <libml/Shape.hpp>
@@ -15,6 +16,15 @@
 #include <cstring>
 #include <initializer_list>
 #include <iostream>
+
+namespace
+{
+	bool is_square(const ml::Shape &shape)
+	{
+		assert(shape.length() == 4);
+		return shape[1] == shape[2];
+	}
+}
 
 namespace ag
 {
@@ -68,11 +78,13 @@ namespace ag
 	{
 		request_queue.clear();
 	}
-	void EvaluationQueue::loadGraph(const std::string &path, int batchSize, ml::Device device)
+	void EvaluationQueue::loadGraph(const std::string &path, int batchSize, ml::Device device, bool useSymmetries)
 	{
 		network.loadFromFile(path);
 		network.setBatchSize(batchSize);
 		network.getGraph().moveTo(device);
+		this->use_symmetries = useSymmetries;
+		available_symmetries = 4 + 4 * static_cast<int>(is_square(network.getGraph().getInputShape()));
 	}
 	void EvaluationQueue::unloadGraph()
 	{
@@ -81,36 +93,66 @@ namespace ag
 	}
 	void EvaluationQueue::addToQueue(EvaluationRequest &request)
 	{
-		request_queue.push_back(&request);
+		request_queue.push_back( { &request, 0 });
 	}
 	void EvaluationQueue::evaluateGraph()
 	{
-		double start = getTime(); // statistics
-		int batch = std::min(network.getBatchSize(), static_cast<int>(request_queue.size()));
-		if (batch > 0)
+		while (request_queue.size() > 0)
 		{
-			for (int i = 0; i < batch; i++)
-				network.packData(i, request_queue[i]->getBoard(), request_queue[i]->getSignToMove());
-			stats.time_pack += getTime() - start; // statistics
-			stats.nb_pack++;
-
-			start = getTime();
-			network.forward(batch);
-			stats.time_network_eval += getTime() - start; // statistics
-			stats.batch_sizes += batch; // statistics
-			stats.nb_network_eval++; // statistics
-
-			start = getTime();
-			for (int i = 0; i < batch; i++)
+			int batch_size = std::min(static_cast<int>(request_queue.size()), network.getBatchSize());
+			if (batch_size > 0)
 			{
-				Value value = network.unpackOutput(i, request_queue[i]->getPolicy());
-				request_queue[i]->setValue(value);
-				request_queue[i]->setReady();
+				pack(batch_size);
+
+				double start = getTime(); // statistics
+				network.forward(batch_size);
+				stats.time_network_eval += getTime() - start; // statistics
+				stats.batch_sizes += batch_size; // statistics
+				stats.nb_network_eval++; // statistics
+
+				unpack(batch_size);
+				request_queue.erase(request_queue.begin(), request_queue.begin() + batch_size);
 			}
-			request_queue.erase(request_queue.begin(), request_queue.begin() + batch);
-			stats.time_unpack += getTime() - start; // statistics
-			stats.nb_unpack++;
 		}
+	}
+	// private
+	void EvaluationQueue::pack(int batch_size)
+	{
+		double start = getTime(); // statistics
+		matrix<Sign> board(network.getGraph().getInputShape()[1], network.getGraph().getInputShape()[2]);
+		for (int i = 0; i < batch_size; i++)
+		{
+			if (use_symmetries)
+			{
+				request_queue[i].second = randInt(available_symmetries);
+				augment(board, request_queue[i].first->getBoard(), request_queue[i].second);
+			}
+			network.packData(i, board, request_queue[i].first->getSignToMove());
+		}
+		stats.time_pack += getTime() - start; // statistics
+		stats.nb_pack++; // statistics
+	}
+	void EvaluationQueue::unpack(int batch_size)
+	{
+		double start = getTime(); // statistics
+		matrix<float> policy(network.getGraph().getInputShape()[1], network.getGraph().getInputShape()[2]);
+		for (int i = 0; i < batch_size; i++)
+		{
+			if (use_symmetries)
+			{
+				Value value = network.unpackOutput(i, policy);
+				augment(request_queue[i].first->getPolicy(), policy, -request_queue[i].second);
+				request_queue[i].first->setValue(value);
+			}
+			else
+			{
+				Value value = network.unpackOutput(i, request_queue[i].first->getPolicy());
+				request_queue[i].first->setValue(value);
+			}
+			request_queue[i].first->setReady();
+		}
+		stats.time_unpack += getTime() - start; // statistics
+		stats.nb_unpack++; // statistics
 	}
 }
 

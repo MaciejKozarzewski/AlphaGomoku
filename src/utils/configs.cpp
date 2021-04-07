@@ -65,14 +65,13 @@ namespace ag
 			exploration_constant(cfg["exploration_constant"]),
 			expansion_prior_treshold(cfg["expansion_prior_treshold"]),
 			noise_weight(cfg["noise_weight"]),
-			use_endgame_solver(cfg["use_endgame_solver"]),
-			augment_position(cfg["augment_position"])
+			use_endgame_solver(cfg["use_endgame_solver"])
 	{
 	}
 	Json SearchConfig::getDefault()
 	{
 		return Json( { { "batch_size", 1 }, { "exploration_constant", 1.25 }, { "expansion_prior_treshold", 1.0e-6 }, { "noise_weight", 0.0 }, {
-				"use_endgame_solver", false }, { "augment_position", false } });
+				"use_endgame_solver", false } });
 	}
 
 	Json getDefaultTrainingConfig()
@@ -97,6 +96,7 @@ namespace ag
 				"\"simulations\": 100,"
 				"\"use_opening\": true,"
 				"\"temperature\": 0.0,"
+				"\"use_symmetries\": \"false\""
 				"\"threads\": [{\"device\": \"CPU\"}]}");
 		result["search_options"] = SearchConfig::getDefault();
 		result["search_options"]["noise_weight"] = 0.25;
@@ -113,6 +113,7 @@ namespace ag
 				"\"simulations\": 100,"
 				"\"use_opening\": true,"
 				"\"temperature\": 0.0,"
+				"\"use_symmetries\": \"false\""
 				"\"threads\": [{\"device\": \"CPU\"}]}");
 		result["search_options"] = SearchConfig::getDefault();
 		result["tree_options"] = TreeConfig::getDefault();

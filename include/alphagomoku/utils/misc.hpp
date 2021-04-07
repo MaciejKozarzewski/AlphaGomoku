@@ -19,6 +19,7 @@
 
 namespace ag
 {
+	class Value;
 	enum class GameRules;
 	enum class GameOutcome;
 	enum class ProvenValue;
@@ -43,7 +44,9 @@ namespace ag
 
 	matrix<Sign> boardFromString(std::string str);
 	std::string boardToString(const matrix<Sign> &board, const Move &lastMove = Move());
-	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy, const Move &lastMove = Move());
+	std::string provenValuesToString(const matrix<Sign> &board, const matrix<ProvenValue> &pv);
+	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy);
+	std::string actionValuesToString(const matrix<Sign> &board, const matrix<Value> &actionValues);
 
 	std::string printStatistics(const char *name, uint64_t number, double time);
 
@@ -53,6 +56,13 @@ namespace ag
 		assert(dst.size() == src.size());
 		for (size_t i = 0; i < dst.size(); i++)
 			dst[i] += src[i];
+	}
+	template<typename T>
+	void addMatrices(matrix<T> &dst, const matrix<T> &src)
+	{
+		assert(dst.size() == src.size());
+		for (int i = 0; i < dst.size(); i++)
+			dst.data()[i] += src.data()[i];
 	}
 
 	void maskIllegalMoves(const matrix<Sign> &board, matrix<float> &policy);

@@ -146,8 +146,6 @@ namespace ag
 					else
 					{
 						// node is not terminal, not a duplicate and not in cache
-						if (search_config.augment_position == true)
-							request.position.augment();
 						eval_queue.addToQueue(request.position);
 					}
 				}
@@ -198,8 +196,6 @@ namespace ag
 	void Search::evaluate(EvaluationRequest &position)
 	{
 		double start = getTime(); //statistics
-		if (search_config.augment_position == true)
-			position.augment();
 
 		if (tree.isRootNode(position.getNode()))
 			addNoise(position.getBoard(), position.getPolicy(), search_config.noise_weight);
