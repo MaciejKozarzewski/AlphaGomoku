@@ -20,7 +20,7 @@ namespace ag
 		private:
 			std::mutex logger_mutex;
 			std::ostream *output_stream = &(std::clog);
-			bool is_enabled = true;
+			bool is_enabled = false;
 		public:
 			static void enable() noexcept;
 			static void disable() noexcept;
