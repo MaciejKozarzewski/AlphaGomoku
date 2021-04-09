@@ -126,7 +126,10 @@ void test_train()
 int main(int argc, char *argv[])
 {
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
-	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/test3_10x10_standard/";
+	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/test2_15x15_standard/";
+
+//	GameBuffer buffer("/home/maciek/alphagomoku/test3_10x10_standard/train_buffer/buffer_0.bin");
+//	buffer.getFromBuffer(0).getSample(0).print();
 
 //	test_train();
 //	return 0;
@@ -145,15 +148,18 @@ int main(int argc, char *argv[])
 //	file << to_save;
 //	file.close();
 
-//	for (int i = 0; i <= 65; i++)
+//	for (int i = 48; i <= 65; i++)
 //	{
+//		config["exploration_constant"] = 0.0;
 //		manager.setCrossPlayer(config, "/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
+//
+//		config["exploration_constant"] = 1.0;
 //		manager.setCirclePlayer(config, "/home/maciek/alphagomoku/test2_10x10_standard/checkpoint/network_" + std::to_string(i) + "_opt.bin");
 //
 //		manager.getGameBuffer().clear();
 //		manager.generate(240);
 //		std::string to_save = manager.getGameBuffer().generatePGN(get_name("loss", i), get_name("parent", i));
-//		std::ofstream file(path + "new_compare.pgn", std::fstream::app);
+//		std::ofstream file(path + "newer_compare.pgn", std::fstream::app);
 //		file << to_save;
 //		file.close();
 //		std::cout << "finished " << i << '\n';
@@ -271,20 +277,20 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"); // 14
 
 	board = boardFromString(" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" // 0
-							" _ _ _ _ _ _ _ _ O _ X _ _ _ _\n"// 1
-							" _ _ _ _ _ _ _ _ _ _ O O O _ _\n"// 2
-							" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n"// 3
-							" _ _ _ _ _ _ X _ O O O X O _ _\n"// 4
-							" _ _ _ _ _ _ _ _ X O X X X X O\n"// 5
-							" _ _ _ _ _ _ _ _ X O X _ _ _ _\n"// 6
-							" _ _ _ _ _ _ _ _ _ _ X _ X _ _\n"// 7
-							" _ _ _ _ _ _ _ _ _ X O O _ _ _\n"// 8
-							" _ _ _ _ _ _ _ _ O X O _ _ _ _\n"// 9
-							" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n"// 10
-							" _ _ _ _ _ _ _ _ O _ O _ _ _ _\n"// 11
-							" _ _ _ _ _ _ _ X _ _ _ X _ _ _\n"// 12
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"// 13
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");// 14
+					" _ _ _ _ _ _ _ _ O _ X _ _ _ _\n"// 1
+					" _ _ _ _ _ _ _ _ _ _ O O O _ _\n"// 2
+					" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n"// 3
+					" _ _ _ _ _ _ X _ O O O X O _ _\n"// 4
+					" _ _ _ _ _ _ _ _ X O X X X X O\n"// 5
+					" _ _ _ _ _ _ _ _ X O X _ _ _ _\n"// 6
+					" _ _ _ _ _ _ _ _ _ _ X _ X _ _\n"// 7
+					" _ _ _ _ _ _ _ _ _ X O O _ _ _\n"// 8
+					" _ _ _ _ _ _ _ _ O X O _ _ _ _\n"// 9
+					" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n"// 10
+					" _ _ _ _ _ _ _ _ O _ O _ _ _ _\n"// 11
+					" _ _ _ _ _ _ _ X _ _ _ X _ _ _\n"// 12
+					" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"// 13
+					" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");// 14
 	sign_to_move = Sign::CROSS;
 //	return 0;
 

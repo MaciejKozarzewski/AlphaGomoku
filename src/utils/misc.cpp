@@ -443,18 +443,17 @@ namespace ag
 							}
 				}
 	}
-	std::vector<Move> prepareOpening(GameConfig config)
+	std::vector<Move> prepareOpening(GameConfig config, int minNumberOfMoves)
 	{
 		matrix<float> map_dist(config.rows, config.cols);
 		matrix<Sign> board(config.rows, config.cols);
 
-		std::vector<Move> result;
-		bool flag = true;
-		while (flag)
+		while (true)
 		{
+			std::vector<Move> result;
 			board.clear();
 			Sign sign_to_move = Sign::CROSS;
-			int opening_moves = randInt(6) + randInt(6) + randInt(6);
+			int opening_moves = std::max(minNumberOfMoves, randInt(6) + randInt(6) + randInt(6));
 			for (int i = 0; i < opening_moves; i++)
 			{
 				generateOpeningMap(board, map_dist);
@@ -465,32 +464,9 @@ namespace ag
 				board.at(move.row, move.col) = sign_to_move;
 				sign_to_move = invertSign(sign_to_move);
 			}
-			flag = getOutcome(config.rules, board) != GameOutcome::UNKNOWN;
+			if (getOutcome(config.rules, board) == GameOutcome::UNKNOWN)
+				return result;
 		}
-		return result;
-	}
-	Sign prepareOpening(GameRules rules, matrix<Sign> &board)
-	{
-		matrix<float> map_dist(board.rows(), board.cols());
-		bool flag = true;
-		Sign sign_to_move = Sign::CROSS;
-		while (flag)
-		{
-			sign_to_move = Sign::CROSS;
-			board.clear();
-			int opening_moves = randInt(6) + randInt(6) + randInt(6);
-			for (int i = 0; i < opening_moves; i++)
-			{
-				generateOpeningMap(board, map_dist);
-				Move move = randomizeMove(map_dist);
-				move.sign = sign_to_move;
-				assert(board.at(move.row, move.col) == Sign::NONE);
-				board.at(move.row, move.col) = sign_to_move;
-				sign_to_move = invertSign(sign_to_move);
-			}
-			flag = getOutcome(rules, board) != GameOutcome::UNKNOWN;
-		}
-		return sign_to_move;
 	}
 
 	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove)

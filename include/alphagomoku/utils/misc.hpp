@@ -85,8 +85,7 @@ namespace ag
 	std::vector<int> permutation(int length);
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
-	std::vector<Move> prepareOpening(GameConfig config);
-	Sign prepareOpening(GameRules rules, matrix<Sign> &board);
+	std::vector<Move> prepareOpening(GameConfig config, int minNumberOfMoves = 0);
 
 	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove);
 

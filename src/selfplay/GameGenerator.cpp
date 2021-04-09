@@ -59,18 +59,17 @@ namespace ag
 			if (fabsf((request.getValue().win + 0.5f * request.getValue().draw) - 0.5f) < (0.05f + opening_trials * 0.01f))
 			{
 				opening_trials = 0;
-				game.setBoard(request.getBoard(), request.getSignToMove());
 				return true;
 			}
 			else
 				opening_trials++;
 		}
 
-		matrix<Sign> board(game.rows(), game.cols());
-		Sign sign_to_start = ag::prepareOpening(game.getRules(), board);
+		std::vector<Move> opening = ag::prepareOpening(game.getConfig());
+		game.loadOpening(opening);
 		request.clear();
-		request.setBoard(board);
-		request.setLastMove( { 0, 0, invertSign(sign_to_start) });
+		request.setBoard(game.getBoard());
+		request.setLastMove(game.getLastMove());
 		queue.addToQueue(request);
 		is_request_scheduled = true;
 		return false;
@@ -86,11 +85,18 @@ namespace ag
 			move = pickMove(policy);
 		else
 			move = randomizeMove(policy, temperature);
-		move.sign = game.getSignToMove();
+		move.sign = game.getLastMove().sign;
+
+		matrix<ProvenValue> proven_values(game.rows(), game.cols());
+		matrix<Value> action_values(game.rows(), game.cols());
+		tree.getProvenValues(tree.getRootNode(), proven_values);
+		tree.getActionValues(tree.getRootNode(), action_values);
 
 		SearchData state(policy.rows(), policy.cols());
 		state.setBoard(game.getBoard());
+		state.setActionProvenValues(proven_values);
 		state.setPolicy(policy);
+		state.setActionValues(action_values);
 		state.setMinimaxValue(tree.getRootNode().getValue());
 		state.setProvenValue(tree.getRootNode().getProvenValue());
 		state.setMove(move);

@@ -10,34 +10,42 @@
 namespace ag
 {
 
-	EvaluatorThread::EvaluatorThread(EvaluationManager &manager, const Json &options, ml::Device device) :
-			manager(manager),
+	EvaluatorThread::EvaluatorThread(const Json &options, ml::Device device) :
 			evaluators(static_cast<int>(options["evaluation_options"]["games_per_thread"])),
 			device(device),
 			batch_size(evaluators.size() * static_cast<int>(options["evaluation_options"]["search_options"]["batch_size"]))
 	{
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i] = std::make_unique<EvaluationGame>(GameConfig(options["game_options"]), manager.getGameBuffer(),
+			evaluators[i] = std::make_unique<EvaluationGame>(GameConfig(options["game_options"]), game_buffer,
 					options["evaluation_options"]["use_opening"]);
 	}
-	void EvaluatorThread::setCrossPlayer(const Json &options, const std::string pathToNetwork)
+	void EvaluatorThread::setFirstPlayer(const Json &options, const std::string pathToNetwork, const std::string &name)
 	{
 		cross_queue.loadGraph(pathToNetwork, batch_size, device, static_cast<bool>(options["use_symmetries"]));
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->setCrossPlayer(options, cross_queue);
+			evaluators[i]->setFirstPlayer(options, cross_queue, name);
 	}
-	void EvaluatorThread::setCirclePlayer(const Json &options, const std::string pathToNetwork)
+	void EvaluatorThread::setSecondPlayer(const Json &options, const std::string pathToNetwork, const std::string &name)
 	{
 		circle_queue.loadGraph(pathToNetwork, batch_size, device, static_cast<bool>(options["use_symmetries"]));
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->setCirclePlayer(options, circle_queue);
+			evaluators[i]->setSecondPlayer(options, circle_queue, name);
+	}
+	GameBuffer& EvaluatorThread::getGameBuffer() noexcept
+	{
+		return game_buffer;
+	}
+	void EvaluatorThread::generate(int numberOfGames)
+	{
+		games_to_play = numberOfGames;
 	}
 	void EvaluatorThread::run()
 	{
 		ml::Device::cpu().setNumberOfThreads(1);
-		while (not manager.hasEnoughGames())
+		game_buffer.clear();
+		while (game_buffer.size() < games_to_play)
 		{
-			for (size_t i = 0; i < evaluators.size(); i++)
+			for (size_t i = 0; i < evaluators.size() and game_buffer.size() < games_to_play; i++)
 				evaluators[i]->generate();
 			cross_queue.evaluateGraph();
 			circle_queue.evaluateGraph();
@@ -53,41 +61,54 @@ namespace ag
 			evaluators(options["evaluation_options"]["threads"].size())
 	{
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i] = std::make_unique<EvaluatorThread>(*this, options,
-					ml::Device::fromString(options["evaluation_options"]["threads"][i]["device"]));
+			evaluators[i] = std::make_unique<EvaluatorThread>(options, ml::Device::fromString(options["evaluation_options"]["threads"][i]["device"]));
 	}
 
-	const GameBuffer& EvaluationManager::getGameBuffer() const noexcept
+	GameBuffer& EvaluationManager::getGameBuffer(int threadIndex) noexcept
 	{
-		return game_buffer;
+		return evaluators[threadIndex]->getGameBuffer();
 	}
-	GameBuffer& EvaluationManager::getGameBuffer() noexcept
+	void EvaluationManager::setFirstPlayer(int threadIndex, const Json &options, const std::string pathToNetwork, const std::string &name)
 	{
-		return game_buffer;
+		thread_pool.waitForFinish();
+		evaluators[threadIndex]->setFirstPlayer(options, pathToNetwork, name);
 	}
-	void EvaluationManager::setCrossPlayer(const Json &options, const std::string pathToNetwork)
+	void EvaluationManager::setSecondPlayer(int threadIndex, const Json &options, const std::string pathToNetwork, const std::string &name)
+	{
+		thread_pool.waitForFinish();
+		evaluators[threadIndex]->setSecondPlayer(options, pathToNetwork, name);
+	}
+	void EvaluationManager::setFirstPlayer(const Json &options, const std::string pathToNetwork, const std::string &name)
 	{
 		thread_pool.waitForFinish();
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->setCrossPlayer(options, pathToNetwork);
+			evaluators[i]->setFirstPlayer(options, pathToNetwork, name);
 	}
-	void EvaluationManager::setCirclePlayer(const Json &options, const std::string pathToNetwork)
+	void EvaluationManager::setSecondPlayer(const Json &options, const std::string pathToNetwork, const std::string &name)
 	{
 		thread_pool.waitForFinish();
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->setCirclePlayer(options, pathToNetwork);
-	}
-	bool EvaluationManager::hasEnoughGames() const noexcept
-	{
-		return game_buffer.size() >= games_to_play;
+			evaluators[i]->setSecondPlayer(options, pathToNetwork, name);
 	}
 
+	int EvaluationManager::numberOfThreads() const noexcept
+	{
+		return thread_pool.size();
+	}
+	int EvaluationManager::numberOfGames() const noexcept
+	{
+		int result = 0;
+		for (size_t i = 0; i < evaluators.size(); i++)
+			result += evaluators[i]->getGameBuffer().size();
+		return result;
+	}
 	void EvaluationManager::generate(int numberOfGames)
 	{
-		games_to_play = numberOfGames;
-
 		for (size_t i = 0; i < evaluators.size(); i++)
+		{
+			evaluators[i]->generate(numberOfGames / evaluators.size());
 			thread_pool.addJob(evaluators[i].get());
+		}
 
 		int time_counter = 0;
 		int game_counter = numberOfGames / 4;
@@ -95,9 +116,9 @@ namespace ag
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 			time_counter++;
-			if (time_counter % 60 == 0 or game_buffer.size() >= game_counter)
+			if (time_counter % 60 == 0 or this->numberOfGames() >= game_counter)
 			{
-				std::cout << getGameBuffer().getStats().toString() << '\n';
+				std::cout << this->numberOfGames() << " games played...\n";
 				time_counter = 0;
 				game_counter += numberOfGames / 4;
 			}

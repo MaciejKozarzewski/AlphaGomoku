@@ -72,16 +72,15 @@ namespace ag
 		use_count.clear();
 		current_board.clear();
 		outcome = GameOutcome::UNKNOWN;
-		sign_to_move = Sign::CROSS;
 	}
 	Sign Game::getSignToMove() const noexcept
 	{
-		return sign_to_move;
+		return invertSign(getLastMove().sign);
 	}
 	Move Game::getLastMove() const noexcept
 	{
-		if (length() == 0)
-			return Move(0, 0, invertSign(sign_to_move));
+		if (played_moves.empty())
+			return Move(0, 0, Sign::CIRCLE); // fake move so the first player starts with CROSS sign
 		else
 			return Move(played_moves.back());
 	}
@@ -89,15 +88,9 @@ namespace ag
 	{
 		return current_board;
 	}
-	void Game::setBoard(const matrix<Sign> &other, Sign signToMove)
-	{
-		this->current_board = other;
-		this->sign_to_move = signToMove;
-	}
 	void Game::loadOpening(const std::vector<Move> &moves)
 	{
 		beginGame();
-		sign_to_move = (moves.size() == 0) ? Sign::CROSS : moves[0].sign;
 		for (size_t i = 0; i < moves.size(); i++)
 			makeMove(moves[i]);
 	}
@@ -105,21 +98,22 @@ namespace ag
 	{
 		assert(move.row >= 0 && move.row < rows());
 		assert(move.col >= 0 && move.col < cols());
-		assert(move.sign == invertSign(sign_to_move));
-		assert(current_board.at(move.row, move.col) != Sign::NONE);
+		assert(length() > 0);
+		assert(move == getLastMove());
+		assert(current_board.at(move.row, move.col) == move.sign);
 
+		played_moves.pop_back();
 		current_board.at(move.row, move.col) = Sign::NONE;
-		sign_to_move = invertSign(sign_to_move);
 	}
 	void Game::makeMove(Move move)
 	{
 		assert(move.row >= 0 && move.row < rows());
 		assert(move.col >= 0 && move.col < cols());
-		assert(move.sign == sign_to_move);
+		assert(move.sign == getSignToMove());
 		assert(current_board.at(move.row, move.col) == Sign::NONE);
 
+		played_moves.push_back(move);
 		current_board.at(move.row, move.col) = move.sign;
-		sign_to_move = invertSign(sign_to_move);
 	}
 	void Game::addSearchData(const SearchData &state)
 	{
@@ -143,6 +137,43 @@ namespace ag
 	GameOutcome Game::getOutcome() const noexcept
 	{
 		return outcome;
+	}
+	void Game::setPlayers(const std::string &crossPlayerName, const std::string &circlePlayerName)
+	{
+		cross_player_name = crossPlayerName;
+		circle_player_name = circlePlayerName;
+	}
+	std::string Game::generatePGN(bool fullGameHistory) const
+	{
+		std::string result;
+		result += "[Event \"Evaluation\"]\n";
+		result += "[Site \"N/A\"]\n";
+		result += "[Date \"" + currentDateTime() + "\"]\n";
+		result += "[Round \"0\"]\n";
+		result += "[White \"" + circle_player_name + "\"]\n";
+		result += "[Black \"" + cross_player_name + "\"]\n";
+
+		switch (getOutcome())
+		{
+			case GameOutcome::UNKNOWN:
+				throw std::logic_error("cannot save PGN of an unfinished game");
+			case GameOutcome::DRAW:
+				result += "[Result \"1/2-1/2\"]\n";
+				break;
+			case GameOutcome::CROSS_WIN:
+				result += "[Result \"0-1\"]\n";
+				break;
+			case GameOutcome::CIRCLE_WIN:
+				result += "[Result \"1-0\"]\n";
+				break;
+		}
+		if (fullGameHistory == true)
+		{
+			// TODO add saving entire game history
+		}
+		else
+			result += "1. N/A\n";
+		return result;
 	}
 
 	bool Game::isCorrect() const

@@ -157,23 +157,34 @@ namespace ag
 			metadata["best_network"] = get_last_checkpoint() + 1;
 			return;
 		}
+		std::string path_to_networks = working_dir + "/checkpoint/network_";
 
-		evaluator.getGameBuffer().clear();
-		evaluator.setCrossPlayer(config["evaluation_options"],
-				working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint() + 1) + "_opt.bin");
-		evaluator.setCirclePlayer(config["evaluation_options"],
-				working_dir + "/checkpoint/network_" + std::to_string(get_best_checkpoint()) + "_opt.bin");
+		evaluator.setFirstPlayer(config["evaluation_options"], path_to_networks + std::to_string(get_last_checkpoint() + 1) + "_opt.bin",
+				get_name(get_last_checkpoint() + 1));
 
-		std::cout << "Evaluating network " << get_last_checkpoint() + 1 << " against " << get_best_checkpoint() << '\n';
+		std::cout << "Evaluating network " << get_last_checkpoint() + 1 << " vs";
+		for (int i = 0; i < evaluator.numberOfThreads(); i++)
+		{
+			evaluator.setSecondPlayer(i, config["evaluation_options"],
+					path_to_networks + std::to_string(std::max(0, get_best_checkpoint() - i)) + "_opt.bin",
+					get_name(std::max(0, get_best_checkpoint() - i)));
+			std::cout << ' ' << std::to_string(std::max(0, get_best_checkpoint() - i)) << ',';
+		}
+		std::cout << '\n';
+
 		evaluator.generate(static_cast<int>(config["evaluation_options"]["games_per_iteration"]));
-		std::string to_save = evaluator.getGameBuffer().generatePGN(get_name(get_last_checkpoint() + 1), get_name(get_last_checkpoint()));
+		std::string to_save;
+		for (int i = 0; i < evaluator.numberOfThreads(); i++)
+			to_save += evaluator.getGameBuffer(i).generatePGN();
 		std::ofstream file(working_dir + "/rating.pgn", std::fstream::app);
 		file << to_save;
 		file.close();
 
 		if (config["evaluation_options"]["gating"]["use_gating"])
 		{
-			GameBufferStats stats = evaluator.getGameBuffer().getStats();
+			GameBufferStats stats;
+			for (int i = 0; i < evaluator.numberOfThreads(); i++)
+				stats += evaluator.getGameBuffer(i).getStats();
 			if (stats.cross_win + 0.5 * stats.draws >= static_cast<float>(config["evaluation_options"]["gating"]["treshold"]))
 				metadata["best_network"] = get_last_checkpoint() + 1;
 		}

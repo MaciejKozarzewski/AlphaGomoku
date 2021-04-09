@@ -50,7 +50,7 @@ namespace ag
 			GameBufferStats getStats() const noexcept;
 			bool isCorrect() const noexcept;
 
-			std::string generatePGN(const std::string &crossPlayer, const std::string &circlePlayer, bool justOutcomes = true);
+			std::string generatePGN(bool fullGameHistory = false);
 	};
 }
 

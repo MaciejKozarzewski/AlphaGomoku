@@ -35,9 +35,14 @@ namespace ag
 			Cache cache;
 			Search search;
 
+			std::string name;
+			Sign sign = Sign::NONE;
 			int simulations = 0;
 		public:
-			Player(GameConfig gameOptions, const Json &options, EvaluationQueue &queue);
+			Player(GameConfig gameOptions, const Json &options, EvaluationQueue &queue, const std::string &name);
+			void setSign(Sign s) noexcept;
+			Sign getSign() const noexcept;
+			std::string getName() const;
 			void prepareSearch(const matrix<Sign> &board, Move lastMove);
 			bool performSearch();
 			void scheduleSingleRequest(EvaluationRequest &request);
@@ -49,7 +54,10 @@ namespace ag
 		private:
 			enum GameState
 			{
-				GAME_NOT_STARTED, PREPARE_OPENING, GAMEPLAY, SEND_RESULTS
+				GAME_NOT_STARTED,
+				PREPARE_OPENING,
+				GAMEPLAY,
+				SEND_RESULTS
 			};
 			GameBuffer &game_buffer;
 			Game game;
@@ -63,13 +71,13 @@ namespace ag
 			std::vector<Move> opening;
 			bool has_stored_opening = false;
 
-			std::unique_ptr<Player> cross_player;
-			std::unique_ptr<Player> circle_player;
+			std::unique_ptr<Player> first_player;
+			std::unique_ptr<Player> second_player;
 		public:
 			EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening);
 			void clear();
-			void setCrossPlayer(const Json &options, EvaluationQueue &queue);
-			void setCirclePlayer(const Json &options, EvaluationQueue &queue);
+			void setFirstPlayer(const Json &options, EvaluationQueue &queue, const std::string &name);
+			void setSecondPlayer(const Json &options, EvaluationQueue &queue, const std::string &name);
 			bool prepareOpening();
 			void generate();
 		private:

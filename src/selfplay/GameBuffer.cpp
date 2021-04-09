@@ -59,19 +59,6 @@ namespace ag
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		buffer_data.push_back(Game(game));
-
-//		stats.played_games++;
-//		stats.positions += game.getNumberOfSamples();
-//		stats.game_length += game.length();
-//		if (game.getOutcome() == 0)
-//			stats.draws++;
-//		else
-//		{
-//			if (game.getOutcome() == 1)
-//				stats.cross_win++;
-//			else
-//				stats.circle_win++;
-//		}
 	}
 	const Game& GameBuffer::getFromBuffer(int index) const
 	{
@@ -102,23 +89,6 @@ namespace ag
 		size_t size = fl.getJson().size();
 		for (size_t i = 0; i < size; i++)
 			buffer_data.push_back(Game(fl.getJson()[i], fl.getBinaryData()));
-
-//		size_t offset = 0;
-//		SerializedObject so(path);
-//		int _board_size;
-//		so.load(&_board_size, offset, sizeof(int));
-//		offset += sizeof(int);
-//
-//		if (board_size != 0 && _board_size != board_size)
-//			throw std::logic_error("board size mismatch");
-//		else
-//			board_size = _board_size;
-//
-//		int size;
-//		so.load(&size, offset, sizeof(int));
-//		offset += sizeof(int);
-//		for (int i = 0; i < size; i++)
-//			buffer_data.push_back(Game(so, offset));
 	}
 	GameBufferStats GameBuffer::getStats() const noexcept
 	{
@@ -155,36 +125,12 @@ namespace ag
 		return true;
 	}
 
-	std::string GameBuffer::generatePGN(const std::string &crossPlayer, const std::string &circlePlayer, bool justOutcomes)
+	std::string GameBuffer::generatePGN(bool fullGameHistory)
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		std::string result;
 		for (size_t i = 0; i < buffer_data.size(); i++)
-		{
-			result += "[Event \"Evaluation\"]\n";
-			result += "[Site \"N/A\"]\n";
-			result += "[Date \"" + currentDateTime() + "\"]\n";
-			result += "[Round \"0\"]\n";
-			result += "[White \"" + circlePlayer + "\"]\n";
-			result += "[Black \"" + crossPlayer + "\"]\n";
-
-			GameOutcome game_result = buffer_data[i].getOutcome();
-			if (game_result == GameOutcome::DRAW)
-				result += "[Result \"1/2-1/2\"]\n";
-			else
-			{
-				if (game_result == GameOutcome::CIRCLE_WIN)
-					result += "[Result \"1-0\"]\n";
-				else
-					result += "[Result \"0-1\"]\n";
-			}
-			if (justOutcomes)
-				result += "1. N/A\n";
-			else
-			{
-				// TODO add saving entire game history
-			}
-		}
+			result+=buffer_data[i].generatePGN(fullGameHistory);
 		return result;
 	}
 

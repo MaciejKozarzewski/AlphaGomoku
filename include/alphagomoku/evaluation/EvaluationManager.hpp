@@ -26,16 +26,21 @@ namespace ag
 	class EvaluatorThread: public Job
 	{
 		private:
-			EvaluationManager &manager;
 			EvaluationQueue cross_queue;
 			EvaluationQueue circle_queue;
 			std::vector<std::unique_ptr<EvaluationGame>> evaluators;
+
+			GameBuffer game_buffer;
+			int games_to_play = 0;
+
 			ml::Device device;
 			int batch_size;
 		public:
-			EvaluatorThread(EvaluationManager &manager, const Json &options, ml::Device device);
-			void setCrossPlayer(const Json &options, const std::string pathToNetwork);
-			void setCirclePlayer(const Json &options, const std::string pathToNetwork);
+			EvaluatorThread(const Json &options, ml::Device device);
+			void setFirstPlayer(const Json &options, const std::string pathToNetwork, const std::string &name);
+			void setSecondPlayer(const Json &options, const std::string pathToNetwork, const std::string &name);
+			GameBuffer& getGameBuffer() noexcept;
+			void generate(int numberOfGames);
 			void run();
 	};
 
@@ -44,20 +49,19 @@ namespace ag
 		private:
 			ThreadPool thread_pool;
 			std::vector<std::unique_ptr<EvaluatorThread>> evaluators;
-			GameBuffer game_buffer;
-
-			int games_to_play = 0;
 		public:
 			EvaluationManager(const Json &options);
 
-			const GameBuffer& getGameBuffer() const noexcept;
-			GameBuffer& getGameBuffer() noexcept;
+			GameBuffer& getGameBuffer(int threadIndex) noexcept;
 
-			void setCrossPlayer(const Json &options, const std::string pathToNetwork);
-			void setCirclePlayer(const Json &options, const std::string pathToNetwork);
+			void setFirstPlayer(int threadIndex, const Json &options, const std::string pathToNetwork, const std::string &name);
+			void setSecondPlayer(int threadIndex, const Json &options, const std::string pathToNetwork, const std::string &name);
+			void setFirstPlayer(const Json &options, const std::string pathToNetwork, const std::string &name);
+			void setSecondPlayer(const Json &options, const std::string pathToNetwork, const std::string &name);
 
+			int numberOfThreads() const noexcept;
+			int numberOfGames() const noexcept;
 			void generate(int numberOfGames);
-			bool hasEnoughGames() const noexcept;
 	};
 
 } /* namespace ag */

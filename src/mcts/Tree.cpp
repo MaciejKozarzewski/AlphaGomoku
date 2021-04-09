@@ -22,32 +22,20 @@ namespace
 	Node* select_puct(Node *parent, const float exploration_constant, const T &get_value)
 	{
 		assert(parent->getVisits() > 0);
-//		const float sqrt_visit = 1.25f * sqrtf((exploration_constant == 0.0f) ? std::max(parent->getVisits() - 1, 1) : parent->getVisits());
 		const float sqrt_visit = exploration_constant * sqrtf(parent->getVisits());
 		auto selected = parent->end();
 		float bestValue = std::numeric_limits<float>::lowest();
-		float my_value = 1.0f - get_value(parent); // TODO later maybe remove this
+		float my_value = 1.0f - get_value(parent);
 		for (auto iter = parent->begin(); iter < parent->end(); iter++)
 			if (not iter->isProven())
 			{
-				float PUCT;
-//				float PUCT = get_value(iter) + iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits());
+				float Q = (iter->getVisits() == 0) ? my_value : get_value(iter);
+				float U = iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits()); // classical PUCT formula
 
-//				float PUCT = iter->getPolicyPrior() / (1.0f + iter->getVisits());// + sqrtf(logf(parent->getVisits()) / (1.0f + iter->getVisits()));
-//				if (exploration_constant == 0.0f)
-					PUCT = iter->getPolicyPrior() / (1.0f + iter->getVisits()); // no exploration term
-//				else
-//					PUCT = iter->getPolicyPrior() * sqrt_visit / (1.0f + iter->getVisits()); // classical PUCT formula
-//				float PUCT = iter->getPolicyPrior() / (1.0f + iter->getVisits()); // no exploration term
-
-				if (iter->getVisits() == 0)
-					PUCT += my_value;
-				else
-					PUCT += get_value(iter);
-				if (PUCT > bestValue)
+				if (Q + U > bestValue)
 				{
 					selected = iter;
-					bestValue = PUCT;
+					bestValue = Q + U;
 				}
 			}
 		assert(selected != parent->end());

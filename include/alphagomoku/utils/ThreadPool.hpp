@@ -44,6 +44,7 @@ namespace ag
 
 			void addJob(Job *job);
 			bool isReady() const noexcept;
+			int size() const noexcept;
 			void waitForFinish();
 
 		private:

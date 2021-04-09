@@ -34,7 +34,7 @@ namespace ag
 		offset += sizeof(int);
 
 		played_move = Move(so.load<uint16_t>(offset));
-		offset += sizeof(played_move);
+		offset += sizeof(uint16_t);
 	}
 	SearchData::SearchData(int rows, int cols) :
 			actions(rows, cols)

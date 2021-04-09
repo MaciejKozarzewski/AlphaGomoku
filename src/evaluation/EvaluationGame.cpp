@@ -14,14 +14,27 @@
 namespace ag
 {
 
-	Player::Player(GameConfig gameOptions, const Json &options, EvaluationQueue &queue) :
+	Player::Player(GameConfig gameOptions, const Json &options, EvaluationQueue &queue, const std::string &name) :
 			queue(queue),
 			game_config(gameOptions),
 			tree(TreeConfig(options["tree_options"])),
 			cache(gameOptions, CacheConfig(options["cache_options"])),
 			search(gameOptions, SearchConfig(options["search_options"]), tree, cache, queue),
+			name(name),
 			simulations(options["simulations"])
 	{
+	}
+	void Player::setSign(Sign s) noexcept
+	{
+		sign = s;
+	}
+	Sign Player::getSign() const noexcept
+	{
+		return sign;
+	}
+	std::string Player::getName() const
+	{
+		return name;
 	}
 	void Player::prepareSearch(const matrix<Sign> &board, Move lastMove)
 	{
@@ -36,19 +49,7 @@ namespace ag
 	{
 		search.handleEvaluation(); //first handle scheduled requests
 		if (search.getSimulationCount() >= simulations or tree.isProven())
-		{
-//			matrix<float> policy(15, 15);
-//			tree.getPlayoutDistribution(tree.getRootNode(), policy);
-//			normalize(policy);
-//			std::cout << tree.getPrincipalVariation().toString() << '\n';
-//			std::cout << policyToString(search.getBoard(), policy);
-//			std::cout << search.getStats().toString();
-//			std::cout << queue.getStats().toString();
-//			std::cout << tree.getStats().toString();
-//			std::cout << cache.storedElements() << " : " << cache.bufferedElements() << " : " << cache.allocatedElements() << " : "
-//					<< cache.loadFactor() << "\n\n";
 			return false;
-		}
 		else
 		{
 			search.simulate(simulations); //then perform search and schedule more requests
@@ -63,6 +64,7 @@ namespace ag
 	{
 		matrix<float> policy(game_config.rows, game_config.cols);
 		tree.getPlayoutDistribution(tree.getRootNode(), policy);
+		normalize(policy);
 
 		Move move = pickMove(policy);
 		move.sign = invertSign(Move::getSign(tree.getRootNode().getMove()));
@@ -78,72 +80,90 @@ namespace ag
 	}
 	void EvaluationGame::clear()
 	{
-		cross_player.reset();
-		circle_player.reset();
+		first_player.reset();
+		second_player.reset();
 		state = GAME_NOT_STARTED;
 		is_request_scheduled = false;
 		opening_trials = 0;
 		has_stored_opening = false;
 	}
-	void EvaluationGame::setCrossPlayer(const Json &options, EvaluationQueue &queue)
+	void EvaluationGame::setFirstPlayer(const Json &options, EvaluationQueue &queue, const std::string &name)
 	{
-		cross_player = std::make_unique<Player>(game.getConfig(), options, queue);
+		first_player = std::make_unique<Player>(game.getConfig(), options, queue, name);
 	}
-	void EvaluationGame::setCirclePlayer(const Json &options, EvaluationQueue &queue)
+	void EvaluationGame::setSecondPlayer(const Json &options, EvaluationQueue &queue, const std::string &name)
 	{
-		circle_player = std::make_unique<Player>(game.getConfig(), options, queue);
+		second_player = std::make_unique<Player>(game.getConfig(), options, queue, name);
 	}
 	bool EvaluationGame::prepareOpening()
 	{
-		assert(cross_player != nullptr);
-		if (has_stored_opening)
-		{
-			has_stored_opening = false;
-			for (size_t i = 0; i < opening.size(); i++)
-				opening[i].sign = invertSign(opening[i].sign);
-			game.loadOpening(opening);
-			return true;
-		}
+		assert(first_player != nullptr);
 
-		if (is_request_scheduled == true)
+		if (use_opening)
 		{
-			if (request.is_ready == false)
-				return false;
-			is_request_scheduled = false;
-			if (fabsf((request.getValue().win + 0.5f * request.getValue().draw) - 0.5f) < (0.05f + opening_trials * 0.01f))
+			if (has_stored_opening)
 			{
-				opening_trials = 0;
-				has_stored_opening = true;
+				has_stored_opening = false;
+				first_player->setSign(Sign::CIRCLE);
+				second_player->setSign(Sign::CROSS);
+				game.setPlayers(second_player->getName(), first_player->getName());
+				game.loadOpening(opening);
 				return true;
 			}
-			else
-				opening_trials++;
-		}
 
-		opening = ag::prepareOpening(game.getConfig());
-		game.loadOpening(opening);
-		request.clear();
-		request.setBoard(game.getBoard());
-		request.setLastMove(game.getLastMove());
-		cross_player->scheduleSingleRequest(request);
-		is_request_scheduled = true;
-		return false;
+			if (is_request_scheduled == true)
+			{
+				if (request.is_ready == false)
+					return false;
+				is_request_scheduled = false;
+				if (fabsf((request.getValue().win + 0.5f * request.getValue().draw) - 0.5f) < (0.05f + opening_trials * 0.01f))
+				{
+					opening_trials = 0;
+					has_stored_opening = true;
+					first_player->setSign(Sign::CROSS);
+					second_player->setSign(Sign::CIRCLE);
+					game.setPlayers(first_player->getName(), second_player->getName());
+					return true;
+				}
+				else
+					opening_trials++;
+			}
+
+			opening = ag::prepareOpening(game.getConfig(), 2);
+			game.loadOpening(opening);
+			request.clear();
+			request.setBoard(game.getBoard());
+			request.setLastMove(game.getLastMove());
+			first_player->scheduleSingleRequest(request);
+			is_request_scheduled = true;
+			return false;
+		}
+		else
+		{
+			if (has_stored_opening == false)
+			{
+				has_stored_opening = true;
+				first_player->setSign(Sign::CROSS);
+				second_player->setSign(Sign::CIRCLE);
+				game.setPlayers(first_player->getName(), second_player->getName());
+			}
+			else
+			{
+				has_stored_opening = false;
+				first_player->setSign(Sign::CIRCLE);
+				second_player->setSign(Sign::CROSS);
+				game.setPlayers(second_player->getName(), first_player->getName());
+			}
+			return true;
+		}
 	}
 	void EvaluationGame::generate()
 	{
 		if (state == GAME_NOT_STARTED)
 		{
 			if (use_opening)
-			{
 				opening_trials = 0;
-				state = PREPARE_OPENING;
-			}
-			else
-			{
-				game.beginGame();
-				get_player().prepareSearch(game.getBoard(), game.getLastMove());
-				state = GAMEPLAY;
-			}
+			state = PREPARE_OPENING;
 		}
 
 		if (state == PREPARE_OPENING)
@@ -184,12 +204,14 @@ namespace ag
 	// private
 	Player& EvaluationGame::get_player() const noexcept
 	{
-		assert(cross_player != nullptr);
-		assert(circle_player != nullptr);
-		if (game.getSignToMove() == Sign::CROSS)
-			return *cross_player;
+		assert(first_player != nullptr && first_player->getSign() != Sign::NONE);
+		assert(second_player != nullptr && second_player->getSign() != Sign::NONE);
+		assert(first_player->getSign() == invertSign(second_player->getSign()));
+
+		if (game.getSignToMove() == first_player->getSign())
+			return *first_player;
 		else
-			return *circle_player;
+			return *second_player;
 	}
 } /* namespace ag */
 

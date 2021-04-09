@@ -43,6 +43,10 @@ namespace ag
 		std::lock_guard lock(queue_mutex);
 		return is_ready();
 	}
+	int ThreadPool::size() const noexcept
+	{
+		return static_cast<int>(threads.size());
+	}
 	void ThreadPool::waitForFinish()
 	{
 		std::unique_lock lock(queue_mutex);

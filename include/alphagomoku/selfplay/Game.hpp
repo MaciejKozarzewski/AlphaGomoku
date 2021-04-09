@@ -35,8 +35,10 @@ namespace ag
 			matrix<Sign> current_board;
 			std::vector<int> use_count;
 			GameRules rules;
-			Sign sign_to_move = Sign::NONE;
 			GameOutcome outcome = GameOutcome::UNKNOWN;
+
+			std::string cross_player_name;
+			std::string circle_player_name;
 
 		public:
 			Game(GameConfig config);
@@ -51,7 +53,6 @@ namespace ag
 			Sign getSignToMove() const noexcept;
 			Move getLastMove() const noexcept;
 			const matrix<Sign>& getBoard() const noexcept;
-			void setBoard(const matrix<Sign> &other, Sign signToMove);
 			void loadOpening(const std::vector<Move> &moves);
 			void undoMove(Move move);
 			void makeMove(Move move);
@@ -60,6 +61,8 @@ namespace ag
 			bool isOver() const;
 			bool isDraw() const;
 			GameOutcome getOutcome() const noexcept;
+			void setPlayers(const std::string &crossPlayerName, const std::string &circlePlayerName);
+			std::string generatePGN(bool fullGameHistory = false) const;
 
 			bool isCorrect() const;
 			int getNumberOfSamples() const noexcept;
