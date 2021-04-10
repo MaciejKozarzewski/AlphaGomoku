@@ -22,10 +22,10 @@ namespace
 	Node* select_puct(Node *parent, const float exploration_constant, const T &get_value)
 	{
 		assert(parent->getVisits() > 0);
+		const float my_value = 1.0f - get_value(parent);
 		const float sqrt_visit = exploration_constant * sqrtf(parent->getVisits());
 		auto selected = parent->end();
 		float bestValue = std::numeric_limits<float>::lowest();
-		float my_value = 1.0f - get_value(parent);
 		for (auto iter = parent->begin(); iter < parent->end(); iter++)
 			if (not iter->isProven())
 			{
@@ -347,10 +347,19 @@ namespace ag
 		for (int i = 0; i < trajectory.length(); i++)
 			trajectory.getNode(i).cancelVirtualLoss();
 	}
+	void Tree::getPolicyPriors(const Node &node, matrix<float> &result) const
+	{
+		std::lock_guard<std::mutex> lock(tree_mutex);
+		result.fill(0.0f);
+		for (auto iter = node.begin(); iter < node.end(); iter++)
+		{
+			Move move = iter->getMove();
+			result.at(move.row, move.col) = iter->getPolicyPrior();
+		}
+	}
 	void Tree::getPlayoutDistribution(const Node &node, matrix<float> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
-
 		result.fill(0.0f);
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
@@ -361,7 +370,6 @@ namespace ag
 	void Tree::getProvenValues(const Node &node, matrix<ProvenValue> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
-
 		result.fill(ProvenValue::UNKNOWN);
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
@@ -372,7 +380,6 @@ namespace ag
 	void Tree::getActionValues(const Node &node, matrix<Value> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
-
 		result.fill(Value());
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{

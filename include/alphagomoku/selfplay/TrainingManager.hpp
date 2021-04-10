@@ -30,7 +30,7 @@ namespace ag
 			TrainingManager(const std::string &workingDirectory);
 
 			void runIterationRL();
-			void runIterationSL(const std::string &buffer_src);
+			void runIterationSL();
 		private:
 			void initFolderTree();
 			void saveMetadata();
@@ -41,7 +41,7 @@ namespace ag
 			void train();
 			void validate();
 			void evaluate();
-			void splitBuffer(const GameBuffer &buffer, int training_games, int validation_games);
+			void splitBuffer(GameBuffer &buffer, int training_games, int validation_games);
 			void loadBuffer(GameBuffer &result, const std::string &path);
 
 			int get_last_checkpoint() const;

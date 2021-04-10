@@ -126,8 +126,10 @@ namespace ag
 			{
 				request_queue[i].second = randInt(available_symmetries);
 				augment(board, request_queue[i].first->getBoard(), request_queue[i].second);
+				network.packData(i, board, request_queue[i].first->getSignToMove());
 			}
-			network.packData(i, board, request_queue[i].first->getSignToMove());
+			else
+				network.packData(i, request_queue[i].first->getBoard(), request_queue[i].first->getSignToMove());
 		}
 		stats.time_pack += getTime() - start; // statistics
 		stats.nb_pack++; // statistics

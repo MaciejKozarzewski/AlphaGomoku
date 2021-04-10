@@ -70,6 +70,16 @@ namespace ag
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		return buffer_data.at(index);
 	}
+	void GameBuffer::removeFromBuffer(int index)
+	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		buffer_data.erase(buffer_data.begin() + index);
+	}
+	void GameBuffer::removeRange(int from, int to)
+	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		buffer_data.erase(buffer_data.begin() + from, buffer_data.begin() + to);
+	}
 	void GameBuffer::save(const std::string &path) const
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
@@ -130,7 +140,7 @@ namespace ag
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		std::string result;
 		for (size_t i = 0; i < buffer_data.size(); i++)
-			result+=buffer_data[i].generatePGN(fullGameHistory);
+			result += buffer_data[i].generatePGN(fullGameHistory);
 		return result;
 	}
 

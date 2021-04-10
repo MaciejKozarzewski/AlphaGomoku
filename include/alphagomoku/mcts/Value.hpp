@@ -59,6 +59,14 @@ namespace ag
 			{
 				return std::to_string(win) + " : " + std::to_string(draw) + " : " + std::to_string(loss);
 			}
+			friend bool operator ==(const Value &lhs, const Value &rhs)
+			{
+				return lhs.win == rhs.win and lhs.draw == rhs.draw and lhs.loss == rhs.loss;
+			}
+			friend bool operator !=(const Value &lhs, const Value &rhs)
+			{
+				return lhs.win != rhs.win or lhs.draw != rhs.draw or lhs.loss != rhs.loss;
+			}
 	};
 
 	Value convertOutcome(GameOutcome outcome, Sign signToMove);

@@ -43,6 +43,8 @@ namespace ag
 			void addToBuffer(const Game &game);
 			const Game& getFromBuffer(int index) const;
 			Game& getFromBuffer(int index);
+			void removeFromBuffer(int index);
+			void removeRange(int from, int to);
 
 			void save(const std::string &path) const;
 			void load(const std::string &path);

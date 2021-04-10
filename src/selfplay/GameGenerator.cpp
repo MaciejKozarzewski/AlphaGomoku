@@ -85,7 +85,7 @@ namespace ag
 			move = pickMove(policy);
 		else
 			move = randomizeMove(policy, temperature);
-		move.sign = game.getLastMove().sign;
+		move.sign = invertSign(Move::getSign(tree.getRootNode().getMove()));
 
 		matrix<ProvenValue> proven_values(game.rows(), game.cols());
 		matrix<Value> action_values(game.rows(), game.cols());
@@ -109,16 +109,14 @@ namespace ag
 		search.handleEvaluation(); //first handle scheduled requests
 		if (search.getSimulationCount() >= simulations or tree.isProven())
 		{
+//			std::cout << tree.getPrincipalVariation().toString() << '\n';
 //			matrix<float> policy(15, 15);
+//			tree.getPolicyPriors(tree.getRootNode(), policy);
+//			std::cout << policyToString(game.getBoard(), policy);
 //			tree.getPlayoutDistribution(tree.getRootNode(), policy);
 //			normalize(policy);
-//			std::cout << tree.getPrincipalVariation().toString() << '\n';
 //			std::cout << policyToString(game.getBoard(), policy);
-//			std::cout << search.getStats().toString();
-//			std::cout << queue.getStats().toString();
-//			std::cout << tree.getStats().toString();
-//			std::cout << cache.storedElements() << " : " << cache.bufferedElements() << " : " << cache.allocatedElements() << " : "
-//					<< cache.loadFactor() << "\n\n";
+//			tree.printSubtree(tree.getRootNode(), 1, true);
 			return false;
 		}
 		else

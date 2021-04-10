@@ -67,6 +67,7 @@ namespace ag
 			void backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue);
 			void cancelVirtualLoss(SearchTrajectory &trajectory);
 
+			void getPolicyPriors(const Node &node, matrix<float> &result) const;
 			void getPlayoutDistribution(const Node &node, matrix<float> &result) const;
 			void getProvenValues(const Node &node, matrix<ProvenValue> &result) const;
 			void getActionValues(const Node &node, matrix<Value> &result) const;

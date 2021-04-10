@@ -12,8 +12,8 @@ class LibBuilder:
         if self._platform == 'linux':
             assert (main_compiler == 'gcc')
         self._main_compiler = main_compiler
-        self._sm_arch = sm_arch
         self._objects = []
+        self._use_cuda = use_cuda
         self._path_to_cuda = 'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v9.0\\'
         self._path_to_zlib = 'C:\\Program Files (x86)\\GnuWin32\\'
 

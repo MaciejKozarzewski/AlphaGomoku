@@ -245,11 +245,11 @@ namespace ag
 			{
 				if (board.at(i, j) == Sign::NONE)
 				{
-					int t = (int) (999 * (actionValues.at(i, j).win + 0.5f * actionValues.at(i, j).draw));
-					if (t == 0)
+					if (actionValues.at(i, j) == Value())
 						result += "  _ ";
 					else
 					{
+						int t = std::min(999, (int) (1000 * (actionValues.at(i, j).win + 0.5f * actionValues.at(i, j).draw)));
 						result += ' ';
 						if (t < 100)
 							result += ' ';

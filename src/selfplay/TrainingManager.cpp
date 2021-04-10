@@ -27,14 +27,14 @@ namespace
 namespace ag
 {
 	TrainingManager::TrainingManager(const std::string &workingDirectory) :
-			config(FileLoader(workingDirectory + "config.json").getJson()),
+			config(FileLoader(workingDirectory + "/config.json").getJson()),
 			metadata( { { "last_checkpoint", 0 }, { "best_checkpoint", 0 }, { "learning_steps", 0 } }),
 			working_dir(workingDirectory),
 			generator(config),
 			evaluator(config),
 			supervised_learning(config)
 	{
-		config["working_directory"] = workingDirectory;
+		config["working_directory"] = workingDirectory + '/';
 		supervised_learning = SupervisedLearning(config);
 		if (loadMetadata())
 			std::cout << "Loading existing training run\n" << metadata.dump(2) << '\n';
@@ -60,7 +60,7 @@ namespace ag
 		metadata["last_checkpoint"] = get_last_checkpoint() + 1;
 		saveMetadata();
 	}
-	void TrainingManager::runIterationSL(const std::string &buffer_src)
+	void TrainingManager::runIterationSL()
 	{
 	}
 	//private
@@ -99,12 +99,16 @@ namespace ag
 	}
 	void TrainingManager::generateGames()
 	{
-		std::string path_to_best_network = working_dir + "/checkpoint/network_" + std::to_string(static_cast<int>(metadata["best_checkpoint"]))
-				+ "_opt.bin";
+		if (std::filesystem::exists(working_dir + "/train_buffer/buffer_" + std::to_string(get_last_checkpoint()) + ".bin"))
+		{
+			std::cout << "buffer " + std::to_string(get_last_checkpoint()) + " already exists\n";
+			return;
+		}
+
+		std::string path_to_best_network = working_dir + "/checkpoint/network_" + std::to_string(get_best_checkpoint()) + "_opt.bin";
 		std::cout << "Loading " << path_to_best_network << '\n';
-		int training_games = static_cast<int>(config["selfplay_options"]["games_per_iteration"]);
-		int validation_games = static_cast<int>(config["selfplay_options"]["games_per_iteration"])
-				* static_cast<int>(config["training_options"]["validation_percent"]) / 100;
+		int training_games = std::min(1000 * (1 + get_last_checkpoint()), static_cast<int>(config["selfplay_options"]["games_per_iteration"]));
+		int validation_games = training_games * static_cast<int>(config["training_options"]["validation_percent"]) / 100;
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
 		generator.getGameBuffer().clear();
@@ -168,7 +172,7 @@ namespace ag
 			evaluator.setSecondPlayer(i, config["evaluation_options"],
 					path_to_networks + std::to_string(std::max(0, get_best_checkpoint() - i)) + "_opt.bin",
 					get_name(std::max(0, get_best_checkpoint() - i)));
-			std::cout << ' ' << std::to_string(std::max(0, get_best_checkpoint() - i)) << ',';
+			std::cout << ((i == 0) ? " " : ", ") << std::to_string(std::max(0, get_best_checkpoint() - i));
 		}
 		std::cout << '\n';
 
@@ -192,20 +196,18 @@ namespace ag
 			metadata["best_checkpoint"] = get_last_checkpoint() + 1;
 		std::cout << "Evaluation finished\n";
 	}
-	void TrainingManager::splitBuffer(const GameBuffer &buffer, int training_games, int validation_games)
+	void TrainingManager::splitBuffer(GameBuffer &buffer, int training_games, int validation_games)
 	{
 		std::cout << "Saving validation buffer\n";
-		std::vector<int> ordering = permutation(training_games + validation_games);
 		GameBuffer tmp;
 		for (int i = 0; i < validation_games; i++)
-			tmp.addToBuffer(buffer.getFromBuffer(ordering[i]));
-		tmp.save(working_dir + "/valid_buffer/buffer_" + std::to_string(static_cast<int>(metadata["last_checkpoint"])) + ".bin");
-
-		std::cout << "Saving validation buffer\n";
+			tmp.addToBuffer(buffer.getFromBuffer(training_games + i));
+		tmp.save(working_dir + "/valid_buffer/buffer_" + std::to_string(get_last_checkpoint()) + ".bin");
 		tmp.clear();
-		for (int i = 0; i < training_games; i++)
-			tmp.addToBuffer(buffer.getFromBuffer(ordering[validation_games + i]));
-		tmp.save(working_dir + "/train_buffer/buffer_" + std::to_string(static_cast<int>(metadata["last_checkpoint"])) + ".bin");
+
+		std::cout << "Saving training buffer\n";
+		buffer.removeRange(training_games, training_games + validation_games);
+		buffer.save(working_dir + "/train_buffer/buffer_" + std::to_string(get_last_checkpoint()) + ".bin");
 	}
 	void TrainingManager::loadBuffer(GameBuffer &result, const std::string &path)
 	{
