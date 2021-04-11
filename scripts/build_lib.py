@@ -15,7 +15,6 @@ class LibBuilder:
         self._objects = []
         self._use_cuda = use_cuda
         self._path_to_cuda = 'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v9.0\\'
-        self._path_to_zlib = 'C:\\Program Files (x86)\\GnuWin32\\'
 
     def _math_flags(self) -> str:
         if self._platform == 'windows':
@@ -68,6 +67,7 @@ class LibBuilder:
         if self._platform == 'windows' and self._use_cuda:
             if self._main_compiler == 'gcc':
                 tmp += ' -I\"' + self._path_to_cuda + 'include/\"'
+                tmp += ' -I\"../contrib/mingw64/include/\"'
             if self._main_compiler == 'msvc':
                 tmp += ' /I\"' + self._path_to_cuda + 'include/\"'
         return tmp
@@ -122,8 +122,8 @@ class LibBuilder:
                 result += ' -L\"' + self._path_to_cuda + 'bin/\" -L\"../contrib/\"'
             if self._main_compiler == 'msvc':
                 result += ' /link /LIBPATH:\"' + self._path_to_cuda + 'bin/\" /LIBPATH:\"../contrib/\" /LIBPATH:\"../bin\"'
-        else:
-            return result
+
+        return result
 
     def _add_libraries(self) -> str:
         command = ' \"../bin/' + self._lib_name() + '\"'
@@ -134,7 +134,7 @@ class LibBuilder:
         if self._platform == 'windows':
             if self._main_compiler == 'gcc':
                 command += ' \"../contrib/openblas/libopenblas.a\"'
-                command += ' \"' + self._path_to_zlib + '/lib/libz.a\"'
+                command += ' \"../contrib/mingw64/lib/libz.a\"'
             else:
                 command += ' \"../contrib/openblas/libopenblas.dll.a\"'
         else:
@@ -152,7 +152,7 @@ class LibBuilder:
             command += ' -lcudart -lcublas'
         if self._platform == 'windows':
             if self._main_compiler == 'gcc':
-                command += ' -L\"../bin\"'
+                command += ' -L\"../contrib/libml/bin/\"'
                 if self._build_target == 'release':
                     command += ' -lcuda_math'
                 else:

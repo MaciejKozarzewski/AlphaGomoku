@@ -7,7 +7,7 @@
 
 #include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
-#include <bits/stdint-uintn.h>
+#include <inttypes.h>
 #include <stddef.h>
 #include <chrono>
 #include <iostream>

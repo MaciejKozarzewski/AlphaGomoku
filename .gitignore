@@ -9,8 +9,8 @@ contrib/blis/*
 contrib/openblas/*
 contrib/gtest/*
 contrib/libml/*
-contrib/mingw64/*
+/contrib/mingw64/*
 *.pyc
 gmon.out
 test_file.*
-tmp_script.bat
+scripts/tmp_script.bat
