@@ -98,7 +98,7 @@ namespace ag
 			}
 			friend bool operator!=(const Move &lhs, const Move &rhs) noexcept
 			{
-				return (lhs.row != rhs.row) || (lhs.col != rhs.col) || (lhs.sign == rhs.sign);
+				return (lhs.row != rhs.row) || (lhs.col != rhs.col) || (lhs.sign != rhs.sign);
 			}
 	};
 
