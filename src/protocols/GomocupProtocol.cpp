@@ -114,7 +114,25 @@ namespace ag
 			}
 			case MessageType::OPENING_SWAP2:
 			{
-				break;
+				if (msg.holdsString())
+				{
+					assert(msg.getString() == "SWAP");
+					sender.send(msg.getString());
+					return true;
+				}
+				if (msg.holdsListOfMoves())
+				{
+					std::string str;
+					for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
+					{
+						if (i != 0)
+							str += ' ';
+						str += moveToString(msg.getListOfMoves().at(i));
+					}
+					sender.send(str);
+					return true;
+				}
+				return false;
 			}
 		}
 		return false;
@@ -223,8 +241,8 @@ namespace ag
 				std::string line5 = listener.getLine();
 				std::string line6 = listener.getLine(); // DONE
 				assert(line6 == "DONE");
-				list_of_moves.push_back(moveFromString(line4, Sign::CROSS));
-				list_of_moves.push_back(moveFromString(line5, Sign::CIRCLE));
+				list_of_moves.push_back(moveFromString(line4, Sign::CIRCLE));
+				list_of_moves.push_back(moveFromString(line5, Sign::CROSS));
 			}
 		}
 		return Message(MessageType::OPENING_SWAP2, list_of_moves);
