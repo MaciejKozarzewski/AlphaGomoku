@@ -108,17 +108,20 @@ namespace ag
 		for (auto entry = search_buffer.begin(); entry < search_buffer.end(); entry++)
 		{
 			evaluate(entry->position);
-			expand(entry->position);
-			backup(*entry);
+			bool flag = expand(entry->position);
+			if (flag)
+				backup(*entry);
 			cache.insert(entry->position);
 		}
 		search_buffer.clear();
 	}
-	void Search::simulate(int maxSimulations)
+	bool Search::simulate(int maxSimulations)
 	{
 		assert(maxSimulations > 0);
-		while (static_cast<int>(search_buffer.size()) < search_config.batch_size and simulation_count < maxSimulations and not tree.isProven())
+		while (static_cast<int>(search_buffer.size()) < search_config.batch_size)
 		{
+			if(simulation_count >= maxSimulations or tree.isProven())
+				return false; // search cannot be continued
 			SearchRequest &request = select();
 			if (evaluateFromGameRules(request.position) == GameOutcome::UNKNOWN)
 			{
@@ -130,7 +133,7 @@ namespace ag
 					search_buffer.pop_back();
 					simulation_count--;
 					stats.nb_duplicate_nodes++; //statistics
-					return;
+					return true;
 				}
 				else
 				{
@@ -139,8 +142,9 @@ namespace ag
 						// node is not terminal, not a duplicate, but found in cache
 						if (tree.isRootNode(request.position.getNode()))
 							request.position.setProvenValue(ProvenValue::UNKNOWN); // erase proven value from root to force at least 1-ply search
-						expand(request.position);
-						backup(request);
+						bool flag = expand(request.position);
+						if (flag)
+							backup(request);
 						search_buffer.pop_back();
 					}
 					else
@@ -157,6 +161,7 @@ namespace ag
 				search_buffer.pop_back();
 			}
 		}
+		return true;
 	}
 	void Search::cleanup()
 	{
@@ -203,10 +208,10 @@ namespace ag
 		stats.nb_evaluate++; // statistics
 		stats.time_evaluate += getTime() - start; //statistics
 	}
-	void Search::expand(EvaluationRequest &position)
+	bool Search::expand(EvaluationRequest &position)
 	{
 		if (position.getProvenValue() != ProvenValue::UNKNOWN)
-			return; // do not expand proven nodes
+			return true; // do not expand proven nodes
 
 		double start = getTime(); // statistics
 		const int cols = position.getBoard().cols();
@@ -216,10 +221,20 @@ namespace ag
 		for (int i = 0; i < position.getBoard().size(); i++)
 			if (position.getBoard().data()[i] == Sign::NONE and position.getPolicy().data()[i] >= search_config.expansion_prior_treshold)
 				moves_to_add.push_back( { Move::move_to_short(i / cols, i % cols, position.getSignToMove()), position.getPolicy().data()[i] });
-		tree.expand(*position.getNode(), moves_to_add);
+
+		if (search_config.max_children > 0)
+		{
+			std::partial_sort(moves_to_add.begin(), moves_to_add.begin() + search_config.max_children, moves_to_add.end(),
+					[](const std::pair<uint16_t, float> &lhs, const std::pair<uint16_t, float> &rhs)
+					{	return lhs.second > rhs.second;});
+			moves_to_add.erase(moves_to_add.begin() + search_config.max_children, moves_to_add.end());
+		}
+
+		bool result = tree.expand(*position.getNode(), moves_to_add);
 
 		stats.nb_expand++; // statistics
 		stats.time_expand += getTime() - start; //statistics
+		return result;
 	}
 	void Search::backup(SearchRequest &request)
 	{

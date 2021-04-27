@@ -88,14 +88,14 @@ namespace ag
 			matrix<Sign> getBoard() const noexcept;
 
 			void handleEvaluation();
-			void simulate(int maxSimulations);
+			bool simulate(int maxSimulations);
 			void cleanup();
 
 		private:
 			SearchRequest& select();
 			GameOutcome evaluateFromGameRules(EvaluationRequest &position);
 			void evaluate(EvaluationRequest &position);
-			void expand(EvaluationRequest &position);
+			bool expand(EvaluationRequest &position);
 			void backup(SearchRequest &request);
 			bool isDuplicate(EvaluationRequest &request);
 	};

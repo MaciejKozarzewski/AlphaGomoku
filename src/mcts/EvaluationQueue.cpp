@@ -93,7 +93,15 @@ namespace ag
 	}
 	void EvaluationQueue::addToQueue(EvaluationRequest &request)
 	{
-		request_queue.push_back( { &request, 0 });
+		if (use_symmetries)
+			request_queue.push_back( { &request, randInt(available_symmetries) });
+		else
+			request_queue.push_back( { &request, 0 });
+	}
+	void EvaluationQueue::addToQueue(EvaluationRequest &request, int symmetry)
+	{
+		assert(abs(symmetry) <= available_symmetries);
+		request_queue.push_back( { &request, symmetry });
 	}
 	void EvaluationQueue::evaluateGraph()
 	{
@@ -124,7 +132,6 @@ namespace ag
 		{
 			if (use_symmetries)
 			{
-				request_queue[i].second = randInt(available_symmetries);
 				augment(board, request_queue[i].first->getBoard(), request_queue[i].second);
 				network.packData(i, board, request_queue[i].first->getSignToMove());
 			}

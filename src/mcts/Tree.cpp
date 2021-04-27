@@ -280,11 +280,16 @@ namespace ag
 	{
 		return root_node;
 	}
+	void Tree::setBalancingDepth(int depth) noexcept
+	{
+		std::lock_guard<std::mutex> lock(tree_mutex);
+		balancing_depth = depth;
+	}
 	bool Tree::isRootNode(const Node *node) const noexcept
 	{
 		return node == &root_node;
 	}
-	void Tree::select(SearchTrajectory &trajectory, float explorationConstant, int balanceDepth)
+	void Tree::select(SearchTrajectory &trajectory, float explorationConstant)
 	{
 		trajectory.clear();
 		std::lock_guard<std::mutex> lock(tree_mutex);
@@ -294,7 +299,7 @@ namespace ag
 		trajectory.append(current, current->getMove());
 		while (not current->isLeaf())
 		{
-			if (trajectory.length() <= balanceDepth)
+			if (trajectory.length() <= balancing_depth)
 				current = select_balanced(current);
 			else
 				current = select_puct(current, explorationConstant, MaxExpectation());
@@ -302,15 +307,17 @@ namespace ag
 			trajectory.append(current, current->getMove());
 		}
 	}
-	void Tree::expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
+	bool Tree::expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
 	{
 		assert(Move::getSign(parent.getMove()) != Sign::NONE);
 		assert(movesToAdd.size() > 0);
 		std::lock_guard<std::mutex> lock(tree_mutex);
+		if (parent.isLeaf() == false)
+			return false; // node was already expanded
 
 		Node *children = reserve_nodes(movesToAdd.size());
 		if (children == nullptr) // there are no nodes left in the tree
-			return;
+			return true; // don't expand if there is no memory
 
 		parent.createChildren(children, movesToAdd.size());
 		for (int i = 0; i < parent.numberOfChildren(); i++)
@@ -320,6 +327,7 @@ namespace ag
 			parent.getChild(i).setMove(movesToAdd[i].first);
 			parent.getChild(i).setPolicyPrior(movesToAdd[i].second);
 		}
+		return true;
 	}
 	void Tree::backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue)
 	{

@@ -141,13 +141,9 @@ namespace ag
 					total_visits += iter->getVisits();
 				}
 
-			const float weight = (total_visits > 1024 * visitTreshold) ? 0.0f : std::pow(0.5f, static_cast<float>(total_visits) / visitTreshold);
 			const float scale = 16383.0f / total_visits;
 			for (int i = 0; i < workspace.size(); i++)
-			{
-				float new_policy = weight * (data[i] >> 2) + (1.0f - weight) * (workspace.data()[i] * scale);
-				data[i] = static_cast<int>(data[i] & 3) | (static_cast<int>(new_policy) << 2);
-			}
+				data[i] = static_cast<int>(data[i] & 3) | (static_cast<int>(workspace.data()[i] * scale) << 2);
 		}
 	}
 	void Cache::Entry::clearTranspositions() noexcept
@@ -349,7 +345,7 @@ namespace ag
 	void Cache::rehash(int newNumberOfBins) noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		if (stats.stored_entries == 0)
+		if (stats.stored_entries == 0 or static_cast<int>(bins.size()) == newNumberOfBins)
 			return;
 
 		Entry *tmp = nullptr;

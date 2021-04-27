@@ -47,7 +47,7 @@ namespace ag
 			Node root_node;
 
 			TreeConfig config;
-
+			int balancing_depth = -1;
 		public:
 			Tree(TreeConfig treeOptions);
 			uint64_t getMemory() const noexcept;
@@ -61,9 +61,10 @@ namespace ag
 			bool isProven() const noexcept;
 			const Node& getRootNode() const noexcept;
 			Node& getRootNode() noexcept;
+			void setBalancingDepth(int depth) noexcept;
 			bool isRootNode(const Node *node) const noexcept;
-			void select(SearchTrajectory &trajectory, float explorationConstant = 1.25f, int balanceDepth = -1);
-			void expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
+			void select(SearchTrajectory &trajectory, float explorationConstant = 1.25f);
+			bool expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
 			void backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue);
 			void cancelVirtualLoss(SearchTrajectory &trajectory);
 

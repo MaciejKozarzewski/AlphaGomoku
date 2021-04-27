@@ -51,6 +51,7 @@ namespace ag
 			void loadGraph(const std::string &path, int batchSize, ml::Device device = ml::Device::cpu(), bool useSymmetries = false);
 			void unloadGraph();
 			void addToQueue(EvaluationRequest &request);
+			void addToQueue(EvaluationRequest &request, int symmetry);
 			void evaluateGraph();
 		private:
 			void pack(int batch_size);
