@@ -8,220 +8,277 @@
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <libml/hardware/Device.hpp>
 
 namespace ag
 {
 
+	GomocupProtocol::GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
+			Protocol(queueIN, queueOUT)
+	{
+		queueOUT.push(Message(MessageType::INFO_MESSAGE, "Detected following devices : " + ml::Device::hardwareInfo()));
+	}
 	ProtocolType GomocupProtocol::getType() const noexcept
 	{
 		return ProtocolType::GOMOCUP;
 	}
-	Message GomocupProtocol::processInput(InputListener &listener)
+	void GomocupProtocol::processInput(InputListener &listener)
 	{
 		std::string line = listener.peekLine();
 
 		if (startsWith(line, "INFO"))
-			return INFO(listener);
+		{
+			INFO(listener);
+			return;
+		}
 
 		if (startsWith(line, "START"))
-			return START(listener);
+		{
+			START(listener);
+			return;
+		}
 		if (startsWith(line, "RECTSTART"))
-			return RECTSTART(listener);
+		{
+			RECTSTART(listener);
+			return;
+		}
 		if (startsWith(line, "RESTART"))
-			return RESTART(listener);
+		{
+			RESTART(listener);
+			return;
+		}
 
 		if (startsWith(line, "PROBOARD"))
-			return PROBOARD(listener);
+		{
+			PROBOARD(listener);
+			return;
+		}
 		if (startsWith(line, "LONGPROBOARD"))
-			return LONGPROBOARD(listener);
+		{
+			LONGPROBOARD(listener);
+			return;
+		}
 		if (startsWith(line, "SWAPBOARD"))
-			return SWAPBOARD(listener);
+		{
+			SWAPBOARD(listener);
+			return;
+		}
 		if (startsWith(line, "SWAP2BOARD"))
-			return SWAP2BOARD(listener);
+		{
+			SWAP2BOARD(listener);
+			return;
+		}
 
 		if (startsWith(line, "BEGIN"))
-			return BEGIN(listener);
+		{
+			BEGIN(listener);
+			return;
+		}
 		if (startsWith(line, "BOARD"))
-			return BOARD(listener);
+		{
+			BOARD(listener);
+			return;
+		}
 		if (startsWith(line, "TURN"))
-			return TURN(listener);
+		{
+			TURN(listener);
+			return;
+		}
+		if (startsWith(line, "PONDER"))
+		{
+			PONDER(listener);
+			return;
+		}
+		if (startsWith(line, "STOP"))
+		{
+			STOP(listener);
+			return;
+		}
 		if (startsWith(line, "TAKEBACK"))
-			return TAKEBACK(listener);
+		{
+			TAKEBACK(listener);
+			return;
+		}
 		if (startsWith(line, "END"))
-			return END(listener);
-
-		if (startsWith(line, "PLAY"))
-			return PLAY(listener);
+		{
+			END(listener);
+			return;
+		}
 
 		if (startsWith(line, "ABOUT"))
-			return ABOUT(listener);
-
-		return UNKNOWN(listener);
-	}
-	bool GomocupProtocol::processOutput(const Message &msg, OutputSender &sender)
-	{
-		switch (msg.getType())
 		{
-			case MessageType::CHANGE_PROTOCOL:
-				return true; // does not require response
-			case MessageType::START_PROGRAM:
-				return false; // does not require response, but should never occur
-			case MessageType::SET_OPTION:
-				return false; // does not require response, but should never occur
-			case MessageType::SET_POSITION:
-				return false; // does not require response, but should never occur
-			case MessageType::MAKE_MOVE:
+			ABOUT(listener);
+			return;
+		}
+
+		UNKNOWN(listener);
+	}
+	void GomocupProtocol::processOutput(OutputSender &sender)
+	{
+		while (output_queue.isEmpty() == false)
+		{
+			Message msg = output_queue.pop();
+			switch (msg.getType())
 			{
-				assert(msg.getMove().sign == get_sign_to_move());
-				list_of_moves.push_back(msg.getMove());
-				sender.send(moveToString(msg.getMove()));
-				return true;
-			}
-			case MessageType::ABOUT_ENGINE:
-				return false; // does not require response, but should never occur
-			case MessageType::STOP_SEARCH:
-				return true; // does not require response
-			case MessageType::EXIT_PROGRAM:
-				return true; // does not require response
-			case MessageType::EMPTY_MESSAGE:
-				return true; // does not require response
-			case MessageType::PLAIN_STRING:
-			{
-				sender.send(msg.getString());
-				return true;
-			}
-			case MessageType::UNKNOWN_MESSAGE:
-			{
-				sender.send("UNKNOWN " + msg.getString());
-				return true;
-			}
-			case MessageType::ERROR:
-			{
-				sender.send("ERROR " + msg.getString());
-				return true;
-			}
-			case MessageType::OPENING_PRO:
-			{
-				break;
-			}
-			case MessageType::OPENING_LONG_PRO:
-			{
-				break;
-			}
-			case MessageType::OPENING_SWAP:
-			{
-				break;
-			}
-			case MessageType::OPENING_SWAP2:
-			{
-				if (msg.holdsString())
+				case MessageType::MAKE_MOVE:
 				{
-					assert(msg.getString() == "SWAP");
-					sender.send(msg.getString());
-					return true;
-				}
-				if (msg.holdsListOfMoves())
-				{
-					std::string str;
-					for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
+					if (msg.holdsString()) // used to swap colors
 					{
-						if (i != 0)
-							str += ' ';
-						str += moveToString(msg.getListOfMoves().at(i));
+						if (msg.getString() == "swap")
+							sender.send("SWAP");
 					}
-					sender.send(str);
-					return true;
+					if (msg.holdsMove()) // used to return best move
+					{
+						assert(msg.getMove().sign == get_sign_to_move());
+						list_of_moves.push_back(msg.getMove());
+						sender.send(moveToString(msg.getMove()));
+					}
+					if (msg.holdsListOfMoves()) // used in swap2
+					{
+						std::string str;
+						for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
+						{
+							if (i != 0)
+								str += ' ';
+							str += moveToString(msg.getListOfMoves().at(i));
+						}
+						sender.send(str);
+					}
+					break;
 				}
-				return false;
+				case MessageType::PLAIN_STRING:
+					sender.send(msg.getString());
+					break;
+				case MessageType::UNKNOWN_COMMAND:
+					sender.send("UNKNOWN " + msg.getString());
+					break;
+				case MessageType::ERROR:
+					sender.send("ERROR " + msg.getString());
+					break;
+				case MessageType::INFO_MESSAGE:
+					sender.send("MESSAGE " + msg.getString());
+					break;
+				case MessageType::ABOUT_ENGINE:
+					sender.send(msg.getString());
+					break;
+				default:
+					break;
 			}
 		}
-		return false;
 	}
 
 	// private
 	Sign GomocupProtocol::get_sign_to_move() const noexcept
 	{
-		return (list_of_moves.size() == 0) ? Sign::CROSS : invertSign(list_of_moves.back().sign);
+		if (list_of_moves.empty())
+			return Sign::CROSS;
+		else
+			return invertSign(list_of_moves.back().sign);
 	}
-	Message GomocupProtocol::INFO(InputListener &listener)
+	void GomocupProtocol::INFO(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		auto tmp = split(line, ' ');
 		assert(tmp.size() == 3u);
 		if (tmp[1] == "timeout_turn")
-			return Message(MessageType::SET_OPTION, Option { "time_for_turn", tmp[2] });
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_turn", tmp[2] }));
 		if (tmp[1] == "timeout_match")
-			return Message(MessageType::SET_OPTION, Option { "time_for_match", tmp[2] });
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_match", tmp[2] }));
 		if (tmp[1] == "time_left")
-			return Message(MessageType::SET_OPTION, Option { "time_left", tmp[2] });
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_left", tmp[2] }));
 		if (tmp[1] == "max_memory")
-			return Message(MessageType::SET_OPTION, Option { "max_memory", tmp[2] });
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_memory", tmp[2] }));
 		if (tmp[1] == "game_type")
-			return Message();
+			input_queue.push(Message());
 		if (tmp[1] == "rule")
 		{
 			switch (std::stoi(tmp[2]))
 			{
 				case 0:
-					return Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::FREESTYLE) });
+					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::FREESTYLE) }));
+					break;
 				case 1:
-					return Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::STANDARD) });
+					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::STANDARD) }));
+					break;
 				case 2:
+					input_queue.push(Message());
 					break; // continuous game - not supported
 				case 4:
-					return Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) });
+					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) }));
+					break;
 				case 8:
-					return Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) });
+					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) }));
+					break;
 			}
-			return Message();
 		}
 		if (tmp[1] == "evaluate")
-			return Message();
+			input_queue.push(Message());
 		if (tmp[1] == "folder")
-			return Message(MessageType::SET_OPTION, Option { "folder", tmp[2] });
-
-		return Message();
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "folder", tmp[2] }));
 	}
-	Message GomocupProtocol::START(InputListener &listener)
+	void GomocupProtocol::START(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		auto tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
-		int board_size = std::stoi(tmp[1]);
-		return Message(MessageType::START_PROGRAM, GameConfig(board_size, board_size));
+		input_queue.push(Message(MessageType::START_PROGRAM));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "cols", tmp[1] }));
+		output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 	}
-	Message GomocupProtocol::RECTSTART(InputListener &listener)
+	void GomocupProtocol::RECTSTART(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		auto tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 		tmp = split(tmp[1], ',');
 		assert(tmp.size() == 2u);
-		int cols = std::stoi(tmp[0]);
-		int rows = std::stoi(tmp[1]);
-		return Message(MessageType::START_PROGRAM, GameConfig(rows, cols));
+//		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
+//		input_queue.push(Message(MessageType::SET_OPTION, Option { "cols", tmp[0] }));
+//		input_queue.push(Message(MessageType::START_PROGRAM));
+		output_queue.push(Message(MessageType::ERROR, "rectangular boards are not supported"));
 	}
-	Message GomocupProtocol::RESTART(InputListener &listener)
+	void GomocupProtocol::RESTART(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'RESTART' line
-		return Message(MessageType::START_PROGRAM);
+		input_queue.push(Message(MessageType::START_PROGRAM));
+		output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 	}
-	Message GomocupProtocol::PROBOARD(InputListener &listener)
+	void GomocupProtocol::PROBOARD(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		return Message(MessageType::UNKNOWN_MESSAGE, line);
+		output_queue.push(Message(MessageType::UNKNOWN_COMMAND, line));
 	}
-	Message GomocupProtocol::LONGPROBOARD(InputListener &listener)
+	void GomocupProtocol::LONGPROBOARD(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		return Message(MessageType::UNKNOWN_MESSAGE, line);
+		output_queue.push(Message(MessageType::UNKNOWN_COMMAND, line));
 	}
-	Message GomocupProtocol::SWAPBOARD(InputListener &listener)
+	void GomocupProtocol::SWAPBOARD(InputListener &listener)
 	{
-		std::string line = listener.getLine();
-		return Message(MessageType::UNKNOWN_MESSAGE, line);
+		listener.getLine(); // consuming 'SWAPBOARD' line
+		list_of_moves.clear();
+
+		std::string line1 = listener.getLine();
+		if (line1 != "DONE") // 3 stones were placed
+		{
+			std::string line2 = listener.getLine();
+			std::string line3 = listener.getLine();
+			list_of_moves.push_back(moveFromString(line1, Sign::CROSS));
+			list_of_moves.push_back(moveFromString(line2, Sign::CIRCLE));
+			list_of_moves.push_back(moveFromString(line3, Sign::CROSS));
+
+			std::string line4 = listener.getLine();
+			if (line4 != "DONE")
+			{
+				output_queue.push(Message(MessageType::ERROR, "incorrect SWAPBOARD command"));
+				return;
+			}
+		}
+		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+		input_queue.push(Message(MessageType::START_SEARCH, "swap"));
 	}
-	Message GomocupProtocol::SWAP2BOARD(InputListener &listener)
+	void GomocupProtocol::SWAP2BOARD(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'SWAP2BOARD' line
 		list_of_moves.clear();
@@ -240,20 +297,27 @@ namespace ag
 			{
 				std::string line5 = listener.getLine();
 				std::string line6 = listener.getLine(); // DONE
-				assert(line6 == "DONE");
 				list_of_moves.push_back(moveFromString(line4, Sign::CIRCLE));
 				list_of_moves.push_back(moveFromString(line5, Sign::CROSS));
+
+				if (line6 != "DONE")
+				{
+					output_queue.push(Message(MessageType::ERROR, "incorrect SWAP2BOARD command"));
+					return;
+				}
 			}
 		}
-		return Message(MessageType::OPENING_SWAP2, list_of_moves);
+		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+		input_queue.push(Message(MessageType::START_SEARCH, "swap2"));
 	}
-	Message GomocupProtocol::BEGIN(InputListener &listener)
+	void GomocupProtocol::BEGIN(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'BEGIN' line
 		list_of_moves.clear();
-		return Message(MessageType::SET_POSITION, list_of_moves);
+		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
-	Message GomocupProtocol::BOARD(InputListener &listener)
+	void GomocupProtocol::BOARD(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'BOARD' line
 		std::vector<Move> own_moves;
@@ -298,8 +362,10 @@ namespace ag
 				{	m.sign = Sign::CROSS;});
 			}
 			else
-				// impossible situation, incorrectly specified board state
-				return Message(MessageType::ERROR, "incorrectly specified board");
+			{
+				output_queue.push(Message(MessageType::ERROR, "incorrectly specified board"));
+				return; // impossible situation, incorrectly specified board state
+			}
 		}
 
 		list_of_moves.clear();
@@ -314,59 +380,73 @@ namespace ag
 			list_of_moves.push_back(own_moves[i]);
 			list_of_moves.push_back(opp_moves[i]);
 		}
-		return Message(MessageType::SET_POSITION, list_of_moves);
+		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
-	Message GomocupProtocol::TURN(InputListener &listener)
+	void GomocupProtocol::TURN(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		auto tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 		Move m = moveFromString(tmp[1], get_sign_to_move());
 		list_of_moves.push_back(m);
-		return Message(MessageType::SET_POSITION, list_of_moves);
+		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
-	Message GomocupProtocol::TAKEBACK(InputListener &listener)
+	void GomocupProtocol::PONDER(InputListener &listener)
+	{
+		listener.getLine(); // consuming 'PONDER' line
+		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+		input_queue.push(Message(MessageType::START_SEARCH, "ponder"));
+	}
+	void GomocupProtocol::STOP(InputListener &listener)
+	{
+		listener.getLine(); // consuming 'STOP' line
+		input_queue.push(Message(MessageType::STOP_SEARCH));
+	}
+	void GomocupProtocol::TAKEBACK(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		auto tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
+
 		if (list_of_moves.size() == 0)
-			return Message(MessageType::ERROR, "the board is empty");
+			output_queue.push(Message(MessageType::ERROR, "the board is empty"));
 		else
 		{
 			Move m = moveFromString(tmp[1], list_of_moves.back().sign);
 			if (list_of_moves.back() != m)
-				return Message(MessageType::ERROR, "can undo only last move");
+				output_queue.push(Message(MessageType::ERROR, "can undo only last move"));
 			else
 			{
 				list_of_moves.pop_back();
-				return Message(MessageType::SET_POSITION, list_of_moves);
+				input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+				output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 			}
 		}
 	}
-	Message GomocupProtocol::END(InputListener &listener)
+	void GomocupProtocol::END(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'END' line
-		return Message(MessageType::EXIT_PROGRAM);
+		input_queue.push(Message(MessageType::STOP_SEARCH));
+		input_queue.push(Message(MessageType::EXIT_PROGRAM));
 	}
-	Message GomocupProtocol::PLAY(InputListener &listener)
-	{
-		std::string line = listener.getLine();
-		auto tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
-		Move m = moveFromString(tmp[1], get_sign_to_move());
-		list_of_moves.push_back(m);
-		return Message(MessageType::SET_POSITION, list_of_moves);
-	}
-	Message GomocupProtocol::ABOUT(InputListener &listener)
+	void GomocupProtocol::ABOUT(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'ABOUT' line
-		return Message(MessageType::ABOUT_ENGINE);
+		std::string result;
+		result += "name=\"AlphaGomoku\", ";
+		result += "version=\"5.0\", ";
+		result += "author=\"Maciej Kozarzewski\", ";
+		result += "country=\"Poland\", ";
+		result += "www=\"https://github.com/MaciejKozarzewski/AlphaGomoku\", ";
+		result += "email=\"alphagomoku.mk@gmail.com\"";
+		output_queue.push(Message(MessageType::ABOUT_ENGINE, result));
 	}
-	Message GomocupProtocol::UNKNOWN(InputListener &listener)
+	void GomocupProtocol::UNKNOWN(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		return Message(MessageType::UNKNOWN_MESSAGE, line);
+		output_queue.push(Message(MessageType::UNKNOWN_COMMAND, line));
 	}
 } /* namespace ag */
 

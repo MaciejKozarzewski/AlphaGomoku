@@ -24,41 +24,31 @@ namespace ag
 	class InputListener
 	{
 		private:
-			std::istream &input_stream;
+			std::istream *input_stream = nullptr;
 			std::queue<std::string> input_queue;
 			mutable std::mutex listener_mutex;
 			std::condition_variable listener_cond;
-			std::thread listener_thread;
-			bool is_running = true;
 
 		public:
-			/**
-			 * Default constructor does not start separate thread. Can only receive input via 'pushLine' method.
-			 */
-			InputListener();
+			InputListener() = default;
 			InputListener(std::istream &inputStream);
 			InputListener(const InputListener &other) = delete;
 			InputListener(InputListener &&other) = default;
 			InputListener& operator=(const InputListener &other) = delete;
 			InputListener& operator=(InputListener &&other) = default;
-			~InputListener();
+			~InputListener() = default;
 
-			bool isRunning() const noexcept;
-			bool isEmpty() const noexcept;
-			int length() const noexcept;
-
-			void waitForInput();
 			std::string getLine();
 			std::string peekLine();
 			void pushLine(const std::string &line);
-		private:
-			static void run(InputListener *arg);
+			void receive();
 	};
 
 	class OutputSender
 	{
 		private:
 			std::ostream &output_stream;
+			mutable std::mutex sender_mutex;
 		public:
 			OutputSender(std::ostream &outputStream);
 			void send(const std::string &msg) const noexcept;
@@ -82,18 +72,16 @@ namespace ag
 		START_PROGRAM, // send to initialize program with specific board size
 		SET_OPTION, // send with option name and its value (unparsed)
 		SET_POSITION, // used to set specific position
-		MAKE_MOVE, // used to send move made either by user or engine
-		ABOUT_ENGINE, // request to send some information about the engine
+		START_SEARCH, // request to start searching with specific option what to do after the search ends
 		STOP_SEARCH, // request to immediately stop search
+		MAKE_MOVE, // used to send move made either by user or engine
 		EXIT_PROGRAM, // send to exit the program
 		EMPTY_MESSAGE, // specifies empty message with no data
 		PLAIN_STRING, // message containing string with no specific structure
-		UNKNOWN_MESSAGE, // used as a response after unknown message from user
+		UNKNOWN_COMMAND, // used as a response after unknown message from user
 		ERROR, // used as a response after an error
-		OPENING_PRO,
-		OPENING_LONG_PRO,
-		OPENING_SWAP,
-		OPENING_SWAP2
+		INFO_MESSAGE, // used to send some information string from engine
+		ABOUT_ENGINE // request to send some information about the engine
 	};
 	class Message
 	{
@@ -111,7 +99,7 @@ namespace ag
 					data(arg)
 			{
 			}
-
+			bool isEmpty() const noexcept;
 			bool holdsNoData() const noexcept;
 			bool holdsGameConfig() const noexcept;
 			bool holdsListOfMoves() const noexcept;
@@ -127,15 +115,38 @@ namespace ag
 			std::string getString() const;
 	};
 
+	class MessageQueue
+	{
+		private:
+			std::queue<Message> message_queue;
+			mutable std::mutex queue_mutex;
+		public:
+			void clear();
+			int length() const noexcept;
+			bool isEmpty() const noexcept;
+			void push(const Message &msg);
+			Message pop();
+			Message peek() const;
+	};
+
 	enum class ProtocolType
 	{
 		GOMOCUP, // protocol used in Gomocup tournament
 		UGI // protocol derived from Universal Chess Interface, to be specified and implemented later
 	};
+	std::string toString(ProtocolType pt);
+	ProtocolType protocolFromString(const std::string &str);
 	class Protocol
 	{
+		protected:
+			MessageQueue &input_queue;
+			MessageQueue &output_queue;
 		public:
-			Protocol() = default;
+			Protocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
+					input_queue(queueIN),
+					output_queue(queueOUT)
+			{
+			}
 			Protocol(const Protocol &other) = delete;
 			Protocol(Protocol &&other) = delete;
 			Protocol& operator=(const Protocol &other) = delete;
@@ -143,10 +154,8 @@ namespace ag
 			virtual ~Protocol() = default;
 
 			virtual ProtocolType getType() const noexcept = 0;
-			virtual Message processInput(InputListener &listener) = 0;
-			virtual bool processOutput(const Message &msg, OutputSender &sender) = 0;
-
-			static bool isExitCommand(const std::string &str) noexcept;
+			virtual void processInput(InputListener &listener) = 0;
+			virtual void processOutput(OutputSender &sender) = 0;
 	};
 
 } /* namespace ag */

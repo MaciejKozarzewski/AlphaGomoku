@@ -19,36 +19,37 @@ namespace ag
 			std::vector<Move> list_of_moves;
 
 		public:
-			GomocupProtocol() = default;
+			GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT);
 
 			ProtocolType getType() const noexcept;
-			Message processInput(InputListener &listener);
-			bool processOutput(const Message &msg, OutputSender &sender);
+			void processInput(InputListener &listener);
+			void processOutput(OutputSender &sender);
 
 		private:
 			Sign get_sign_to_move() const noexcept;
 
-			Message INFO(InputListener &listener);
+			void INFO(InputListener &listener);
 
-			Message START(InputListener &listener);
-			Message RECTSTART(InputListener &listener);
-			Message RESTART(InputListener &listener);
+			void START(InputListener &listener);
+			void RECTSTART(InputListener &listener);
+			void RESTART(InputListener &listener);
 
 			// opening rules
-			Message PROBOARD(InputListener &listener);
-			Message LONGPROBOARD(InputListener &listener);
-			Message SWAPBOARD(InputListener &listener);
-			Message SWAP2BOARD(InputListener &listener);
+			void PROBOARD(InputListener &listener);
+			void LONGPROBOARD(InputListener &listener);
+			void SWAPBOARD(InputListener &listener);
+			void SWAP2BOARD(InputListener &listener);
 
-			Message BEGIN(InputListener &listener);
-			Message BOARD(InputListener &listener);
-			Message TURN(InputListener &listener);
-			Message TAKEBACK(InputListener &listener);
-			Message END(InputListener &listener);
+			void BEGIN(InputListener &listener);
+			void BOARD(InputListener &listener);
+			void TURN(InputListener &listener);
+			void TAKEBACK(InputListener &listener);
+			void PONDER(InputListener &listener);
+			void STOP(InputListener &listener);
+			void END(InputListener &listener);
 
-			Message PLAY(InputListener &listener);
-			Message ABOUT(InputListener &listener);
-			Message UNKNOWN(InputListener &listener);
+			void ABOUT(InputListener &listener);
+			void UNKNOWN(InputListener &listener);
 	};
 
 } /* namespace ag */
