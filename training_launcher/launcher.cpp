@@ -37,6 +37,9 @@ using namespace ag;
 int main(int argc, char *argv[])
 {
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
+	std::cout << ml::Device::hardwareInfo() << '\n';
+	return 0;
+
 	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/freestyle_20x20/";
 
 	TrainingManager tm(path);
@@ -69,7 +72,7 @@ int main(int argc, char *argv[])
 	EvaluationQueue queue;
 //	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
 //	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
-	queue.loadGraph("/home/maciek/alphagomoku/test4_15x15_standard/checkpoint/network_4_opt.bin", 4, ml::Device::cpu(), false);
+	//queue.loadGraph("/home/maciek/alphagomoku/test4_15x15_standard/checkpoint/network_4_opt.bin", 4, ml::Device::cpu(), false);
 
 	Search search(game_config, search_config, tree, cache, queue);
 

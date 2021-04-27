@@ -9,36 +9,74 @@
 #define ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 
 #include <alphagomoku/utils/ThreadPool.hpp>
+#include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/Cache.hpp>
+#include <alphagomoku/mcts/Search.hpp>
+#include <alphagomoku/mcts/EvaluationQueue.hpp>
+#include <alphagomoku/player/ResourceManager.hpp>
+#include <alphagomoku/protocols/Protocol.hpp>
 #include <libml/utils/json.hpp>
 
-namespace ag
-{
-	class Game;
-	class GomocupPlayer;
-}
+#include <iostream>
 
 namespace ag
 {
+
+	class SearchThread: public Job
+	{
+		private:
+			EvaluationQueue eval_queue;
+			Search search;
+			mutable std::mutex search_mutex;
+			bool is_running = false;
+		public:
+			SearchThread(GameConfig gameConfig, const Json &cfg, Tree &tree, Cache &cache, ml::Device device);
+			void setup(const matrix<Sign> &board);
+			void stop() noexcept;
+			bool isRunning() const noexcept;
+			void run();
+	};
 
 	class SearchEngine
 	{
 		private:
-			ThreadPool threads;
+			ResourceManager resource_manager;
+			ThreadPool thread_pool;
+			Tree tree;
+			Cache cache;
+			std::vector<std::unique_ptr<SearchThread>> search_threads;
+
 			GameConfig game_config;
-			GomocupPlayer &player;
-
-//			Tree tree;
-//			Cache cache;
-
+			matrix<Sign> board;
+			Sign sign_to_move = Sign::NONE;
+			Json config;
+			double time_used_for_last_search = 0.0;
 		public:
-			SearchEngine(const Json &cfg, GomocupPlayer &player);
+			SearchEngine(GameConfig gameConfig, const Json &cfg);
 
-			void stop();
-			void makeMove(const matrix<Sign> &board, Sign signToMove);
-			void ponder(const matrix<Sign> &board, Sign signToMove);
-			void swap2(const matrix<Sign> &board, Sign signToMove);
+			ResourceManager& getResourceManager() noexcept;
+			void setPosition(const std::vector<Move> &listOfMoves);
+			Message makeMove();
+			void ponder(double timeout);
+			Message swap2();
+			void exit();
+
+			void stopSearch();
+			int getSimulationCount() const;
+			Message getSearchSummary();
+			bool isSearchFinished() const noexcept;
+		private:
+			void setup_search();
+			Move get_best_move() const;
+			float get_root_eval() const;
+			Message make_forced_move();
+			Message make_move_by_search();
+			Message make_move_by_network();
+			Message swap2_0stones();
+			Message swap2_3stones();
+			Message swap2_5stones();
+			bool search_continues(double timeout);
 	};
 
 } /* namespace ag */

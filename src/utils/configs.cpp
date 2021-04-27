@@ -64,14 +64,15 @@ namespace ag
 			batch_size(cfg["batch_size"]),
 			exploration_constant(cfg["exploration_constant"]),
 			expansion_prior_treshold(cfg["expansion_prior_treshold"]),
+			max_children(cfg["max_children"]),
 			noise_weight(cfg["noise_weight"]),
 			use_endgame_solver(cfg["use_endgame_solver"])
 	{
 	}
 	Json SearchConfig::getDefault()
 	{
-		return Json( { { "batch_size", 1 }, { "exploration_constant", 1.25 }, { "expansion_prior_treshold", 1.0e-6 }, { "noise_weight", 0.0 }, {
-				"use_endgame_solver", false } });
+		return Json( { { "batch_size", 1 }, { "exploration_constant", 1.25 }, { "expansion_prior_treshold", 1.0e-6 }, { "max_children", -1 }, {
+				"noise_weight", 0.0 }, { "use_endgame_solver", false } });
 	}
 
 	Json getDefaultTrainingConfig()

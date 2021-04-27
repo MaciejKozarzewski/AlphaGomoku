@@ -27,8 +27,6 @@ namespace ag
 	}
 	GomocupPlayer::~GomocupPlayer()
 	{
-		if (search_engine != nullptr)
-			search_engine->stop();
 	}
 	bool GomocupPlayer::isRunning() const noexcept
 	{
@@ -236,7 +234,7 @@ namespace ag
 	}
 	void GomocupPlayer::RESTART()
 	{
-		getSearchEngine().stop();
+//		getSearchEngine().stop();
 		last_time = getTime();
 		respondWith("OK");
 	}
@@ -262,13 +260,13 @@ namespace ag
 				makeMove(moveFromString(line5, Sign::CIRCLE));
 			}
 		}
-		getSearchEngine().swap2(board, sign_to_move);
+//		getSearchEngine().swap2(board, sign_to_move);
 	}
 	void GomocupPlayer::BEGIN()
 	{
 		getBoard().clear();
 		sign_to_move = Sign::CROSS;
-		getSearchEngine().makeMove(board, sign_to_move);
+//		getSearchEngine().makeMove(board, sign_to_move);
 	}
 	void GomocupPlayer::BOARD()
 	{
@@ -294,7 +292,7 @@ namespace ag
 			getBoard().at(row, col) = (sign == 1) ? sign_to_move : invertSign(sign_to_move);
 		}
 
-		getSearchEngine().makeMove(board, sign_to_move);
+//		getSearchEngine().makeMove(board, sign_to_move);
 	}
 	void GomocupPlayer::TURN(const std::string &msg)
 	{
@@ -308,7 +306,7 @@ namespace ag
 		Move move = moveFromString(tmp[1], sign_to_move);
 		std::cout << "got " << move.toString() << '\n';
 		makeMove(move);
-		getSearchEngine().makeMove(board, sign_to_move);
+//		getSearchEngine().makeMove(board, sign_to_move);
 	}
 	void GomocupPlayer::TAKEBACK(const std::string &msg)
 	{
@@ -319,13 +317,13 @@ namespace ag
 		assert(getBoard().at(move.row, move.col) != Sign::NONE);
 		getBoard().at(move.row, move.col) = Sign::NONE;
 
-		getSearchEngine().stop();
+//		getSearchEngine().stop();
 		respondWith("OK");
 	}
 	void GomocupPlayer::END()
 	{
-		if(search_engine != nullptr) // if search_engine has not been created there's no need to do it here
-			search_engine->stop();
+//		if(search_engine != nullptr) // if search_engine has not been created there's no need to do it here
+//			search_engine->stop();
 		is_running = false;
 	}
 
@@ -338,7 +336,7 @@ namespace ag
 		auto tmp = split(msg, ' ');
 		assert(tmp.size() == 2u);
 		Move move = moveFromString(tmp[1], sign_to_move);
-		getSearchEngine().stop();
+//		getSearchEngine().stop();
 		makeMove(move);
 	}
 

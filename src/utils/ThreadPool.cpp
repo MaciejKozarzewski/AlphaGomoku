@@ -22,6 +22,8 @@ namespace ag
 		{
 			std::lock_guard lock(queue_mutex);
 			is_running = false;
+			while (not queue.empty())
+				queue.pop();
 		}
 		queue_cond.notify_all();
 		for (size_t i = 0; i < threads.size(); i++)
