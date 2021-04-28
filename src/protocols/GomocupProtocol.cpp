@@ -16,7 +16,10 @@ namespace ag
 	GomocupProtocol::GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
 			Protocol(queueIN, queueOUT)
 	{
-		queueOUT.push(Message(MessageType::INFO_MESSAGE, "Detected following devices : " + ml::Device::hardwareInfo()));
+		queueOUT.push(Message(MessageType::INFO_MESSAGE, "Detected following devices"));
+		queueOUT.push(Message(MessageType::INFO_MESSAGE, ml::Device::cpu().toString() + " : " + ml::Device::cpu().info()));
+		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
+			queueOUT.push(Message(MessageType::INFO_MESSAGE, ml::Device::cuda(i).toString() + " : " + ml::Device::cuda(i).info()));
 	}
 	ProtocolType GomocupProtocol::getType() const noexcept
 	{
@@ -130,8 +133,9 @@ namespace ag
 					if (msg.holdsMove()) // used to return best move
 					{
 						assert(msg.getMove().sign == get_sign_to_move());
-						list_of_moves.push_back(msg.getMove());
 						sender.send(moveToString(msg.getMove()));
+						std::lock_guard lock(board_mutex);
+						list_of_moves.push_back(msg.getMove());
 					}
 					if (msg.holdsListOfMoves()) // used in swap2
 					{
@@ -167,9 +171,10 @@ namespace ag
 		}
 	}
 
-	// private
+// private
 	Sign GomocupProtocol::get_sign_to_move() const noexcept
 	{
+		std::lock_guard lock(board_mutex);
 		if (list_of_moves.empty())
 			return Sign::CROSS;
 		else
@@ -257,16 +262,22 @@ namespace ag
 	void GomocupProtocol::SWAPBOARD(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'SWAPBOARD' line
-		list_of_moves.clear();
+		{ 	// artificial scope for lock
+			std::lock_guard lock(board_mutex);
+			list_of_moves.clear();
+		}
 
 		std::string line1 = listener.getLine();
 		if (line1 != "DONE") // 3 stones were placed
 		{
 			std::string line2 = listener.getLine();
 			std::string line3 = listener.getLine();
-			list_of_moves.push_back(moveFromString(line1, Sign::CROSS));
-			list_of_moves.push_back(moveFromString(line2, Sign::CIRCLE));
-			list_of_moves.push_back(moveFromString(line3, Sign::CROSS));
+			{ 	// artificial scope for lock
+				std::lock_guard lock(board_mutex);
+				list_of_moves.push_back(moveFromString(line1, Sign::CROSS));
+				list_of_moves.push_back(moveFromString(line2, Sign::CIRCLE));
+				list_of_moves.push_back(moveFromString(line3, Sign::CROSS));
+			}
 
 			std::string line4 = listener.getLine();
 			if (line4 != "DONE")
@@ -275,30 +286,40 @@ namespace ag
 				return;
 			}
 		}
+
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "swap"));
 	}
 	void GomocupProtocol::SWAP2BOARD(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'SWAP2BOARD' line
-		list_of_moves.clear();
+		{ 	// artificial scope for lock
+			std::lock_guard lock(board_mutex);
+			list_of_moves.clear();
+		}
 
 		std::string line1 = listener.getLine();
 		if (line1 != "DONE") // 3 stones were placed
 		{
 			std::string line2 = listener.getLine();
 			std::string line3 = listener.getLine();
-			list_of_moves.push_back(moveFromString(line1, Sign::CROSS));
-			list_of_moves.push_back(moveFromString(line2, Sign::CIRCLE));
-			list_of_moves.push_back(moveFromString(line3, Sign::CROSS));
+			{ 	// artificial scope for lock
+				std::lock_guard lock(board_mutex);
+				list_of_moves.push_back(moveFromString(line1, Sign::CROSS));
+				list_of_moves.push_back(moveFromString(line2, Sign::CIRCLE));
+				list_of_moves.push_back(moveFromString(line3, Sign::CROSS));
+			}
 
 			std::string line4 = listener.getLine();
 			if (line4 != "DONE") // 5 stones were placed
 			{
 				std::string line5 = listener.getLine();
 				std::string line6 = listener.getLine(); // DONE
-				list_of_moves.push_back(moveFromString(line4, Sign::CIRCLE));
-				list_of_moves.push_back(moveFromString(line5, Sign::CROSS));
+				{ 	// artificial scope for lock
+					std::lock_guard lock(board_mutex);
+					list_of_moves.push_back(moveFromString(line4, Sign::CIRCLE));
+					list_of_moves.push_back(moveFromString(line5, Sign::CROSS));
+				}
 
 				if (line6 != "DONE")
 				{
@@ -313,7 +334,10 @@ namespace ag
 	void GomocupProtocol::BEGIN(InputListener &listener)
 	{
 		listener.getLine(); // consuming 'BEGIN' line
-		list_of_moves.clear();
+		{ 	// artificial scope for lock
+			std::lock_guard lock(board_mutex);
+			list_of_moves.clear();
+		}
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
@@ -344,7 +368,6 @@ namespace ag
 			}
 		}
 
-		list_of_moves.clear();
 		if (own_moves.size() == opp_moves.size()) // I started the game as first player (CROSS)
 		{
 			std::for_each(own_moves.begin(), own_moves.end(), [](Move &m)
@@ -368,17 +391,20 @@ namespace ag
 			}
 		}
 
-		list_of_moves.clear();
-		if (own_moves.size() != opp_moves.size())
-		{
-			list_of_moves.push_back(opp_moves.front());
-			opp_moves.erase(opp_moves.begin());
-			assert(own_moves.size() == opp_moves.size());
-		}
-		for (size_t i = 0; i < own_moves.size(); i++)
-		{
-			list_of_moves.push_back(own_moves[i]);
-			list_of_moves.push_back(opp_moves[i]);
+		{ 	// artificial scope for lock
+			std::lock_guard lock(board_mutex);
+			list_of_moves.clear();
+			if (own_moves.size() != opp_moves.size())
+			{
+				list_of_moves.push_back(opp_moves.front());
+				opp_moves.erase(opp_moves.begin());
+				assert(own_moves.size() == opp_moves.size());
+			}
+			for (size_t i = 0; i < own_moves.size(); i++)
+			{
+				list_of_moves.push_back(own_moves[i]);
+				list_of_moves.push_back(opp_moves[i]);
+			}
 		}
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
@@ -389,13 +415,21 @@ namespace ag
 		auto tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 		Move m = moveFromString(tmp[1], get_sign_to_move());
-		list_of_moves.push_back(m);
+		{ 	// artificial scope for lock
+			std::lock_guard lock(board_mutex);
+			list_of_moves.push_back(m);
+		}
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
 	void GomocupProtocol::PONDER(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'PONDER' line
+		std::string line = listener.getLine();
+		auto tmp = split(line, ' ');
+		if (tmp.size() == 1)
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", "2147483648" }));
+		else
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", tmp[1] }));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "ponder"));
 	}
@@ -410,16 +444,27 @@ namespace ag
 		auto tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 
-		if (list_of_moves.size() == 0)
+		int number_of_moves;
+		Move last_move;
+		{ 	// artificial scope for lock
+			std::lock_guard lock(board_mutex);
+			number_of_moves = list_of_moves.size();
+			last_move = list_of_moves.back();
+		}
+
+		if (number_of_moves == 0)
 			output_queue.push(Message(MessageType::ERROR, "the board is empty"));
 		else
 		{
-			Move m = moveFromString(tmp[1], list_of_moves.back().sign);
-			if (list_of_moves.back() != m)
+			Move m = moveFromString(tmp[1], last_move.sign);
+			if (last_move != m)
 				output_queue.push(Message(MessageType::ERROR, "can undo only last move"));
 			else
 			{
-				list_of_moves.pop_back();
+				{ 	// artificial scope for lock
+					std::lock_guard lock(board_mutex);
+					list_of_moves.pop_back();
+				}
 				input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 				output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 			}
