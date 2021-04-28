@@ -43,7 +43,12 @@ namespace ag
 	{
 		MaxExpectation expectation;
 		std::sort(children, children + numberOfChildren(), [expectation](const Node &lhs, const Node &rhs)
-		{	return (lhs.visits + expectation(&lhs) + 0.001f * lhs.policy_prior) > (rhs.visits + expectation(&rhs) + 0.001f * rhs.policy_prior);});
+		{	double lhs_value = lhs.visits + expectation(&lhs) + 0.001 * lhs.policy_prior;
+			lhs_value+= ((int)(lhs.getProvenValue() == ProvenValue::WIN) - (int)(lhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
+			double rhs_value = rhs.visits + expectation(&rhs) + 0.001 * rhs.policy_prior;
+			rhs_value+= ((int)(rhs.getProvenValue() == ProvenValue::WIN) - (int)(rhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
+			return lhs_value > rhs_value;
+		});
 	}
 }
 
