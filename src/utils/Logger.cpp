@@ -21,13 +21,15 @@ namespace ag
 		std::lock_guard lock(get_instance().logger_mutex);
 		get_instance().is_enabled = false;
 	}
-	void Logger::write(const std::string &str)
+	void Logger::write(const std::string &str, bool flushAfterWrite)
 	{
 		std::lock_guard lock(get_instance().logger_mutex);
 		if (get_instance().is_enabled)
 		{
 			assert(get_instance().output_stream != nullptr);
 			get_instance().output_stream->write(str.data(), str.size());
+			if (flushAfterWrite)
+				get_instance().output_stream->operator <<(std::endl);
 		}
 	}
 	void Logger::redirectTo(std::ostream &stream)

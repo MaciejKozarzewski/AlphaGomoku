@@ -25,7 +25,7 @@ namespace ag
 			static void enable() noexcept;
 			static void disable() noexcept;
 
-			static void write(const std::string &str);
+			static void write(const std::string &str, bool flushAfterWrite = true);
 			static void redirectTo(std::ostream &stream);
 		private:
 			static Logger& get_instance() noexcept;
