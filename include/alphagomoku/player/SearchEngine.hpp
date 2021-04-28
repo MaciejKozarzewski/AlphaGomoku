@@ -80,11 +80,6 @@ namespace ag
 			Message make_forced_move();
 			Message make_move_by_search();
 			Message make_move_by_network();
-			//swap opening
-			Message swap_0stones();
-			Message swap_3stones();
-
-			// swap2 opening
 			Message swap2_0stones();
 			Message swap2_3stones();
 			Message swap2_5stones();

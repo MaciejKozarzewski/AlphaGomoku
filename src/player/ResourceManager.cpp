@@ -9,6 +9,8 @@
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <libml/hardware/Device.hpp>
+
 #include <algorithm>
 
 namespace ag
@@ -54,7 +56,7 @@ namespace ag
 	{
 		std::lock_guard lock(mutex);
 		if (time_for_turn == 0) // timeout turn set to 0 - play as fast as possible
-			return MIN_TIME_FOR_MOVE;
+			return 0.0;
 		else
 		{
 			if (time_for_match == 0) // there is no match time limit
@@ -121,7 +123,10 @@ namespace ag
 			}
 			if (option.name == "time_for_match")
 			{
-				setTimeForMatch(std::stod(option.value) / 1000.0);
+				if (std::stod(option.value) == 0)
+					setTimeForMatch(2147483647.0);
+				else
+					setTimeForMatch(std::stod(option.value) / 1000.0);
 				return true;
 			}
 			if (option.name == "time_left")
@@ -132,14 +137,17 @@ namespace ag
 			if (option.name == "time_for_pondering")
 			{
 				if (std::stod(option.value) == -1)
-					setTimeForPondering(2147483648.0);
+					setTimeForPondering(2147483647.0);
 				else
 					setTimeForPondering(std::stod(option.value) / 1000.0);
 				return true;
 			}
 			if (option.name == "max_memory")
 			{
-				setMaxMemory(std::stoll(option.value));
+				if (std::stod(option.value) == 0)
+					setMaxMemory(0.8 * ml::Device::cpu().memory() * 1024 * 1024);
+				else
+					setMaxMemory(std::stoll(option.value));
 				return true;
 			}
 			if (option.name == "rows")

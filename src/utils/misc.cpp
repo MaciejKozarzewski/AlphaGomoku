@@ -88,7 +88,7 @@ namespace ag
 		tstruct = *localtime(&now);
 		// Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
 		// for more information about date/time format
-		strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+		strftime(buf, sizeof(buf), "%Y_%m_%d_%H%M%S", &tstruct);
 		return buf;
 	}
 

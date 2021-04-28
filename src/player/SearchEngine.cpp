@@ -152,9 +152,9 @@ namespace ag
 		switch (placed_stones)
 		{
 			case 0:
-				return swap_0stones();
+				return swap2_0stones();
 			case 3:
-				return swap_3stones();
+				return swap2_5stones();
 			default:
 				return Message(MessageType::ERROR, "incorrect number of stones for swap2");
 		}
@@ -323,26 +323,6 @@ namespace ag
 		stopSearch();
 		return Message(MessageType::MAKE_MOVE, get_best_move());
 	}
-	// swap opening
-	Message SearchEngine::swap_0stones()
-	{
-		return swap2_0stones();
-	}
-	Message SearchEngine::swap_3stones()
-	{
-		Logger::write("Evaluating 3 stone opening");
-		tree.setBalancingDepth(-1);
-		setup_search();
-		while (search_continues(resource_manager.getTimeForSwap2(3)))
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		stopSearch();
-
-		if (get_root_eval() < 0.5f)
-			return Message(MessageType::MAKE_MOVE, "swap");
-		else
-			return Message(MessageType::MAKE_MOVE, std::vector<Move>( { get_best_move() }));
-	}
-	// swap2 opening
 	Message SearchEngine::swap2_0stones()
 	{
 		Logger::write("Placing 3 initial stones");
@@ -364,7 +344,7 @@ namespace ag
 		const double balancing_split = 0.25;
 		const float swap2_evaluation_treshold = 0.6f;
 
-		Logger::write("Evaluating 3 stone opening");
+		Logger::write("Evaluating opening");
 		tree.setBalancingDepth(-1);
 		setup_search();
 		while (search_continues(resource_manager.getTimeForSwap2(3) * balancing_split))
@@ -382,7 +362,7 @@ namespace ag
 				if (getSimulationCount() > 0)
 					log_search_info();
 
-				Logger::write("Balancing 3 stone opening");
+				Logger::write("Balancing opening");
 				tree.setBalancingDepth(2);
 				setup_search();
 				while (search_continues(resource_manager.getTimeForSwap2(3) * (1.0 - balancing_split)))
@@ -397,7 +377,7 @@ namespace ag
 	}
 	Message SearchEngine::swap2_5stones()
 	{
-		Logger::write("Evaluating 5 stone opening");
+		Logger::write("Evaluating opening");
 		tree.setBalancingDepth(-1);
 		setup_search();
 		while (search_continues(resource_manager.getTimeForSwap2(5)))
@@ -418,7 +398,8 @@ namespace ag
 			if (getSimulationCount() < 10)
 				return true;
 			else
-				return resource_manager.getElapsedTime() < timeout and (tree.getMemory() + cache.getMemory()) < 0.9 * resource_manager.getMaxMemory();
+				return resource_manager.getElapsedTime() < timeout
+						and (tree.getMemory() + cache.getMemory()) < 0.9 * (resource_manager.getMaxMemory() - 150 * 1024 * 1024);
 		}
 	}
 	void SearchEngine::log_search_info()

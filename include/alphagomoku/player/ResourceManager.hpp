@@ -28,11 +28,10 @@ namespace ag
 			const double TIME_FRACTION = 0.05;
 			const double SWAP2_FRACTION = 0.1;
 
-			const double MIN_TIME_FOR_MOVE = 0.1; // [seconds]
 			const double PROTOCOL_OVERHEAD = 0.4; // [seconds]
 
 			GameConfig game_config;
-			uint64_t max_memory = 100 * 1024 * 1024; // [bytes] initially set to 100MB
+			uint64_t max_memory = 256 * 1024 * 1024; // [bytes] initially set to 256MB
 			double time_for_match = 0.0; // [seconds]
 			double time_for_turn = 5.0; // [seconds]
 			double time_left = 5.0; // [seconds]
