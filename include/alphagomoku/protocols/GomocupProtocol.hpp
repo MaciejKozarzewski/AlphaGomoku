@@ -16,6 +16,7 @@ namespace ag
 	class GomocupProtocol: public Protocol
 	{
 		private:
+			mutable std::mutex board_mutex;
 			std::vector<Move> list_of_moves;
 
 		public:

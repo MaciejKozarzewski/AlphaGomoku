@@ -41,24 +41,22 @@ namespace ag
 	class SearchEngine
 	{
 		private:
-			ResourceManager resource_manager;
+			ResourceManager &resource_manager;
 			ThreadPool thread_pool;
 			Tree tree;
 			Cache cache;
 			std::vector<std::unique_ptr<SearchThread>> search_threads;
 
-			GameConfig game_config;
 			matrix<Sign> board;
 			Sign sign_to_move = Sign::NONE;
 			Json config;
 			double time_used_for_last_search = 0.0;
 		public:
-			SearchEngine(GameConfig gameConfig, const Json &cfg);
+			SearchEngine(const Json &cfg, ResourceManager &rm);
 
-			ResourceManager& getResourceManager() noexcept;
 			void setPosition(const std::vector<Move> &listOfMoves);
 			Message makeMove();
-			void ponder(double timeout);
+			Message ponder();
 			Message swap2();
 			void exit();
 
@@ -77,6 +75,7 @@ namespace ag
 			Message swap2_3stones();
 			Message swap2_5stones();
 			bool search_continues(double timeout);
+			void log_search_info();
 	};
 
 } /* namespace ag */

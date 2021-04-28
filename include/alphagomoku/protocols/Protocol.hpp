@@ -41,7 +41,6 @@ namespace ag
 			std::string getLine();
 			std::string peekLine();
 			void pushLine(const std::string &line);
-			void receive();
 	};
 
 	class OutputSender
@@ -113,6 +112,8 @@ namespace ag
 			Option getOption() const;
 			Move getMove() const;
 			std::string getString() const;
+
+			std::string info() const;
 	};
 
 	class MessageQueue
