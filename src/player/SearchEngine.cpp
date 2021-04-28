@@ -81,6 +81,7 @@ namespace ag
 		for (int i = 0; i < thread_pool.size(); i++)
 			search_threads.push_back(
 					std::make_unique<SearchThread>(rm.getGameConfig(), cfg, tree, cache, ml::Device::fromString(cfg["threads"][i]["device"])));
+		Logger::write("Initialized in " + std::to_string(rm.getElapsedTime()) + " seconds");
 	}
 	void SearchEngine::setPosition(const std::vector<Move> &listOfMoves)
 	{
@@ -91,6 +92,14 @@ namespace ag
 		board = matrix<Sign>(resource_manager.getGameConfig().rows, resource_manager.getGameConfig().cols);
 		for (auto move = listOfMoves.begin(); move < listOfMoves.end(); move++)
 			board.at(move->row, move->col) = move->sign;
+	}
+	void SearchEngine::setPosition(const Move &move)
+	{
+		if (isBoardEmpty(board))
+			sign_to_move = Sign::CROSS;
+		assert(move.sign == sign_to_move);
+		board.at(move.row, move.col) = move.sign;
+		sign_to_move = invertSign(move.sign);
 	}
 	Message SearchEngine::makeMove()
 	{
@@ -131,6 +140,21 @@ namespace ag
 				return swap2_3stones();
 			case 5:
 				return swap2_5stones();
+			default:
+				return Message(MessageType::ERROR, "incorrect number of stones for swap2");
+		}
+	}
+	Message SearchEngine::swap()
+	{
+		int placed_stones = std::count_if(board.begin(), board.end(), [](Sign s)
+		{	return s != Sign::NONE;});
+
+		switch (placed_stones)
+		{
+			case 0:
+				return swap_0stones();
+			case 3:
+				return swap_3stones();
 			default:
 				return Message(MessageType::ERROR, "incorrect number of stones for swap2");
 		}
@@ -205,11 +229,6 @@ namespace ag
 // private
 	void SearchEngine::setup_search()
 	{
-//		if (resource_manager.getGameConfig().rows != resource_manager.getGameConfig().cols)
-//			return Message(MessageType::ERROR, "only square boards are supported");
-//		if (resource_manager.getGameConfig().rows != 15 and resource_manager.getGameConfig().rows != 20)
-//			return Message(MessageType::ERROR, "only 15x15 or 20x20 boards are supported");
-
 		cache.clearStats();
 		tree.clearStats();
 
@@ -304,8 +323,29 @@ namespace ag
 		stopSearch();
 		return Message(MessageType::MAKE_MOVE, get_best_move());
 	}
+	// swap opening
+	Message SearchEngine::swap_0stones()
+	{
+		return swap2_0stones();
+	}
+	Message SearchEngine::swap_3stones()
+	{
+		Logger::write("Evaluating 3 stone opening");
+		tree.setBalancingDepth(-1);
+		setup_search();
+		while (search_continues(resource_manager.getTimeForSwap2(3)))
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		stopSearch();
+
+		if (get_root_eval() < 0.5f)
+			return Message(MessageType::MAKE_MOVE, "swap");
+		else
+			return Message(MessageType::MAKE_MOVE, std::vector<Move>( { get_best_move() }));
+	}
+	// swap2 opening
 	Message SearchEngine::swap2_0stones()
 	{
+		Logger::write("Placing 3 initial stones");
 		if (std::filesystem::exists(static_cast<std::string>(config["swap2_openings_file"])) == false)
 			return Message(MessageType::ERROR, "No swap2 opening book found");
 		else
@@ -324,6 +364,7 @@ namespace ag
 		const double balancing_split = 0.25;
 		const float swap2_evaluation_treshold = 0.6f;
 
+		Logger::write("Evaluating 3 stone opening");
 		tree.setBalancingDepth(-1);
 		setup_search();
 		while (search_continues(resource_manager.getTimeForSwap2(3) * balancing_split))
@@ -338,6 +379,10 @@ namespace ag
 				return Message(MessageType::MAKE_MOVE, std::vector<Move>( { get_best_move() }));
 			else
 			{
+				if (getSimulationCount() > 0)
+					log_search_info();
+
+				Logger::write("Balancing 3 stone opening");
 				tree.setBalancingDepth(2);
 				setup_search();
 				while (search_continues(resource_manager.getTimeForSwap2(3) * (1.0 - balancing_split)))
@@ -352,6 +397,7 @@ namespace ag
 	}
 	Message SearchEngine::swap2_5stones()
 	{
+		Logger::write("Evaluating 5 stone opening");
 		tree.setBalancingDepth(-1);
 		setup_search();
 		while (search_continues(resource_manager.getTimeForSwap2(5)))

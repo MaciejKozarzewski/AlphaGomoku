@@ -71,7 +71,7 @@ namespace ag
 	}
 	Json SearchConfig::getDefault()
 	{
-		return Json( { { "batch_size", 1 }, { "exploration_constant", 1.25 }, { "expansion_prior_treshold", 1.0e-6 }, { "max_children", -1 }, {
+		return Json( { { "batch_size", 1 }, { "exploration_constant", 1.25 }, { "expansion_prior_treshold", 1.0e-6 }, { "max_children", 1000 }, {
 				"noise_weight", 0.0 }, { "use_endgame_solver", false } });
 	}
 

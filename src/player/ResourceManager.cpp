@@ -131,7 +131,10 @@ namespace ag
 			}
 			if (option.name == "time_for_pondering")
 			{
-				setTimeForPondering(std::stod(option.value) / 1000.0);
+				if (std::stod(option.value) == -1)
+					setTimeForPondering(2147483648.0);
+				else
+					setTimeForPondering(std::stod(option.value) / 1000.0);
 				return true;
 			}
 			if (option.name == "max_memory")

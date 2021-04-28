@@ -207,12 +207,15 @@ namespace ag
 					break;
 				case 2:
 					input_queue.push(Message());
-					break; // continuous game - not supported
+					output_queue.push(Message(MessageType::ERROR, "continuous game is not supported"));
+					break;
 				case 4:
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) }));
+					output_queue.push(Message(MessageType::ERROR, "renju rule is not supported"));
 					break;
 				case 8:
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) }));
+					output_queue.push(Message(MessageType::ERROR, "caro rule is not supported"));
 					break;
 			}
 		}
@@ -229,7 +232,10 @@ namespace ag
 		input_queue.push(Message(MessageType::START_PROGRAM));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "cols", tmp[1] }));
-		output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
+		if (std::stoi(tmp[1]) == 15 or std::stoi(tmp[1]) == 20)
+			output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
+		else
+			output_queue.push(Message(MessageType::ERROR, "only 15x15 or 20x20 boards are supported"));
 	}
 	void GomocupProtocol::RECTSTART(InputListener &listener)
 	{
@@ -427,7 +433,7 @@ namespace ag
 		std::string line = listener.getLine();
 		auto tmp = split(line, ' ');
 		if (tmp.size() == 1)
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", "2147483648" }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", "-1" }));
 		else
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", tmp[1] }));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));

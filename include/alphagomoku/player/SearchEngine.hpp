@@ -54,10 +54,19 @@ namespace ag
 		public:
 			SearchEngine(const Json &cfg, ResourceManager &rm);
 
+			/**
+			 * Used to setup entire board in one step. Moves must be in correct order (alternating colors)
+			 */
 			void setPosition(const std::vector<Move> &listOfMoves);
+			/**
+			 * Used to incrementally add moves to board. Moves must be in correct order (alternating colors)
+			 */
+			void setPosition(const Move &move);
+
 			Message makeMove();
 			Message ponder();
 			Message swap2();
+			Message swap();
 			void exit();
 
 			void stopSearch();
@@ -71,6 +80,11 @@ namespace ag
 			Message make_forced_move();
 			Message make_move_by_search();
 			Message make_move_by_network();
+			//swap opening
+			Message swap_0stones();
+			Message swap_3stones();
+
+			// swap2 opening
 			Message swap2_0stones();
 			Message swap2_3stones();
 			Message swap2_5stones();
