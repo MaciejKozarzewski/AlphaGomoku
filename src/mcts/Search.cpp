@@ -120,7 +120,7 @@ namespace ag
 		assert(maxSimulations > 0);
 		while (static_cast<int>(search_buffer.size()) < search_config.batch_size)
 		{
-			if(simulation_count >= maxSimulations or tree.isProven())
+			if (simulation_count >= maxSimulations or tree.isProven())
 				return false; // search cannot be continued
 			SearchRequest &request = select();
 			if (evaluateFromGameRules(request.position) == GameOutcome::UNKNOWN)
@@ -222,7 +222,7 @@ namespace ag
 			if (position.getBoard().data()[i] == Sign::NONE and position.getPolicy().data()[i] >= search_config.expansion_prior_treshold)
 				moves_to_add.push_back( { Move::move_to_short(i / cols, i % cols, position.getSignToMove()), position.getPolicy().data()[i] });
 
-		if (search_config.max_children > 0)
+		if (static_cast<int>(moves_to_add.size()) > search_config.max_children and search_config.max_children != -1)
 		{
 			std::partial_sort(moves_to_add.begin(), moves_to_add.begin() + search_config.max_children, moves_to_add.end(),
 					[](const std::pair<uint16_t, float> &lhs, const std::pair<uint16_t, float> &rhs)
