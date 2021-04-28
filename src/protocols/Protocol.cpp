@@ -41,7 +41,9 @@ namespace ag
 			}
 			else
 			{
+				lock.unlock();
 				input_queue.push(get_line(*input_stream));
+				lock.lock();
 				listener_cond.notify_all();
 			}
 		}
@@ -61,7 +63,9 @@ namespace ag
 			}
 			else
 			{
+				lock.unlock();
 				input_queue.push(get_line(*input_stream));
+				lock.lock();
 				listener_cond.notify_all();
 			}
 		}
@@ -138,6 +142,76 @@ namespace ag
 	std::string Message::getString() const
 	{
 		return std::get<std::string>(data);
+	}
+
+	std::string Message::info() const
+	{
+		std::string result = "type = ";
+		switch (getType())
+		{
+			case MessageType::CHANGE_PROTOCOL:
+				result += "CHANGE_PROTOCOL";
+				break;
+			case MessageType::START_PROGRAM:
+				result += "START_PROGRAM";
+				break;
+			case MessageType::SET_OPTION:
+				result += "SET_OPTION";
+				break;
+			case MessageType::SET_POSITION:
+				result += "SET_POSITION";
+				break;
+			case MessageType::START_SEARCH:
+				result += "START_SEARCH";
+				break;
+			case MessageType::STOP_SEARCH:
+				result += "STOP_SEARCH";
+				break;
+			case MessageType::MAKE_MOVE:
+				result += "MAKE_MOVE";
+				break;
+			case MessageType::EXIT_PROGRAM:
+				result += "EXIT_PROGRAM";
+				break;
+			case MessageType::EMPTY_MESSAGE:
+				result += "EMPTY_MESSAGE";
+				break;
+			case MessageType::PLAIN_STRING:
+				result += "PLAIN_STRING";
+				break;
+			case MessageType::UNKNOWN_COMMAND:
+				result += "UNKNOWN_COMMAND";
+				break;
+			case MessageType::ERROR:
+				result += "ERROR";
+				break;
+			case MessageType::INFO_MESSAGE:
+				result += "INFO_MESSAGE";
+				break;
+			case MessageType::ABOUT_ENGINE:
+				result += "ABOUT_ENGINE";
+				break;
+		}
+		result += ", data";
+		if (holdsGameConfig())
+			result += "[GameConfig] = " + std::to_string(getGameConfig().rows) + ", " + std::to_string(getGameConfig().cols) + ", "
+					+ toString(getGameConfig().rules) + ")";
+		if (holdsListOfMoves())
+		{
+			result += "[ListOfMoves] = {";
+			for (size_t i = 0; i < getListOfMoves().size(); i++)
+				result += ((i == 0) ? "" : ", ") + getListOfMoves().at(i).toString();
+			result += "}";
+		}
+		if (holdsMove())
+			result += "[Move] = " + getMove().toString();
+		if (holdsNoData())
+			result += "[NoData]";
+		if (holdsOption())
+			result += "[Option] = " + getOption().name + "=" + getOption().value;
+		if (holdsString())
+			result += "[String] = " + getString();
+		return result;
 	}
 
 	void MessageQueue::clear()
