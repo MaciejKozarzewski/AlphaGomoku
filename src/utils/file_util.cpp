@@ -26,9 +26,11 @@ namespace ag
 	}
 	void FileSaver::save(const Json &json, const SerializedObject &binary_data, int indent, bool compress)
 	{
-		std::string to_save = json.dump(indent);
-		to_save += '\n';
-		to_save.append(binary_data.data(), binary_data.size());
+		std::string json_string = json.dump(indent);
+
+		std::vector<char> to_save(json_string.begin(), json_string.end());
+		to_save.push_back('\n');
+		to_save.insert(to_save.end(), binary_data.data(), binary_data.data() + binary_data.size());
 		if (compress == true)
 			to_save = ZipWrapper::compress(to_save);
 		stream.write(to_save.data(), to_save.size());
@@ -40,14 +42,18 @@ namespace ag
 
 	FileLoader::FileLoader(const std::string &path, bool uncompress)
 	{
-		if (not std::filesystem::exists(path))
+		if (std::filesystem::exists(path) == false)
 			throw std::runtime_error("File '" + path + "' does not exist");
 
+		uintmax_t filesize = std::filesystem::file_size(path);
+		loaded_data.assign(filesize, '\0');
 		std::fstream file(path, std::fstream::in);
-		loaded_string = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		if (file.good() == false)
+			throw std::runtime_error("File '" + path + "' could not be opened");
+		file.read(loaded_data.data(), filesize);
 		file.close();
 		if (uncompress == true)
-			loaded_string = ZipWrapper::uncompress(loaded_string);
+			loaded_data = ZipWrapper::uncompress(loaded_data);
 		split_point = find_split_point();
 		load_all_data();
 	}
@@ -69,22 +75,23 @@ namespace ag
 	}
 	void FileLoader::load_all_data()
 	{
-		json = Json::load(loaded_string);
-		binary_data.save(loaded_string.data() + split_point, loaded_string.size() - split_point);
+		std::string str(loaded_data.begin(), loaded_data.begin() + split_point);
+		json = Json::load(str);
+		binary_data.save(loaded_data.data() + split_point, loaded_data.size() - split_point);
 	}
 	size_t FileLoader::find_split_point() const noexcept
 	{
 		int opened_braces = 0;
-		for (size_t i = 0; i < loaded_string.size(); i++)
+		for (size_t i = 0; i < loaded_data.size(); i++)
 		{
-			if (loaded_string[i] == '{' || loaded_string[i] == '[')
+			if (loaded_data[i] == '{' || loaded_data[i] == '[')
 				opened_braces++;
-			if (loaded_string[i] == '}' || loaded_string[i] == ']')
+			if (loaded_data[i] == '}' || loaded_data[i] == ']')
 				opened_braces--;
 			if (opened_braces == 0)
 				return i + 2; // +1 for }, another +1 for \n
 		}
-		return loaded_string.size();
+		return loaded_data.size();
 	}
 }
 

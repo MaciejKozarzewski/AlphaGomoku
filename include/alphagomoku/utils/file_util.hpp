@@ -31,7 +31,7 @@ namespace ag
 	{
 			Json json;
 			SerializedObject binary_data;
-			std::string loaded_string;
+			std::vector<char> loaded_data;
 			size_t split_point;
 		public:
 			FileLoader(const std::string &path, bool uncompress = false);
