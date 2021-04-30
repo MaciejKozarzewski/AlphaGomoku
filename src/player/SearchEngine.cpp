@@ -187,8 +187,13 @@ namespace ag
 		{
 			case ProvenValue::UNKNOWN:
 			{
-				int tmp = static_cast<int>(1000 * get_root_eval());
-				result += " ev " + std::to_string(tmp / 10) + '.' + std::to_string(tmp % 10);
+				if (getSimulationCount() > 0)
+				{
+					int tmp = static_cast<int>(1000 * get_root_eval());
+					result += " ev " + std::to_string(tmp / 10) + '.' + std::to_string(tmp % 10);
+				}
+				else
+					result += " ev U"; // forced move was played, there is no root node evaluation to show
 				break;
 			}
 			case ProvenValue::LOSS:
@@ -202,7 +207,10 @@ namespace ag
 				break;
 		}
 		result += " n " + std::to_string(getSimulationCount());
-		result += " n/s " + std::to_string((int) (getSimulationCount() / time_used_for_last_search));
+		if (getSimulationCount() > 0)
+			result += " n/s " + std::to_string((int) (getSimulationCount() / time_used_for_last_search));
+		else
+			result += " n/s 0";
 		result += " tm " + std::to_string((int) (1000 * time_used_for_last_search));
 		result += " pv";
 

@@ -16,10 +16,6 @@ namespace ag
 	GomocupProtocol::GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
 			Protocol(queueIN, queueOUT)
 	{
-		queueOUT.push(Message(MessageType::INFO_MESSAGE, "Detected following devices"));
-		queueOUT.push(Message(MessageType::INFO_MESSAGE, ml::Device::cpu().toString() + " : " + ml::Device::cpu().info()));
-		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
-			queueOUT.push(Message(MessageType::INFO_MESSAGE, ml::Device::cuda(i).toString() + " : " + ml::Device::cuda(i).info()));
 	}
 	ProtocolType GomocupProtocol::getType() const noexcept
 	{
@@ -232,6 +228,11 @@ namespace ag
 		input_queue.push(Message(MessageType::START_PROGRAM));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "cols", tmp[1] }));
+
+		output_queue.push(Message(MessageType::INFO_MESSAGE, "Detected following devices"));
+		output_queue.push(Message(MessageType::INFO_MESSAGE, ml::Device::cpu().toString() + " : " + ml::Device::cpu().info()));
+		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
+			output_queue.push(Message(MessageType::INFO_MESSAGE, ml::Device::cuda(i).toString() + " : " + ml::Device::cuda(i).info()));
 		if (std::stoi(tmp[1]) == 15 or std::stoi(tmp[1]) == 20)
 			output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 		else

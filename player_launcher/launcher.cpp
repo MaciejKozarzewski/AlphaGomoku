@@ -82,16 +82,7 @@ int main(int argc, char *argv[])
 	config["networks"]["freestyle"] = localLaunchPath + "networks" + path_separator + static_cast<std::string>(config["networks"]["freestyle"]);
 	config["networks"]["standard"] = localLaunchPath + "networks" + path_separator + static_cast<std::string>(config["networks"]["standard"]);
 
-	// setup logging if enabled
 	std::ofstream logfile;
-	if (static_cast<bool>(config["use_logging"]))
-	{
-		logfile = std::ofstream(localLaunchPath + path_separator + "logs" + path_separator + currentDateTime() + ".log");
-		Logger::enable();
-		Logger::redirectTo(logfile);
-	}
-	Logger::write(std::string("Compiled on ") + __DATE__ + " at " + __TIME__);
-	Logger::write("Launched in " + localLaunchPath);
 
 	GameConfig game_config;
 	ResourceManager resource_manager;
@@ -129,7 +120,17 @@ int main(int argc, char *argv[])
 			{
 				case MessageType::CHANGE_PROTOCOL:
 				case MessageType::START_PROGRAM:
+				{
+					if (static_cast<bool>(config["use_logging"])) // setup logging to file if enabled
+					{
+						logfile = std::ofstream(localLaunchPath + path_separator + "logs" + path_separator + currentDateTime() + ".log");
+						Logger::enable();
+						Logger::redirectTo(logfile);
+					}
+					Logger::write(std::string("Compiled on ") + __DATE__ + " at " + __TIME__);
+					Logger::write("Launched in " + localLaunchPath);
 					break;
+				}
 				case MessageType::SET_OPTION:
 				{
 					bool success = resource_manager.setOption(input_message.getOption());
