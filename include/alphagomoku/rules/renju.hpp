@@ -20,6 +20,8 @@ namespace ag
 {
 	GameOutcome getOutcomeRenju(const matrix<Sign> &board);
 	GameOutcome getOutcomeRenju(const matrix<Sign> &board, const Move &last_move);
+
+	GameOutcome getOutcomeRenju(const std::vector<Sign> &line);
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_RULES_RENJU_HPP_ */

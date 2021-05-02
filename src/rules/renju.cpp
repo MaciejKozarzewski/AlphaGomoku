@@ -23,5 +23,10 @@ namespace ag
 		else
 			return GameOutcome::UNKNOWN;
 	}
+
+	GameOutcome getOutcomeRenju(const std::vector<Sign> &line)
+	{
+		return GameOutcome::UNKNOWN; // TODO
+	}
 }
 

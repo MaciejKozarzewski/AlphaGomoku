@@ -20,6 +20,8 @@ namespace ag
 {
 	GameOutcome getOutcomeStandard(const matrix<Sign> &board);
 	GameOutcome getOutcomeStandard(const matrix<Sign> &board, const Move &last_move);
+
+	GameOutcome getOutcomeStandard(const std::vector<Sign> &line);
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_RULES_STANDARD_HPP_ */

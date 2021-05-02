@@ -18,5 +18,10 @@ namespace ag
 	{
 		return GameOutcome::UNKNOWN; // TODO
 	}
+
+	GameOutcome getOutcomeCaro(const std::vector<Sign> &line)
+	{
+		return GameOutcome::UNKNOWN; // TODO
+	}
 }
 

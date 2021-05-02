@@ -20,6 +20,8 @@ namespace ag
 {
 	GameOutcome getOutcomeCaro(const matrix<Sign> &board);
 	GameOutcome getOutcomeCaro(const matrix<Sign> &board, const Move &last_move);
+
+	GameOutcome getOutcomeCaro(const std::vector<Sign> &line);
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_RULES_CARO_HPP_ */

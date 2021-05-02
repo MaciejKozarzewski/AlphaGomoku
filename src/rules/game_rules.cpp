@@ -103,5 +103,22 @@ namespace ag
 				return getOutcomeCaro(board, last_move);
 		}
 	}
+
+	GameOutcome getOutcome(GameRules rules, const std::vector<Sign> &line)
+	{
+		switch (rules)
+		{
+			default:
+				throw std::logic_error("unknown rule");
+			case GameRules::FREESTYLE:
+				return getOutcomeFreestyle(line);
+			case GameRules::STANDARD:
+				return getOutcomeStandard(line);
+			case GameRules::RENJU:
+				return getOutcomeRenju(line);
+			case GameRules::CARO:
+				return getOutcomeCaro(line);
+		}
+	}
 }
 

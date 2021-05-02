@@ -162,5 +162,40 @@ namespace ag
 		else
 			return GameOutcome::UNKNOWN;
 	}
+
+	GameOutcome getOutcomeStandard(const std::vector<Sign> &line)
+	{
+		int cross = 0, circle = 0;
+		for (size_t i = 0; i < line.size(); i++)
+			switch (line[i])
+			{
+				default:
+				case Sign::NONE:
+					if (cross == ROW_TO_WIN)
+						return GameOutcome::CROSS_WIN;
+					if (circle == ROW_TO_WIN)
+						return GameOutcome::CIRCLE_WIN;
+					cross = circle = 0;
+					break;
+				case Sign::CROSS:
+					if (circle == ROW_TO_WIN)
+						return GameOutcome::CIRCLE_WIN;
+					cross++;
+					circle = 0;
+					break;
+				case Sign::CIRCLE:
+					if (cross == ROW_TO_WIN)
+						return GameOutcome::CROSS_WIN;
+					cross = 0;
+					circle++;
+					break;
+			}
+
+		if (cross == ROW_TO_WIN)
+			return GameOutcome::CROSS_WIN;
+		if (circle == ROW_TO_WIN)
+			return GameOutcome::CIRCLE_WIN;
+		return GameOutcome::UNKNOWN;
+	}
 }
 
