@@ -5,7 +5,7 @@
  *      Author: maciek
  */
 
-#include <alphagomoku/player/GomocupPlayer.hpp>
+
 #include <gtest/gtest.h>
 
 namespace ag

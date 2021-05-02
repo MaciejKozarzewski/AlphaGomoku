@@ -5,7 +5,6 @@
  *      Author: maciek
  */
 
-#include <alphagomoku/player/GomocupPlayer.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/matrix.hpp>
@@ -177,8 +176,7 @@ namespace ag
 	}
 	Message SearchEngine::getSearchSummary()
 	{
-		if (getSimulationCount() > 0)
-			log_search_info();
+		log_search_info();
 
 		std::string result;
 		SearchTrajectory pv = tree.getPrincipalVariation();
@@ -214,19 +212,15 @@ namespace ag
 		result += " tm " + std::to_string((int) (1000 * time_used_for_last_search));
 		result += " pv";
 
-		char s = (sign_to_move == Sign::CROSS) ? 'X' : 'O';
-		for (int i = 0; i < pv.length(); i++)
+		for (int i = 1; i < pv.length(); i++)
 		{
 			Node &current = pv.getNode(i);
 			Move m(current.getMove());
+			result += std::string(" ") + ((m.sign == Sign::CROSS) ? "X" : "O");
 //			if (player->config.is_using_yixin_board == true)
-//				result += " " + std::string(1, s) + (char) (97 + m.row) + std::to_string((board.cols() - 1 - m.col));
+//				result += (char) (97 + m.row) + std::to_string((board.cols() - 1 - m.col));
 //			else
-			result += " " + std::string(1, s) + (char) (97 + m.row) + std::to_string((int) m.col);
-			if (s == 'X')
-				s = 'O';
-			else
-				s = 'X';
+			result += (char) (97 + m.row) + std::to_string((int) m.col);
 		}
 		return Message(MessageType::INFO_MESSAGE, result);
 	}
@@ -302,7 +296,8 @@ namespace ag
 					if ((sign_to_move == Sign::CROSS and winner == GameOutcome::CROSS_WIN)
 							or (sign_to_move == Sign::CIRCLE and winner == GameOutcome::CIRCLE_WIN))
 					{
-						return Message(MessageType::MAKE_MOVE, Move(i, j, sign_to_move));
+						//return Message(MessageType::MAKE_MOVE, Move(i, j, sign_to_move));
+						return Message(); // do not force winning move
 					}
 				}
 
@@ -415,6 +410,14 @@ namespace ag
 		const int rows = resource_manager.getGameConfig().rows;
 		const int cols = resource_manager.getGameConfig().cols;
 
+		if (getSimulationCount() == 0)
+		{
+			Move move = make_forced_move().getMove();
+			matrix<float> policy(rows, cols);
+			policy.at(move.row, move.col) = 0.999f;
+			Logger::write(policyToString(board, policy));
+			return;
+		}
 		int children = std::min(10, tree.getRootNode().numberOfChildren());
 		tree.getRootNode().sortChildren();
 		Logger::write("BEST");
