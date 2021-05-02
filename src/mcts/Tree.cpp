@@ -57,18 +57,19 @@ namespace
 	}
 	Node* select_by_visit(Node *parent)
 	{
-		auto selected = parent->begin();
-		int bestValue = selected->getVisits();
+		auto selected = parent->end();
+		double bestValue = std::numeric_limits<float>::lowest();
 		for (auto iter = parent->begin(); iter < parent->end(); iter++)
 		{
-			if (iter->getProvenValue() == ProvenValue::WIN)
-				return iter;
-			if (iter->getVisits() > bestValue and iter->getProvenValue() != ProvenValue::LOSS)
+			double value = iter->getVisits() + MaxExpectation()(iter) + 0.001 * iter->getPolicyPrior()
+					+ ((int) (iter->getProvenValue() == ProvenValue::WIN) - (int) (iter->getProvenValue() == ProvenValue::LOSS)) * 1e9;
+			if (value > bestValue)
 			{
 				selected = iter;
-				bestValue = iter->getVisits();
+				bestValue = value;
 			}
 		}
+		assert(selected != parent->end());
 		return selected;
 	}
 	Node* select_by_value(Node *parent)
