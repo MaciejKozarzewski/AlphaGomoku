@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 	EvaluationQueue queue;
 //	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
 //	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
-	queue.loadGraph("/home/maciek/repos/AlphaGomoku/Release/networks/freestyle_10x128.bin", 8, ml::Device::cuda(0), true);
+	queue.loadGraph("/home/maciek/repos/AlphaGomoku/Release/networks/freestyle_10x128.bin", 8, ml::Device::cpu(), false);
 
 	Search search(game_config, search_config, tree, cache, queue);
 
@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 							" _ _ _ _ _ _ _ O X X _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ X O O _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ X _ _ _ X O O _ _ _ _ _ _ _ _ _ _\n"
 							" _ _ _ X _ X X O _ X X _ O _ _ _ _ _ _ _\n"
 							" _ _ _ X O O O _ X O O X _ _ _ _ _ _ _ _\n"
 							" _ _ _ _ _ _ X O O X _ O _ _ _ _ _ _ _ _\n"
@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ X _ X _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ X X X O _ _ _ _ _ _ _ _ _\n"
@@ -277,33 +277,17 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ O X _ X _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
 
-	sign_to_move = Sign::CROSS;
-
-	FeatureExtractor extractor(game_config);
+	sign_to_move = Sign::CIRCLE;
 
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
 
 	matrix<float> policy(board.rows(), board.cols());
-	std::vector<std::pair<uint16_t, float>> moveList;
-	normalize(policy);
-	extractor.generateMoves(policy, moveList, board, sign_to_move);
-//	double start = getTime();
-//	for (int i = 0; i < 1000000; i++)
-//		extractor.analysis(board, policy);
-//	double stop = getTime();
-//	std::cout << (stop - start) << std::endl;
-
-	std::cout << boardToString(board);
-//	std::cout << policyToString(board, policy);
-
-//	return 0;
-
 	for (int i = 0; i <= 1; i++)
 	{
-		while (search.getSimulationCount() < i * 3000)
+		while (search.getSimulationCount() < i * 1)
 		{
-			search.simulate(i * 3000);
+			search.simulate(i * 1);
 			queue.evaluateGraph();
 			search.handleEvaluation();
 			if (tree.isProven())
@@ -324,14 +308,17 @@ int main(int argc, char *argv[])
 		if (tree.isProven())
 			break;
 	}
-	matrix<ProvenValue> proven_values(board.rows(), board.cols());
+	std::cout << "Policy priors\n";
 	tree.getPolicyPriors(tree.getRootNode(), policy);
 	normalize(policy);
-	tree.getProvenValues(tree.getRootNode(), proven_values);
 	std::cout << policyToString(board, policy);
 	std::cout << "-----------------------------------------------------------------------------------------\n";
+
+	matrix<ProvenValue> proven_values(board.rows(), board.cols());
+	tree.getProvenValues(tree.getRootNode(), proven_values);
 	tree.getPlayoutDistribution(tree.getRootNode(), policy);
 	normalize(policy);
+	std::cout << "Final playout distribution\n";
 	for (int i = 0; i < board.rows(); i++)
 	{
 		for (int j = 0; j < board.cols(); j++)

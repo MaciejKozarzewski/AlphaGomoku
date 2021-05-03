@@ -26,6 +26,12 @@ namespace ag
 	{
 			ThreatType for_cross = ThreatType::NONE;
 			ThreatType for_circle = ThreatType::NONE;
+			Threat() = default;
+			Threat(ThreatType cross, ThreatType circle) :
+					for_cross(cross),
+					for_circle(circle)
+			{
+			}
 	};
 
 	class FeatureTable
