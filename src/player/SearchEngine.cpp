@@ -16,6 +16,7 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
+#include <limits>
 
 namespace ag
 {
@@ -247,29 +248,29 @@ namespace ag
 	{
 		const int rows = resource_manager.getGameConfig().rows;
 		const int cols = resource_manager.getGameConfig().cols;
-		matrix<float> policy(rows, cols);
+		matrix<float> playouts(rows, cols);
+		matrix<float> policy_priors(rows, cols);
 		matrix<ProvenValue> proven_values(rows, cols);
 		matrix<Value> action_values(rows, cols);
-		tree.getPlayoutDistribution(tree.getRootNode(), policy);
+		tree.getPlayoutDistribution(tree.getRootNode(), playouts);
+		tree.getPolicyPriors(tree.getRootNode(), policy_priors);
 		tree.getProvenValues(tree.getRootNode(), proven_values);
 		tree.getActionValues(tree.getRootNode(), action_values);
-		normalize(policy);
 
-		Move most_visited, best_q;
+		double best_value = std::numeric_limits<double>::lowest();
+		Move best_move;
 		for (int row = 0; row < board.rows(); row++)
 			for (int col = 0; col < board.cols(); col++)
 			{
-				if (proven_values.at(row, col) == ProvenValue::WIN)
-					return Move(row, col, sign_to_move);
-				if (proven_values.at(row, col) == ProvenValue::LOSS)
+				double value = playouts.at(row, col) + (action_values.at(row, col).win + 0.5 * action_values.at(row, col).draw) * tree.getRootNode().getVisits() + 
+						0.001 * policy_priors.at(row, col) + ((int) (proven_values.at(row, col) == ProvenValue::WIN) - (int) (proven_values.at(row, col) == ProvenValue::LOSS)) * 1.0e9;
+				if (value > best_value)
 				{
-					policy.at(row, col) = 0.0f;
-					action_values.at(row, col) = 0.0f;
+					best_value = value;
+					best_move = Move(row, col, sign_to_move);
 				}
 			}
-		most_visited = pickMove(policy);
-		most_visited.sign = sign_to_move;
-		return most_visited;
+		return best_move;
 	}
 	float SearchEngine::get_root_eval() const
 	{

@@ -210,13 +210,13 @@ namespace ag
 			for (auto iter = opponent_threats.begin(); iter < opponent_threats.end(); iter++)
 			{
 				if (iter->threat == ThreatType::HALF_OPEN_FOUR)
-					moveList.push_back( { iter->move.toShort(), std::max(0.0f, policy.at(iter->move.row, iter->move.col)) });
+					moveList.push_back( { iter->move.toShort(), policy.at(iter->move.row, iter->move.col) });
 				if (iter->threat == ThreatType::OPEN_FOUR)
-					moveList.push_back( { iter->move.toShort(), std::max(0.0f, policy.at(iter->move.row, iter->move.col)) });
+					moveList.push_back( { iter->move.toShort(), policy.at(iter->move.row, iter->move.col) });
 			}
 			for (auto iter = own_threats.begin(); iter < own_threats.end(); iter++)
 				if (iter->threat == ThreatType::HALF_OPEN_FOUR)
-					moveList.push_back( { iter->move.toShort(), std::max(0.02f, policy.at(iter->move.row, iter->move.col)) });
+					moveList.push_back( { iter->move.toShort(), policy.at(iter->move.row, iter->move.col) });
 			return;
 		}
 //		if (own_threats.size() > 0 and own_threats.front().threat == ThreatType::HALF_OPEN_FOUR) // can make an open half open four
@@ -225,11 +225,11 @@ namespace ag
 //				if (iter->threat == ThreatType::HALF_OPEN_FOUR) // slightly enhance prior on such moves
 //					policy.at(iter->move.row, iter->move.col) = std::max(0.01f, policy.at(iter->move.row, iter->move.col));
 //		}
-//		if (opponent_threats.size() > 0 and opponent_threats.front().threat == ThreatType::HALF_OPEN_FOUR) // can make an open four
+//		if (opponent_threats.size() > 0 and opponent_threats.front().threat == ThreatType::HALF_OPEN_FOUR) // opponent can make half open four
 //		{
 //			for (auto iter = opponent_threats.begin(); iter < opponent_threats.end(); iter++)
 //				if (iter->threat == ThreatType::HALF_OPEN_FOUR)
-//					policy.at(iter->move.row, iter->move.col) = std::max(0.0f, policy.at(iter->move.row, iter->move.col));
+//					policy.at(iter->move.row, iter->move.col) = std::max(0.01f, policy.at(iter->move.row, iter->move.col));
 //			for (auto iter = own_threats.begin(); iter < own_threats.end(); iter++)
 //				if (iter->threat == ThreatType::HALF_OPEN_FOUR)
 //					policy.at(iter->move.row, iter->move.col) = std::max(0.01f, policy.at(iter->move.row, iter->move.col));

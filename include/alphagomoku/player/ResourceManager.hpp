@@ -25,7 +25,7 @@ namespace ag
 	{
 		private:
 			mutable std::mutex mutex;
-			const double TIME_FRACTION = 0.05;
+			const double TIME_FRACTION = 0.04;
 			const double SWAP2_FRACTION = 0.1;
 
 			const double PROTOCOL_OVERHEAD = 0.4; // [seconds]
