@@ -66,13 +66,14 @@ namespace ag
 			expansion_prior_treshold(cfg["expansion_prior_treshold"]),
 			max_children(cfg["max_children"]),
 			noise_weight(cfg["noise_weight"]),
-			use_endgame_solver(cfg["use_endgame_solver"])
+			use_endgame_solver(cfg["use_endgame_solver"]),
+			use_vcf_solver(cfg["use_vcf_solver"])
 	{
 	}
 	Json SearchConfig::getDefault()
 	{
 		return Json( { { "batch_size", 1 }, { "exploration_constant", 1.25 }, { "expansion_prior_treshold", 1.0e-6 }, { "max_children", 1000 }, {
-				"noise_weight", 0.0 }, { "use_endgame_solver", false } });
+				"noise_weight", 0.0 }, { "use_endgame_solver", false }, { "use_vcf_solver", false } });
 	}
 
 	Json getDefaultTrainingConfig()

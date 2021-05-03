@@ -11,6 +11,8 @@
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/EvaluationQueue.hpp>
 
+#include <numeric>
+
 namespace ag
 {
 	std::string SearchStats::toString() const
@@ -61,6 +63,7 @@ namespace ag
 			cache(cache),
 			tree(tree),
 			eval_queue(queue),
+			vcf_solver(gameOptions),
 			current_board(gameOptions.rows, gameOptions.cols),
 			sign_to_move(Sign::NONE),
 			game_config(gameOptions),
@@ -215,19 +218,39 @@ namespace ag
 
 		double start = getTime(); // statistics
 		const int cols = position.getBoard().cols();
-		maskIllegalMoves(position.getBoard(), position.getPolicy());
+//		maskIllegalMoves(position.getBoard(), position.getPolicy());
 
 		moves_to_add.clear();
-		for (int i = 0; i < position.getBoard().size(); i++)
-			if (position.getBoard().data()[i] == Sign::NONE and position.getPolicy().data()[i] >= search_config.expansion_prior_treshold)
-				moves_to_add.push_back( { Move::move_to_short(i / cols, i % cols, position.getSignToMove()), position.getPolicy().data()[i] });
-
-		if (static_cast<int>(moves_to_add.size()) > search_config.max_children and search_config.max_children != -1)
+		if (search_config.use_vcf_solver)
 		{
-			std::partial_sort(moves_to_add.begin(), moves_to_add.begin() + search_config.max_children, moves_to_add.end(),
-					[](const std::pair<uint16_t, float> &lhs, const std::pair<uint16_t, float> &rhs)
-					{	return lhs.second > rhs.second;});
-			moves_to_add.erase(moves_to_add.begin() + search_config.max_children, moves_to_add.end());
+			vcf_solver.generateMoves(position.getPolicy(), moves_to_add, position.getBoard(), position.getSignToMove());
+		}
+
+		if (moves_to_add.size() == 0) // if there are no immediate threats from VCF solver
+		{
+			for (int i = 0; i < position.getBoard().size(); i++)
+				if (position.getBoard().data()[i] == Sign::NONE and position.getPolicy().data()[i] >= search_config.expansion_prior_treshold)
+					moves_to_add.push_back( { Move::move_to_short(i / cols, i % cols, position.getSignToMove()), position.getPolicy().data()[i] });
+
+			if (static_cast<int>(moves_to_add.size()) > search_config.max_children)
+			{
+				std::partial_sort(moves_to_add.begin(), moves_to_add.begin() + search_config.max_children, moves_to_add.end(),
+						[](const std::pair<uint16_t, float> &lhs, const std::pair<uint16_t, float> &rhs)
+						{	return lhs.second > rhs.second;});
+				moves_to_add.erase(moves_to_add.begin() + search_config.max_children, moves_to_add.end());
+			}
+		}
+
+		if (static_cast<int>(moves_to_add.size()) < position.getBoard().size()) // renormalization of policy priors
+		{
+			float sum_priors = std::accumulate(moves_to_add.begin(), moves_to_add.end(), 0.0f, [](float acc, const std::pair<uint16_t, float> &p)
+			{	return acc + p.second;});
+			if (sum_priors > 0.0f)
+			{
+				sum_priors = 1.0f / sum_priors;
+				std::for_each(moves_to_add.begin(), moves_to_add.end(), [sum_priors](std::pair<uint16_t, float> &p)
+				{	p.second *= sum_priors;});
+			}
 		}
 
 		bool result = tree.expand(*position.getNode(), moves_to_add);

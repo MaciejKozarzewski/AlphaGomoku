@@ -9,10 +9,11 @@
 #define ALPHAGOMOKU_MCTS_SEARCH_HPP_
 
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
+#include <alphagomoku/mcts/Move.hpp>
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
+#include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <inttypes.h>
@@ -68,6 +69,7 @@ namespace ag
 			Tree &tree;
 			EvaluationQueue &eval_queue;
 
+			FeatureExtractor vcf_solver;
 			matrix<Sign> current_board;
 			Sign sign_to_move;
 			int simulation_count = 0;

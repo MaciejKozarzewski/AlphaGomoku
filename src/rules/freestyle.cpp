@@ -150,6 +150,7 @@ namespace ag
 	{
 		int cross = 0, circle = 0;
 		for (size_t i = 0; i < line.size(); i++)
+		{
 			switch (line[i])
 			{
 				default:
@@ -158,20 +159,19 @@ namespace ag
 					break;
 				case Sign::CROSS:
 					cross++;
-					if (cross >= ROW_TO_WIN)
-						return GameOutcome::CROSS_WIN;
-					else
-						circle = 0;
+					circle = 0;
 					break;
 				case Sign::CIRCLE:
 					cross = 0;
-					if (circle >= ROW_TO_WIN)
-						return GameOutcome::CIRCLE_WIN;
-					else
-						circle++;
+					circle++;
 					break;
 			}
+			if (cross >= ROW_TO_WIN)
+				return GameOutcome::CROSS_WIN;
+			if (circle >= ROW_TO_WIN)
+				return GameOutcome::CIRCLE_WIN;
+		}
 		return GameOutcome::UNKNOWN;
 	}
-}
+} /* namespace ag */
 

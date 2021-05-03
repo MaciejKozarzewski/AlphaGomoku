@@ -42,6 +42,7 @@ Json createDefaultConfig()
 	result["search_options"]["max_children"] = 30;
 	result["search_options"]["noise_weight"] = 0.0;
 	result["search_options"]["use_endgame_solver"] = true;
+	result["search_options"]["use_vcf_solver"] = true;
 	result["tree_options"]["max_number_of_nodes"] = 50000000;
 	result["tree_options"]["bucket_size"] = 100000;
 	result["cache_options"]["min_cache_size"] = 1048576;

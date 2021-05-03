@@ -60,6 +60,7 @@ namespace ag
 			int max_children = -1;
 			float noise_weight = 0.0f;
 			bool use_endgame_solver = false;
+			bool use_vcf_solver = false;
 
 			SearchConfig() = default;
 			SearchConfig(const Json &cfg);

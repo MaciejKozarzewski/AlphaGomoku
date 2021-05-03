@@ -32,7 +32,7 @@ namespace ag
 	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board);
 	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, const Move &last_move);
 
-	GameOutcome getOutcome(const std::vector<Sign> &line);
+	GameOutcome getOutcome(GameRules rules, const std::vector<Sign> &line);
 }
 
 #endif /* ALPHAGOMOKU_RULES_GAME_RULES_HPP_ */
