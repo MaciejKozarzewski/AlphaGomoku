@@ -262,9 +262,11 @@ namespace ag
 		for (int row = 0; row < board.rows(); row++)
 			for (int col = 0; col < board.cols(); col++)
 			{
-				double value = playouts.at(row, col) + (action_values.at(row, col).win + 0.5 * action_values.at(row, col).draw) * tree.getRootNode().getVisits() + 
-						0.001 * policy_priors.at(row, col) + ((int) (proven_values.at(row, col) == ProvenValue::WIN) - (int) (proven_values.at(row, col) == ProvenValue::LOSS)) * 1.0e9;
-				if (value > best_value)
+				double value = playouts.at(row, col)
+						+ (action_values.at(row, col).win + 0.5 * action_values.at(row, col).draw) * tree.getRootNode().getVisits()
+						+ 0.001 * policy_priors.at(row, col)
+						+ ((int) (proven_values.at(row, col) == ProvenValue::WIN) - (int) (proven_values.at(row, col) == ProvenValue::LOSS)) * 1.0e9;
+				if (value > best_value and value != 0.0)
 				{
 					best_value = value;
 					best_move = Move(row, col, sign_to_move);

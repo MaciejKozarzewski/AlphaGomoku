@@ -224,24 +224,24 @@ namespace ag
 		if (search_config.use_vcf_solver)
 		{
 			ProvenValue pv = vcf_solver.generateMoves(position.getPolicy(), moves_to_add, position.getBoard(), position.getSignToMove());
-			if (pv != ProvenValue::UNKNOWN and search_config.use_endgame_solver)
-			{
-				position.setProvenValue(pv);
-				switch (pv)
-				{
-					case ProvenValue::LOSS:
-						position.setValue( { 0.0f, 0.0f, 1.0f });
-						break;
-					case ProvenValue::DRAW:
-						position.setValue( { 0.0f, 1.0f, 0.0f });
-						break;
-					case ProvenValue::WIN:
-						position.setValue( { 1.0f, 0.0f, 0.0f });
-						break;
-					default:
-						break;
-				}
-			}
+//			if (pv != ProvenValue::UNKNOWN and search_config.use_endgame_solver)
+//			{
+//				position.setProvenValue(pv);
+//				switch (pv)
+//				{
+//					case ProvenValue::LOSS:
+//						position.setValue( { 0.0f, 0.0f, 1.0f });
+//						break;
+//					case ProvenValue::DRAW:
+//						position.setValue( { 0.0f, 1.0f, 0.0f });
+//						break;
+//					case ProvenValue::WIN:
+//						position.setValue( { 1.0f, 0.0f, 0.0f });
+//						break;
+//					default:
+//						break;
+//				}
+//			}
 		}
 
 		if (moves_to_add.size() == 0) // if there are no immediate threats from VCF solver
