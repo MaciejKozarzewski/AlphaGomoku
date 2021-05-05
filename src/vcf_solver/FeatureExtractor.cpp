@@ -120,66 +120,71 @@ namespace
 	void add_move(matrix<uint32_t> &features, matrix<int> &board, const Move &move)
 	{
 		assert(board.isSquare());
-		assert(board.at(move.row, move.col) == 0); // move must be made on empty spot
+		assert(board.at(pad + move.row, pad + move.col) == 0); // move must be made on empty spot
+
 		board.at(pad + move.row, pad + move.col) = static_cast<int>(move.sign);
 
 		// first calculate rows above move
-		uint32_t mask = static_cast<uint32_t>(move.sign) << (4 * pad);
+		uint32_t mask1 = static_cast<uint32_t>(move.sign) << (4 * pad);
+		uint32_t mask2 = static_cast<uint32_t>(move.sign);
 		for (int i = 0; i <= pad; i++)
 		{
-			features.at(move.row + i, (pad + move.col - (pad - i)) * 4 + 2) |= mask;
-			features.at(move.row + i, (pad + move.col) * 4 + 1) |= mask;
-			features.at(move.row + i, (pad + move.col + (pad - i)) * 4 + 3) |= mask;
-			mask = mask >> 2;
+			features.at(move.row + i, (pad + move.col - (pad - i)) * 4 + 2) |= mask1; // diagonal
+			features.at(move.row + i, (pad + move.col) * 4 + 1) |= mask1; // vertical
+			features.at(move.row + i, (pad + move.col + (pad - i)) * 4 + 3) |= mask2; // antidiagonal
+			mask1 = mask1 >> 2;
+			mask2 = mask2 << 2;
 		}
 
-		mask = static_cast<uint32_t>(move.sign) << (4 * pad);
-		for (int i = pad + move.col; i <= move.col + 2 * pad; i++)
+		uint32_t mask3 = static_cast<uint32_t>(move.sign) << (4 * pad);
+		for (int i = 0; i <= 2 * pad; i++)
 		{
-			features.at(pad + move.row, i * 4) |= mask;
-			mask = mask >> 2;
+			features.at(pad + move.row, (move.col + i) * 4) |= mask3; // horizontal
+			mask3 = mask3 >> 2;
 		}
 
-		mask = static_cast<uint32_t>(move.sign) << (2 * pad - 2);
 		for (int i = 1; i <= pad; i++)
 		{
-			features.at(pad + move.row + i, (pad + move.col - i) * 4 + 3) |= mask;
-			features.at(pad + move.row + i, (pad + move.col) * 4 + 1) |= mask;
-			features.at(pad + move.row + i, (pad + move.col + i) * 4 + 2) |= mask;
-			mask = mask >> 2;
+			features.at(pad + move.row + i, (pad + move.col - i) * 4 + 3) |= mask2; // antidiagonal
+			features.at(pad + move.row + i, (pad + move.col) * 4 + 1) |= mask1; // vertical
+			features.at(pad + move.row + i, (pad + move.col + i) * 4 + 2) |= mask1; // diagonal
+			mask1 = mask1 >> 2;
+			mask2 = mask2 << 2;
 		}
 	}
 	template<int pad>
-	void delete_move(matrix<uint32_t> &features, matrix<int> &board, const Move &move)
+	void undo_move(matrix<uint32_t> &features, matrix<int> &board, const Move &move)
 	{
 		assert(board.isSquare());
-		assert(board.at(move.row, move.col) == static_cast<int>(move.sign));
+		assert(board.at(pad + move.row, pad + move.col) == static_cast<int>(move.sign));
 		board.at(pad + move.row, pad + move.col) = static_cast<int>(Sign::NONE);
 
 		// first calculate rows above move
-		uint32_t mask = ~(static_cast<uint32_t>(move.sign) << (4 * pad));
+		uint32_t mask1 = ~(3 << (4 * pad));
+		uint32_t mask2 = ~3;
 		for (int i = 0; i <= pad; i++)
 		{
-			features.at(move.row + i, (pad + move.col - (pad - i)) * 4 + 2) &= mask;
-			features.at(move.row + i, (pad + move.col) * 4 + 1) &= mask;
-			features.at(move.row + i, (pad + move.col + (pad - i)) * 4 + 3) &= mask;
-			mask = mask >> 2;
+			features.at(move.row + i, (pad + move.col - (pad - i)) * 4 + 2) &= mask1; // diagonal
+			features.at(move.row + i, (pad + move.col) * 4 + 1) &= mask1; // vertical
+			features.at(move.row + i, (pad + move.col + (pad - i)) * 4 + 3) &= mask2; // antidiagonal
+			mask1 = mask1 >> 2;
+			mask2 = (mask2 << 2) | 3;
 		}
 
-		mask = ~(static_cast<uint32_t>(move.sign) << (4 * pad));
-		for (int i = pad + move.col; i <= move.col + 2 * pad; i++)
+		uint32_t mask3 = ~(3 << (4 * pad));
+		for (int i = 0; i <= 2 * pad; i++)
 		{
-			features.at(pad + move.row, i * 4) &= mask;
-			mask = mask >> 2;
+			features.at(pad + move.row, (move.col + i) * 4) &= mask3; // horizontal
+			mask3 = mask3 >> 2;
 		}
 
-		mask = ~(static_cast<uint32_t>(move.sign) << (2 * pad - 2));
 		for (int i = 1; i <= pad; i++)
 		{
-			features.at(pad + move.row + i, (pad + move.col - i) * 4 + 3) &= mask;
-			features.at(pad + move.row + i, (pad + move.col) * 4 + 1) &= mask;
-			features.at(pad + move.row + i, (pad + move.col + i) * 4 + 2) &= mask;
-			mask = mask >> 2;
+			features.at(pad + move.row + i, (pad + move.col - i) * 4 + 3) &= mask2; // antidiagonal
+			features.at(pad + move.row + i, (pad + move.col) * 4 + 1) &= mask1; // vertical
+			features.at(pad + move.row + i, (pad + move.col + i) * 4 + 2) &= mask1; // diagonal
+			mask1 = mask1 >> 2;
+			mask2 = (mask2 << 2) | 3;
 		}
 	}
 
@@ -217,11 +222,13 @@ namespace ag
 {
 
 	FeatureExtractor::FeatureExtractor(GameConfig gameConfig) :
+			nodes_buffer(10000),
 			rules(gameConfig.rules),
 			pad((rules == GameRules::FREESTYLE) ? 4 : 5),
 			internal_board(gameConfig.rows + 2 * pad, gameConfig.cols + 2 * pad),
 			features(internal_board.rows(), internal_board.cols() * 4),
-			map_of_threats(internal_board.rows(), internal_board.cols() * 4)
+			cross_threats(internal_board.rows(), internal_board.cols()),
+			circle_threats(internal_board.rows(), internal_board.cols())
 	{
 		internal_board.fill(3);
 	}
@@ -237,67 +244,71 @@ namespace ag
 			std::memcpy(internal_board.data(pad + r) + pad, board.data(r), sizeof(int) * board.cols());
 
 		calc_all_features();
-		get_threat_lists(signToMove);
+		get_threat_lists();
 
-		auto compare = [&](const ThreatMove &lhs, const ThreatMove &rhs)
+		std::vector<Move> &own_five = (signToMove == Sign::CROSS) ? cross_five : circle_five;
+		if (own_five.empty() == false) // can make a five
 		{
-			float lhs_value = static_cast<int>(lhs.threat) + 0.1f * policy.at(lhs.move.row, lhs.move.col);
-			float rhs_value = static_cast<int>(rhs.threat) + 0.1f * policy.at(rhs.move.row, rhs.move.col);
-			return lhs_value > rhs_value;
-		};
-		std::sort(cross_threats.begin(), cross_threats.end(), compare);
-		std::sort(circle_threats.begin(), circle_threats.end(), compare);
-
-		std::vector<ThreatMove> &own_threats = (signToMove == Sign::CROSS) ? cross_threats : circle_threats;
-		std::vector<ThreatMove> &opponent_threats = (signToMove == Sign::CROSS) ? circle_threats : cross_threats;
-
-//		std::cout << "\nown threats\n";
-//		for (size_t i = 0; i < own_threats.size(); i++)
-//			std::cout << toString(own_threats[i].threat) << " at " << own_threats[i].move.toString() << " "
-//					<< policy.at(own_threats[i].move.row, own_threats[i].move.col) << '\n';
-//		std::cout << "opp threats\n";
-//		for (size_t i = 0; i < opponent_threats.size(); i++)
-//			std::cout << toString(opponent_threats[i].threat) << " at " << opponent_threats[i].move.toString() << " "
-//					<< policy.at(opponent_threats[i].move.row, opponent_threats[i].move.col) << '\n';
-
-		if (own_threats.size() > 0 and own_threats.front().threat == ThreatType::FIVE) // can make a five
-		{
-			for (auto iter = own_threats.begin(); iter < own_threats.end(); iter++)
-				if (iter->threat == ThreatType::FIVE)
-					moveList.push_back( { iter->move.toShort(), 1.0f });
+			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
+				moveList.push_back( { Move::move_to_short(iter->row, iter->col, signToMove), 1.0f });
 			return ProvenValue::LOSS; // it is instant win, returning inverted value
 		}
-		if (opponent_threats.size() > 0 and opponent_threats.front().threat == ThreatType::FIVE) // opponent can make a five
+
+		std::vector<Move> &opponent_five = (signToMove == Sign::CROSS) ? circle_five : cross_five;
+		if (opponent_five.empty() == false) // opponent can make a five
 		{
-			for (auto iter = opponent_threats.begin(); iter < opponent_threats.end(); iter++)
-				if (iter->threat == ThreatType::FIVE)
-					moveList.push_back( { iter->move.toShort(), 1.0f });
-			return ProvenValue::UNKNOWN;
+			for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
+				moveList.push_back( { Move::move_to_short(iter->row, iter->col, signToMove), 1.0f });
+			if (opponent_five.size() == 1)
+				return ProvenValue::UNKNOWN;
+			else
+				return ProvenValue::WIN; // opponent can have more that one five - loss in 2 plys
 		}
-		if (own_threats.size() > 0 and own_threats.front().threat == ThreatType::OPEN_FOUR) // can make an open four
+
+		std::vector<Move> &own_open_four = (signToMove == Sign::CROSS) ? cross_open_four : circle_open_four;
+		if (own_open_four.empty() == false) // can make an open four
 		{
-			for (auto iter = own_threats.begin(); iter < own_threats.end(); iter++)
-				if (iter->threat == ThreatType::OPEN_FOUR)
-					moveList.push_back( { iter->move.toShort(), policy.at(iter->move.row, iter->move.col) });
-			return ProvenValue::LOSS; // it win in 3 plys, returning inverted value;
+			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
+				moveList.push_back( { Move::move_to_short(iter->row, iter->col, signToMove), policy.at(iter->row, iter->col) });
+			return ProvenValue::LOSS; // it is win in 3 plys, returning inverted value;
 		}
-		if (opponent_threats.size() > 0 and opponent_threats.front().threat == ThreatType::OPEN_FOUR) // opponent can make an open four
+
+		std::vector<Move> &own_half_open_four = (signToMove == Sign::CROSS) ? cross_half_open_four : circle_half_open_four;
+		std::vector<Move> &opponent_open_four = (signToMove == Sign::CROSS) ? circle_open_four : cross_open_four;
+		std::vector<Move> &opponent_half_open_four = (signToMove == Sign::CROSS) ? circle_half_open_four : cross_half_open_four;
+		if (opponent_open_four.empty() == false) // opponent can make an open four
 		{
-			for (auto iter = opponent_threats.begin(); iter < opponent_threats.end(); iter++)
+			for (auto iter = opponent_open_four.begin(); iter < opponent_open_four.end(); iter++)
+				moveList.push_back( { Move::move_to_short(iter->row, iter->col, signToMove), policy.at(iter->row, iter->col) });
+			for (auto iter = opponent_half_open_four.begin(); iter < opponent_half_open_four.end(); iter++)
+				moveList.push_back( { Move::move_to_short(iter->row, iter->col, signToMove), policy.at(iter->row, iter->col) });
+
+			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++)
+				moveList.push_back( { Move::move_to_short(iter->row, iter->col, signToMove), policy.at(iter->row, iter->col) });
+		}
+
+		position_counter = 0;
+		nodes_buffer.front().init(0, 0, invertSign(signToMove));
+		node_counter = 1;
+		solve(nodes_buffer.front(), false, 0);
+//		std::cout << "checked " << position_counter << " positions\n";
+		switch (nodes_buffer.front().solved_value)
+		{
+			case SolvedValue::UNKNOWN:
+			case SolvedValue::UNSOLVED:
+				return ProvenValue::UNKNOWN;
+			case SolvedValue::SOLVED_LOSS:
 			{
-				if (iter->threat == ThreatType::HALF_OPEN_FOUR)
-					moveList.push_back( { iter->move.toShort(), policy.at(iter->move.row, iter->move.col) });
-				if (iter->threat == ThreatType::OPEN_FOUR)
-					moveList.push_back( { iter->move.toShort(), policy.at(iter->move.row, iter->move.col) });
+				policy.clear();
+				for (auto iter = nodes_buffer[0].children; iter < nodes_buffer[0].children + nodes_buffer[0].number_of_children; iter++)
+					if (iter->solved_value == SolvedValue::SOLVED_WIN)
+						policy.at(iter->move.row, iter->move.col) = 1.0f;
+				return ProvenValue::LOSS;
 			}
-			for (auto iter = own_threats.begin(); iter < own_threats.end(); iter++)
-				if (iter->threat == ThreatType::HALF_OPEN_FOUR)
-					moveList.push_back( { iter->move.toShort(), policy.at(iter->move.row, iter->move.col) });
+			case SolvedValue::SOLVED_WIN:
+				return ProvenValue::WIN;
 		}
-//		if (own_threats.size() > 0)
-//			return solve(signToMove);
-//		else
-			return ProvenValue::UNKNOWN;
+		return ProvenValue::UNKNOWN; //nodes_buffer.front().solved_value;
 	}
 	void FeatureExtractor::printFeature(int x, int y)
 	{
@@ -372,14 +383,55 @@ namespace ag
 		std::cout << '\n';
 	}
 
+	void FeatureExtractor::setBoard(const matrix<Sign> &board)
+	{
+		static_assert(sizeof(Sign) == sizeof(int));
+		assert(board.rows() + 2 * pad == internal_board.rows());
+		assert(board.cols() + 2 * pad == internal_board.cols());
+
+		for (int r = 0; r < board.rows(); r++)
+			std::memcpy(internal_board.data(pad + r) + pad, board.data(r), sizeof(int) * board.cols());
+		calc_all_features();
+		get_threat_lists();
+	}
+	void FeatureExtractor::addMove(Move move)
+	{
+		switch (rules)
+		{
+			case GameRules::FREESTYLE:
+				add_move<4>(features, internal_board, move);
+				break;
+			case GameRules::STANDARD:
+			case GameRules::RENJU:
+			case GameRules::CARO:
+				add_move<5>(features, internal_board, move);
+				break;
+			default:
+				throw std::logic_error("rule not supported");
+		}
+		get_threat_lists();
+	}
+	void FeatureExtractor::undoMove(Move move)
+	{
+		switch (rules)
+		{
+			case GameRules::FREESTYLE:
+				undo_move<4>(features, internal_board, move);
+				break;
+			case GameRules::STANDARD:
+			case GameRules::RENJU:
+			case GameRules::CARO:
+				undo_move<5>(features, internal_board, move);
+				break;
+			default:
+				throw std::logic_error("rule not supported");
+		}
+		get_threat_lists();
+	}
 	// private
 	uint32_t FeatureExtractor::get_feature_at(int row, int col, Direction dir)
 	{
 		return features.at(pad + row, (pad + col) * 4 + static_cast<int>(dir));
-	}
-	Threat FeatureExtractor::get_threat_at(int row, int col, Direction dir)
-	{
-		return map_of_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(dir));
 	}
 	void FeatureExtractor::calc_all_features()
 	{
@@ -403,10 +455,14 @@ namespace ag
 				throw std::logic_error("rule not supported");
 		}
 	}
-	void FeatureExtractor::get_threat_lists(Sign signToMove)
+	void FeatureExtractor::get_threat_lists()
 	{
-		cross_threats.clear();
-		circle_threats.clear();
+		cross_five.clear();
+		cross_open_four.clear();
+		cross_half_open_four.clear();
+		circle_five.clear();
+		circle_open_four.clear();
+		circle_half_open_four.clear();
 
 		const FeatureTable &table = get_feature_table(rules);
 		for (int row = 0; row < internal_board.rows() - 2 * pad; row++)
@@ -418,91 +474,166 @@ namespace ag
 					Threat diagonal = table.getThreat(get_feature_at(row, col, Direction::DIAGONAL));
 					Threat antidiagonal = table.getThreat(get_feature_at(row, col, Direction::ANTIDIAGONAL));
 
-					map_of_threats.at(pad + row, (pad + col) * 4 + 0) = horizontal;
-					map_of_threats.at(pad + row, (pad + col) * 4 + 1) = vertical;
-					map_of_threats.at(pad + row, (pad + col) * 4 + 2) = diagonal;
-					map_of_threats.at(pad + row, (pad + col) * 4 + 3) = antidiagonal;
-
 					ThreatType best_cross = std::max(std::max(horizontal.for_cross, vertical.for_cross),
 							std::max(diagonal.for_cross, antidiagonal.for_cross));
 					ThreatType best_circle = std::max(std::max(horizontal.for_circle, vertical.for_circle),
 							std::max(diagonal.for_circle, antidiagonal.for_circle));
+					cross_threats.at(pad + row, pad + col) = best_cross;
+					circle_threats.at(pad + row, pad + col) = best_circle;
 
-					// all moves are assigned signToMove so they can be directly used for move generation
-					if (best_cross != ThreatType::NONE)
-						cross_threats.push_back(ThreatMove(best_cross, Move(row, col, signToMove)));
+					switch (best_cross)
+					{
+						case ThreatType::NONE:
+							break;
+						case ThreatType::HALF_OPEN_FOUR:
+							cross_half_open_four.push_back(Move(row, col));
+							break;
+						case ThreatType::OPEN_FOUR:
+							cross_open_four.push_back(Move(row, col));
+							break;
+						case ThreatType::FIVE:
+							cross_five.push_back(Move(row, col));
+							break;
+					}
 
-					if (best_circle != ThreatType::NONE)
-						circle_threats.push_back(ThreatMove(best_circle, Move(row, col, signToMove)));
+					switch (best_circle)
+					{
+						case ThreatType::NONE:
+							break;
+						case ThreatType::HALF_OPEN_FOUR:
+							circle_half_open_four.push_back(Move(row, col));
+							break;
+						case ThreatType::OPEN_FOUR:
+							circle_open_four.push_back(Move(row, col));
+							break;
+						case ThreatType::FIVE:
+							circle_five.push_back(Move(row, col));
+							break;
+					}
 				}
 	}
-	ProvenValue FeatureExtractor::solve(Sign signToMove)
+	void FeatureExtractor::solve(InternalNode &node, bool mustProveAllChildren, int depth)
 	{
-		std::vector<ThreatMove> &own_threats = (signToMove == Sign::CROSS) ? cross_threats : circle_threats;
-		std::vector<ThreatMove> &opponent_threats = (signToMove == Sign::CROSS) ? circle_threats : cross_threats;
-		std::reverse(own_threats.begin(), own_threats.end());
-		opponent_threats.clear();
+		position_counter++;
 
-		std::cout << "\n\n\n\n\n\n";
-		int depth = 0;
-		while (own_threats.size() > 0)
+		Sign sign_to_move = invertSign(node.move.sign);
+		std::vector<Move> &own_five = (sign_to_move == Sign::CROSS) ? cross_five : circle_five;
+		if (own_five.size() > 0)
 		{
-			std::cout << "\ndepth = " << depth << '\n';
-			ThreatMove tm = own_threats.back();
-			std::cout << tm.move.toString() << '\n';
-
-			// make own move
-			internal_board.at(pad + tm.move.row, pad + tm.move.col) = static_cast<int>(signToMove);
-			calc_all_features();
-			get_threat_lists(Sign::NONE);
-			depth++;
-			print();
-
-			std::cout << "\nown threats\n";
-			for (size_t i = 0; i < own_threats.size(); i++)
-				std::cout << toString(own_threats[i].threat) << " at " << own_threats[i].move.toString() << '\n';
-			std::cout << "opp threats\n";
-			for (size_t i = 0; i < opponent_threats.size(); i++)
-				std::cout << toString(opponent_threats[i].threat) << " at " << opponent_threats[i].move.toString() << '\n';
-
-			bool opponent_can_have_five = std::any_of(opponent_threats.begin(), opponent_threats.end(), [](const ThreatMove &t)
-			{	return t.threat == ThreatType::FIVE;});
-			std::cout << "opponent can make five? = " << opponent_can_have_five << '\n';
-
-			// make opponent response
-			for (size_t i = 0; i < own_threats.size(); i++)
-				if (own_threats[i].threat == ThreatType::FIVE)
-				{
-					internal_board.at(pad + own_threats[i].move.row, pad + own_threats[i].move.col) = static_cast<int>(invertSign(signToMove));
-					calc_all_features();
-					get_threat_lists(Sign::NONE);
-					depth++;
-					print();
-					break;
-				}
-			std::cout << "\nown threats\n";
-			for (size_t i = 0; i < own_threats.size(); i++)
-				std::cout << toString(own_threats[i].threat) << " at " << own_threats[i].move.toString() << '\n';
-			std::cout << "opp threats\n";
-			for (size_t i = 0; i < opponent_threats.size(); i++)
-				std::cout << toString(opponent_threats[i].threat) << " at " << opponent_threats[i].move.toString() << '\n';
+			node.solved_value = SolvedValue::SOLVED_LOSS;
+			return; // if side to move can make a five, mark this node as loss
 		}
 
-//		print();
-//		printFeature(17, 7);
-//		printFeature(17, 4);
-//		printFeature(17, 6);
-//		printFeature(15, 7);
+		std::vector<Move> &opponent_five = (sign_to_move == Sign::CROSS) ? circle_five : cross_five;
+		if (opponent_five.size() > 1)
+		{
+			node.solved_value = SolvedValue::SOLVED_WIN;
+			return; // if the other side side to move can make more than 1 five, mark this node as win
+		}
 
-//		add_move<4>(features, internal_board, Move(16, 5, Sign::CIRCLE));
-//		printFeature(17, 6);
-//		print();
-//		delete_move<4>(features, internal_board, Move(16, 5, Sign::CIRCLE));
-//		printFeature(17, 6);
-//		print();
+		std::vector<Move> &own_open_four = (sign_to_move == Sign::CROSS) ? cross_open_four : circle_open_four;
+		std::vector<Move> &own_half_open_four = (sign_to_move == Sign::CROSS) ? cross_half_open_four : circle_half_open_four;
 
-		std::cout << "\n\n\n\n\n\n";
-		return ProvenValue::UNKNOWN;
+		if (opponent_five.size() > 0)
+			node.number_of_children = 1; // there is only one defensive move
+		else
+			node.number_of_children = static_cast<int>(own_open_four.size() + own_half_open_four.size());
+
+		node.solved_value = SolvedValue::UNSOLVED;
+		if (node.number_of_children == 0)
+			return; // no available threats
+		if (node_counter + node.number_of_children >= static_cast<int>(nodes_buffer.size()))
+			return; // no more nodes, cannot continue
+
+		node.children = nodes_buffer.data() + node_counter;
+		node_counter += node.number_of_children;
+
+//		std::cout << "cross  : fives=" << cross_five.size() << ", open fours=" << cross_open_four.size() << ", half open fours="
+//				<< cross_half_open_four.size() << '\n';
+//		std::cout << "circle : fives=" << circle_five.size() << ", open fours=" << circle_open_four.size() << ", half open fours="
+//				<< circle_half_open_four.size() << '\n';
+
+		if (opponent_five.size() > 0)
+		{
+			assert(circle_five.size() == 1);
+			node.children[0].init(opponent_five[0].row, opponent_five[0].col, sign_to_move);
+//			std::cout << node.children[0].move.toString() << " defensive move\n";
+		}
+		else
+		{
+			size_t children_counter = 0;
+			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++, children_counter++)
+			{
+				node.children[children_counter].init(iter->row, iter->col, sign_to_move);
+//				std::cout << node.children[children_counter].move.toString() << " open four\n";
+			}
+			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++, children_counter++)
+			{
+				node.children[children_counter].init(iter->row, iter->col, sign_to_move);
+//				std::cout << node.children[children_counter].move.toString() << " half open four\n";
+			}
+		}
+
+		std::vector<Move> &opponent_open_four = (sign_to_move == Sign::CROSS) ? circle_open_four : cross_open_four;
+		std::vector<Move> &opponent_half_open_four = (sign_to_move == Sign::CROSS) ? circle_half_open_four : cross_half_open_four;
+
+		int loss_counter = 0;
+		bool has_win_child = false;
+		bool has_unproven_child = false;
+		for (auto iter = node.children; iter < node.children + node.number_of_children; iter++)
+		{
+//			std::cout << "depth = " << depth << " : state of all children:\n";
+//			for (int i = 0; i < node.number_of_children; i++)
+//				std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << '\n';
+//			std::cout << "now checking " << iter->move.toString() << '\n';
+
+//			internal_board.at(pad + iter->move.row, pad + iter->move.col) = static_cast<int>(iter->move.sign);
+			if (position_counter < max_positions)
+			{
+				addMove(iter->move);
+				if (opponent_five.size() + opponent_open_four.size() + opponent_half_open_four.size() > 0)
+					solve(*iter, not mustProveAllChildren, depth + 1);
+				undoMove(iter->move);
+			}
+//			internal_board.at(pad + iter->move.row, pad + iter->move.col) = 0;
+
+			if (iter->solved_value == SolvedValue::SOLVED_WIN) // found winning move, can skip remaining nodes
+			{
+				has_win_child = true;
+				break;
+			}
+			else
+			{
+				if (iter->solved_value == SolvedValue::SOLVED_LOSS) // child node is losing
+					loss_counter++;
+				else // UNKNOWN or UNSOLVED
+				{
+					has_unproven_child = true;
+					if (mustProveAllChildren)
+						break;
+				}
+			}
+		}
+
+//		std::cout << "depth = " << depth << " : state of all children:\n";
+//		for (int i = 0; i < node.number_of_children; i++)
+//			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << '\n';
+
+		if (has_win_child)
+			node.solved_value = SolvedValue::SOLVED_LOSS;
+		else
+		{
+			if (has_unproven_child and mustProveAllChildren)
+				node.solved_value = SolvedValue::UNSOLVED;
+			else
+			{
+				if (loss_counter == node.number_of_children)
+					node.solved_value = SolvedValue::SOLVED_WIN;
+				else
+					node.solved_value = SolvedValue::UNSOLVED;
+			}
+		}
+		node_counter -= node.number_of_children;
 	}
 	void FeatureExtractor::update_threats(int row, int col)
 	{
@@ -510,55 +641,77 @@ namespace ag
 
 		for (int i = 0; i <= pad; i++)
 		{
-			int c = col + i;
-			if (internal_board.at(row + i, c) == 0)
-			{
-				Threat t = table.getThreat(get_feature_at(row + i, c, Direction::DIAGONAL));
-				map_of_threats.at(row + i, c * 4 + static_cast<int>(Direction::DIAGONAL)) = t;
-			}
-			c = pad + col;
-			if (internal_board.at(row + i, c) == 0)
-			{
-				Threat t = table.getThreat(get_feature_at(row + i, c, Direction::VERTICAL));
-				map_of_threats.at(row + i, c * 4 + static_cast<int>(Direction::VERTICAL)) = t;
-			}
-			c = 2 * pad + col - i;
-			if (internal_board.at(row + i, c) == 0)
-			{
-				Threat t = table.getThreat(get_feature_at(row + i, c, Direction::ANTIDIAGONAL));
-				map_of_threats.at(row + i, c * 4 + static_cast<int>(Direction::ANTIDIAGONAL)) = t;
-			}
+//			int c = col + i;
+//			if (internal_board.at(row + i, c) == 0)
+//			{
+//				Threat t = table.getThreat(get_feature_at(row + i, c, Direction::DIAGONAL));
+//				if (t.for_cross == ThreatType::NONE)
+//				{
+//					cross_threats.at(row + i, c) = ThreatType::NONE;
+//				}
+//				if (map_of_threats.at(row + i, c * 4 + static_cast<int>(Direction::DIAGONAL)))
+//				{
+//
+//				}
+//				map_of_threats.at(row + i, c * 4 + static_cast<int>(Direction::DIAGONAL)) = t;
+//			}
+//			c = pad + col;
+//			if (internal_board.at(row + i, c) == 0)
+//			{
+//				Threat t = table.getThreat(get_feature_at(row + i, c, Direction::VERTICAL));
+//				map_of_threats.at(row + i, c * 4 + static_cast<int>(Direction::VERTICAL)) = t;
+//			}
+//			c = 2 * pad + col - i;
+//			if (internal_board.at(row + i, c) == 0)
+//			{
+//				Threat t = table.getThreat(get_feature_at(row + i, c, Direction::ANTIDIAGONAL));
+//				map_of_threats.at(row + i, c * 4 + static_cast<int>(Direction::ANTIDIAGONAL)) = t;
+//			}
 		}
 
-		for (int i = pad + col; i <= col + 2 * pad; i++)
-			if (internal_board.at(row + i, col) == 0)
-			{
-				Threat t = table.getThreat(get_feature_at(row + i, col, Direction::HORIZONTAL));
-				map_of_threats.at(row + i, col * 4 + static_cast<int>(Direction::HORIZONTAL)) = t;
-			}
+//		for (int i = pad + col; i <= col + 2 * pad; i++)
+//			if (internal_board.at(row + i, col) == 0)
+//			{
+//				Threat t = table.getThreat(get_feature_at(row + i, col, Direction::HORIZONTAL));
+//				map_of_threats.at(row + i, col * 4 + static_cast<int>(Direction::HORIZONTAL)) = t;
+//			}
 
 		for (int i = 1; i <= pad; i++)
 		{
-			int c = pad + col - i;
-			if (internal_board.at(pad + row + i, c) == 0)
-			{
-				Threat t = table.getThreat(get_feature_at(pad + row + i, c, Direction::ANTIDIAGONAL));
-				map_of_threats.at(pad + row + i, c * 4 + static_cast<int>(Direction::ANTIDIAGONAL)) = t;
-			}
-			c = pad + col;
-			if (internal_board.at(pad + row + i, c) == 0)
-			{
-				Threat t = table.getThreat(get_feature_at(pad + row + i, c, Direction::VERTICAL));
-				map_of_threats.at(pad + row + i, c * 4 + static_cast<int>(Direction::VERTICAL)) = t;
-			}
-			c = pad + col + i;
-			if (internal_board.at(pad + row + i, c) == 0)
-			{
-				Threat t = table.getThreat(get_feature_at(pad + row + i, c, Direction::DIAGONAL));
-				map_of_threats.at(pad + row + i, c * 4 + static_cast<int>(Direction::DIAGONAL)) = t;
-			}
+//			int c = pad + col - i;
+//			if (internal_board.at(pad + row + i, c) == 0)
+//			{
+//				Threat t = table.getThreat(get_feature_at(pad + row + i, c, Direction::ANTIDIAGONAL));
+//				map_of_threats.at(pad + row + i, c * 4 + static_cast<int>(Direction::ANTIDIAGONAL)) = t;
+//			}
+//			c = pad + col;
+//			if (internal_board.at(pad + row + i, c) == 0)
+//			{
+//				Threat t = table.getThreat(get_feature_at(pad + row + i, c, Direction::VERTICAL));
+//				map_of_threats.at(pad + row + i, c * 4 + static_cast<int>(Direction::VERTICAL)) = t;
+//			}
+//			c = pad + col + i;
+//			if (internal_board.at(pad + row + i, c) == 0)
+//			{
+//				Threat t = table.getThreat(get_feature_at(pad + row + i, c, Direction::DIAGONAL));
+//				map_of_threats.at(pad + row + i, c * 4 + static_cast<int>(Direction::DIAGONAL)) = t;
+//			}
 		}
 	}
-
+	std::string FeatureExtractor::toString(SolvedValue sv)
+	{
+		switch (sv)
+		{
+			default:
+			case SolvedValue::UNKNOWN:
+				return "UNKNOWN";
+			case SolvedValue::UNSOLVED:
+				return "UNSOLVED";
+			case SolvedValue::SOLVED_LOSS:
+				return "SOLVED_LOSS";
+			case SolvedValue::SOLVED_WIN:
+				return "SOLVED_WIN";
+		}
+	}
 } /* namespace ag */
 

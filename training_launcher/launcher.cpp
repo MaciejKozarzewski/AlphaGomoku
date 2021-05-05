@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 							" _ _ _ _ _ _ _ O X X _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ X _ _ _ X O O _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ X O O _ _ _ _ _ _ _ _ _ _\n"
 							" _ _ _ X _ X X O _ X X _ O _ _ _ _ _ _ _\n"
 							" _ _ _ X O O O _ X O O X _ _ _ _ _ _ _ _\n"
 							" _ _ _ _ _ _ X O O X _ O _ _ _ _ _ _ _ _\n"
@@ -256,28 +256,31 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ O _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
 
-//	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ X _ X _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ X X X O _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ O X O O X _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ O X X O O _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ O O X X _ O _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ O X X X _ O _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ O X _ X _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
+	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ X X X O _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ O X O O X _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ O X X O O _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ O O X X _ O _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ O X X X _ O _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ O X _ X _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
 
-	sign_to_move = Sign::CIRCLE;
+	sign_to_move = Sign::CROSS;
+
+	FeatureExtractor extractor(game_config);
+	extractor.setBoard(board);
 
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
@@ -285,9 +288,9 @@ int main(int argc, char *argv[])
 	matrix<float> policy(board.rows(), board.cols());
 	for (int i = 0; i <= 1; i++)
 	{
-		while (search.getSimulationCount() < i * 1)
+		while (search.getSimulationCount() < i * 1000)
 		{
-			search.simulate(i * 1);
+			search.simulate(i * 1000);
 			queue.evaluateGraph();
 			search.handleEvaluation();
 			if (tree.isProven())

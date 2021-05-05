@@ -21,6 +21,7 @@ namespace ag
 		result += "nb_duplicate_nodes = " + std::to_string(nb_duplicate_nodes) + '\n';
 		result += printStatistics("select    ", nb_select, time_select);
 		result += printStatistics("expand    ", nb_expand, time_expand);
+		result += printStatistics("vcf solver", nb_vcf_solver, time_vcf_solver);
 		result += printStatistics("backup    ", nb_backup, time_backup);
 		result += printStatistics("evaluate  ", nb_evaluate, time_evaluate);
 		result += printStatistics("game_rules", nb_game_rules, time_game_rules);
@@ -216,34 +217,36 @@ namespace ag
 		if (position.getProvenValue() != ProvenValue::UNKNOWN)
 			return true; // do not expand proven nodes
 
-		double start = getTime(); // statistics
-		const int cols = position.getBoard().cols();
-//		maskIllegalMoves(position.getBoard(), position.getPolicy());
-
 		moves_to_add.clear();
 		if (search_config.use_vcf_solver)
 		{
+			double start = getTime(); // statistics
 			ProvenValue pv = vcf_solver.generateMoves(position.getPolicy(), moves_to_add, position.getBoard(), position.getSignToMove());
-//			if (pv != ProvenValue::UNKNOWN and search_config.use_endgame_solver)
-//			{
-//				position.setProvenValue(pv);
-//				switch (pv)
-//				{
-//					case ProvenValue::LOSS:
-//						position.setValue( { 0.0f, 0.0f, 1.0f });
-//						break;
-//					case ProvenValue::DRAW:
-//						position.setValue( { 0.0f, 1.0f, 0.0f });
-//						break;
-//					case ProvenValue::WIN:
-//						position.setValue( { 1.0f, 0.0f, 0.0f });
-//						break;
-//					default:
-//						break;
-//				}
-//			}
+			if (pv != ProvenValue::UNKNOWN and search_config.use_endgame_solver)
+			{
+				position.setProvenValue(pv);
+				switch (pv)
+				{
+					case ProvenValue::LOSS:
+						position.setValue( { 0.0f, 0.0f, 1.0f });
+						break;
+					case ProvenValue::DRAW:
+						position.setValue( { 0.0f, 1.0f, 0.0f });
+						break;
+					case ProvenValue::WIN:
+						position.setValue( { 1.0f, 0.0f, 0.0f });
+						break;
+					default:
+						break;
+				}
+			}
+			stats.nb_vcf_solver++; // statistics
+			stats.time_vcf_solver += getTime() - start; //statistics
 		}
 
+		double start = getTime(); // statistics
+		const int cols = position.getBoard().cols();
+//		maskIllegalMoves(position.getBoard(), position.getPolicy());
 		if (moves_to_add.size() == 0) // if there are no immediate threats from VCF solver
 		{
 			for (int i = 0; i < position.getBoard().size(); i++)

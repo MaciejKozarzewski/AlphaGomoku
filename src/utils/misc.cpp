@@ -219,7 +219,8 @@ namespace ag
 						result += "  _ ";
 					else
 					{
-						result += ' ';
+						if (t < 1000)
+							result += ' ';
 						if (t < 100)
 							result += ' ';
 						if (t < 10)

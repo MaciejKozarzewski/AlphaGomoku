@@ -33,6 +33,7 @@ namespace ag
 	{
 			uint64_t nb_select = 0;
 			uint64_t nb_expand = 0;
+			uint64_t nb_vcf_solver = 0;
 			uint64_t nb_backup = 0;
 			uint64_t nb_evaluate = 0;
 			uint64_t nb_game_rules = 0;
@@ -40,6 +41,7 @@ namespace ag
 
 			double time_select = 0.0;
 			double time_expand = 0.0;
+			double time_vcf_solver = 0.0;
 			double time_backup = 0.0;
 			double time_evaluate = 0.0;
 			double time_game_rules = 0.0;
