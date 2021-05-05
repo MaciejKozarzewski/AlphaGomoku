@@ -221,7 +221,8 @@ namespace ag
 		if (search_config.use_vcf_solver)
 		{
 			double start = getTime(); // statistics
-			ProvenValue pv = vcf_solver.generateMoves(position.getPolicy(), moves_to_add, position.getBoard(), position.getSignToMove());
+			vcf_solver.setBoard(position.getBoard(), position.getSignToMove());
+			ProvenValue pv = vcf_solver.solve(position.getPolicy(), moves_to_add);
 			if (pv != ProvenValue::UNKNOWN and search_config.use_endgame_solver)
 			{
 				position.setProvenValue(pv);

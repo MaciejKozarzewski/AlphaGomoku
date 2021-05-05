@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_VCF_SOLVER_FEATUREEXTRACTOR_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
+#include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
 
@@ -16,19 +17,18 @@
 
 namespace ag
 {
-	struct GameConfig;
-} /* namespace ag */
-
-namespace ag
-{
-	struct ThreatMove
+	struct KeyHash
 	{
-			ThreatType threat;
-			Move move;
-			ThreatMove(ThreatType t, Move m) :
-					threat(t),
-					move(m)
+			size_t operator()(uint64_t h) const noexcept
 			{
+				return static_cast<size_t>(h);
+			}
+	};
+	struct KeyCompare
+	{
+			bool operator()(uint64_t lhs, uint64_t rhs) const noexcept
+			{
+				return lhs == rhs;
 			}
 	};
 
@@ -64,14 +64,19 @@ namespace ag
 						number_of_children = 0;
 					}
 			};
-			int max_positions = 1000;
+			int total_positions = 0;
+
+			int max_positions = 10000;
+			bool use_caching = false;
+
 			int position_counter = 0;
 			int node_counter = 0;
 			std::vector<InternalNode> nodes_buffer;
 
-			GameRules rules;
+			GameConfig game_config;
 			int pad;
 
+			Sign sign_to_move = Sign::NONE;
 			matrix<int> internal_board;
 			matrix<uint32_t> features;
 
@@ -85,27 +90,38 @@ namespace ag
 
 			matrix<ThreatType> cross_threats;
 			matrix<ThreatType> circle_threats;
-			std::unordered_map<uint64_t, SolvedValue> hashtable;
+
+			std::unordered_map<uint64_t, SolvedValue, KeyHash, KeyCompare> hashtable;
+			std::vector<uint64_t> hashing_keys;
+			uint64_t current_board_hash = 0;
 		public:
 			FeatureExtractor(GameConfig gameConfig);
 
-			ProvenValue generateMoves(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList, const matrix<Sign> &board,
-					Sign signToMove);
+			void setBoard(const matrix<Sign> &board, Sign signToMove);
+			ProvenValue solve(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList);
 
-			void printFeature(int x, int y);
-			void printRawFeature(int left, int right);
-			void print();
+			void printFeature(int row, int col) const;
+			void printThreat(int row, int col) const;
+			void printAllThreats() const;
+			void print() const;
 
-			void setBoard(const matrix<Sign> &board);
-			void addMove(Move move);
-			void undoMove(Move move);
+			void addMove(Move move) noexcept;
+			void undoMove(Move move) noexcept;
 		private:
-			uint32_t get_feature_at(int row, int col, Direction dir);
-			void calc_all_features();
+			uint64_t get_hash() const noexcept;
+			uint64_t update_hash(uint64_t old_hash, Move move) const noexcept;
+			void create_hashtable();
+			uint32_t get_feature_at(int row, int col, Direction dir) const noexcept;
+			void calc_all_features() noexcept;
 			void get_threat_lists();
-			void solve(InternalNode &node, bool mustProveAllChildren, int depth);
-			void update_threats(int row, int col);
+			void recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth);
 			static std::string toString(SolvedValue sv);
+
+			void update_threats(int row, int col);
+			void update_threat_at(const FeatureTable &table, int row, int col, Direction direction);
+			void update_threat_at(ThreatType new_threat, int row, int col, std::vector<Move> &five, std::vector<Move> &open_four,
+					std::vector<Move> &half_open_four, matrix<ThreatType> &threats, int direction);
+			ThreatType get_best_threat_at(const matrix<ThreatType> &threats, int row, int col) const noexcept;
 	};
 
 } /* namespace ag */

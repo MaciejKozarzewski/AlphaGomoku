@@ -214,26 +214,26 @@ int main(int argc, char *argv[])
 //	board.at(3, 8) = Sign::CROSS;
 //	board.at(7, 6) = Sign::CIRCLE;
 
-	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ O X X _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ X O O _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ X _ X X O _ X X _ O _ _ _ _ _ _ _\n"
-							" _ _ _ X O O O _ X O O X _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ X O O X _ O _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ X _ _ X _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ O _ _ _ O _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ X _ O _ _ _ O _ X _ _ _ _ _ _\n");
+//	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ O X X _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ X O O _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ X _ X X O _ X X _ O _ _ _ _ _ _ _\n"
+//							" _ _ _ X O O O _ X O O X _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ X O O X _ O _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ X _ _ X _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ O _ _ _ O _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ X _ O _ _ _ O _ X _ _ _ _ _ _\n");
 
 //	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -277,11 +277,47 @@ int main(int argc, char *argv[])
 							" _ _ _ _ _ O X _ X _ _ _ _ _ _ _ _ _ _ _\n"
 							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
 
-	sign_to_move = Sign::CROSS;
+//	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ X X X O O X O O _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ O X O O X _ X _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ O X X O O O X _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ O O X X _ O _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ O X X X _ O O X _ _ _ _ _ _\n"
+//							" _ _ _ _ _ O X _ X _ _ _ X _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
+
+	sign_to_move = Sign::CIRCLE;
 
 	FeatureExtractor extractor(game_config);
-	extractor.setBoard(board);
+	extractor.setBoard(board, sign_to_move);
+//	extractor.print();
+//	extractor.printAllThreats();
+//
+//	extractor.undoMove(Move(13, 12, Sign::CROSS));
+//	extractor.print();
+//	extractor.printAllThreats();
 
+	std::vector<std::pair<uint16_t, float>> list_of_moves;
+	matrix<float> qwer(board.rows(), board.cols());
+	ProvenValue asdf = extractor.solve(qwer, list_of_moves);
+	std::cout << toString(asdf) << '\n';
+	extractor.printAllThreats();
+
+	return 0;
+
+	double start = getTime();
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
 
@@ -365,6 +401,8 @@ int main(int argc, char *argv[])
 	std::cout << "\n----------------------------------------------------------------------------------\n";
 	tree.printSubtree(tree.getRootNode(), 1, true);
 	std::cout << "\n----------------------------------------------------------------------------------\n";
+
+	std::cout << "total time = " << (getTime() - start) << "s\n";
 
 //	return 0;
 //	matrix<ProvenValue> proven_values(15, 15);
