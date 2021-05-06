@@ -429,7 +429,10 @@ namespace ag
 
 		matrix<float> policy(rows, cols);
 		matrix<ProvenValue> proven_values(rows, cols);
-		tree.getPlayoutDistribution(tree.getRootNode(), policy);
+		if (tree.getRootNode().getVisits() > 1)
+			tree.getPlayoutDistribution(tree.getRootNode(), policy);
+		else
+			tree.getPolicyPriors(tree.getRootNode(), policy);
 		tree.getProvenValues(tree.getRootNode(), proven_values);
 		normalize(policy);
 
@@ -449,7 +452,8 @@ namespace ag
 								result += "  _ ";
 							else
 							{
-								result += ' ';
+								if (t < 1000)
+									result += ' ';
 								if (t < 100)
 									result += ' ';
 								if (t < 10)

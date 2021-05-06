@@ -280,37 +280,41 @@ int main(int argc, char *argv[])
 //	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ X X X O O X O O _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ O X O O X _ X _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ O X X O O O X _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ O O X X _ O _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ O X X X _ O O X _ _ _ _ _ _\n"
-//							" _ _ _ _ _ O X _ X _ _ _ X _ _ _ _ _ _ _\n"
-//							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
+//							" _ _ _ _ O _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ X _ O X O O O X O X _ _ _ _ _\n"
+//							" _ _ _ _ _ _ X _ _ O X X X X O _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ X O X O X O O O X _ _ _ _\n"
+//							" _ _ _ _ _ O _ O X _ O X _ _ O _ O _ _ _\n"
+//							" _ _ _ _ _ _ X O X O _ _ X _ X X _ _ _ _\n"
+//							" _ _ _ _ _ X O X X O X O _ _ O _ X _ _ _\n"
+//							" _ _ _ _ _ _ O _ _ X _ O X O _ O _ O _ _\n"
+//							" _ _ _ _ X _ X O O X _ _ O X _ _ _ _ _ _\n"
+//							" _ _ _ _ O O X X _ X O X _ O _ X _ _ _ _\n"
+//							" _ _ _ _ O X O O O X O O _ X O _ _ _ _ _\n"
+//							" _ _ _ X O X X O X O X X O O X X _ _ _ _\n"
+//							" _ X _ O O X X X X O _ X X X O O _ _ _ _\n"
+//							" _ O X X X _ O X O X O X O _ _ _ _ _ _ _\n"
+//							" _ _ _ X _ O _ _ O X _ O _ _ _ _ _ _ _ _\n"
+//							" _ _ O _ O _ _ _ O _ _ _ O _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ O X X X O X _ _ _ _\n");
 
 	sign_to_move = Sign::CROSS;
 
 	FeatureExtractor extractor(game_config);
 	extractor.setBoard(board, sign_to_move);
+	extractor.print();
+	extractor.printAllThreats();
+
+//	extractor.addMove(Move(2, 2, Sign::CIRCLE));
 //	extractor.print();
 //	extractor.printAllThreats();
 //
-//	extractor.undoMove(Move(13, 12, Sign::CROSS));
+//	extractor.undoMove(Move(2, 2, Sign::CIRCLE));
 //	extractor.print();
 //	extractor.printAllThreats();
 
-//	std::vector<std::pair<uint16_t, float>> list_of_moves;
-//	matrix<float> qwer(board.rows(), board.cols());
+	std::vector<std::pair<uint16_t, float>> list_of_moves;
+	matrix<float> qwer(board.rows(), board.cols());
 //	double t0 = getTime();
 //	for (int i = 0; i < 1000; i++)
 //	{

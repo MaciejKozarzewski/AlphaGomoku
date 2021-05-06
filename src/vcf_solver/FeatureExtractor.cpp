@@ -322,6 +322,7 @@ namespace ag
 						policy.at(iter->move.row, iter->move.col) = 1.0f;
 						moveList.push_back( { Move::move_to_short(iter->move.row, iter->move.col, sign_to_move), 1.0f });
 					}
+//				std::cout << "created " << moveList.size() << " moves\n";
 				return ProvenValue::LOSS;
 			}
 			case SolvedValue::SOLVED_WIN:
@@ -442,6 +443,8 @@ namespace ag
 
 	void FeatureExtractor::addMove(Move move) noexcept
 	{
+//		internal_board.at(pad + move.row, pad + move.col) = static_cast<int>(move.sign);
+//		calc_all_features();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -455,11 +458,14 @@ namespace ag
 			default:
 				break;
 		}
+//		get_threat_lists();
 		update_threats(move.row, move.col);
 		current_board_hash = update_hash(current_board_hash, move);
 	}
 	void FeatureExtractor::undoMove(Move move) noexcept
 	{
+//		internal_board.at(pad + move.row, pad + move.col) = 0;
+//		calc_all_features();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -473,6 +479,7 @@ namespace ag
 			default:
 				break;
 		}
+//		get_threat_lists();
 		update_threats(move.row, move.col);
 		current_board_hash = update_hash(current_board_hash, move);
 	}
@@ -775,30 +782,118 @@ namespace ag
 			update_threat_at(table, row + i, col, Direction::VERTICAL);
 			update_threat_at(table, row + i, col + i, Direction::DIAGONAL);
 		}
+
+		cross_five.clear();
+		cross_open_four.clear();
+		cross_half_open_four.clear();
+		circle_five.clear();
+		circle_open_four.clear();
+		circle_half_open_four.clear();
+		for (int row = 0; row < internal_board.rows() - 2 * pad; row++)
+			for (int col = 0; col < internal_board.cols() - 2 * pad; col++)
+			{
+				switch (get_best_threat_at(cross_threats, row, col))
+				{
+					case ThreatType::NONE:
+						break;
+					case ThreatType::HALF_OPEN_FOUR:
+						cross_half_open_four.push_back(Move(row, col));
+						break;
+					case ThreatType::OPEN_FOUR:
+						cross_open_four.push_back(Move(row, col));
+						break;
+					case ThreatType::FIVE:
+						cross_five.push_back(Move(row, col));
+						break;
+				}
+
+				switch (get_best_threat_at(circle_threats, row, col))
+				{
+					case ThreatType::NONE:
+						break;
+					case ThreatType::HALF_OPEN_FOUR:
+						circle_half_open_four.push_back(Move(row, col));
+						break;
+					case ThreatType::OPEN_FOUR:
+						circle_open_four.push_back(Move(row, col));
+						break;
+					case ThreatType::FIVE:
+						circle_five.push_back(Move(row, col));
+						break;
+				}
+			}
+
+//		const FeatureTable &table = get_feature_table(game_config.rules);
+//		for (int i = 0; i < pad; i++)
+//		{
+//			update_threat_at(table, row - pad + i, col - pad + i, Direction::DIAGONAL);
+//			update_threat_at(table, row - pad + i, col, Direction::VERTICAL);
+//			update_threat_at(table, row - pad + i, col + pad - i, Direction::ANTIDIAGONAL);
+//		}
+//		for (int i = col - pad; i < col; i++)
+//			update_threat_at(table, row, i, Direction::HORIZONTAL);
+//
+//		Threat old_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
+//		for (int i = 0; i < 4; i++) // update threat table at central point with newly create threats
+//		{
+//			Threat new_threat = table.getThreat(get_feature_at(row, col, static_cast<Direction>(i)));
+//			cross_threats.at(pad + row, (pad + col) * 4 + i) = new_threat.for_cross;
+//			circle_threats.at(pad + row, (pad + col) * 4 + i) = new_threat.for_circle;
+//		}
+//		Threat new_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
+//
+//		std::cout << "\n";
+//		update_threat_list(old_best_threat.for_cross, new_best_threat.for_cross, Move(row, col), cross_five, cross_open_four, cross_half_open_four);
+//		update_threat_list(old_best_threat.for_circle, new_best_threat.for_circle, Move(row, col), circle_five, circle_open_four,
+//				circle_half_open_four);
+//
+//		for (int i = col + 1; i <= col + pad; i++)
+//			update_threat_at(table, row, i, Direction::HORIZONTAL);
+//		for (int i = 1; i <= pad; i++)
+//		{
+//			update_threat_at(table, row + i, col - i, Direction::ANTIDIAGONAL);
+//			update_threat_at(table, row + i, col, Direction::VERTICAL);
+//			update_threat_at(table, row + i, col + i, Direction::DIAGONAL);
+//		}
 	}
 	void FeatureExtractor::update_threat_at(const FeatureTable &table, int row, int col, Direction direction)
 	{
-		Threat t = (internal_board.at(pad + row, pad + col) == 0) ? table.getThreat(get_feature_at(row, col, direction)) : Threat();
-		update_threat_at(t.for_cross, row, col, cross_five, cross_open_four, cross_half_open_four, cross_threats, static_cast<int>(direction));
-		update_threat_at(t.for_circle, row, col, circle_five, circle_open_four, circle_half_open_four, circle_threats, static_cast<int>(direction));
-	}
-	void FeatureExtractor::update_threat_at(ThreatType new_threat, int row, int col, std::vector<Move> &five, std::vector<Move> &open_four,
-			std::vector<Move> &half_open_four, matrix<ThreatType> &threats, int direction)
-	{
-		ThreatType old_best_threat = get_best_threat_at(threats, row, col);
-		threats.at(pad + row, (pad + col) * 4 + direction) = new_threat;
-		ThreatType new_best_threat = get_best_threat_at(threats, row, col);
+		Threat new_threat = table.getThreat(get_feature_at(row, col, direction));
+		cross_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_cross;
+		circle_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_circle;
 
-		if (new_best_threat == old_best_threat)
+//		if (internal_board.at(pad + row, pad + col) == 0)
+//		{
+//			Threat old_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
+//
+//			Threat new_threat = table.getThreat(get_feature_at(row, col, direction)); // this is new threat as taken from feature table
+//			cross_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_cross;
+//			circle_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_circle;
+//
+//			Threat new_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
+//
+//			std::cout << "\n";
+//			update_threat_list(old_best_threat.for_cross, new_best_threat.for_cross, Move(row, col), cross_five, cross_open_four,
+//					cross_half_open_four);
+//			update_threat_list(old_best_threat.for_circle, new_best_threat.for_circle, Move(row, col), circle_five, circle_open_four,
+//					circle_half_open_four);
+//		}
+	}
+	void FeatureExtractor::update_threat_list(ThreatType old_threat, ThreatType new_threat, Move move, std::vector<Move> &five,
+			std::vector<Move> &open_four, std::vector<Move> &half_open_four)
+	{
+		std::cout << "updating at " << move.toString() << ", previously = " << ag::toString(old_threat) << ", now = " << ag::toString(new_threat)
+				<< '\n';
+		if (old_threat == new_threat)
 			return;
 
-		switch (old_best_threat)
+		switch (old_threat)
 		{
 			case ThreatType::NONE:
 				break;
 			case ThreatType::HALF_OPEN_FOUR:
 			{
-				auto index = std::find(half_open_four.begin(), half_open_four.end(), Move(row, col));
+				auto index = std::find(half_open_four.begin(), half_open_four.end(), move);
 				assert(index != half_open_four.end());
 				// as half open fours are frequent, instead of deleting element from the middle, move it to the end first
 				std::swap(*index, half_open_four.back());
@@ -807,32 +902,32 @@ namespace ag
 			}
 			case ThreatType::OPEN_FOUR:
 			{
-				auto index = std::find(open_four.begin(), open_four.end(), Move(row, col));
+				auto index = std::find(open_four.begin(), open_four.end(), move);
 				assert(index != open_four.end());
 				open_four.erase(index);
 				break;
 			}
 			case ThreatType::FIVE:
 			{
-				auto index = std::find(five.begin(), five.end(), Move(row, col));
+				auto index = std::find(five.begin(), five.end(), move);
 				assert(index != five.end());
 				five.erase(index);
 				break;
 			}
 		}
 
-		switch (new_best_threat)
+		switch (new_threat)
 		{
 			case ThreatType::NONE:
 				break;
 			case ThreatType::HALF_OPEN_FOUR:
-				half_open_four.push_back(Move(row, col));
+				half_open_four.push_back(move);
 				break;
 			case ThreatType::OPEN_FOUR:
-				open_four.push_back(Move(row, col));
+				open_four.push_back(move);
 				break;
 			case ThreatType::FIVE:
-				five.push_back(Move(row, col));
+				five.push_back(move);
 				break;
 		}
 	}

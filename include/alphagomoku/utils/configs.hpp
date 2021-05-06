@@ -68,6 +68,16 @@ namespace ag
 			static Json getDefault();
 	};
 
+	struct VcfConfig
+	{
+			int max_positions = 1000; // maximum number of positions that will be searched
+			int max_depth = 50; // maximum recursion depth
+			int cache_size = 100000; // number of positions in the cache
+			bool use_caching = false; // whether to use position caching or not
+			bool use_static_solver = true; // whether to use static tree pruning
+			bool use_recursive_solver = true; // whether to use recursive search to prove node
+	};
+
 	Json getDefaultSelfplayConfig();
 	Json getDefaultTrainingConfig();
 	Json getDefaultEvaluationConfig();

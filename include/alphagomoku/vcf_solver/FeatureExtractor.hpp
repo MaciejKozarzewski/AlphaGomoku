@@ -67,7 +67,7 @@ namespace ag
 			int total_positions = 0;
 
 			int max_positions = 1000; // maximum number of positions that will be searched
-			int max_depth = 30; // maximum recursion depth
+			int max_depth = 50; // maximum recursion depth
 			bool use_caching = true; // whether to use position caching or not
 			int cache_size = 100000; // number of positions in the cache
 
@@ -123,6 +123,11 @@ namespace ag
 			void update_threat_at(const FeatureTable &table, int row, int col, Direction direction);
 			void update_threat_at(ThreatType new_threat, int row, int col, std::vector<Move> &five, std::vector<Move> &open_four,
 					std::vector<Move> &half_open_four, matrix<ThreatType> &threats, int direction);
+
+			void update_threat_list(ThreatType old_threat, ThreatType new_threat, Move move, std::vector<Move> &five, std::vector<Move> &open_four,
+					std::vector<Move> &half_open_four);
+			void add_threat_to_list(ThreatType threat, Move move, std::vector<Move> &five, std::vector<Move> &open_four,
+					std::vector<Move> &half_open_four);
 			ThreatType get_best_threat_at(const matrix<ThreatType> &threats, int row, int col) const noexcept;
 	};
 
