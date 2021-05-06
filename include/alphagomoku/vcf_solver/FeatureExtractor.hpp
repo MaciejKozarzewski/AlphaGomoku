@@ -121,12 +121,7 @@ namespace ag
 
 			void update_threats(int row, int col);
 			void update_threat_at(const FeatureTable &table, int row, int col, Direction direction);
-			void update_threat_at(ThreatType new_threat, int row, int col, std::vector<Move> &five, std::vector<Move> &open_four,
-					std::vector<Move> &half_open_four, matrix<ThreatType> &threats, int direction);
-
 			void update_threat_list(ThreatType old_threat, ThreatType new_threat, Move move, std::vector<Move> &five, std::vector<Move> &open_four,
-					std::vector<Move> &half_open_four);
-			void add_threat_to_list(ThreatType threat, Move move, std::vector<Move> &five, std::vector<Move> &open_four,
 					std::vector<Move> &half_open_four);
 			ThreatType get_best_threat_at(const matrix<ThreatType> &threats, int row, int col) const noexcept;
 	};

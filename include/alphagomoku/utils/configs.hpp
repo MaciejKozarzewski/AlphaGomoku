@@ -70,12 +70,18 @@ namespace ag
 
 	struct VcfConfig
 	{
-			int max_positions = 1000; // maximum number of positions that will be searched
-			int max_depth = 50; // maximum recursion depth
-			int cache_size = 100000; // number of positions in the cache
-			bool use_caching = false; // whether to use position caching or not
 			bool use_static_solver = true; // whether to use static tree pruning
 			bool use_recursive_solver = true; // whether to use recursive search to prove node
+			int max_nodes = 10000; // maximum number of nodes in buffer
+			int max_positions = 1000; // maximum number of positions that will be searched
+			int max_depth = 50; // maximum recursion depth
+			bool use_caching = false; // whether to use position caching or not
+			int cache_size = 100000; // number of positions in the cache
+
+			VcfConfig() = default;
+			VcfConfig(const Json &cfg);
+
+			static Json getDefault();
 	};
 
 	Json getDefaultSelfplayConfig();

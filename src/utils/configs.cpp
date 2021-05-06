@@ -66,14 +66,29 @@ namespace ag
 			expansion_prior_treshold(cfg["expansion_prior_treshold"]),
 			max_children(cfg["max_children"]),
 			noise_weight(cfg["noise_weight"]),
-			use_endgame_solver(cfg["use_endgame_solver"]),
-			use_vcf_solver(cfg["use_vcf_solver"])
+			use_endgame_solver(cfg["use_endgame_solver"])
 	{
 	}
 	Json SearchConfig::getDefault()
 	{
 		return Json( { { "batch_size", 1 }, { "exploration_constant", 1.25 }, { "expansion_prior_treshold", 1.0e-6 }, { "max_children", 1000 }, {
-				"noise_weight", 0.0 }, { "use_endgame_solver", false }, { "use_vcf_solver", false } });
+				"noise_weight", 0.0 }, { "use_endgame_solver", false } });
+	}
+
+	VcfConfig::VcfConfig(const Json &cfg) :
+			use_static_solver(cfg["use_static_solver"]),
+			use_recursive_solver(cfg["use_recursive_solver"]),
+			max_nodes(cfg["max_nodes"]),
+			max_positions(cfg["max_positions"]),
+			max_depth(cfg["max_depth"]),
+			use_caching(cfg["use_caching"]),
+			cache_size(cfg["cache_size"])
+	{
+	}
+	Json VcfConfig::getDefault()
+	{
+		return Json( { { "use_static_solver", true }, { "use_recursive_solver", true }, { "max_nodes", 10000 }, { "max_positions", 1000 }, {
+				"max_depth", 50 }, { "use_caching", true }, { "cache_size", 100000 } });
 	}
 
 	Json getDefaultTrainingConfig()

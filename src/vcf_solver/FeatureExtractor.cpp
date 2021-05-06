@@ -443,8 +443,6 @@ namespace ag
 
 	void FeatureExtractor::addMove(Move move) noexcept
 	{
-//		internal_board.at(pad + move.row, pad + move.col) = static_cast<int>(move.sign);
-//		calc_all_features();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -458,14 +456,11 @@ namespace ag
 			default:
 				break;
 		}
-//		get_threat_lists();
 		update_threats(move.row, move.col);
 		current_board_hash = update_hash(current_board_hash, move);
 	}
 	void FeatureExtractor::undoMove(Move move) noexcept
 	{
-//		internal_board.at(pad + move.row, pad + move.col) = 0;
-//		calc_all_features();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -479,7 +474,6 @@ namespace ag
 			default:
 				break;
 		}
-//		get_threat_lists();
 		update_threats(move.row, move.col);
 		current_board_hash = update_hash(current_board_hash, move);
 	}
@@ -629,17 +623,17 @@ namespace ag
 
 		Sign signToMove = invertSign(node.move.sign);
 		std::vector<Move> &own_five = (signToMove == Sign::CROSS) ? cross_five : circle_five;
-		if (own_five.size() > 0)
+		if (own_five.size() > 0) // if side to move can make a five, mark this node as loss
 		{
 			node.solved_value = SolvedValue::SOLVED_LOSS;
-			return; // if side to move can make a five, mark this node as loss
+			return;
 		}
 
 		std::vector<Move> &opponent_five = (signToMove == Sign::CROSS) ? circle_five : cross_five;
-		if (opponent_five.size() > 1)
+		if (opponent_five.size() > 1) // if the other side side to move can make more than one five, mark this node as win
 		{
 			node.solved_value = SolvedValue::SOLVED_WIN;
-			return; // if the other side side to move can make more than 1 five, mark this node as win
+			return;
 		}
 
 		std::vector<Move> &own_open_four = (signToMove == Sign::CROSS) ? cross_open_four : circle_open_four;
@@ -654,14 +648,14 @@ namespace ag
 		if (node.number_of_children == 0)
 			return; // no available threats
 		if (node_counter + node.number_of_children >= static_cast<int>(nodes_buffer.size()))
-			return; // no more nodes, cannot continue
+			return; // no more nodes in buffer, cannot continue
 
 		node.children = nodes_buffer.data() + node_counter;
 		node_counter += node.number_of_children;
 
-		if (opponent_five.size() > 0)
+		if (opponent_five.size() > 0) // must make this defensive move
 		{
-			assert(opponent_five.size() == 1);
+			assert(opponent_five.size() == 1); // it was checked earlier that opponent cannot have more than one five
 			node.children[0].init(opponent_five[0].row, opponent_five[0].col, signToMove);
 //			std::cout << node.children[0].move.toString() << " defensive move\n";
 		}
@@ -721,8 +715,8 @@ namespace ag
 				else // UNKNOWN or UNSOLVED
 				{
 					has_unproven_child = true;
-					if (mustProveAllChildren)
-						break;
+					if (mustProveAllChildren) // if this is defensive side, it must prove all its child nodes as losing
+						break; // so the function can exit now, as there will be at least one unproven node (current one)
 				}
 			}
 		}
@@ -768,125 +762,50 @@ namespace ag
 	void FeatureExtractor::update_threats(int row, int col)
 	{
 		const FeatureTable &table = get_feature_table(game_config.rules);
-		for (int i = 0; i <= pad; i++)
+		for (int i = 0; i <= pad; i++) // update rows above
 		{
 			update_threat_at(table, row - pad + i, col - pad + i, Direction::DIAGONAL);
 			update_threat_at(table, row - pad + i, col, Direction::VERTICAL);
 			update_threat_at(table, row - pad + i, col + pad - i, Direction::ANTIDIAGONAL);
 		}
-		for (int i = col - pad; i <= col + pad; i++)
+		for (int i = col - pad; i <= col + pad; i++) // update the same row as placed move
 			update_threat_at(table, row, i, Direction::HORIZONTAL);
-		for (int i = 1; i <= pad; i++)
+		for (int i = 1; i <= pad; i++) // update rows below
 		{
 			update_threat_at(table, row + i, col - i, Direction::ANTIDIAGONAL);
 			update_threat_at(table, row + i, col, Direction::VERTICAL);
 			update_threat_at(table, row + i, col + i, Direction::DIAGONAL);
 		}
-
-		cross_five.clear();
-		cross_open_four.clear();
-		cross_half_open_four.clear();
-		circle_five.clear();
-		circle_open_four.clear();
-		circle_half_open_four.clear();
-		for (int row = 0; row < internal_board.rows() - 2 * pad; row++)
-			for (int col = 0; col < internal_board.cols() - 2 * pad; col++)
-			{
-				switch (get_best_threat_at(cross_threats, row, col))
-				{
-					case ThreatType::NONE:
-						break;
-					case ThreatType::HALF_OPEN_FOUR:
-						cross_half_open_four.push_back(Move(row, col));
-						break;
-					case ThreatType::OPEN_FOUR:
-						cross_open_four.push_back(Move(row, col));
-						break;
-					case ThreatType::FIVE:
-						cross_five.push_back(Move(row, col));
-						break;
-				}
-
-				switch (get_best_threat_at(circle_threats, row, col))
-				{
-					case ThreatType::NONE:
-						break;
-					case ThreatType::HALF_OPEN_FOUR:
-						circle_half_open_four.push_back(Move(row, col));
-						break;
-					case ThreatType::OPEN_FOUR:
-						circle_open_four.push_back(Move(row, col));
-						break;
-					case ThreatType::FIVE:
-						circle_five.push_back(Move(row, col));
-						break;
-				}
-			}
-
-//		const FeatureTable &table = get_feature_table(game_config.rules);
-//		for (int i = 0; i < pad; i++)
-//		{
-//			update_threat_at(table, row - pad + i, col - pad + i, Direction::DIAGONAL);
-//			update_threat_at(table, row - pad + i, col, Direction::VERTICAL);
-//			update_threat_at(table, row - pad + i, col + pad - i, Direction::ANTIDIAGONAL);
-//		}
-//		for (int i = col - pad; i < col; i++)
-//			update_threat_at(table, row, i, Direction::HORIZONTAL);
-//
-//		Threat old_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
-//		for (int i = 0; i < 4; i++) // update threat table at central point with newly create threats
-//		{
-//			Threat new_threat = table.getThreat(get_feature_at(row, col, static_cast<Direction>(i)));
-//			cross_threats.at(pad + row, (pad + col) * 4 + i) = new_threat.for_cross;
-//			circle_threats.at(pad + row, (pad + col) * 4 + i) = new_threat.for_circle;
-//		}
-//		Threat new_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
-//
-//		std::cout << "\n";
-//		update_threat_list(old_best_threat.for_cross, new_best_threat.for_cross, Move(row, col), cross_five, cross_open_four, cross_half_open_four);
-//		update_threat_list(old_best_threat.for_circle, new_best_threat.for_circle, Move(row, col), circle_five, circle_open_four,
-//				circle_half_open_four);
-//
-//		for (int i = col + 1; i <= col + pad; i++)
-//			update_threat_at(table, row, i, Direction::HORIZONTAL);
-//		for (int i = 1; i <= pad; i++)
-//		{
-//			update_threat_at(table, row + i, col - i, Direction::ANTIDIAGONAL);
-//			update_threat_at(table, row + i, col, Direction::VERTICAL);
-//			update_threat_at(table, row + i, col + i, Direction::DIAGONAL);
-//		}
 	}
 	void FeatureExtractor::update_threat_at(const FeatureTable &table, int row, int col, Direction direction)
 	{
-		Threat new_threat = table.getThreat(get_feature_at(row, col, direction));
-		cross_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_cross;
-		circle_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_circle;
+		if (row >= 0 and row < game_config.rows and col >= 0 and col < game_config.cols) // only inside board
+		{
+			// check what was the best threat at (row, col) before updating
+			Threat old_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
 
-//		if (internal_board.at(pad + row, pad + col) == 0)
-//		{
-//			Threat old_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
-//
-//			Threat new_threat = table.getThreat(get_feature_at(row, col, direction)); // this is new threat as taken from feature table
-//			cross_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_cross;
-//			circle_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_circle;
-//
-//			Threat new_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
-//
-//			std::cout << "\n";
-//			update_threat_list(old_best_threat.for_cross, new_best_threat.for_cross, Move(row, col), cross_five, cross_open_four,
-//					cross_half_open_four);
-//			update_threat_list(old_best_threat.for_circle, new_best_threat.for_circle, Move(row, col), circle_five, circle_open_four,
-//					circle_half_open_four);
-//		}
+			// update the threat tables with newly formed threat in the given direction
+			Threat new_threat = table.getThreat(get_feature_at(row, col, direction)); // this is new threat as taken from feature table
+			cross_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_cross;
+			circle_threats.at(pad + row, (pad + col) * 4 + static_cast<int>(direction)) = new_threat.for_circle;
+
+			// check what is the new best threat at (row, col) after threat tables was updated
+			Threat new_best_threat(get_best_threat_at(cross_threats, row, col), get_best_threat_at(circle_threats, row, col));
+
+			// update list of threats for cross and circle
+			update_threat_list(old_best_threat.for_cross, new_best_threat.for_cross, Move(row, col), cross_five, cross_open_four,
+					cross_half_open_four);
+			update_threat_list(old_best_threat.for_circle, new_best_threat.for_circle, Move(row, col), circle_five, circle_open_four,
+					circle_half_open_four);
+		}
 	}
 	void FeatureExtractor::update_threat_list(ThreatType old_threat, ThreatType new_threat, Move move, std::vector<Move> &five,
 			std::vector<Move> &open_four, std::vector<Move> &half_open_four)
 	{
-		std::cout << "updating at " << move.toString() << ", previously = " << ag::toString(old_threat) << ", now = " << ag::toString(new_threat)
-				<< '\n';
 		if (old_threat == new_threat)
-			return;
+			return; // do not touch lists if the threat did not change
 
+		// remove old threat from appropriate list
 		switch (old_threat)
 		{
 			case ThreatType::NONE:
@@ -894,8 +813,9 @@ namespace ag
 			case ThreatType::HALF_OPEN_FOUR:
 			{
 				auto index = std::find(half_open_four.begin(), half_open_four.end(), move);
-				assert(index != half_open_four.end());
-				// as half open fours are frequent, instead of deleting element from the middle, move it to the end first
+				assert(index != half_open_four.end()); // the threat must exist in the list
+// 				as half-open fours are frequent, instead of deleting element from the middle, move it to the end first
+//				such shuffling of threats should improve speed (on average)
 				std::swap(*index, half_open_four.back());
 				half_open_four.pop_back();
 				break;
@@ -903,7 +823,7 @@ namespace ag
 			case ThreatType::OPEN_FOUR:
 			{
 				auto index = std::find(open_four.begin(), open_four.end(), move);
-				assert(index != open_four.end());
+				assert(index != open_four.end()); // the threat must exist in the list
 				open_four.erase(index);
 				break;
 			}
@@ -916,6 +836,7 @@ namespace ag
 			}
 		}
 
+		// add new threat to appropriate list
 		switch (new_threat)
 		{
 			case ThreatType::NONE:
