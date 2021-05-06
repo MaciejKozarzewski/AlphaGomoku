@@ -219,18 +219,6 @@ namespace
 				throw std::logic_error("unknown rule");
 		}
 	}
-
-	std::pair<ThreatType, int> get_best_threat(ThreatType horizontal, ThreatType vertical, ThreatType diagonal, ThreatType antidiagonal)
-	{
-		std::pair<ThreatType, int> result(horizontal, static_cast<int>(Direction::HORIZONTAL));
-		if (vertical > result.first)
-			result = { vertical, static_cast<int>(Direction::VERTICAL) };
-		if (diagonal > result.first)
-			result = { diagonal, static_cast<int>(Direction::DIAGONAL) };
-		if (antidiagonal > result.first)
-			result = { antidiagonal, static_cast<int>(Direction::ANTIDIAGONAL) };
-		return result;
-	}
 }
 
 namespace ag
@@ -308,17 +296,16 @@ namespace ag
 		if (own_open_four.size() + own_half_open_four.size() == 0)
 			return ProvenValue::UNKNOWN;
 
-		if (use_caching and hashtable.load_factor() > 0.9)
-			hashtable.clear();
-
 		position_counter = 0;
 		nodes_buffer.front().init(0, 0, invertSign(sign_to_move));
 		node_counter = 1;
 
+		if (use_caching and hashtable.load_factor() > 0.9)
+			hashtable.clear();
 		recursive_solve(nodes_buffer.front(), false, 0);
 		total_positions += position_counter;
-		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "
-				<< total_positions << "\n";
+//		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "
+//				<< total_positions << "\n";
 		switch (nodes_buffer.front().solved_value)
 		{
 			default:
@@ -522,7 +509,7 @@ namespace ag
 		for (int i = 0; i < 2 * game_config.rows * game_config.cols; i++)
 			hashing_keys.push_back(randLong());
 		if (use_caching)
-			hashtable = std::unordered_map<uint64_t, SolvedValue, KeyHash, KeyCompare>(10 * max_positions);
+			hashtable = std::unordered_map<uint64_t, SolvedValue, KeyHash, KeyCompare>(cache_size);
 	}
 	uint32_t FeatureExtractor::get_feature_at(int row, int col, Direction dir) const noexcept
 	{
@@ -630,8 +617,8 @@ namespace ag
 	void FeatureExtractor::recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth)
 	{
 		position_counter++;
-		print();
-		printAllThreats();
+//		print();
+//		printAllThreats();
 
 		Sign signToMove = invertSign(node.move.sign);
 		std::vector<Move> &own_five = (signToMove == Sign::CROSS) ? cross_five : circle_five;
@@ -669,7 +656,7 @@ namespace ag
 		{
 			assert(opponent_five.size() == 1);
 			node.children[0].init(opponent_five[0].row, opponent_five[0].col, signToMove);
-			std::cout << node.children[0].move.toString() << " defensive move\n";
+//			std::cout << node.children[0].move.toString() << " defensive move\n";
 		}
 		else
 		{
@@ -677,12 +664,12 @@ namespace ag
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++, children_counter++)
 			{
 				node.children[children_counter].init(iter->row, iter->col, signToMove);
-				std::cout << node.children[children_counter].move.toString() << " open four\n";
+//				std::cout << node.children[children_counter].move.toString() << " open four\n";
 			}
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++, children_counter++)
 			{
 				node.children[children_counter].init(iter->row, iter->col, signToMove);
-				std::cout << node.children[children_counter].move.toString() << " half open four\n";
+//				std::cout << node.children[children_counter].move.toString() << " half open four\n";
 			}
 		}
 
@@ -691,21 +678,21 @@ namespace ag
 		bool has_unproven_child = false;
 		for (auto iter = node.children; iter < node.children + node.number_of_children; iter++)
 		{
-			if (iter != node.children)
-			{
-				print();
-				printAllThreats();
-			}
-			std::cout << "depth = " << depth << " : state of all children:\n";
-			for (int i = 0; i < node.number_of_children; i++)
-				std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << '\n';
-			std::cout << "now checking " << iter->move.toString() << '\n';
+//			if (iter != node.children)
+//			{
+//				print();
+//				printAllThreats();
+//			}
+//			std::cout << "depth = " << depth << " : state of all children:\n";
+//			for (int i = 0; i < node.number_of_children; i++)
+//				std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << '\n';
+//			std::cout << "now checking " << iter->move.toString() << '\n';
 
 			uint64_t new_hash = update_hash(current_board_hash, iter->move);
 			auto cache_entry = use_caching ? hashtable.find(new_hash) : hashtable.end();
 			if (cache_entry == hashtable.end())
 			{
-				if (position_counter < max_positions)
+				if (position_counter < max_positions and depth <= max_depth)
 				{
 					addMove(iter->move);
 					recursive_solve(*iter, not mustProveAllChildren, depth + 1);
@@ -733,9 +720,9 @@ namespace ag
 			}
 		}
 
-		std::cout << "depth = " << depth << " : state of all children:\n";
-		for (int i = 0; i < node.number_of_children; i++)
-			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << '\n';
+//		std::cout << "depth = " << depth << " : state of all children:\n";
+//		for (int i = 0; i < node.number_of_children; i++)
+//			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << '\n';
 
 		if (has_win_child)
 			node.solved_value = SolvedValue::SOLVED_LOSS;
@@ -780,7 +767,7 @@ namespace ag
 			update_threat_at(table, row - pad + i, col, Direction::VERTICAL);
 			update_threat_at(table, row - pad + i, col + pad - i, Direction::ANTIDIAGONAL);
 		}
-		for (int i = col - pad; i <= col+pad; i++)
+		for (int i = col - pad; i <= col + pad; i++)
 			update_threat_at(table, row, i, Direction::HORIZONTAL);
 		for (int i = 1; i <= pad; i++)
 		{
@@ -802,31 +789,24 @@ namespace ag
 		threats.at(pad + row, (pad + col) * 4 + direction) = new_threat;
 		ThreatType new_best_threat = get_best_threat_at(threats, row, col);
 
-//		std::cout << "updating at " << row << "," << col << " dir=" << direction << " with " << ag::toString(new_best_threat)
-//				<< ", previously " + ag::toString(old_best_threat) << '\n';
 		if (new_best_threat == old_best_threat)
-			return; // the same threat as previously
+			return;
 
-//		std::cout << "\n";
-//		printFeature(row, col);
-//		printThreat(row, col);
-//		std::cout << "--------threats before\n";
-//		printAllThreats();
 		switch (old_best_threat)
 		{
 			case ThreatType::NONE:
 				break;
 			case ThreatType::HALF_OPEN_FOUR:
 			{
-//				std::cout << "removing " << row << "," << col << " from half open fours\n";
 				auto index = std::find(half_open_four.begin(), half_open_four.end(), Move(row, col));
 				assert(index != half_open_four.end());
-				half_open_four.erase(index);
+				// as half open fours are frequent, instead of deleting element from the middle, move it to the end first
+				std::swap(*index, half_open_four.back());
+				half_open_four.pop_back();
 				break;
 			}
 			case ThreatType::OPEN_FOUR:
 			{
-//				std::cout << "removing " << row << "," << col << " from open fours\n";
 				auto index = std::find(open_four.begin(), open_four.end(), Move(row, col));
 				assert(index != open_four.end());
 				open_four.erase(index);
@@ -834,7 +814,6 @@ namespace ag
 			}
 			case ThreatType::FIVE:
 			{
-//				std::cout << "removing " << row << "," << col << " from fives\n";
 				auto index = std::find(five.begin(), five.end(), Move(row, col));
 				assert(index != five.end());
 				five.erase(index);
@@ -842,38 +821,26 @@ namespace ag
 			}
 		}
 
-		auto compare_moves = [](Move lhs, Move rhs)
-		{	return lhs.row * 32 + lhs.col < rhs.row * 32 + rhs.col;};
-//		std::cout << "\n--------threats after removing\n";
-//		printAllThreats();
 		switch (new_best_threat)
 		{
 			case ThreatType::NONE:
 				break;
 			case ThreatType::HALF_OPEN_FOUR:
 				half_open_four.push_back(Move(row, col));
-				std::sort(half_open_four.begin(), half_open_four.end(), compare_moves);
 				break;
 			case ThreatType::OPEN_FOUR:
 				open_four.push_back(Move(row, col));
-				std::sort(open_four.begin(), open_four.end(), compare_moves);
 				break;
 			case ThreatType::FIVE:
 				five.push_back(Move(row, col));
-				std::sort(five.begin(), five.end(), compare_moves);
 				break;
 		}
-
-//		std::cout << "\n--------threats after adding\n";
-//		printAllThreats();
-//		std::cout << "---------------------------\n";
-//		printFeature(row, col);
-//		printThreat(row, col);
 	}
 	ThreatType FeatureExtractor::get_best_threat_at(const matrix<ThreatType> &threats, int row, int col) const noexcept
 	{
 		return std::max(std::max(threats.at(pad + row, (pad + col) * 4 + 0), threats.at(pad + row, (pad + col) * 4 + 1)),
 				std::max(threats.at(pad + row, (pad + col) * 4 + 2), threats.at(pad + row, (pad + col) * 4 + 3)));
 	}
+
 } /* namespace ag */
 

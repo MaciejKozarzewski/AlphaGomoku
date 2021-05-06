@@ -298,7 +298,7 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ O X _ X _ _ _ X _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
 
-	sign_to_move = Sign::CIRCLE;
+	sign_to_move = Sign::CROSS;
 
 	FeatureExtractor extractor(game_config);
 	extractor.setBoard(board, sign_to_move);
@@ -309,13 +309,18 @@ int main(int argc, char *argv[])
 //	extractor.print();
 //	extractor.printAllThreats();
 
-	std::vector<std::pair<uint16_t, float>> list_of_moves;
-	matrix<float> qwer(board.rows(), board.cols());
-	ProvenValue asdf = extractor.solve(qwer, list_of_moves);
-	std::cout << toString(asdf) << '\n';
-	extractor.printAllThreats();
+//	std::vector<std::pair<uint16_t, float>> list_of_moves;
+//	matrix<float> qwer(board.rows(), board.cols());
+//	double t0 = getTime();
+//	for (int i = 0; i < 1000; i++)
+//	{
+//		ProvenValue asdf = extractor.solve(qwer, list_of_moves);
+//	}
+//	std::cout << "time = " << (getTime() - t0) << "ms\n";
+//	std::cout << toString(asdf) << '\n';
+//	extractor.printAllThreats();
 
-	return 0;
+//	return 0;
 
 	double start = getTime();
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });

@@ -224,22 +224,20 @@ namespace ag
 			vcf_solver.setBoard(position.getBoard(), position.getSignToMove());
 			ProvenValue pv = vcf_solver.solve(position.getPolicy(), moves_to_add);
 			if (pv != ProvenValue::UNKNOWN and search_config.use_endgame_solver)
-			{
 				position.setProvenValue(pv);
-				switch (pv)
-				{
-					case ProvenValue::LOSS:
-						position.setValue( { 0.0f, 0.0f, 1.0f });
-						break;
-					case ProvenValue::DRAW:
-						position.setValue( { 0.0f, 1.0f, 0.0f });
-						break;
-					case ProvenValue::WIN:
-						position.setValue( { 1.0f, 0.0f, 0.0f });
-						break;
-					default:
-						break;
-				}
+			switch (pv)
+			{
+				case ProvenValue::LOSS:
+					position.setValue( { 0.0f, 0.0f, 1.0f });
+					break;
+				case ProvenValue::DRAW:
+					position.setValue( { 0.0f, 1.0f, 0.0f });
+					break;
+				case ProvenValue::WIN:
+					position.setValue( { 1.0f, 0.0f, 0.0f });
+					break;
+				default:
+					break;
 			}
 			stats.nb_vcf_solver++; // statistics
 			stats.time_vcf_solver += getTime() - start; //statistics
@@ -247,7 +245,6 @@ namespace ag
 
 		double start = getTime(); // statistics
 		const int cols = position.getBoard().cols();
-//		maskIllegalMoves(position.getBoard(), position.getPolicy());
 		if (moves_to_add.size() == 0) // if there are no immediate threats from VCF solver
 		{
 			for (int i = 0; i < position.getBoard().size(); i++)
