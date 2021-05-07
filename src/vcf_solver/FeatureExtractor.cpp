@@ -17,6 +17,18 @@ namespace
 {
 	using namespace ag;
 
+	std::string binary_to_string(uint32_t number)
+	{
+		std::string result;
+		for (int i = 0; i < 32; i++, number /= 2)
+			if (number % 2 == 0)
+				result += '0';
+			else
+				result += '1';
+		std::reverse(result.begin(), result.end());
+		return result;
+	}
+
 	template<int pad>
 	void horizontal(matrix<uint32_t> &features, const matrix<int> &board) noexcept
 	{
@@ -93,11 +105,11 @@ namespace
 		{
 			uint32_t line = (1 << (2 * pad)) - 1;
 			for (int j = 0; j <= pad; j++)
-				line = line | (board.at(i + pad - j, pad + j) << ((pad + j) * 2));
+				line = line | (board.at(pad + i - j, pad + j) << ((pad + j) * 2));
 			features.at(pad + i, pad * 4 + 3) = line;
-			for (int j = 1; j < i; j++)
+			for (int j = 1; j <= i; j++)
 			{
-				line = (board.at(pad + i - (pad + j), pad + (pad + j)) << shift) | (line >> 2);
+				line = (board.at(pad + i - j - pad, pad + j + pad) << shift) | (line >> 2);
 				features.at(pad + i - j, (pad + j) * 4 + 3) = line;
 			}
 		}
@@ -170,7 +182,7 @@ namespace
 			features.at(move.row + i, (pad + move.col - (pad - i)) * 4 + 2) &= mask1; // diagonal
 			features.at(move.row + i, (pad + move.col) * 4 + 1) &= mask1; // vertical
 			features.at(move.row + i, (pad + move.col + (pad - i)) * 4 + 3) &= mask2; // antidiagonal
-			mask1 = mask1 >> 2;
+			mask1 = (3 << 30) | (mask1 >> 2);
 			mask2 = (mask2 << 2) | 3;
 		}
 
@@ -178,7 +190,7 @@ namespace
 		for (int i = 0; i <= 2 * pad; i++)
 		{
 			features.at(pad + move.row, (move.col + i) * 4) &= mask3; // horizontal
-			mask3 = mask3 >> 2;
+			mask3 = (3 << 30) | (mask3 >> 2);
 		}
 
 		for (int i = 1; i <= pad; i++)
@@ -186,7 +198,7 @@ namespace
 			features.at(pad + move.row + i, (pad + move.col - i) * 4 + 3) &= mask2; // antidiagonal
 			features.at(pad + move.row + i, (pad + move.col) * 4 + 1) &= mask1; // vertical
 			features.at(pad + move.row + i, (pad + move.col + i) * 4 + 2) &= mask1; // diagonal
-			mask1 = mask1 >> 2;
+			mask1 = (3 << 30) | (mask1 >> 2);
 			mask2 = (mask2 << 2) | 3;
 		}
 	}
@@ -253,14 +265,14 @@ namespace ag
 	ProvenValue FeatureExtractor::solve(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList)
 	{
 		std::vector<Move> &own_five = (sign_to_move == Sign::CROSS) ? cross_five : circle_five;
-		if (own_five.empty() == false) // can make a five
+		if (own_five.size() > 0) // can make a five
 		{
 			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), 1.0f });
 			return ProvenValue::LOSS; // it is instant win, returning inverted value
 		}
 		std::vector<Move> &opponent_five = (sign_to_move == Sign::CROSS) ? circle_five : cross_five;
-		if (opponent_five.empty() == false) // opponent can make a five
+		if (opponent_five.size() > 0) // opponent can make a five
 		{
 			for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), 1.0f });
@@ -271,7 +283,7 @@ namespace ag
 		}
 
 		std::vector<Move> &own_open_four = (sign_to_move == Sign::CROSS) ? cross_open_four : circle_open_four;
-		if (own_open_four.empty() == false) // can make an open four
+		if (own_open_four.size() > 0) // can make an open four
 		{
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), policy.at(iter->row, iter->col) });
@@ -281,7 +293,7 @@ namespace ag
 		std::vector<Move> &own_half_open_four = (sign_to_move == Sign::CROSS) ? cross_half_open_four : circle_half_open_four;
 		std::vector<Move> &opponent_open_four = (sign_to_move == Sign::CROSS) ? circle_open_four : cross_open_four;
 		std::vector<Move> &opponent_half_open_four = (sign_to_move == Sign::CROSS) ? circle_half_open_four : cross_half_open_four;
-		if (opponent_open_four.empty() == false) // opponent can make an open four
+		if (opponent_open_four.size() > 0) // opponent can make an open four
 		{
 			for (auto iter = opponent_open_four.begin(); iter < opponent_open_four.end(); iter++)
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), policy.at(iter->row, iter->col) });
@@ -289,7 +301,13 @@ namespace ag
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), policy.at(iter->row, iter->col) });
 
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++)
-				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), policy.at(iter->row, iter->col) });
+			{
+				uint16_t new_move = Move::move_to_short(iter->row, iter->col, sign_to_move);
+				bool is_already_added = std::any_of(moveList.begin(), moveList.end(), [new_move](auto e)
+				{	return e.first == new_move;}); // find if such move has been added in any of two loops above
+				if (not is_already_added) // move must not be added twice
+					moveList.push_back( { new_move, policy.at(iter->row, iter->col) });
+			}
 		}
 
 		if (own_open_four.size() + own_half_open_four.size() == 0)
@@ -444,6 +462,18 @@ namespace ag
 
 	void FeatureExtractor::addMove(Move move) noexcept
 	{
+//		if (internal_board.at(pad + move.row, pad + move.col) != 0)
+//		{
+//			print();
+//			printAllThreats();
+//			printFeature(move.row, move.col);
+//			printThreat(move.row, move.col);
+//		}
+//		assert(internal_board.at(pad + move.row, pad + move.col) == 0);
+
+//		internal_board.at(pad + move.row, pad + move.col) = static_cast<int>(move.sign);
+//		calc_all_features();
+
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -457,11 +487,46 @@ namespace ag
 			default:
 				break;
 		}
+//		assert(internal_board.at(pad + move.row, pad + move.col) != 0);
+//		matrix<uint32_t> incremental_features(features.rows(), features.cols());
+//		incremental_features.copyFrom(features);
+//		calc_all_features();
+//		for (int i = 0; i < game_config.rows; i++)
+//		{
+//			for (int j = 0; j < 4 * game_config.cols; j++)
+//				if (features.at(pad + i, 4 * pad + j) != incremental_features.at(pad + i, 4 * pad + j))
+//				{
+//					std::cout << "placing move\n";
+//					std::cout << "should be " << features.at(pad + i, 4 * pad + j) << ", is " << incremental_features.at(pad + i, 4 * pad + j)
+//							<< std::endl;
+//					std::cout << "correct features\n";
+//					printFeature(i, j / 4);
+//
+//					std::cout << "incremental features\n";
+//					features.copyFrom(incremental_features);
+//					printFeature(i, j / 4);
+//					print();
+//					throw std::runtime_error("");
+//				}
+//		}
+
+//		get_threat_lists();
 		update_threats(move.row, move.col);
 		current_board_hash = update_hash(current_board_hash, move);
 	}
 	void FeatureExtractor::undoMove(Move move) noexcept
 	{
+//		if (internal_board.at(pad + move.row, pad + move.col) != static_cast<int>(move.sign))
+//		{
+//			print();
+//			printAllThreats();
+//			printFeature(move.row, move.col);
+//			printThreat(move.row, move.col);
+//		}
+//		assert(internal_board.at(pad + move.row, pad + move.col) == static_cast<int>(move.sign));
+
+//		internal_board.at(pad + move.row, pad + move.col) = 0;
+//		calc_all_features();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -475,7 +540,32 @@ namespace ag
 			default:
 				break;
 		}
+//		assert(internal_board.at(pad + move.row, pad + move.col) == 0);
+//		matrix<uint32_t> incremental_features(features.rows(), features.cols());
+//		incremental_features.copyFrom(features);
+//		calc_all_features();
+//		for (int i = 0; i < game_config.rows; i++)
+//		{
+//			for (int j = 0; j < 4 * game_config.cols; j++)
+//				if (features.at(pad + i, 4 * pad + j) != incremental_features.at(pad + i, 4 * pad + j))
+//				{
+//					std::cout << "undoing move\n";
+//					std::cout << "should be " << features.at(pad + i, 4 * pad + j) << ", is " << incremental_features.at(pad + i, 4 * pad + j)
+//							<< std::endl;
+//					std::cout << "correct features\n";
+//					printFeature(i, j / 4);
+//
+//					std::cout << "incremental features\n";
+//					features.copyFrom(incremental_features);
+//					printFeature(i, j / 4);
+//					print();
+//					throw std::runtime_error("");
+//				}
+//		}
+
+//		get_threat_lists();
 		update_threats(move.row, move.col);
+
 		current_board_hash = update_hash(current_board_hash, move);
 	}
 // private
@@ -542,11 +632,9 @@ namespace ag
 	}
 	void FeatureExtractor::get_threat_lists()
 	{
-		cross_threats.fill(ThreatType::NONE);
 		cross_five.clear();
 		cross_open_four.clear();
 		cross_half_open_four.clear();
-		circle_threats.fill(ThreatType::NONE);
 		circle_five.clear();
 		circle_open_four.clear();
 		circle_half_open_four.clear();
