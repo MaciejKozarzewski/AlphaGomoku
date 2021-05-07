@@ -340,7 +340,6 @@ namespace ag
 						policy.at(iter->move.row, iter->move.col) = 1.0f;
 						moveList.push_back( { Move::move_to_short(iter->move.row, iter->move.col, sign_to_move), 1.0f });
 					}
-//				std::cout << "created " << moveList.size() << " moves\n";
 				return ProvenValue::LOSS;
 			}
 			case SolvedValue::SOLVED_WIN:
@@ -462,18 +461,6 @@ namespace ag
 
 	void FeatureExtractor::addMove(Move move) noexcept
 	{
-//		if (internal_board.at(pad + move.row, pad + move.col) != 0)
-//		{
-//			print();
-//			printAllThreats();
-//			printFeature(move.row, move.col);
-//			printThreat(move.row, move.col);
-//		}
-//		assert(internal_board.at(pad + move.row, pad + move.col) == 0);
-
-//		internal_board.at(pad + move.row, pad + move.col) = static_cast<int>(move.sign);
-//		calc_all_features();
-
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -487,46 +474,12 @@ namespace ag
 			default:
 				break;
 		}
-//		assert(internal_board.at(pad + move.row, pad + move.col) != 0);
-//		matrix<uint32_t> incremental_features(features.rows(), features.cols());
-//		incremental_features.copyFrom(features);
-//		calc_all_features();
-//		for (int i = 0; i < game_config.rows; i++)
-//		{
-//			for (int j = 0; j < 4 * game_config.cols; j++)
-//				if (features.at(pad + i, 4 * pad + j) != incremental_features.at(pad + i, 4 * pad + j))
-//				{
-//					std::cout << "placing move\n";
-//					std::cout << "should be " << features.at(pad + i, 4 * pad + j) << ", is " << incremental_features.at(pad + i, 4 * pad + j)
-//							<< std::endl;
-//					std::cout << "correct features\n";
-//					printFeature(i, j / 4);
-//
-//					std::cout << "incremental features\n";
-//					features.copyFrom(incremental_features);
-//					printFeature(i, j / 4);
-//					print();
-//					throw std::runtime_error("");
-//				}
-//		}
-
-//		get_threat_lists();
 		update_threats(move.row, move.col);
+
 		current_board_hash = update_hash(current_board_hash, move);
 	}
 	void FeatureExtractor::undoMove(Move move) noexcept
 	{
-//		if (internal_board.at(pad + move.row, pad + move.col) != static_cast<int>(move.sign))
-//		{
-//			print();
-//			printAllThreats();
-//			printFeature(move.row, move.col);
-//			printThreat(move.row, move.col);
-//		}
-//		assert(internal_board.at(pad + move.row, pad + move.col) == static_cast<int>(move.sign));
-
-//		internal_board.at(pad + move.row, pad + move.col) = 0;
-//		calc_all_features();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -540,30 +493,6 @@ namespace ag
 			default:
 				break;
 		}
-//		assert(internal_board.at(pad + move.row, pad + move.col) == 0);
-//		matrix<uint32_t> incremental_features(features.rows(), features.cols());
-//		incremental_features.copyFrom(features);
-//		calc_all_features();
-//		for (int i = 0; i < game_config.rows; i++)
-//		{
-//			for (int j = 0; j < 4 * game_config.cols; j++)
-//				if (features.at(pad + i, 4 * pad + j) != incremental_features.at(pad + i, 4 * pad + j))
-//				{
-//					std::cout << "undoing move\n";
-//					std::cout << "should be " << features.at(pad + i, 4 * pad + j) << ", is " << incremental_features.at(pad + i, 4 * pad + j)
-//							<< std::endl;
-//					std::cout << "correct features\n";
-//					printFeature(i, j / 4);
-//
-//					std::cout << "incremental features\n";
-//					features.copyFrom(incremental_features);
-//					printFeature(i, j / 4);
-//					print();
-//					throw std::runtime_error("");
-//				}
-//		}
-
-//		get_threat_lists();
 		update_threats(move.row, move.col);
 
 		current_board_hash = update_hash(current_board_hash, move);

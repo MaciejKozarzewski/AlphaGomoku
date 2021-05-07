@@ -108,8 +108,10 @@ namespace
 	}
 	bool update_proven_value(Node &parent)
 	{
-		if (parent.isProven())
-			return true;
+		// the node can be proven as leaf if it represents terminal state
+		// or it can be proven as non-leaf if VCF solver has been used
+		if (parent.isLeaf() or parent.isProven())
+			return parent.isProven();
 
 		bool has_draw_child = false;
 		int unknown_count = 0;

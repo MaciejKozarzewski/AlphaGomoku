@@ -280,27 +280,49 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
 //	sign_to_move = Sign::CROSS;
 
+//	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ O _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ X _ O X O O O X O X _ _ _ _ _\n"
+//							" _ _ _ _ _ _ X _ _ O X X X X O _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ X O X O X O O O X _ _ _ _\n"
+//							" _ _ _ _ _ O _ O X _ O X X X O _ O _ _ _\n"
+//							" _ _ _ _ _ _ X O X O _ _ X O X X _ _ _ _\n"
+//							" _ _ _ _ _ X O X X O X O O O O _ X _ _ _\n"
+//							" _ _ _ _ _ _ O _ _ X _ O X O _ O _ O _ _\n"
+//							" _ _ _ _ X _ X O O X X _ O X _ _ _ _ _ _\n"
+//							" _ _ _ _ O O X X _ X O X _ O _ X _ _ _ _\n"
+//							" _ _ _ _ O X O O O X O O O X O _ _ _ _ _\n"
+//							" _ _ _ X O X X O X O X X O O X X _ _ _ _\n"
+//							" _ X _ O O X X X X O _ X X X O O _ _ _ _\n"
+//							" _ O X X X _ O X O X O X O _ _ _ _ _ _ _\n"
+//							" _ _ _ X _ O _ _ O X X O _ _ _ _ _ _ _ _\n"
+//							" _ _ O _ O _ _ _ O X _ O O _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ O _ O X X X O X _ _ _ _\n");
+//	sign_to_move = Sign::CROSS;
+
 	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ O _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ X _ O X O O O X O X _ _ _ _ _\n"
-							" _ _ _ _ _ _ X _ _ O X X X X O _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ X O X O X O O O X _ _ _ _\n"
-							" _ _ _ _ _ O _ O X _ O X X X O _ O _ _ _\n"
-							" _ _ _ _ _ _ X O X O _ _ X O X X _ _ _ _\n"
-							" _ _ _ _ _ X O X X O X O O O O _ X _ _ _\n"
-							" _ _ _ _ _ _ O _ _ X _ O X O _ O _ O _ _\n"
-							" _ _ _ _ X _ X O O X X _ O X _ _ _ _ _ _\n"
-							" _ _ _ _ O O X X _ X O X _ O _ X _ _ _ _\n"
-							" _ _ _ _ O X O O O X O O O X O _ _ _ _ _\n"
-							" _ _ _ X O X X O X O X X O O X X _ _ _ _\n"
-							" _ X _ O O X X X X O _ X X X O O _ _ _ _\n"
-							" _ O X X X _ O X O X O X O _ _ _ _ _ _ _\n"
-							" _ _ _ X _ O _ _ O X X O _ _ _ _ _ _ _ _\n"
-							" _ _ O _ O _ _ _ O X _ O O _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ O _ O X X X O X _ _ _ _\n");
-	sign_to_move = Sign::CROSS;
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ X _ _ _ X _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ O _ O _ X _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ X X O X O _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ X X _ O _ O X O _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ O X O O O O X O X _ _ _ _ _ _\n"
+							" _ _ _ _ X O X _ O X O O _ X O _ _ _ _ _\n"
+							" _ _ _ _ _ O _ X X O X O X X X X O _ _ _\n"
+							" _ _ _ X X O O _ X _ _ O X O _ X _ _ _ _\n"
+							" _ _ _ _ O X X O X X X X O X O O O _ _ _\n"
+							" _ _ _ O _ O O X O _ O X O _ _ O X _ _ _\n"
+							" _ _ X _ _ X O X X X O X O X X _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ O O O X O X O _ O _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ X O X _ X O X _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ O O X O _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ X _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+	sign_to_move = Sign::CIRCLE;
 
 //	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -433,7 +455,6 @@ int main(int argc, char *argv[])
 //	}
 //	std::cout << "time = " << (getTime() - t0) << "ms\n";
 //	std::cout << toString(asdf) << '\n';
-//	extractor.printAllThreats();
 
 //	return 0;
 
