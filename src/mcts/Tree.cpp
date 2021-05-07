@@ -38,6 +38,13 @@ namespace
 					bestValue = Q + U;
 				}
 			}
+		if (selected == parent->end())
+		{
+			std::cout << parent->toString() << '\n';
+			for (auto iter = parent->begin(); iter < parent->end(); iter++)
+				std::cout << "--" << iter->toString() << '\n';
+			return nullptr;
+		}
 		assert(selected != parent->end());
 		return selected;
 	}
@@ -304,9 +311,16 @@ namespace ag
 				current = select_balanced(current);
 			else
 				current = select_puct(current, explorationConstant, MaxExpectation());
+
+			if (current == nullptr)
+			{
+				std::cout << "printing search trajectory\n";
+				std::cout << trajectory.toString() << '\n';
+			}
 			current->applyVirtualLoss();
 			trajectory.append(current, current->getMove());
 		}
+
 	}
 	bool Tree::expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
 	{

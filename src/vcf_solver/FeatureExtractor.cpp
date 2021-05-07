@@ -255,11 +255,13 @@ namespace ag
 		std::vector<Move> &own_five = (sign_to_move == Sign::CROSS) ? cross_five : circle_five;
 		if (own_five.empty() == false) // can make a five
 		{
+			print();
+			printAllThreats();
 			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), 1.0f });
 			return ProvenValue::LOSS; // it is instant win, returning inverted value
 		}
-
+		return ProvenValue::UNKNOWN;
 		std::vector<Move> &opponent_five = (sign_to_move == Sign::CROSS) ? circle_five : cross_five;
 		if (opponent_five.empty() == false) // opponent can make a five
 		{
@@ -293,7 +295,7 @@ namespace ag
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), policy.at(iter->row, iter->col) });
 		}
 
-		if (own_open_four.size() + own_half_open_four.size() == 0)
+//		if (own_open_four.size() + own_half_open_four.size() == 0)
 			return ProvenValue::UNKNOWN;
 
 		position_counter = 0;
@@ -304,8 +306,8 @@ namespace ag
 			hashtable.clear();
 		recursive_solve(nodes_buffer.front(), false, 0);
 		total_positions += position_counter;
-//		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "
-//				<< total_positions << "\n";
+		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "
+				<< total_positions << "\n";
 		switch (nodes_buffer.front().solved_value)
 		{
 			default:
@@ -322,7 +324,7 @@ namespace ag
 						policy.at(iter->move.row, iter->move.col) = 1.0f;
 						moveList.push_back( { Move::move_to_short(iter->move.row, iter->move.col, sign_to_move), 1.0f });
 					}
-//				std::cout << "created " << moveList.size() << " moves\n";
+				std::cout << "created " << moveList.size() << " moves\n";
 				return ProvenValue::LOSS;
 			}
 			case SolvedValue::SOLVED_WIN:
@@ -418,6 +420,7 @@ namespace ag
 	void FeatureExtractor::print() const
 	{
 		std::cout << "hash = " << current_board_hash << '\n';
+		std::cout << "sign to move = " << sign_to_move << '\n'; 
 		for (int i = 0; i < internal_board.rows(); i++)
 		{
 			for (int j = 0; j < internal_board.cols(); j++)

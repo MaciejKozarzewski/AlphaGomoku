@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 	EvaluationQueue queue;
 //	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
 //	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
-	queue.loadGraph("/home/maciek/repos/AlphaGomoku/Release/networks/freestyle_10x128.bin", 8, ml::Device::cpu(), true);
+	queue.loadGraph("C:\\Users\\Maciek\\source\\repos\\AlphaGomoku\\bin\\networks\\freestyle_6x64.bin", 8, ml::Device::cpu(), true);
 
 	Search search(game_config, search_config, tree, cache, queue);
 
@@ -324,6 +324,49 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
 //	sign_to_move = Sign::CROSS;
 
+	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" 
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" 
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ O X X X _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ X O O O O X O _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ X _ _ _ X _ O X X _ _ _ _ _\n"
+				" _ _ _ _ _ O _ _ _ O _ X _ O O _ X _ X _\n"
+				" _ _ _ _ _ _ _ _ _ X O X X X _ O _ O _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ O X _ O O X O _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ O X O X O X O _ X _ _\n"
+				" _ _ _ _ _ _ _ _ _ O X O _ O O X O _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ X O X _ O O O _ _\n"
+				" _ _ _ _ _ _ _ _ _ X X O X O X _ X _ X _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ X _ O _ _ _ O _ X _ X O _ _ _\n");
+
+	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" 
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" 
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ O X X X _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ X O O O O X O _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ X _ _ _ X _ O X X _ _ _ _ _\n"
+				" _ _ _ _ _ O _ _ _ O _ X _ O O _ X _ X _\n"
+				" _ _ _ _ _ _ _ _ _ X O X X X _ O O O O _\n"
+				" _ _ _ _ _ _ _ _ _ _ O X _ O O X O _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ O X O X O X O X X _ _\n"
+				" _ _ _ _ _ _ _ _ _ O X O _ O O X O _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ X O X _ O O O X _\n"
+				" _ _ _ _ _ _ _ _ _ X X O X O X _ X _ X _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ X _ O _ _ _ O _ X _ X O _ _ _\n");
+	sign_to_move = Sign::CROSS;
+
 	FeatureExtractor extractor(game_config);
 	extractor.setBoard(board, sign_to_move);
 	extractor.print();
@@ -348,7 +391,7 @@ int main(int argc, char *argv[])
 	std::cout << toString(asdf) << '\n';
 //	extractor.printAllThreats();
 
-//	return 0;
+	//return 0;
 
 	double start = getTime();
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
