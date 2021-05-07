@@ -70,6 +70,14 @@ namespace ag
 		}
 		search.cleanup();
 	}
+	SearchStats SearchThread::getSearchStats() const noexcept
+	{
+		return search.getStats();
+	}
+	QueueStats SearchThread::getQueueStats() const noexcept
+	{
+		return eval_queue.getStats();
+	}
 
 	SearchEngine::SearchEngine(const Json &cfg, ResourceManager &rm) :
 			resource_manager(rm),
@@ -483,6 +491,18 @@ namespace ag
 		for (int i = 0; i < st.length(); i++)
 			Logger::write(st.getNode(i).toString());
 
+		QueueStats queue_stats;
+		SearchStats search_stats;
+		for (size_t i = 0; i < search_threads.size(); i++)
+		{
+			queue_stats += search_threads[i]->getQueueStats();
+			search_stats += search_threads[i]->getSearchStats();
+		}
+		queue_stats /= search_threads.size();
+		search_stats /= search_threads.size();
+
+		Logger::write(queue_stats.toString());
+		Logger::write(search_stats.toString());
 		Logger::write(tree.getStats().toString() + "memory = " + std::to_string(tree.getMemory() / 1048576) + "MB");
 		Logger::write(cache.getStats().toString() + "memory = " + std::to_string(cache.getMemory() / 1048576) + "MB");
 		Logger::write("");

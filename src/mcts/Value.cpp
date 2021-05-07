@@ -28,6 +28,21 @@ namespace ag
 				return "WIN";
 		}
 	}
+	ProvenValue invert(ProvenValue pv) noexcept
+	{
+		switch (pv)
+		{
+			default:
+			case ProvenValue::UNKNOWN:
+				return ProvenValue::UNKNOWN;
+			case ProvenValue::LOSS:
+				return ProvenValue::WIN;
+			case ProvenValue::DRAW:
+				return ProvenValue::DRAW;
+			case ProvenValue::WIN:
+				return ProvenValue::LOSS;
+		}
+	}
 
 	Value convertOutcome(GameOutcome outcome, Sign signToMove)
 	{

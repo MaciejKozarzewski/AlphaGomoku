@@ -29,6 +29,7 @@ namespace ag
 	};
 
 	std::string toString(ProvenValue pv);
+	ProvenValue invert(ProvenValue pv) noexcept;
 
 	struct Value
 	{

@@ -36,6 +36,9 @@ namespace ag
 			void stop() noexcept;
 			bool isRunning() const noexcept;
 			void run();
+
+			SearchStats getSearchStats() const noexcept;
+			QueueStats getQueueStats() const noexcept;
 	};
 
 	class SearchEngine

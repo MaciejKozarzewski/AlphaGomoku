@@ -38,13 +38,6 @@ namespace
 					bestValue = Q + U;
 				}
 			}
-		if (selected == parent->end())
-		{
-			std::cout << parent->toString() << '\n';
-			for (auto iter = parent->begin(); iter < parent->end(); iter++)
-				std::cout << "--" << iter->toString() << '\n';
-			return nullptr;
-		}
 		assert(selected != parent->end());
 		return selected;
 	}
@@ -115,8 +108,8 @@ namespace
 	}
 	bool update_proven_value(Node &parent)
 	{
-		if (parent.isLeaf())
-			return parent.isProven();
+		if (parent.isProven())
+			return true;
 
 		bool has_draw_child = false;
 		int unknown_count = 0;
@@ -311,12 +304,6 @@ namespace ag
 				current = select_balanced(current);
 			else
 				current = select_puct(current, explorationConstant, MaxExpectation());
-
-			if (current == nullptr)
-			{
-				std::cout << "printing search trajectory\n";
-				std::cout << trajectory.toString() << '\n';
-			}
 			current->applyVirtualLoss();
 			trajectory.append(current, current->getMove());
 		}
@@ -328,7 +315,7 @@ namespace ag
 		assert(movesToAdd.size() > 0);
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		if (parent.isLeaf() == false)
-			return false; // node was already expanded
+			return false; // node has already been expanded
 
 		Node *children = reserve_nodes(movesToAdd.size());
 		if (children == nullptr) // there are no nodes left in the tree
@@ -435,12 +422,12 @@ namespace ag
 		if (usedNodes() + number > config.max_number_of_nodes)
 			return nullptr;
 
-		if (usedNodes() + number > allocatedNodes())
+		if (usedNodes() + number > allocatedNodes()) // allocate new bucket
 			nodes.push_back(std::make_unique<Node[]>(config.bucket_size));
 
 		if (current_index.second + number > config.bucket_size)
 		{
-			current_index.first++;
+			current_index.first++; // switch to next bucket
 			current_index.second = 0;
 		}
 		Node *result = nodes.at(current_index.first).get() + current_index.second;

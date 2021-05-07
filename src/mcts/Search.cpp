@@ -24,7 +24,7 @@ namespace ag
 		result += printStatistics("vcf solver", nb_vcf_solver, time_vcf_solver);
 		result += printStatistics("backup    ", nb_backup, time_backup);
 		result += printStatistics("evaluate  ", nb_evaluate, time_evaluate);
-		result += printStatistics("game_rules", nb_game_rules, time_game_rules);
+		result += printStatistics("game rules", nb_game_rules, time_game_rules);
 		return result;
 	}
 	SearchStats& SearchStats::operator+=(const SearchStats &other) noexcept

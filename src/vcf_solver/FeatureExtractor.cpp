@@ -255,13 +255,10 @@ namespace ag
 		std::vector<Move> &own_five = (sign_to_move == Sign::CROSS) ? cross_five : circle_five;
 		if (own_five.empty() == false) // can make a five
 		{
-			print();
-			printAllThreats();
 			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), 1.0f });
 			return ProvenValue::LOSS; // it is instant win, returning inverted value
 		}
-		return ProvenValue::UNKNOWN;
 		std::vector<Move> &opponent_five = (sign_to_move == Sign::CROSS) ? circle_five : cross_five;
 		if (opponent_five.empty() == false) // opponent can make a five
 		{
@@ -295,19 +292,25 @@ namespace ag
 				moveList.push_back( { Move::move_to_short(iter->row, iter->col, sign_to_move), policy.at(iter->row, iter->col) });
 		}
 
-//		if (own_open_four.size() + own_half_open_four.size() == 0)
+		if (own_open_four.size() + own_half_open_four.size() == 0)
 			return ProvenValue::UNKNOWN;
-
-		position_counter = 0;
-		nodes_buffer.front().init(0, 0, invertSign(sign_to_move));
-		node_counter = 1;
 
 		if (use_caching and hashtable.load_factor() > 0.9)
 			hashtable.clear();
-		recursive_solve(nodes_buffer.front(), false, 0);
+
+		position_counter = 0;
+		node_counter = 1; // prepare node stack
+		nodes_buffer.front().init(0, 0, invertSign(sign_to_move)); // prepare node stack
+
+		auto cache_entry = use_caching ? hashtable.find(current_board_hash) : hashtable.end();
+		if (cache_entry == hashtable.end())
+			recursive_solve(nodes_buffer.front(), false, 0);
+		else
+			nodes_buffer.front().solved_value = cache_entry->second; // cache hit
+
 		total_positions += position_counter;
-		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "
-				<< total_positions << "\n";
+//		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "
+//				<< total_positions << ", in cache " << hashtable.size() << "\n";
 		switch (nodes_buffer.front().solved_value)
 		{
 			default:
@@ -324,7 +327,7 @@ namespace ag
 						policy.at(iter->move.row, iter->move.col) = 1.0f;
 						moveList.push_back( { Move::move_to_short(iter->move.row, iter->move.col, sign_to_move), 1.0f });
 					}
-				std::cout << "created " << moveList.size() << " moves\n";
+//				std::cout << "created " << moveList.size() << " moves\n";
 				return ProvenValue::LOSS;
 			}
 			case SolvedValue::SOLVED_WIN:
@@ -420,7 +423,7 @@ namespace ag
 	void FeatureExtractor::print() const
 	{
 		std::cout << "hash = " << current_board_hash << '\n';
-		std::cout << "sign to move = " << sign_to_move << '\n'; 
+		std::cout << "sign to move = " << sign_to_move << '\n';
 		for (int i = 0; i < internal_board.rows(); i++)
 		{
 			for (int j = 0; j < internal_board.cols(); j++)
@@ -567,20 +570,6 @@ namespace ag
 						best_cross = std::max(best_cross, tmp.for_cross);
 						best_circle = std::max(best_circle, tmp.for_circle);
 					}
-//					Threat horizontal = table.getThreat(get_feature_at(row, col, Direction::HORIZONTAL));
-//					Threat vertical = table.getThreat(get_feature_at(row, col, Direction::VERTICAL));
-//					Threat diagonal = table.getThreat(get_feature_at(row, col, Direction::DIAGONAL));
-//					Threat antidiagonal = table.getThreat(get_feature_at(row, col, Direction::ANTIDIAGONAL));
-//
-//					cross_threats.at(pad + row, (pad + col) * 4 + 0) = horizontal.for_cross;
-//					cross_threats.at(pad + row, (pad + col) * 4 + 1) = vertical.for_cross;
-//					cross_threats.at(pad + row, (pad + col) * 4 + 2) = diagonal.for_cross;
-//					cross_threats.at(pad + row, (pad + col) * 4 + 3) = antidiagonal.for_cross;
-//
-//					circle_threats.at(pad + row, (pad + col) * 4 + 0) = horizontal.for_circle;
-//					circle_threats.at(pad + row, (pad + col) * 4 + 1) = vertical.for_circle;
-//					circle_threats.at(pad + row, (pad + col) * 4 + 2) = diagonal.for_circle;
-//					circle_threats.at(pad + row, (pad + col) * 4 + 3) = antidiagonal.for_circle;
 
 					switch (best_cross)
 					{
@@ -663,21 +652,14 @@ namespace ag
 		{
 			assert(opponent_five.size() == 1); // it was checked earlier that opponent cannot have more than one five
 			node.children[0].init(opponent_five[0].row, opponent_five[0].col, signToMove);
-//			std::cout << node.children[0].move.toString() << " defensive move\n";
 		}
 		else
 		{
 			size_t children_counter = 0;
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++, children_counter++)
-			{
 				node.children[children_counter].init(iter->row, iter->col, signToMove);
-//				std::cout << node.children[children_counter].move.toString() << " open four\n";
-			}
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++, children_counter++)
-			{
 				node.children[children_counter].init(iter->row, iter->col, signToMove);
-//				std::cout << node.children[children_counter].move.toString() << " half open four\n";
-			}
 		}
 
 		int loss_counter = 0;
@@ -821,7 +803,7 @@ namespace ag
 				auto index = std::find(half_open_four.begin(), half_open_four.end(), move);
 				assert(index != half_open_four.end()); // the threat must exist in the list
 // 				as half-open fours are frequent, instead of deleting element from the middle, move it to the end first
-//				such shuffling of threats should improve speed (on average)
+//				such shuffling of threats should improve search efficiency (on average)
 				std::swap(*index, half_open_four.back());
 				half_open_four.pop_back();
 				break;
