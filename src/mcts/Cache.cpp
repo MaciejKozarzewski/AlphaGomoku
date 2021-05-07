@@ -99,8 +99,8 @@ namespace ag
 				return;
 		transpositions[stored_transpositions] = node;
 		stored_transpositions++;
-		if (proven_value == ProvenValue::UNKNOWN)
-			proven_value = node->getProvenValue(); // TODO potentially unsafe (lack of synchronization with the node)
+		//if (proven_value == ProvenValue::UNKNOWN)
+		//	proven_value = node->getProvenValue(); // TODO potentially unsafe (lack of synchronization with the node)
 	}
 	bool Cache::Entry::isPossible(const matrix<Sign> &newBoard) const noexcept
 	{

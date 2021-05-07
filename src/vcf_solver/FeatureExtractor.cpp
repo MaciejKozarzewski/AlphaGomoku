@@ -518,6 +518,7 @@ namespace ag
 	}
 	void FeatureExtractor::calc_all_features() noexcept
 	{
+		features.clear();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -540,9 +541,11 @@ namespace ag
 	}
 	void FeatureExtractor::get_threat_lists()
 	{
+		cross_threats.fill(ThreatType::NONE);
 		cross_five.clear();
 		cross_open_four.clear();
 		cross_half_open_four.clear();
+		circle_threats.fill(ThreatType::NONE);
 		circle_five.clear();
 		circle_open_four.clear();
 		circle_half_open_four.clear();
