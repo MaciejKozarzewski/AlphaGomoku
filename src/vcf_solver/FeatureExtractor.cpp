@@ -301,12 +301,7 @@ namespace ag
 		position_counter = 0;
 		node_counter = 1; // prepare node stack
 		nodes_buffer.front().init(0, 0, invertSign(sign_to_move)); // prepare node stack
-
-		auto cache_entry = use_caching ? hashtable.find(current_board_hash) : hashtable.end();
-		if (cache_entry == hashtable.end())
-			recursive_solve(nodes_buffer.front(), false, 0);
-		else
-			nodes_buffer.front().solved_value = cache_entry->second; // cache hit
+		recursive_solve(nodes_buffer.front(), false, 0);
 
 		total_positions += position_counter;
 //		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "

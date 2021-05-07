@@ -31,6 +31,7 @@ namespace ag
 	{
 		this->nb_select += other.nb_select;
 		this->nb_expand += other.nb_expand;
+		this->nb_vcf_solver += other.nb_vcf_solver;
 		this->nb_backup += other.nb_backup;
 		this->nb_evaluate += other.nb_evaluate;
 		this->nb_game_rules += other.nb_game_rules;
@@ -38,6 +39,7 @@ namespace ag
 
 		this->time_select += other.time_select;
 		this->time_expand += other.time_expand;
+		this->time_vcf_solver += other.time_vcf_solver;
 		this->time_backup += other.time_backup;
 		this->time_evaluate += other.time_evaluate;
 		this->time_game_rules += other.time_game_rules;
@@ -47,6 +49,7 @@ namespace ag
 	{
 		this->nb_select /= i;
 		this->nb_expand /= i;
+		this->nb_vcf_solver /= i;
 		this->nb_backup /= i;
 		this->nb_evaluate /= i;
 		this->nb_game_rules /= i;
@@ -54,6 +57,7 @@ namespace ag
 
 		this->time_select /= i;
 		this->time_expand /= i;
+		this->time_vcf_solver /= i;
 		this->time_backup /= i;
 		this->time_evaluate /= i;
 		this->time_game_rules /= i;
