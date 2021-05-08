@@ -385,7 +385,15 @@ namespace ag
 
 				SearchTrajectory st;
 				tree.select(st, 0.0f);
-				return Message(MessageType::MAKE_MOVE, std::vector<Move>( { st.getMove(1), st.getMove(2) }));
+				if (st.length() < 2) // there was not enough time for balancing, just pick color
+				{
+					if (get_root_eval() < 0.5f)
+						return Message(MessageType::MAKE_MOVE, "swap");
+					else
+						return Message(MessageType::MAKE_MOVE, std::vector<Move>( { get_best_move() }));
+				}
+				else
+					return Message(MessageType::MAKE_MOVE, std::vector<Move>( { st.getMove(1), st.getMove(2) }));
 			}
 		}
 	}

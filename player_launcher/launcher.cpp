@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 							if (static_cast<bool>(config["always_ponder"]))
 							{
 								resource_manager.setSearchStartTime(getTime());
-								resource_manager.setTimeForPondering(-1);
+								resource_manager.setTimeForPondering(2147483647.0);
 								search_engine->setPosition(msg.getMove());
 								output_queue.push(search_engine->ponder());
 								output_queue.push(search_engine->getSearchSummary());

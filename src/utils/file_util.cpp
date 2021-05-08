@@ -11,6 +11,7 @@
 #include <iterator>
 #include <iostream>
 #include <filesystem>
+#include <algorithm>
 
 namespace ag
 {
@@ -54,7 +55,7 @@ namespace ag
 		file.close();
 		if (uncompress == true)
 			loaded_data = ZipWrapper::uncompress(loaded_data);
-		split_point = find_split_point();
+		split_point = std::min(loaded_data.size(), find_split_point());
 		load_all_data();
 	}
 	const Json& FileLoader::getJson() const noexcept
