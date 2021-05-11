@@ -30,8 +30,8 @@ Json createDefaultConfig()
 	result["use_logging"] = false;
 	result["always_ponder"] = false;
 	result["swap2_openings_file"] = "swap2_openings.json";
-	result["networks"]["freestyle"] = "freestyle_10x128.bin";
-	result["networks"]["standard"] = "standard_10x128.bin";
+	result["networks"]["freestyle"] = "freestyle_6x64.bin";
+	result["networks"]["standard"] = "standard_6x64.bin";
 	result["networks"]["renju"] = "";
 	result["networks"]["caro"] = "";
 	result["use_symmetries"] = true;
@@ -73,13 +73,16 @@ int main(int argc, char *argv[])
 	std::string localLaunchPath(argv[0]);
 	int last_slash = -1;
 	for (int i = 0; i < (int) localLaunchPath.length(); i++)
-		if (localLaunchPath[i] == path_separator[0])
+		if (localLaunchPath[i] == '\\' or localLaunchPath[i] == '/')
+		{
+			localLaunchPath[i] = path_separator[0];
 			last_slash = i + 1;
+		}
 	localLaunchPath = localLaunchPath.substr(0, last_slash);
 
 	// load configuration
 	Json config = loadConfig(localLaunchPath);
-	config["swap2_openings_file"] = localLaunchPath + path_separator + static_cast<std::string>(config["swap2_openings_file"]);
+	config["swap2_openings_file"] = localLaunchPath + static_cast<std::string>(config["swap2_openings_file"]);
 	config["networks"]["freestyle"] = localLaunchPath + "networks" + path_separator + static_cast<std::string>(config["networks"]["freestyle"]);
 	config["networks"]["standard"] = localLaunchPath + "networks" + path_separator + static_cast<std::string>(config["networks"]["standard"]);
 
