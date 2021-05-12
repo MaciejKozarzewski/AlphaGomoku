@@ -226,7 +226,8 @@ namespace ag
 	}
 	uint64_t Tree::getMemory() const noexcept
 	{
-		return sizeof(Node) * allocatedNodes();
+		return sizeof(Node) * usedNodes();
+//		return sizeof(Node) * allocatedNodes();
 	}
 	void Tree::clearStats() noexcept
 	{

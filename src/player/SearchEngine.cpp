@@ -421,7 +421,7 @@ namespace ag
 				return true;
 			else
 				return resource_manager.getElapsedTime() < timeout
-						and (tree.getMemory() + cache.getMemory()) < 0.9 * (resource_manager.getMaxMemory() - 150 * 1024 * 1024);
+						and (tree.getMemory() + cache.getMemory()) < 0.95 * (resource_manager.getMaxMemory() - 300 * 1024 * 1024);
 		}
 	}
 	void SearchEngine::log_search_info()

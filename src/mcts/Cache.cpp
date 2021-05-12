@@ -185,7 +185,8 @@ namespace ag
 	uint64_t Cache::getMemory() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
-		return (sizeof(Entry) + sizeof(uint16_t) * game_config.rows * game_config.cols) * stats.allocated_entries + sizeof(Entry*) * bins.size();
+		return (sizeof(Entry) + sizeof(uint16_t) * game_config.rows * game_config.cols) * stats.stored_entries + sizeof(Entry*) * bins.size();
+//		return (sizeof(Entry) + sizeof(uint16_t) * game_config.rows * game_config.cols) * stats.allocated_entries + sizeof(Entry*) * bins.size();
 	}
 	int Cache::allocatedElements() const noexcept
 	{
