@@ -313,7 +313,7 @@ namespace ag
 		if (own_open_four.size() + own_half_open_four.size() == 0)
 			return ProvenValue::UNKNOWN;
 
-		if (use_caching and hashtable.load_factor() > 0.9)
+		if (use_caching)
 			hashtable.clear();
 
 		position_counter = 0;
@@ -324,28 +324,20 @@ namespace ag
 		total_positions += position_counter;
 //		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "
 //				<< total_positions << ", in cache " << hashtable.size() << "\n";
-		switch (nodes_buffer.front().solved_value)
+		if (nodes_buffer.front().solved_value == SolvedValue::SOLVED_LOSS)
 		{
-			default:
-			case SolvedValue::UNKNOWN:
-			case SolvedValue::UNSOLVED:
-				return ProvenValue::UNKNOWN;
-			case SolvedValue::SOLVED_LOSS:
-			{
-				policy.clear();
-				moveList.clear();
-				for (auto iter = nodes_buffer[0].children; iter < nodes_buffer[0].children + nodes_buffer[0].number_of_children; iter++)
-					if (iter->solved_value == SolvedValue::SOLVED_WIN)
-					{
-						policy.at(iter->move.row, iter->move.col) = 1.0f;
-						moveList.push_back( { Move::move_to_short(iter->move.row, iter->move.col, sign_to_move), 1.0f });
-					}
-				return ProvenValue::LOSS;
-			}
-			case SolvedValue::SOLVED_WIN:
-				return ProvenValue::WIN;
+			policy.clear();
+			moveList.clear();
+			for (auto iter = nodes_buffer[0].children; iter < nodes_buffer[0].children + nodes_buffer[0].number_of_children; iter++)
+				if (iter->solved_value == SolvedValue::SOLVED_WIN)
+				{
+					policy.at(iter->move.row, iter->move.col) = 1.0f;
+					moveList.push_back( { Move::move_to_short(iter->move.row, iter->move.col, sign_to_move), 1.0f });
+				}
+			return ProvenValue::LOSS;
 		}
-		return ProvenValue::UNKNOWN; //nodes_buffer.front().solved_value;
+		else
+			return ProvenValue::UNKNOWN;
 	}
 
 	void FeatureExtractor::printFeature(int row, int col) const
