@@ -8,6 +8,8 @@
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/version.hpp>
+
 #include <libml/hardware/Device.hpp>
 
 namespace ag
@@ -488,7 +490,7 @@ namespace ag
 		listener.getLine(); // consuming 'ABOUT' line
 		std::string result;
 		result += "name=\"AlphaGomoku\", ";
-		result += "version=\"5.0\", ";
+		result += "version=\"" + version_to_string() + "\", ";
 		result += "author=\"Maciej Kozarzewski\", ";
 		result += "country=\"Poland\", ";
 		result += "www=\"https://github.com/MaciejKozarzewski/AlphaGomoku\", ";

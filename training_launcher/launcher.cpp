@@ -48,9 +48,9 @@ int main(int argc, char *argv[])
 //	return 0;
 
 	GameConfig game_config;
-	game_config.rules = GameRules::FREESTYLE;
-	game_config.rows = 20;
-	game_config.cols = 20;
+	game_config.rules = GameRules::STANDARD;
+	game_config.rows = 15;
+	game_config.cols = 15;
 
 	TreeConfig tree_config;
 	tree_config.max_number_of_nodes = 500000000;
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 	EvaluationQueue queue;
 //	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
 //	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
-	queue.loadGraph("/home/maciek/repos/AlphaGomoku/cpu_only/networks/freestyle_6x64.bin", 8, ml::Device::cpu(), true);
+	queue.loadGraph("/home/maciek/repos/AlphaGomoku/Release/networks/standard_6x64.bin", 8, ml::Device::cpu(), true);
 
 	Search search(game_config, search_config, tree, cache, queue);
 
@@ -302,27 +302,27 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ _ _ O _ O X X X O X _ _ _ _\n");
 //	sign_to_move = Sign::CROSS;
 
-	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ X _ _ _ X _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ O _ O _ X _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ X X O X O _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ X X _ O _ O X O _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ O X O O O O X O X _ _ _ _ _ _\n"
-							" _ _ _ _ X O X _ O X O O _ X O _ _ _ _ _\n"
-							" _ _ _ _ _ O _ X X O X O X X X X O _ _ _\n"
-							" _ _ _ X X O O _ X _ _ O X O _ X _ _ _ _\n"
-							" _ _ _ _ O X X O X X X X O X O O O _ _ _\n"
-							" _ _ _ O _ O O X O _ O X O _ _ O X _ _ _\n"
-							" _ _ X _ _ X O X X X O X O X X _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ O O O X O X O _ O _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ X O X _ X O X _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ O O X O _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ X _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-	sign_to_move = Sign::CIRCLE;
+//	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ X _ _ _ X _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ O _ O _ X _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ X X O X O _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ X X _ O _ O X O _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ O X O O O O X O X _ _ _ _ _ _\n"
+//							" _ _ _ _ X O X _ O X O O _ X O _ _ _ _ _\n"
+//							" _ _ _ _ _ O _ X X O X O X X X X O _ _ _\n"
+//							" _ _ _ X X O O _ X _ _ O X O _ X _ _ _ _\n"
+//							" _ _ _ _ O X X O X X X X O X O O O _ _ _\n"
+//							" _ _ _ O _ O O X O _ O X O _ _ O X _ _ _\n"
+//							" _ _ X _ _ X O X X X O X O X X _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ O O O X O X O _ O _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ X O X _ X O X _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ O O X O _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ X _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+//	sign_to_move = Sign::CIRCLE;
 
 //	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -423,39 +423,58 @@ int main(int argc, char *argv[])
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
 //	sign_to_move = Sign::CROSS;
 
+//	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O _ X _\n"
+//							" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ X O _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ O _ X X O _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ X _ _ _ X O O O X X _\n"
+//							" _ _ _ _ _ _ _ _ _ _ O O X O _ X O O _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ O X X X O X _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ X O O O X _ X _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ X O _ X _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+//	sign_to_move = Sign::CROSS;
+
+	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ O X O _ _ _\n"
+							" _ _ _ _ _ _ _ _ X O X X O _ _\n"
+							" _ _ _ _ _ _ O _ X _ O X O _ _\n"
+							" _ _ _ _ O X X X O O _ X _ _ _\n"
+							" _ _ _ X _ O O O X X _ X _ _ _\n"
+							" _ _ _ O _ X X O X _ O O _ _ _\n"
+							" _ _ _ O X O _ O O X X _ _ _ _\n"
+							" _ _ O O X O X O _ X _ O _ _ _\n"
+							" _ _ X X X O X X O O _ X _ _ _\n"
+							" _ _ X O O O O X _ _ _ _ _ _ _\n"
+							" _ O X _ _ X X O X _ _ _ _ _ _\n"
+							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+	sign_to_move = Sign::CROSS;
+
 	FeatureExtractor extractor(game_config);
 	extractor.setBoard(board, sign_to_move);
-//	extractor.print();
-//	extractor.printAllThreats();
-//	extractor.printFeature(0, 0);
-//	extractor.printFeature(0, 1);
-//	extractor.printFeature(0, 14);
-//	extractor.printFeature(1, 15);
-//	extractor.printFeature(0, 18);
-//	extractor.printFeature(10, 19);
-//	extractor.printFeature(18, 0);
-//	extractor.printFeature(19, 0);
-//	extractor.printFeature(19, 1);
-//	return 0;
-
-//	extractor.addMove(Move(2, 2, Sign::CIRCLE));
-//	extractor.print();
-//	extractor.printAllThreats();
-//
-//	extractor.undoMove(Move(2, 2, Sign::CIRCLE));
-//	extractor.print();
-//	extractor.printAllThreats();
+	extractor.printAllThreats();
 
 //	std::vector<std::pair<uint16_t, float>> list_of_moves;
 //	matrix<float> qwer(board.rows(), board.cols());
 //	double t0 = getTime();
 //	for (int i = 0; i < 1000; i++)
 //	{
-//		ProvenValue asdf = extractor.solve(qwer, list_of_moves);
+//	ProvenValue asdf = extractor.solve(qwer, list_of_moves);
 //	}
 //	std::cout << "time = " << (getTime() - t0) << "ms\n";
 //	std::cout << toString(asdf) << '\n';
-
 //	return 0;
 
 	double start = getTime();
@@ -465,9 +484,9 @@ int main(int argc, char *argv[])
 	matrix<float> policy(board.rows(), board.cols());
 	for (int i = 0; i <= 1; i++)
 	{
-		while (search.getSimulationCount() < i * 3000)
+		while (search.getSimulationCount() < i * 10000)
 		{
-			search.simulate(i * 3000);
+			search.simulate(i * 10000);
 			queue.evaluateGraph();
 			search.handleEvaluation();
 			if (tree.isProven())
