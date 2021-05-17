@@ -226,11 +226,14 @@ namespace ag
 			policy_target = std::make_unique<ml::Tensor>(graph.getOutputShape(0), ml::DataType::FLOAT32, ml::Device::cpu());
 			value_target = std::make_unique<ml::Tensor>(graph.getOutputShape(1), ml::DataType::FLOAT32, ml::Device::cpu());
 
-			input_on_cpu->pageLock();
-			policy_on_cpu->pageLock();
-			value_on_cpu->pageLock();
-			policy_target->pageLock();
-			value_target->pageLock();
+			if (graph.device().isCUDA())
+			{
+				input_on_cpu->pageLock();
+				policy_on_cpu->pageLock();
+				value_on_cpu->pageLock();
+				policy_target->pageLock();
+				value_target->pageLock();
+			}
 		}
 	}
 }

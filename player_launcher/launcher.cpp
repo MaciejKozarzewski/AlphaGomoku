@@ -207,11 +207,7 @@ int main(int argc, char *argv[])
 				case MessageType::STOP_SEARCH:
 				{
 					if (search_engine != nullptr)
-					{
 						search_engine->stopSearch();
-						if (search_future.valid())
-							search_future.get(); // wait for search task to end
-					}
 					break;
 				}
 				case MessageType::MAKE_MOVE:
