@@ -2,7 +2,7 @@
  * Search.hpp
  *
  *  Created on: Mar 20, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_MCTS_SEARCH_HPP_
@@ -84,6 +84,7 @@ namespace ag
 			Search(GameConfig gameOptions, SearchConfig searchOptions, Tree &tree, Cache &cache, EvaluationQueue &queue);
 
 			void clearStats() noexcept;
+			void printSolverStats() const;
 			SearchStats getStats() const noexcept;
 			SearchConfig getConfig() const noexcept;
 			int getSimulationCount() const noexcept;
