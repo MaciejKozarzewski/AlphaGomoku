@@ -37,6 +37,19 @@ namespace
 #endif
 		return generator();
 	}
+
+	struct board_size
+	{
+			int rows;
+			int cols;
+	};
+	board_size get_board_size_from_string(const std::string &str)
+	{
+		int height = std::count(str.begin(), str.end(), '\n');		// every line must end with new line character "\n"
+		assert(str.size() % height == 0);
+		int width = std::count(str.begin(), str.end(), ' ') / height; // every board spot must contain exactly one leading space
+		return board_size { height, width };
+	}
 }
 
 namespace ag
@@ -103,27 +116,36 @@ namespace ag
 		{	return s == Sign::NONE;});
 	}
 
-	matrix<Sign> boardFromString(std::string str)
+	matrix<Sign> boardFromString(const std::string &str)
 	{
-		int height = std::count(str.begin(), str.end(), '\n');
-		auto new_end = std::remove_if(str.begin(), str.end(), [](char c)
-		{	return c == ' ' or c == '\n';});
-		str.erase(new_end, str.end());
-		int width = static_cast<int>(str.size()) / height;
-		matrix<Sign> result(height, width);
-		for (int i = 0; i < height * width; i++)
+		board_size size = get_board_size_from_string(str);
+		matrix<Sign> result(size.rows, size.cols);
+		int counter = 0;
+		for (size_t i = 0; i < str.size(); i++)
 			switch (str.at(i))
 			{
 				case '_':
-					result.data()[i] = Sign::NONE;
+					result.data()[counter] = Sign::NONE;
+					counter++;
 					break;
 				case 'X':
-					result.data()[i] = Sign::CROSS;
+					result.data()[counter] = Sign::CROSS;
+					counter++;
 					break;
 				case 'O':
-					result.data()[i] = Sign::CIRCLE;
+					result.data()[counter] = Sign::CIRCLE;
+					counter++;
 					break;
 			}
+		return result;
+	}
+	std::vector<Move> extractMoves(const std::string &str)
+	{
+		board_size size = get_board_size_from_string(str);
+		std::vector<Move> result;
+		for (size_t i = 0; i < str.size(); i++)
+			if (str.at(i) == '!')
+				result.push_back(Move(i / size.cols, i % size.cols)); // FIXME this is incorrect
 		return result;
 	}
 	std::string boardToString(const matrix<Sign> &board, const Move &lastMove)

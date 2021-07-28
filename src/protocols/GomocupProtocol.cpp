@@ -1,8 +1,8 @@
 /*
  * GomocupProtocol.cpp
  *
- *  Created on: 5 kwi 2021
- *      Author: maciek
+ *  Created on: Apr 5, 2021
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
@@ -231,10 +231,6 @@ namespace ag
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "cols", tmp[1] }));
 
-		output_queue.push(Message(MessageType::INFO_MESSAGE, "Detected following devices"));
-		output_queue.push(Message(MessageType::INFO_MESSAGE, ml::Device::cpu().toString() + " : " + ml::Device::cpu().info()));
-		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
-			output_queue.push(Message(MessageType::INFO_MESSAGE, ml::Device::cuda(i).toString() + " : " + ml::Device::cuda(i).info()));
 		if (std::stoi(tmp[1]) == 15 or std::stoi(tmp[1]) == 20)
 			output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 		else

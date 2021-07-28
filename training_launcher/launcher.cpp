@@ -35,10 +35,405 @@
 
 using namespace ag;
 
+void benchmark_features()
+{
+	std::vector<matrix<Sign>> boards_15x15;
+	std::vector<Sign> signs_to_move_15x15;
+	boards_15x15.push_back(boardFromString(" X X O X X X O X O X X _ O X _\n"
+			" X _ _ _ O X O O X X X O _ _ X\n"
+			" X O O _ O X X O X O _ X O _ O\n"
+			" O X X O X X O O X O O X X _ O\n"
+			" X X O X O O O X X O X O O O O\n"
+			" _ X O X O X O O O X O X X X _\n"
+			" _ X _ X _ X X O O O O X X _ X\n"
+			" O O X O O _ X O X _ O X _ O O\n"
+			" X _ X O X O O O O X X X _ O X\n"
+			" O O O X O X X X X O O O O X X\n"
+			" O X O O O O X O O X X O O X _\n"
+			" X X O X X X X O _ O X X X O O\n"
+			" _ X O _ X _ O X _ _ X O _ _ X\n"
+			" _ O X O _ X O O X _ X X O O _\n"
+			" X _ X O _ _ O X _ O O X O _ O\n"));
+	signs_to_move_15x15.push_back(Sign::CROSS);
+
+	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_15x15.push_back(Sign::CIRCLE);
+
+	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
+					" _ _ _ _ _ O X X X X O X _ _ X\n"// 1
+					" _ _ _ _ _ _ O _ O X _ O _ O _\n"// 2
+					" _ _ _ _ _ _ _ X O _ X O O _ _\n"// 3
+					" _ _ _ _ _ _ X O X O O O X X X\n"// 4
+					" _ _ _ _ _ _ _ O _ X O _ _ O _\n"// 5
+					" _ _ _ _ O _ X _ O X O X X _ _\n"// 6
+					" _ _ _ _ _ X _ _ _ _ _ X O _ _\n"// 7
+					" _ _ _ X X _ _ _ X O X O _ _ X\n"// 8
+					" _ _ _ X _ O X X O O _ X O O _\n"// 9
+					" _ _ O _ _ _ O O O X O X O _ _\n"// 10
+					" _ _ _ _ _ _ X _ O _ X O X _ _\n"// 11
+					" _ _ _ _ _ _ _ _ _ O O X X _ _\n"// 12
+					" _ _ _ _ _ _ _ _ _ X O O O O X\n"// 13
+					" _ _ _ _ _ _ _ _ _ _ _ X _ X _\n"));// 14
+	signs_to_move_15x15.push_back(Sign::CROSS);
+
+	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
+					" _ _ _ _ _ O X X X X O _ _ _ _\n"// 1
+					" _ _ _ _ _ _ O _ O X _ O _ _ _\n"// 2
+					" _ _ _ _ _ _ _ X O _ X _ O _ _\n"// 3
+					" _ _ _ _ _ _ X O X O O O X X _\n"// 4
+					" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n"// 5
+					" _ _ _ _ _ _ _ _ O X O X _ _ _\n"// 6
+					" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"// 7
+					" _ _ _ _ _ _ _ _ X O X _ _ _ _\n"// 8
+					" _ _ _ _ _ _ X X O O _ X O _ _\n"// 9
+					" _ _ _ _ _ _ O O _ X O X O _ _\n"// 10
+					" _ _ _ _ _ _ X _ O _ X O X _ _\n"// 11
+					" _ _ _ _ _ _ _ _ _ O O X X _ _\n"// 12
+					" _ _ _ _ _ _ _ _ _ X O _ _ O _\n"// 13
+					" _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"));// 14
+	signs_to_move_15x15.push_back(Sign::CIRCLE);
+
+	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" // 0
+					" _ _ _ _ _ _ _ _ O _ X _ _ _ _\n"// 1
+					" _ _ _ _ _ _ _ _ _ X O O O _ _\n"// 2
+					" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n"// 3
+					" _ _ _ _ _ _ X _ O O O X O _ _\n"// 4
+					" _ _ _ _ _ _ _ _ X O X X X X O\n"// 5
+					" _ _ _ _ _ _ _ _ X O X _ _ _ _\n"// 6
+					" _ _ _ _ _ _ _ _ _ _ X _ X _ _\n"// 7
+					" _ _ _ _ _ _ _ _ _ X O O _ _ _\n"// 8
+					" _ _ _ _ _ _ _ _ O X O _ _ _ _\n"// 9
+					" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n"// 10
+					" _ _ _ _ _ _ _ _ O _ O _ _ _ _\n"// 11
+					" _ _ _ _ _ _ _ X _ _ _ X _ _ _\n"// 12
+					" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"// 13
+					" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));// 14
+	signs_to_move_15x15.push_back(Sign::CIRCLE);
+
+	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ O _ O O _ O _ _ _ _\n"
+			" _ _ _ _ _ _ _ X O X _ _ _ _ _\n"
+			" _ _ _ _ _ _ O X X O X _ _ _ _\n"
+			" _ _ _ _ O X X X X O O X O _ _\n"
+			" _ _ _ O X O _ X O X X X X O _\n"
+			" X O X X X O X O X O O O X O _\n"
+			" _ _ O O O X _ O X O X O O X _\n"
+			" _ X O O O X O _ _ O X X X X O\n"
+			" _ _ X _ _ O _ X O X O O X X _\n"
+			" _ _ _ _ X _ X O X O _ _ _ O _\n"
+			" _ _ _ _ _ _ X O _ _ _ O _ X _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_15x15.push_back(Sign::CROSS);
+
+	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O _ _ O _ _ _ _\n"
+			" _ _ _ _ _ _ _ X O X _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X X O X _ _ _ _\n"
+			" _ _ _ _ _ _ _ X _ O O _ O _ _\n"
+			" _ _ _ O X O _ _ O X _ X X _ _\n"
+			" _ _ X X X O X O X O O O X O _\n"
+			" _ _ _ O O X _ O X _ X O _ X _\n"
+			" _ _ O O O X O _ _ O X X _ X _\n"
+			" _ _ X _ _ O _ X O X O O _ X _\n"
+			" _ _ _ _ X _ X O X O _ _ _ O _\n"
+			" _ _ _ _ _ _ X O _ _ _ O _ X _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_15x15.push_back(Sign::CROSS);
+
+	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ O X O _ _ _\n"
+			" _ _ _ _ _ _ _ _ X O X X O _ _\n"
+			" _ _ _ _ _ _ O _ X _ O X O _ _\n"
+			" _ _ _ _ O X X X O O _ X _ _ _\n"
+			" _ _ _ X _ O O O X X _ X _ _ _\n"
+			" _ _ _ O _ X X O X _ O O _ _ _\n"
+			" _ _ _ O X O _ O O X X _ _ _ _\n"
+			" _ _ O O X O X O _ X _ O _ _ _\n"
+			" _ _ X X X O X X O O _ X _ _ _\n"
+			" _ _ X O O O O X _ _ _ _ _ _ _\n"
+			" _ O X _ _ X X O X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_15x15.push_back(Sign::CROSS);
+
+	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ X _ O _ X _ O _ _ _\n"
+			" _ _ _ _ _ _ O O X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"));
+	signs_to_move_15x15.push_back(Sign::CIRCLE);
+
+	std::vector<matrix<Sign>> boards_20x20;
+	std::vector<Sign> signs_to_move_20x20;
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O X X _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X O O _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ X _ X X O _ X X _ O _ _ _ _ _ _ _\n"
+			" _ _ _ X O O O _ X O O X _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ X O O X _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ X _ _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O _ _ _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ X _ O _ _ _ O _ X _ _ _ _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CROSS);
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O X X _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O O _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ O X O O O X _ O _\n"
+			" _ _ _ _ _ _ _ _ _ _ O X X _ X O X X _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ O X O O X _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ X _ _ O X X X _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ O _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CIRCLE);
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X X X O _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O X O O X _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O X X O O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O O X X _ O _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ O X X X _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ O X _ X _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CROSS);
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ O _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ X _ O X O O O X O X _ _ _ _ _\n"
+			" _ _ _ _ _ _ X _ _ O X X X X O _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X O X O X O O O X _ _ _ _\n"
+			" _ _ _ _ _ O _ O X _ O X X X O _ O _ _ _\n"
+			" _ _ _ _ _ _ X O X O _ _ X O X X _ _ _ _\n"
+			" _ _ _ _ _ X O X X O X O O O O _ X _ _ _\n"
+			" _ _ _ _ _ _ O _ _ X _ O X O _ O _ O _ _\n"
+			" _ _ _ _ X _ X O O X X _ O X _ _ _ _ _ _\n"
+			" _ _ _ _ O O X X _ X O X _ O _ X _ _ _ _\n"
+			" _ _ _ _ O X O O O X O O O X O _ _ _ _ _\n"
+			" _ _ _ X O X X O X O X X O O X X _ _ _ _\n"
+			" _ X _ O O X X X X O _ X X X O O _ _ _ _\n"
+			" _ O X X X _ O X O X O X O _ _ _ _ _ _ _\n"
+			" _ _ _ X _ O _ _ O X X O _ _ _ _ _ _ _ _\n"
+			" _ _ O _ O _ _ _ O X _ O O _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O _ O X X X O X _ _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CROSS);
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X _ _ _ X _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O _ O _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X X O X O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ X X _ O _ O X O _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ O X O O O O X O X _ _ _ _ _ _\n"
+			" _ _ _ _ X O X _ O X O O _ X O _ _ _ _ _\n"
+			" _ _ _ _ _ O _ X X O X O X X X X O _ _ _\n"
+			" _ _ _ X X O O _ X _ _ O X O _ X _ _ _ _\n"
+			" _ _ _ _ O X X O X X X X O X O O O _ _ _\n"
+			" _ _ _ O _ O O X O _ O X O _ _ O X _ _ _\n"
+			" _ _ X _ _ X O X X X O X O X X _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O O O X O X O _ O _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ X O X _ X O X _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ O O X O _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ X _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CIRCLE);
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ O _ _ _ _ O _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X X O _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O O X X X _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ X O _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ X _ O _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CROSS);
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O X X X X O _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X O O O O X O _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ X _ _ _ X _ O X X _ _ _ _ _\n"
+			" _ _ _ _ _ O _ _ _ O _ X _ O O _ X _ X _\n"
+			" _ _ _ _ _ _ _ _ _ X O X X X _ O _ O _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ O X _ O O X O _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ O X O X O X O _ X _ _\n"
+			" _ _ _ _ _ _ _ _ _ O X O _ O O X O _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ X O X _ O _ O _ _\n"
+			" _ _ _ _ _ _ _ _ _ X X O X O X _ X _ X _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ X _ O _ _ _ O _ X _ X O _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CIRCLE);
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ O _ _ _ _ O O _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O X _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ X X X _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X X _ X O _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O O _ O _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CROSS);
+
+	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O _ X _\n"
+			" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ X O _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ O _ X X O _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ X _ _ _ X O O O X X _\n"
+			" _ _ _ _ _ _ _ _ _ _ O O X O _ X O O _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ O X X X O X _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ X O O O X _ X _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ X O _ X _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
+	signs_to_move_20x20.push_back(Sign::CROSS);
+
+	std::vector<GameRules> rules = { GameRules::FREESTYLE, GameRules::STANDARD };
+	std::cout << "15x15 board\n";
+	for (size_t r = 0; r < rules.size(); r++)
+	{
+		FeatureExtractor extractor_15x15(GameConfig(rules[r], 15, 15));
+
+		double start = getTime();
+		for (int i = 0; i < 100000; i++)
+		{
+			for (size_t j = 0; j < boards_15x15.size(); j++)
+				extractor_15x15.setBoard(boards_15x15[j], signs_to_move_15x15[j]);
+		}
+		double stop = getTime();
+
+		std::cout << toString(rules[r]) << " : " << (stop - start) << "s\n";
+	}
+
+	std::cout << "20x20 board\n";
+	for (size_t r = 0; r < rules.size(); r++)
+	{
+		FeatureExtractor extractor_20x20(GameConfig(rules[r], 20, 20));
+
+		double start = getTime();
+		for (int i = 0; i < 100000; i++)
+		{
+			for (size_t j = 0; j < boards_20x20.size(); j++)
+				extractor_20x20.setBoard(boards_20x20[j], signs_to_move_20x20[j]);
+		}
+		double stop = getTime();
+
+		std::cout << toString(rules[r]) << " : " << (stop - start) << "s\n";
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
+
+	benchmark_features();
+	return 0;
 
 	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/freestyle_20x20/";
 
@@ -63,7 +458,7 @@ int main(int argc, char *argv[])
 	Cache cache(game_config, cache_config);
 
 	SearchConfig search_config;
-	search_config.batch_size = 8;
+	search_config.batch_size = 16;
 	search_config.exploration_constant = 1.25f;
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-4f;
@@ -75,7 +470,8 @@ int main(int argc, char *argv[])
 	EvaluationQueue queue;
 //	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
 //	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
-	queue.loadGraph("/home/maciek/repos/AlphaGomoku/Release/networks/standard_6x64.bin", 8, ml::Device::cpu(), true);
+
+	queue.loadGraph("/home/maciek/cpp_workspace/AlphaGomoku/Release/networks/standard_6x64.bin", 8, ml::Device::cpu(), true);
 
 	Search search(game_config, search_config, tree, cache, queue);
 
@@ -446,36 +842,36 @@ int main(int argc, char *argv[])
 //	sign_to_move = Sign::CROSS;
 
 	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ O X O _ _ _\n"
-							" _ _ _ _ _ _ _ _ X O X X O _ _\n"
-							" _ _ _ _ _ _ O _ X _ O X O _ _\n"
-							" _ _ _ _ O X X X O O _ X _ _ _\n"
-							" _ _ _ X _ O O O X X _ X _ _ _\n"
-							" _ _ _ O _ X X O X _ O O _ _ _\n"
-							" _ _ _ O X O _ O O X X _ _ _ _\n"
-							" _ _ O O X O X O _ X _ O _ _ _\n"
-							" _ _ X X X O X X O O _ X _ _ _\n"
-							" _ _ X O O O O X _ _ _ _ _ _ _\n"
-							" _ O X _ _ X X O X _ _ _ _ _ _\n"
-							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ O X O _ _ _\n"
+			" _ _ _ _ _ _ _ _ X O X X O _ _\n"
+			" _ _ _ _ _ _ O _ X _ O X O _ _\n"
+			" _ _ _ _ O X X X O O _ X _ _ _\n"
+			" _ _ _ X _ O O O X X _ X _ _ _\n"
+			" _ _ _ O _ X X O X _ O O _ _ _\n"
+			" _ _ _ O X O _ O O X X _ _ _ _\n"
+			" _ _ O O X O X O _ X _ O _ _ _\n"
+			" _ _ X X X O X X O O _ X _ _ _\n"
+			" _ _ X O O O O X _ _ _ _ _ _ _\n"
+			" _ O X _ _ X X O X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
 	sign_to_move = Sign::CROSS;
 
 	FeatureExtractor extractor(game_config);
 	extractor.setBoard(board, sign_to_move);
 	extractor.printAllThreats();
 
-//	std::vector<std::pair<uint16_t, float>> list_of_moves;
-//	matrix<float> qwer(board.rows(), board.cols());
-//	double t0 = getTime();
-//	for (int i = 0; i < 1000; i++)
-//	{
-//	ProvenValue asdf = extractor.solve(qwer, list_of_moves);
-//	}
-//	std::cout << "time = " << (getTime() - t0) << "ms\n";
+	std::vector<std::pair<uint16_t, float>> list_of_moves;
+	matrix<float> qwer(board.rows(), board.cols());
+	double t0 = getTime();
+	for (int i = 0; i < 1000; i++)
+	{
+		ProvenValue asdf = extractor.solve(qwer, list_of_moves);
+	}
+	std::cout << "time = " << (getTime() - t0) << "ms\n";
 //	std::cout << toString(asdf) << '\n';
-//	return 0;
+	return 0;
 
 	double start = getTime();
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
@@ -484,9 +880,9 @@ int main(int argc, char *argv[])
 	matrix<float> policy(board.rows(), board.cols());
 	for (int i = 0; i <= 1; i++)
 	{
-		while (search.getSimulationCount() < i * 10000)
+		while (search.getSimulationCount() < i * 100000)
 		{
-			search.simulate(i * 10000);
+			search.simulate(i * 100000);
 			queue.evaluateGraph();
 			search.handleEvaluation();
 			if (tree.isProven())

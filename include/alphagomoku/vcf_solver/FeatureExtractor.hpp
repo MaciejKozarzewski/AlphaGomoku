@@ -66,10 +66,10 @@ namespace ag
 			};
 			int total_positions = 0;
 
-			int max_positions = 1000; // maximum number of positions that will be searched
-			int max_depth = 50; // maximum recursion depth
+			int max_positions = 100; // maximum number of positions that will be searched
+			int max_depth = 30; // maximum recursion depth
 			bool use_caching = true; // whether to use position caching or not
-			int cache_size = 100000; // number of positions in the cache
+			int cache_size = 10000; // number of positions in the cache
 
 			int position_counter = 0;
 			int node_counter = 0;

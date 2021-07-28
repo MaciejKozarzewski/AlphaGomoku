@@ -2,7 +2,7 @@
  * launcher.cpp
  *
  *  Created on: Mar 30, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <iostream>
@@ -11,7 +11,8 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/file_util.hpp>
-#include <libml/hardware/Device.hpp>
+
+#include "configuration.hpp"
 
 #include <filesystem>
 #include <future>
@@ -51,26 +52,10 @@ Json createDefaultConfig()
 	result["cache_options"]["update_visit_treshold"] = 1000;
 	return result;
 }
-Json loadConfig(const std::string &localLaunchPath)
-{
-	if (std::filesystem::exists(localLaunchPath + "config.json"))
-	{
-		FileLoader fl(localLaunchPath + "config.json");
-		return fl.getJson();
-	}
-	else
-	{
-		Json config = createDefaultConfig();
-		FileSaver fs(localLaunchPath + "config.json");
-		fs.save(config, SerializedObject(), 2);
-		return config;
-	}
-}
 
-int main(int argc, char *argv[])
+std::string get_local_launch_path(const char *first_arg)
 {
-	// extract local launch path
-	std::string localLaunchPath(argv[0]);
+	std::string localLaunchPath(first_arg);
 	int last_slash = -1;
 	for (int i = 0; i < (int) localLaunchPath.length(); i++)
 		if (localLaunchPath[i] == '\\' or localLaunchPath[i] == '/')
@@ -78,10 +63,23 @@ int main(int argc, char *argv[])
 			localLaunchPath[i] = path_separator[0];
 			last_slash = i + 1;
 		}
-	localLaunchPath = localLaunchPath.substr(0, last_slash);
+	return localLaunchPath.substr(0, last_slash);
+}
 
-	// load configuration
+int main(int argc, char *argv[])
+{
+	std::string localLaunchPath = get_local_launch_path(argv[0]);
+
+	if (argc > 1)
+	{
+		if (std::string(argv[1]) == "configure")
+			createConfig(localLaunchPath);
+		exit(0);
+	}
+
 	Json config = loadConfig(localLaunchPath);
+	if (config.isNull())
+		exit(0);
 	config["swap2_openings_file"] = localLaunchPath + static_cast<std::string>(config["swap2_openings_file"]);
 	config["networks"]["freestyle"] = localLaunchPath + "networks" + path_separator + static_cast<std::string>(config["networks"]["freestyle"]);
 	config["networks"]["standard"] = localLaunchPath + "networks" + path_separator + static_cast<std::string>(config["networks"]["standard"]);

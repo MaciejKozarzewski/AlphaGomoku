@@ -44,11 +44,11 @@ namespace ag
 			}
 			void clear()
 			{
-				std::fill(begin(), end(), static_cast<T>(0));
+				m_data.assign(m_data.size(), T { });
 			}
 			void fill(T value)
 			{
-				std::fill(begin(), end(), value);
+				m_data.assign(m_data.size(), value);
 			}
 			const T* data() const noexcept
 			{

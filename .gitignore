@@ -9,6 +9,7 @@ contrib/blis/*
 contrib/openblas/*
 contrib/gtest/*
 contrib/libml/*
+contrib/ftxui/*
 /contrib/mingw64/*
 *.pyc
 gmon.out

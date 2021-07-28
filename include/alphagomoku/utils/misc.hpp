@@ -42,7 +42,8 @@ namespace ag
 	bool isBoardFull(const matrix<Sign> &board);
 	bool isBoardEmpty(const matrix<Sign> &board);
 
-	matrix<Sign> boardFromString(std::string str);
+	matrix<Sign> boardFromString(const std::string &str);
+	std::vector<Move> extractMoves(const std::string &str);
 	std::string boardToString(const matrix<Sign> &board, const Move &lastMove = Move());
 	std::string provenValuesToString(const matrix<Sign> &board, const matrix<ProvenValue> &pv);
 	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy);

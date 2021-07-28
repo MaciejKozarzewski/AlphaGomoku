@@ -20,7 +20,8 @@ class LibBuilder:
         if self._platform == 'windows':
             tmp = ' -DUSE_OPENBLAS'
         else:
-            tmp = ' -DUSE_BLIS'
+            tmp = ' -DUSE_OPENBLAS'
+#            tmp = ' -DUSE_BLIS'
         if self._use_cuda:
             tmp += ' -DUSE_CUDA'
         return tmp
@@ -138,8 +139,8 @@ class LibBuilder:
             else:
                 command += ' \"../contrib/openblas/libopenblas.dll.a\"'
         else:
-            # command += ' -lopenblas'
-            command += ' \"../contrib/blis/libblis.a\" -lz'
+            command += ' -lopenblas -lz'
+#            command += ' \"../contrib/blis/libblis.a\" -lz'
         return command
 
     def _add_cuda_libraries(self) -> str:
@@ -197,7 +198,7 @@ class LibBuilder:
         if self._build_target == 'test':
             command += self.build_test()
         else:
-            command += ' \"../training_launcher/launcher.cpp\"'
+            command += ' \"../player_launcher/launcher.cpp\"'
 
         command += self._includes() + self._optimizations() + self._math_flags() + self._libraries_path() + self._add_libraries()
         if self._use_cuda:
