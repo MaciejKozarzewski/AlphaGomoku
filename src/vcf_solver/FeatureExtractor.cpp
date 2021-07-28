@@ -1,8 +1,8 @@
 /*
  * FeatureExtractor.cpp
  *
- *  Created on: 2 maj 2021
- *      Author: maciek
+ *  Created on: May 2, 2021
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
@@ -16,18 +16,6 @@
 namespace
 {
 	using namespace ag;
-
-	std::string binary_to_string(uint32_t number)
-	{
-		std::string result;
-		for (int i = 0; i < 32; i++, number /= 2)
-			if (number % 2 == 0)
-				result += '0';
-			else
-				result += '1';
-		std::reverse(result.begin(), result.end());
-		return result;
-	}
 
 	template<int pad>
 	void horizontal(matrix<uint32_t> &features, const matrix<int> &board) noexcept
@@ -237,6 +225,7 @@ namespace ag
 {
 
 	FeatureExtractor::FeatureExtractor(GameConfig gameConfig) :
+			statistics(gameConfig.rows * gameConfig.cols),
 			nodes_buffer(10000),
 			game_config(gameConfig),
 			pad((game_config.rules == GameRules::FREESTYLE) ? 4 : 5),
@@ -261,6 +250,7 @@ namespace ag
 		current_board_hash = get_hash();
 		calc_all_features();
 		get_threat_lists();
+		root_depth = board.rows() * board.cols() - std::count(board.begin(), board.end(), Sign::NONE);
 	}
 	ProvenValue FeatureExtractor::solve(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList)
 	{
@@ -322,8 +312,9 @@ namespace ag
 		recursive_solve(nodes_buffer.front(), false, 0);
 
 		total_positions += position_counter;
-//		std::cout << "result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions, total = "
-//				<< total_positions << ", in cache " << hashtable.size() << "\n";
+		statistics[root_depth].add(nodes_buffer.front().solved_value == SolvedValue::SOLVED_LOSS, position_counter);
+//		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
+//				<< position_counter << " positions, total = " << total_positions << ", in cache " << hashtable.size() << "\n";
 		if (nodes_buffer.front().solved_value == SolvedValue::SOLVED_LOSS)
 		{
 			policy.clear();
@@ -388,6 +379,25 @@ namespace ag
 			std::cout << " : (" << features.at(pad + row, (pad + col) * 4 + i) << ")\n";
 		}
 	}
+
+	uint32_t FeatureExtractor::getFeatureAt(int row, int col, Direction dir) const noexcept
+	{
+		return features.at(pad + row, 4 * (pad + col) + static_cast<int>(dir));
+	}
+	ThreatType FeatureExtractor::getThreatAt(Sign sign, int row, int col, Direction dir) const noexcept
+	{
+		switch (sign)
+		{
+			default:
+			case Sign::NONE:
+				return ThreatType::NONE;
+			case Sign::CROSS:
+				return cross_threats.at(pad + row, 4 * (pad + col) + static_cast<int>(dir));
+			case Sign::CIRCLE:
+				return circle_threats.at(pad + row, 4 * (pad + col) + static_cast<int>(dir));
+		}
+	}
+
 	void FeatureExtractor::printThreat(int row, int col) const
 	{
 		const FeatureTable &table = get_feature_table(game_config.rules);
@@ -489,6 +499,17 @@ namespace ag
 
 		current_board_hash = update_hash(current_board_hash, move);
 	}
+
+	void FeatureExtractor::print_stats() const
+	{
+		for (size_t i = 0; i < statistics.size(); i++)
+			if (statistics[i].calls > 0)
+			{
+				std::cout << "depth = " << i << " : " << statistics[i].hits << "/" << statistics[i].calls << ", positions "
+						<< statistics[i].positions_hit << "/" << (statistics[i].positions_hit + statistics[i].positions_miss) << std::endl;
+			}
+	}
+
 // private
 	uint64_t FeatureExtractor::get_hash() const noexcept
 	{
@@ -565,12 +586,13 @@ namespace ag
 			for (int col = 0; col < internal_board.cols() - 2 * pad; col++)
 				if (internal_board.at(pad + row, pad + col) == 0)
 				{
-					ThreatType best_cross = ThreatType::NONE, best_circle = ThreatType::NONE;
-					for (int i = 0; i < 4; i++)
+					ThreatType best_cross = ThreatType::NONE;
+					ThreatType best_circle = ThreatType::NONE;
+					for (int dir = 0; dir < 4; dir++)
 					{
-						Threat tmp = table.getThreat(get_feature_at(row, col, static_cast<Direction>(i)));
-						cross_threats.at(pad + row, (pad + col) * 4 + i) = tmp.for_cross;
-						circle_threats.at(pad + row, (pad + col) * 4 + i) = tmp.for_circle;
+						Threat tmp = table.getThreat(get_feature_at(row, col, static_cast<Direction>(dir)));
+						cross_threats.at(pad + row, (pad + col) * 4 + dir) = tmp.for_cross;
+						circle_threats.at(pad + row, (pad + col) * 4 + dir) = tmp.for_circle;
 						best_cross = std::max(best_cross, tmp.for_cross);
 						best_circle = std::max(best_circle, tmp.for_circle);
 					}
@@ -607,10 +629,10 @@ namespace ag
 				}
 				else
 				{
-					for (int i = 0; i < 4; i++)
+					for (int dir = 0; dir < 4; dir++)
 					{
-						cross_threats.at(pad + row, (pad + col) * 4 + i) = ThreatType::NONE;
-						circle_threats.at(pad + row, (pad + col) * 4 + i) = ThreatType::NONE;
+						cross_threats.at(pad + row, (pad + col) * 4 + dir) = ThreatType::NONE;
+						circle_threats.at(pad + row, (pad + col) * 4 + dir) = ThreatType::NONE;
 					}
 				}
 	}

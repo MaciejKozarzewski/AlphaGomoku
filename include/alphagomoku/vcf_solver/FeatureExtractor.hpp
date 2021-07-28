@@ -1,8 +1,8 @@
 /*
  * FeatureExtractor.hpp
  *
- *  Created on: 2 maj 2021
- *      Author: maciek
+ *  Created on: May 2, 2021
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_VCF_SOLVER_FEATUREEXTRACTOR_HPP_
@@ -64,10 +64,31 @@ namespace ag
 						number_of_children = 0;
 					}
 			};
-			int total_positions = 0;
+			struct solver_stats
+			{
+					int calls = 0;
+					int hits = 0;
+					int positions_hit = 0;
+					int positions_miss = 0;
+					void add(bool is_hit, int positions_checked) noexcept
+					{
+						calls++;
+						if (is_hit)
+						{
+							hits++;
+							positions_hit += positions_checked;
+						}
+						else
+							positions_miss += positions_checked;
+					}
+			};
+			std::vector<solver_stats> statistics;
 
-			int max_positions = 100; // maximum number of positions that will be searched
-			int max_depth = 30; // maximum recursion depth
+			int total_positions = 0;
+			int root_depth = 0;
+
+			int max_positions = 10000; // maximum number of positions that will be searched
+			int max_depth = 50; // maximum recursion depth
 			bool use_caching = true; // whether to use position caching or not
 			int cache_size = 10000; // number of positions in the cache
 
@@ -102,6 +123,9 @@ namespace ag
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
 			ProvenValue solve(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList);
 
+			uint32_t getFeatureAt(int row, int col, Direction dir) const noexcept;
+			ThreatType getThreatAt(Sign sign, int row, int col, Direction dir) const noexcept;
+
 			void printFeature(int row, int col) const;
 			void printThreat(int row, int col) const;
 			void printAllThreats() const;
@@ -109,6 +133,8 @@ namespace ag
 
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
+
+			void print_stats() const;
 		private:
 			uint64_t get_hash() const noexcept;
 			uint64_t update_hash(uint64_t old_hash, Move move) const noexcept;

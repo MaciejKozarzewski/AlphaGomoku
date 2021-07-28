@@ -2,7 +2,7 @@
  * Search.cpp
  *
  *  Created on: Mar 20, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/Search.hpp>
@@ -80,6 +80,10 @@ namespace ag
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
+	}
+	void Search::printSolverStats() const
+	{
+		vcf_solver.print_stats();
 	}
 	SearchStats Search::getStats() const noexcept
 	{
