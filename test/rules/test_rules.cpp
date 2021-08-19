@@ -2,12 +2,12 @@
  * test_rules.cpp
  *
  *  Created on: Mar 4, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include "test_rules.hpp"
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <stddef.h>
 #include <array>
 #include <iostream>

@@ -22,7 +22,7 @@ namespace ag
 		EXPECT_EQ(line.toString(), "|_XO_||_XX_");
 	}
 
-	TEST(TestLine, freestyle_five)
+	/*TEST(TestLine, freestyle_five)
 	{
 		GameRules rules = GameRules::FREESTYLE;
 		Line line;
@@ -157,7 +157,7 @@ namespace ag
 
 		line = Line("____XXXX___", rules); // open four
 		EXPECT_EQ(line.get_cross_five(), 0);
-	}
+	}*/
 
 }
 /* namespace ag */
