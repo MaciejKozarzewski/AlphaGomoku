@@ -16,6 +16,8 @@ namespace
 		assert(text.length() >= 1);
 		switch (text[0])
 		{
+			case '_':
+				return Sign::NONE;
 			case 'X':
 				return Sign::CROSS;
 			case 'O':
@@ -38,10 +40,10 @@ namespace
 namespace ag
 {
 
-	Move::Move(const Json &json) :
-			row(static_cast<int>(json["row"])),
-			col(static_cast<int>(json["col"])),
-			sign(signFromString(json["sign"].getString()))
+	Move::Move(const std::string &str) :
+			row(extract_row(str)),
+			col(extract_col(str)),
+			sign(extract_sign(str))
 	{
 	}
 	std::string Move::toString() const
@@ -55,14 +57,9 @@ namespace ag
 		result += std::to_string(col) + ')';
 		return result;
 	}
-	Json Move::serialize() const
+	std::string Move::text() const
 	{
-		return Json( { { "row", row }, { "col", col }, { "sign", ag::toString(sign) } });
-	}
-
-	Move Move::fromText(const std::string &text)
-	{
-		return Move(extract_row(text), extract_col(text), extract_sign(text));
+		return ag::text(sign) + static_cast<char>(static_cast<int>('a') + col) + std::to_string(row);
 	}
 }
 

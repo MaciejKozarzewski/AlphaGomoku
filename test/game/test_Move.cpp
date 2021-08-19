@@ -25,11 +25,11 @@ namespace ag
 	}
 	TEST(TestMove, from_text)
 	{
-		EXPECT_EQ(Move(0, 0, Sign::CROSS), Move::fromText("Xa0"));
-		EXPECT_EQ(Move(0, 0, Sign::CIRCLE), Move::fromText("Oa0"));
-		EXPECT_EQ(Move(0, 6, Sign::CROSS), Move::fromText("Xg0"));
-		EXPECT_EQ(Move(7, 1, Sign::CIRCLE), Move::fromText("Ob7"));
-		EXPECT_EQ(Move(11, 2, Sign::CROSS), Move::fromText("Xc11"));
+		EXPECT_EQ(Move(0, 0, Sign::CROSS), Move("Xa0"));
+		EXPECT_EQ(Move(0, 0, Sign::CIRCLE), Move("Oa0"));
+		EXPECT_EQ(Move(0, 6, Sign::CROSS), Move("Xg0"));
+		EXPECT_EQ(Move(7, 1, Sign::CIRCLE), Move("Ob7"));
+		EXPECT_EQ(Move(11, 2, Sign::CROSS), Move("Xc11"));
 	}
 }
 

@@ -13,7 +13,6 @@
 #include <string>
 #include <cassert>
 
-class Json;
 namespace ag
 {
 
@@ -24,16 +23,12 @@ namespace ag
 			Sign sign = Sign::NONE;
 
 			Move() = default;
-			Move(const Json &json);
+			Move(const std::string &str);
 			Move(uint16_t m)
 			{
 				sign = static_cast<Sign>(m & 3);
 				row = (m >> 2) & 127;
 				col = (m >> 9) & 127;
-			}
-			Move(int r, int c) :
-					Move(r, c, Sign::NONE)
-			{
 			}
 			Move(int r, int c, Sign s) :
 					row(r),
@@ -43,13 +38,17 @@ namespace ag
 				assert(row >= 0 && row < 128);
 				assert(col >= 0 && col < 128);
 			}
+			Move(int r, int c) :
+					Move(r, c, Sign::NONE)
+			{
+			}
 
 			uint16_t toShort() const noexcept
 			{
 				return static_cast<uint16_t>(sign) + (row << 2) + (col << 9);
 			}
 			std::string toString() const;
-			Json serialize() const;
+			std::string text() const;
 
 			static uint16_t move_to_short(int r, int c, Sign s)
 			{
@@ -67,7 +66,6 @@ namespace ag
 			{
 				return static_cast<Sign>(move & 3);
 			}
-			static Move fromText(const std::string &text);
 
 			friend bool operator==(const Move &lhs, const Move &rhs) noexcept
 			{

@@ -344,12 +344,12 @@ namespace ag
 			return Message(MessageType::ERROR, "No swap2 opening book found");
 		else
 		{
-			FileLoader fl(static_cast<std::string>(config["swap2_openings_file"]));
-			Json json = fl.getJson();
-			int r = randInt(json.size());
+//			FileLoader fl(static_cast<std::string>(config["swap2_openings_file"])); FIXME later switch to using text format - "Xa0"
+//			Json json = fl.getJson();
+//			int r = randInt(json.size());
 			std::vector<Move> moves;
-			for (int i = 0; i < json[r].size(); i++)
-				moves.push_back(Move(json[r][i]));
+//			for (int i = 0; i < json[r].size(); i++)
+//				moves.push_back(Move(json[r][i]));
 			return Message(MessageType::MAKE_MOVE, moves);
 		}
 	}
