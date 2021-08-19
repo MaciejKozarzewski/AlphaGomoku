@@ -10,6 +10,7 @@
 #include <alphagomoku/mcts/Node.hpp>
 
 #include <algorithm>
+#include <iostream>
 
 namespace
 {
@@ -29,12 +30,15 @@ namespace
 	ag::matrix<Sign> board_from_string(const std::string &str)
 	{
 		board_size size = get_board_size_from_string(str);
+
+		assert(std::count(str.begin(), str.end(), ' ') == size.rows * size.cols);
 		matrix<Sign> result(size.rows, size.cols);
 		int counter = 0;
 		for (size_t i = 0; i < str.size(); i++)
 			switch (str.at(i))
 			{
 				case '_':
+				case '!': // special case sometimes used in tests to indicate point of interest
 					result.data()[counter] = Sign::NONE;
 					counter++;
 					break;
@@ -61,18 +65,7 @@ namespace
 
 	std::string to_string(Sign s)
 	{
-		switch (s)
-		{
-			case Sign::NONE:
-				return " _";
-			case Sign::CROSS:
-				return " X";
-			case Sign::CIRCLE:
-				return " O";
-			default:
-			case Sign::ILLEGAL:
-				return " |";
-		}
+		return " " + text(s);
 	}
 	std::string to_string(ProvenValue pv)
 	{
@@ -153,6 +146,21 @@ namespace ag
 				return "CROSS ";
 			case Sign::CIRCLE:
 				return "CIRCLE";
+		}
+	}
+	std::string text(Sign sign)
+	{
+		switch (sign)
+		{
+			case Sign::NONE:
+				return "_";
+			case Sign::CROSS:
+				return "X";
+			case Sign::CIRCLE:
+				return "O";
+			default:
+			case Sign::ILLEGAL:
+				return "|";
 		}
 	}
 	Sign signFromString(const std::string &str)
@@ -251,13 +259,30 @@ namespace ag
 
 	Sign& Board::at(const std::string &text) noexcept
 	{
-		Move tmp = Move::fromText('X' + text);
+		Move tmp('_' + text);
 		return board_data.at(tmp.row, tmp.col);
 	}
 	Sign Board::at(const std::string &text) const noexcept
 	{
-		Move tmp = Move::fromText('X' + text);
+		Move tmp('_' + text);
 		return board_data.at(tmp.row, tmp.col);
+	}
+
+	void Board::makeMove(Move move) noexcept
+	{
+		assert(move.sign == sign_to_move);
+		assert(board_data.at(move.row, move.col) == Sign::NONE);
+
+		board_data.at(move.row, move.col) = move.sign;
+		sign_to_move = invertSign(move.sign);
+	}
+	void Board::undoMove(Move move) noexcept
+	{
+		assert(move.sign == invertSign(sign_to_move));
+		assert(board_data.at(move.row, move.col) == move.sign);
+
+		board_data.at(move.row, move.col) = Sign::NONE;
+		sign_to_move = move.sign;
 	}
 
 	bool Board::isSquare() const noexcept
@@ -276,7 +301,10 @@ namespace ag
 	}
 	bool Board::isForbidden(Move m) const noexcept
 	{
-		return false; // TODO
+		if (game_rules == GameRules::RENJU)
+			return false; // TODO
+		else
+			return false; // if not Renju rule, no move is forbidden
 	}
 	GameOutcome Board::getOutcome() const noexcept
 	{

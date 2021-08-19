@@ -40,6 +40,7 @@ namespace ag
 		}
 	}
 	std::string toString(Sign sign);
+	std::string text(Sign sign);
 	Sign signFromString(const std::string &str);
 	std::ostream& operator<<(std::ostream &stream, Sign sign);
 	std::string operator+(const std::string &lhs, Sign rhs);
@@ -110,6 +111,9 @@ namespace ag
 
 			Sign& at(const std::string &text) noexcept;
 			Sign at(const std::string &text) const noexcept;
+
+			void makeMove(Move move) noexcept;
+			void undoMove(Move move) noexcept;
 
 			bool isSquare() const noexcept;
 			bool isEmpty() const noexcept;
