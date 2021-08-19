@@ -2,13 +2,13 @@
  * SearchData.hpp
  *
  *  Created on: Apr 7, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef SELFPLAY_SEARCHDATA_HPP_
 #define SELFPLAY_SEARCHDATA_HPP_
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>

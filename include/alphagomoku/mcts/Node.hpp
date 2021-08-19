@@ -2,13 +2,13 @@
  * Node.hpp
  *
  *  Created on: Feb 20, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_MCTS_NODE_HPP_
 #define ALPHAGOMOKU_MCTS_NODE_HPP_
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Value.hpp>
 #include <string>
 #include <assert.h>

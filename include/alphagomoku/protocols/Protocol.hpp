@@ -2,13 +2,13 @@
  * Protocol.hpp
  *
  *  Created on: 4 kwi 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_PROTOCOLS_PROTOCOL_HPP_
 #define ALPHAGOMOKU_PROTOCOLS_PROTOCOL_HPP_
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <variant>

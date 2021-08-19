@@ -2,10 +2,10 @@
  * SupervisedLearning.cpp
  *
  *  Created on: Mar 12, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>

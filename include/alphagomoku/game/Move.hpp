@@ -2,44 +2,20 @@
  * Move.hpp
  *
  *  Created on: Feb 20, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_MCTS_MOVE_HPP_
 #define ALPHAGOMOKU_MCTS_MOVE_HPP_
 
+#include <alphagomoku/game/Board.hpp>
+
 #include <string>
-#include <assert.h>
+#include <cassert>
 
 class Json;
 namespace ag
 {
-	enum class Sign
-	{
-		NONE,
-		CROSS,
-		CIRCLE
-	};
-
-	inline Sign invertSign(Sign sign) noexcept
-	{
-		switch (sign)
-		{
-			default:
-				return Sign::NONE;
-			case Sign::CROSS:
-				return Sign::CIRCLE;
-			case Sign::CIRCLE:
-				return Sign::CROSS;
-		}
-	}
-
-	std::string toString(Sign sign);
-	Sign signFromString(const std::string &str);
-
-	std::ostream& operator<<(std::ostream &stream, Sign sign);
-	std::string operator+(const std::string &lhs, Sign rhs);
-	std::string operator+(Sign lhs, const std::string &rhs);
 
 	struct Move
 	{
@@ -91,6 +67,7 @@ namespace ag
 			{
 				return static_cast<Sign>(move & 3);
 			}
+			static Move fromText(const std::string &text);
 
 			friend bool operator==(const Move &lhs, const Move &rhs) noexcept
 			{

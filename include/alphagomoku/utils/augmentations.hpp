@@ -2,13 +2,13 @@
  * augmentations.hpp
  *
  *  Created on: Mar 2, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_UTILS_AUGMENTATIONS_HPP_
 #define ALPHAGOMOKU_UTILS_AUGMENTATIONS_HPP_
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <algorithm>
 #include <cassert>

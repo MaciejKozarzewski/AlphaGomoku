@@ -10,7 +10,7 @@
 
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>

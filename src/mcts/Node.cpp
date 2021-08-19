@@ -2,11 +2,10 @@
  * Node.cpp
  *
  *  Created on: Mar 1, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/Node.hpp>
-#include <alphagomoku/mcts/Move.hpp>
 
 #include <algorithm>
 #include <cmath>

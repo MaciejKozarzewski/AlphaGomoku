@@ -2,13 +2,13 @@
  * EvaluationRequest.hpp
  *
  *  Created on: Mar 5, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_SEARCH_EVALUATIONREQUEST_HPP_
 #define ALPHAGOMOKU_SEARCH_EVALUATIONREQUEST_HPP_
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <string>

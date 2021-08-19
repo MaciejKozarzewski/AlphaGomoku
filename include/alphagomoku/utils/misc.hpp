@@ -2,13 +2,13 @@
  * misc.hpp
  *
  *  Created on: Mar 1, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_UTILS_MISC_HPP_
 #define ALPHAGOMOKU_UTILS_MISC_HPP_
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <algorithm>

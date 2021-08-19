@@ -2,10 +2,10 @@
  * ZobristHashing.cpp
  *
  *  Created on: Mar 1, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <inttypes.h>
 #include <stddef.h>

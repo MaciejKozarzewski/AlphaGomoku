@@ -2,7 +2,7 @@
  * EvaluationGame.hpp
  *
  *  Created on: Mar 23, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_EVALUATION_EVALUATIONGAME_HPP_
@@ -10,7 +10,7 @@
 
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/selfplay/Game.hpp>

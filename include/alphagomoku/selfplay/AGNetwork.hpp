@@ -2,13 +2,13 @@
  * Model.hpp
  *
  *  Created on: Mar 8, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_SELFPLAY_AGNETWORK_HPP_
 #define ALPHAGOMOKU_SELFPLAY_AGNETWORK_HPP_
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <libml/graph/Graph.hpp>
 #include <libml/utils/json.hpp>

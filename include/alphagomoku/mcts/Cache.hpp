@@ -2,13 +2,13 @@
  * Cache.hpp
  *
  *  Created on: Mar 5, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_MCTS_CACHE_HPP_
 #define ALPHAGOMOKU_MCTS_CACHE_HPP_
 
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/misc.hpp>

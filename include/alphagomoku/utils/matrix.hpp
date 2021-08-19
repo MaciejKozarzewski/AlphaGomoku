@@ -2,7 +2,7 @@
  * matrix.hpp
  *
  *  Created on: Mar 1, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_UTILS_MATRIX_HPP_
@@ -10,7 +10,6 @@
 
 #include <vector>
 #include <assert.h>
-#include <cstring>
 #include <memory>
 
 namespace ag
@@ -58,19 +57,19 @@ namespace ag
 			{
 				return m_data.data();
 			}
-			const T* data(int row_index) const noexcept
+			const T* data(int row) const noexcept
 			{
-				assert(row_index >= 0 && row_index < rows());
-				return data() + row_index * cols();
+				assert(row >= 0 && row < rows());
+				return data() + row * cols();
 			}
-			T* data(int row_index) noexcept
+			T* data(int row) noexcept
 			{
-				assert(row_index >= 0 && row_index < rows());
-				return data() + row_index * cols();
+				assert(row >= 0 && row < rows());
+				return data() + row * cols();
 			}
 			int size() const noexcept
 			{
-				return m_rows * m_cols;
+				return rows() * cols();
 			}
 			int sizeInBytes() const noexcept
 			{
@@ -80,19 +79,19 @@ namespace ag
 			{
 				assert(this->rows() == other.rows());
 				assert(this->cols() == other.cols());
-				std::memcpy(this->data(), other.data(), sizeInBytes());
+				this->m_data = other.m_data;
 			}
-			const T& at(int row_index, int col_index) const noexcept
+			const T& at(int row, int col) const noexcept
 			{
-				assert(row_index >= 0 && row_index < rows());
-				assert(col_index >= 0 && col_index < cols());
-				return m_data[row_index * cols() + col_index];
+				assert(row >= 0 && row < rows());
+				assert(col >= 0 && col < cols());
+				return m_data[row * cols() + col];
 			}
-			T& at(int row_index, int col_index) noexcept
+			T& at(int row, int col) noexcept
 			{
-				assert(row_index >= 0 && row_index < rows());
-				assert(col_index >= 0 && col_index < cols());
-				return m_data[row_index * cols() + col_index];
+				assert(row >= 0 && row < rows());
+				assert(col >= 0 && col < cols());
+				return m_data[row * cols() + col];
 			}
 
 			T* begin() noexcept
