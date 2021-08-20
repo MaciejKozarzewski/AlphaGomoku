@@ -250,7 +250,7 @@ namespace ag
 	}
 	void GomocupProtocol::RESTART(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'RESTART' line
+		listener.consumeLine("RESTART"); // consuming 'RESTART' line
 		input_queue.push(Message(MessageType::START_PROGRAM));
 		output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 	}
@@ -266,7 +266,7 @@ namespace ag
 	}
 	void GomocupProtocol::SWAPBOARD(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'SWAPBOARD' line
+		listener.consumeLine("SWAPBOARD"); // consuming 'SWAPBOARD' line
 		{ 	// artificial scope for lock
 			std::lock_guard lock(board_mutex);
 			list_of_moves.clear();
@@ -297,7 +297,7 @@ namespace ag
 	}
 	void GomocupProtocol::SWAP2BOARD(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'SWAP2BOARD' line
+		listener.consumeLine("SWAP2BOARD"); // consuming 'SWAP2BOARD' line
 		{ 	// artificial scope for lock
 			std::lock_guard lock(board_mutex);
 			list_of_moves.clear();
@@ -338,7 +338,7 @@ namespace ag
 	}
 	void GomocupProtocol::BEGIN(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'BEGIN' line
+		listener.consumeLine("BEGIN"); // consuming 'BEGIN' line
 		{ 	// artificial scope for lock
 			std::lock_guard lock(board_mutex);
 			list_of_moves.clear();
@@ -348,7 +348,7 @@ namespace ag
 	}
 	void GomocupProtocol::BOARD(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'BOARD' line
+		listener.consumeLine("BOARD"); // consuming 'BOARD' line
 		std::vector<Move> own_moves;
 		std::vector<Move> opp_moves;
 		while (true)
@@ -440,7 +440,7 @@ namespace ag
 	}
 	void GomocupProtocol::STOP(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'STOP' line
+		listener.consumeLine("STOP"); // consuming 'STOP' line
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 	}
 	void GomocupProtocol::TAKEBACK(InputListener &listener)
@@ -477,20 +477,20 @@ namespace ag
 	}
 	void GomocupProtocol::END(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'END' line
+		listener.consumeLine("END"); // consuming 'END' line
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::EXIT_PROGRAM));
 	}
 	void GomocupProtocol::ABOUT(InputListener &listener)
 	{
-		listener.getLine(); // consuming 'ABOUT' line
+		listener.consumeLine("ABOUT"); // consuming 'ABOUT' line
 		std::string result;
-		result += "name=\"AlphaGomoku\", ";
-		result += "version=\"" + version_to_string() + "\", ";
-		result += "author=\"Maciej Kozarzewski\", ";
-		result += "country=\"Poland\", ";
-		result += "www=\"https://github.com/MaciejKozarzewski/AlphaGomoku\", ";
-		result += "email=\"alphagomoku.mk@gmail.com\"";
+		result += "name=\"" + ProgramInfo::name() + "\", ";
+		result += "version=\"" + ProgramInfo::version() + "\", ";
+		result += "author=\"" + ProgramInfo::author() + "\", ";
+		result += "country=\"" + ProgramInfo::country() + "\", ";
+		result += "www=\"" + ProgramInfo::website() + "\", ";
+		result += "email=\"" + ProgramInfo::email() + "\"";
 		output_queue.push(Message(MessageType::ABOUT_ENGINE, result));
 	}
 	void GomocupProtocol::UNKNOWN(InputListener &listener)

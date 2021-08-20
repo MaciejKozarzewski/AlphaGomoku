@@ -38,9 +38,48 @@ namespace ag
 			InputListener& operator=(InputListener &&other) = default;
 			~InputListener() = default;
 
+			/** @brief Returns next line read by the listener.
+			 *
+			 *	Waits until a new line is available, then returns it and removes it from the listener queue.
+			 *
+			 *	@return
+			 */
 			std::string getLine();
+
+			/** @brief Peeks into the next line read by the listener.
+			 *
+			 *	Waits until a new line is available, then returns it but does not remove from the listener queue (@see getLine()).
+			 *
+			 *	@return
+			 */
 			std::string peekLine();
+
+			/** @brief Removes next line read by the listener queue.
+			 *
+			 *	Waits until new line is available, then removes it from the listener queue without returning it.
+			 *
+			 */
+			void consumeLine();
+
+			/** @brief Removes next line read by the listener queue.
+			 *
+			 *	Waits until new line is available, then removes it from the listener queue without returning, but checks if the consumed line is the same as specified in the parameter.
+			 *
+			 *	@param line
+			 */
+			void consumeLine(const std::string &line);
+
+			/** @brief Adds a line to the listener queue.
+			 *
+			 *	Can be used to add specific input to the listener queue, bypassing the input stream.
+			 *
+			 *	@return
+			 */
 			void pushLine(const std::string &line);
+
+		private:
+			std::string wait_for_line(bool consume_result);
+			std::string read_line_from_stream();
 	};
 
 	class OutputSender

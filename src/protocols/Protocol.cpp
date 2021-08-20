@@ -2,25 +2,12 @@
  * Protocol.cpp
  *
  *  Created on: 4 kwi 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/Logger.hpp>
-
-namespace
-{
-	std::string get_line(std::istream &stream)
-	{
-		std::string result;
-		getline(stream, result);
-		if (result[result.length() - 1] == '\r')
-			result = result.substr(0, result.length() - 1);
-
-		ag::Logger::write("Received : " + result);
-		return result;
-	}
-}
+#include <alphagomoku/utils/misc.hpp>
 
 namespace ag
 {
@@ -31,28 +18,31 @@ namespace ag
 	}
 	std::string InputListener::getLine()
 	{
-		std::unique_lock lock(listener_mutex);
-		if (input_queue.empty())
-		{
-			if (input_stream == nullptr)
-			{
-				listener_cond.wait(lock, [this] // @suppress("Invalid arguments")
-				{	return this->input_queue.empty() == false;});
-			}
-			else
-			{
-				lock.unlock();
-				input_queue.push(get_line(*input_stream));
-				lock.lock();
-				listener_cond.notify_all();
-			}
-		}
-		std::string result = input_queue.front();
-		input_queue.pop();
-		return result;
+		return wait_for_line(true);
 	}
 	std::string InputListener::peekLine()
 	{
+		return wait_for_line(false);
+	}
+	void InputListener::consumeLine()
+	{
+		wait_for_line(true);
+	}
+	void InputListener::consumeLine(const std::string &line)
+	{
+		std::string tmp = wait_for_line(true);
+		if (tmp != line)
+			throw std::logic_error("Expected line '" + line + "', got '" + tmp + "' instead");
+	}
+	void InputListener::pushLine(const std::string &line)
+	{
+		std::unique_lock lock(listener_mutex);
+		input_queue.push(line);
+		listener_cond.notify_all();
+	}
+
+	std::string InputListener::wait_for_line(bool consume_result)
+	{
 		std::unique_lock lock(listener_mutex);
 		if (input_queue.empty())
 		{
@@ -64,19 +54,26 @@ namespace ag
 			else
 			{
 				lock.unlock();
-				input_queue.push(get_line(*input_stream));
+				std::string line = read_line_from_stream();
+				ag::Logger::write("Received : " + line);
+
 				lock.lock();
+				input_queue.push(line);
 				listener_cond.notify_all();
 			}
 		}
 		std::string result = input_queue.front();
+		if (consume_result)
+			input_queue.pop();
 		return result;
 	}
-	void InputListener::pushLine(const std::string &line)
+	std::string InputListener::read_line_from_stream()
 	{
-		std::lock_guard lock(listener_mutex);
-		input_queue.push(line);
-		listener_cond.notify_all();
+		std::string result;
+		getline(*input_stream, result);
+		if (result.back() == '\r') // remove '\r' character from the end, if exists
+			result.pop_back();
+		return result;
 	}
 
 	OutputSender::OutputSender(std::ostream &outputStream) :

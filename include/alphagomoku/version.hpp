@@ -16,10 +16,35 @@ namespace ag
 #define VERSION_MINOR 0
 #define VERSION_PATCH 1
 
-	std::string version_to_string()
+	class ProgramInfo
 	{
-		return std::to_string(VERSION_MAJOR) + '.' + std::to_string(VERSION_MINOR) + '.' + std::to_string(VERSION_PATCH);
-	}
+		public:
+			static std::string name()
+			{
+				return "AlphaGomoku";
+			}
+			static std::string version()
+			{
+				return std::to_string(VERSION_MAJOR) + '.' + std::to_string(VERSION_MINOR) + '.' + std::to_string(VERSION_PATCH);
+			}
+			static std::string author()
+			{
+				return "Maciej Kozarzewski";
+			}
+			static std::string country()
+			{
+				return "Poland";
+			}
+			static std::string website()
+			{
+				return "https://github.com/MaciejKozarzewski/AlphaGomoku";
+			}
+			static std::string email()
+			{
+				return "alphagomoku.mk@gmail.com";
+			}
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_VERSION_HPP_ */
