@@ -112,7 +112,7 @@ namespace ag
 			Sign& at(const std::string &text) noexcept;
 			Sign at(const std::string &text) const noexcept;
 
-			void makeMove(Move move) noexcept;
+			void putMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
 
 			bool isSquare() const noexcept;

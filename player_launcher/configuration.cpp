@@ -11,16 +11,18 @@
 
 #include <libml/hardware/Device.hpp>
 
+#ifdef USE_TEXT_UI
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <ftxui/dom/elements.hpp>
+#endif
 
 #include <filesystem>
 #include <iostream>
 
 namespace
 {
-	Json createBaseConfig()
+	Json create_base_config()
 	{
 		Json result;
 		result["use_logging"] = false;
@@ -62,7 +64,7 @@ namespace ag
 				return fl.getJson();
 			} catch (std::exception &e)
 			{
-				std::cout << "The configuration file is invalid for some reason. Try deleting it and creating new one." << std::endl;
+				std::cout << "The configuration file is invalid for some reason. Try deleting it and creating a new one." << std::endl;
 				return Json();
 			}
 		}
@@ -78,6 +80,7 @@ namespace ag
 
 	void createConfig(const std::string &localLaunchPath)
 	{
+#ifdef USE_TEXT_UI
 		std::vector<std::pair<bool, ml::Device>> list_of_devices;
 		list_of_devices.push_back( { false, ml::Device::cpu() });
 		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
@@ -105,7 +108,7 @@ namespace ag
 		});
 
 		screen.Loop(component);
-
+#endif
 	}
 
 } /* namespace ag */

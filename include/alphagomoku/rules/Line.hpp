@@ -20,6 +20,14 @@ namespace ag
 namespace ag
 {
 
+//	enum class Direction
+//	{
+//		HORIZONTAL,
+//		VERTICAL,
+//		DIAGONAL,
+//		ANTIDIAGONAL
+//	};
+
 	class Line
 	{
 		private:
@@ -28,7 +36,7 @@ namespace ag
 					bool was_evaluated = false;
 					bool value;
 			};
-			uint32_t line = 0;
+			uint64_t line = 0;
 			GameRules rules;
 
 			Data cross_five; // five here means winning five, so overlines (for renju or standard) does not count here, as well as blocked five (in caro)
@@ -37,8 +45,9 @@ namespace ag
 			Data cross_open_three; // open four is a pattern that can become an open four (defined above) in more than one way
 
 		public:
-			Line() = default;
-			Line(const std::string &text, GameRules rules);
+			Line(GameRules rules);
+
+			void fill(const std::string &text);
 
 			bool is_cross_five() noexcept;
 			bool is_cross_open_four() noexcept;

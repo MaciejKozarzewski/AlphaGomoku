@@ -2,7 +2,7 @@
  * version.hpp
  *
  *  Created on: 17 maj 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_VERSION_HPP_
@@ -13,8 +13,8 @@
 namespace ag
 {
 #define VERSION_MAJOR 5
-#define VERSION_MINOR 0
-#define VERSION_PATCH 1
+#define VERSION_MINOR 1
+#define VERSION_PATCH 0
 
 	class ProgramInfo
 	{

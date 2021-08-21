@@ -18,8 +18,8 @@ namespace ag
 {
 	TEST(TestLine, fromString)
 	{
-		Line line("?_XO_||_XX_", GameRules::FREESTYLE);
-		EXPECT_EQ(line.toString(), "|_XO_||_XX_");
+//		Line line("?_XO_||_XX_", GameRules::FREESTYLE);
+//		EXPECT_EQ(line.toString(), "|_XO_||_XX_");
 	}
 
 	/*TEST(TestLine, freestyle_five)

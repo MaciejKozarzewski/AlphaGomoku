@@ -268,7 +268,7 @@ namespace ag
 		return board_data.at(tmp.row, tmp.col);
 	}
 
-	void Board::makeMove(Move move) noexcept
+	void Board::putMove(Move move) noexcept
 	{
 		assert(move.sign == sign_to_move);
 		assert(board_data.at(move.row, move.col) == Sign::NONE);

@@ -456,14 +456,14 @@ namespace ag
 		EXPECT_TRUE(board.isForbidden(Move("Xk7")));
 //		CHECK_INTEGERS_NE(b.GetSquareStatus < eMove_t::eXX > (10, 7), Square::eCombThreat::eTwoThrees);
 
-		board.makeMove(Move("Xk5"));
-		board.makeMove(Move("Oi10"));
+		board.putMove(Move("Xk5"));
+		board.putMove(Move("Oi10"));
 
 		EXPECT_FALSE(board.isForbidden(Move("Xk7")));
 //		CHECK_INTEGERS_EQ(b.GetSquareStatus < eMove_t::eXX > (10, 7), Square::eCombThreat::eTwoFours); FIXME shouldn't it be 4x3 fork?
 
-		board.makeMove(Move("Xi9"));
-		board.makeMove(Move("Om7"));
+		board.putMove(Move("Xi9"));
+		board.putMove(Move("Om7"));
 
 		EXPECT_TRUE(board.isForbidden(Move("Xk7")));
 //		CHECK_INTEGERS_NE(b.GetSquareStatus < eMove_t::eXX > (10, 7), Square::eCombThreat::eFourFreeThree);
@@ -516,8 +516,8 @@ namespace ag
 		EXPECT_TRUE(board.isForbidden(Move("Xh5")));
 //		CHECK_INTEGERS_EQ(b.GetSquareStatus < eMove_t::eXX > (7, 5), Square::eCombThreat::eForbidden);
 
-		board.makeMove(Move("Xh3"));
-		board.makeMove(Move("Oi2"));
+		board.putMove(Move("Xh3"));
+		board.putMove(Move("Oi2"));
 
 		EXPECT_FALSE(board.isForbidden(Move("Xh5")));
 //		CHECK_INTEGERS_EQ(b.GetSquareStatus < eMove_t::eXX > (7, 5), Square::eCombThreat::eFourFreeThree);
@@ -597,12 +597,12 @@ namespace ag
 		EXPECT_TRUE(board.isForbidden(Move("Xf8")));
 //		CHECK_INTEGERS_EQ(b.GetSquareStatus < eMove_t::eXX > (5, 8), Square::eCombThreat::eForbidden);
 
-		board.makeMove(Move("Xi7"));
+		board.putMove(Move("Xi7"));
 
 		EXPECT_FALSE(board.isForbidden(Move("Xf8")));
 //		CHECK_INTEGERS_EQ(b.GetSquareStatus < eMove_t::eXX > (5, 8), Square::eCombThreat::eThreeDistThree);
 
-		board.makeMove(Move("Og9"));
+		board.putMove(Move("Og9"));
 
 		EXPECT_TRUE(board.isForbidden(Move("Xf8")));
 //		CHECK_INTEGERS_EQ(b.GetSquareStatus < eMove_t::eXX > (5, 8), Square::eCombThreat::eForbidden);
@@ -631,7 +631,7 @@ namespace ag
 //		CHECK_INTEGERS_EQ(bX.GetSquareStatus < eMove_t::eOO > (0, 4), Square::eCombThreat::eSingleFour);
 //		CHECK_INTEGERS_EQ(bX.GetSquareStatus < eMove_t::eOO > (0, 5), Square::eCombThreat::eSingleFour);
 
-		board.makeMove(Move("Oa5"));
+		board.putMove(Move("Oa5"));
 
 //		CHECK_INTEGERS_EQ(bX.GetSquareStatus < eMove_t::eOO > (0, 4), Square::eCombThreat::eWinIn1);
 	}

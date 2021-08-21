@@ -14,39 +14,46 @@
 
 namespace
 {
-	uint32_t pattern_from_string(const std::string &text)
+	uint64_t pattern_from_string(const std::string &text)
 	{
-		uint32_t result = 0;
+		uint64_t result = 0;
 		for (size_t i = 0; i < std::min(static_cast<size_t>(16), text.size()); i++)
 			switch (text[text.size() - 1 - i])
 			{
+				// using one-hot encoding
 				// sub-patterns here are inverted for a purpose, the whole patters has to have ones outside
 				// the area of interest which is accomplished by negating the result at the end
 				case '_':
-					result = (result << 2) | 3;
+					result = (result << 4) | 1; // 0001
 					break;
 				case 'X':
-					result = (result << 2) | 2;
+					result = (result << 4) | 2; // 0010
 					break;
 				case 'O':
-					result = (result << 2) | 1;
+					result = (result << 4) | 4; // 0100
 					break;
-				case '?': // indicates that any sign can be in this place
 				case '|':
-					result = (result << 2) | 0;
+					result = (result << 4) | 8; // 1000
+					break;
+				case 'a': // indicates that any sign can be in this place
+					result = (result << 4) | 15; //1111
 					break;
 			}
-		return ~result;
+		return result;
 	}
 }
 
 namespace ag
 {
 
-	Line::Line(const std::string &text, GameRules rules) :
-			line(pattern_from_string(text)),
+	Line::Line(GameRules rules) :
 			rules(rules)
 	{
+	}
+
+	void Line::fill(const std::string &text)
+	{
+		line = pattern_from_string(text);
 	}
 
 	bool Line::is_cross_five() noexcept
@@ -88,8 +95,11 @@ namespace ag
 				case 2:
 					result[i] = 'O';
 					break;
-				case 3:
+				case 4:
 					result[i] = '|';
+					break;
+				case 15:
+					result[i] = 'a';
 					break;
 			}
 			tmp = tmp >> 2;

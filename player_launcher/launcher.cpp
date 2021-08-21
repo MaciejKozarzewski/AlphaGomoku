@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
 				case MessageType::CHANGE_PROTOCOL:
 				case MessageType::START_PROGRAM:
 				{
+					// it does not actually create search engine, only initializes
 					if (static_cast<bool>(config["use_logging"])) // setup logging to file if enabled
 					{
 						logfile = std::ofstream(localLaunchPath + path_separator + "logs" + path_separator + currentDateTime() + ".log");
