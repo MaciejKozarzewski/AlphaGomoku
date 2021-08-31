@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include "../../player_launcher/argument_parser.hpp"
+#include <alphagomoku/utils/argument_parser.hpp>
 
 #include <gtest/gtest.h>
 
@@ -45,27 +45,6 @@ namespace ag
 		EXPECT_TRUE(flag1);
 		EXPECT_TRUE(flag2);
 	}
-	TEST(TestArgument, MultiArgumentAction)
-	{
-		int sum = 0;
-
-		Argument arg("arg");
-		arg.action([&](const std::vector<std::string> &args)
-		{
-			sum = 0;
-			for(size_t i = 0; i < args.size(); i++)
-			sum += std::stoi(args[i]);
-		});
-
-		arg.parse( { });
-		EXPECT_EQ(sum, 0);
-
-		arg.parse( { "1" });
-		EXPECT_EQ(sum, 1);
-
-		arg.parse( { "1", "3", "6" });
-		EXPECT_EQ(sum, 1 + 3 + 6);
-	}
 
 	TEST(TestArgumentParser, LaunchPath)
 	{
@@ -88,11 +67,11 @@ namespace ag
 		std::string third_arg = "";
 
 		ArgumentParser ap;
-		ap.addArgument("int").action([&](const std::string &str)
+		ap.addArgument("int", [&](const std::string &str)
 		{	first_arg = std::stoi(str);});
-		ap.addArgument("float").action([&](const std::string &str)
+		ap.addArgument("float", [&](const std::string &str)
 		{	second_arg = std::stof(str);});
-		ap.addArgument("string").action([&](const std::string &str)
+		ap.addArgument("string", [&](const std::string &str)
 		{	third_arg = str;});
 
 		EXPECT_THROW(ap.parseArguments( { "path", "123" }), ParsingError);

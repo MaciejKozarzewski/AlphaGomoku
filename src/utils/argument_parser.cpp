@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include "argument_parser.hpp"
+#include <alphagomoku/utils/argument_parser.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <iostream>
