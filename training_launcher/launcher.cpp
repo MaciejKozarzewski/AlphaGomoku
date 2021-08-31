@@ -510,16 +510,19 @@ void test_evaluate()
 	Json config = fl.getJson()["evaluation_options"];
 
 	config["search_options"]["batch_size"] = 1;
-	manager.setFirstPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "batch_1");
+//	config["search_options"]["batch_size"] = 16;
+	config["simulations"] = 1600;
+	manager.setFirstPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "sim_1600");
 
-	config["search_options"]["batch_size"] = 32;
-	manager.setSecondPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "batch_32");
+//	config["search_options"]["batch_size"] = 32;
+	config["simulations"] = 3200;
+	manager.setSecondPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "sim_3200");
 
 	manager.generate(1000);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/batch_size_test_vcf.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/batch1.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -529,10 +532,11 @@ int main(int argc, char *argv[])
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
-//	test_evaluate();
+	test_evaluate();
+
 //	benchmark_features();
 //	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/valid_buffer/", 119);
-//	return 0;
+	return 0;
 
 	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/freestyle_20x20/";
 

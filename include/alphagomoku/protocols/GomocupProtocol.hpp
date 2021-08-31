@@ -1,8 +1,8 @@
 /*
  * GomocupProtocol.hpp
  *
- *  Created on: 5 kwi 2021
- *      Author: maciek
+ *  Created on: Apr 5, 2021
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_PROTOCOLS_GOMOCUPPROTOCOL_HPP_

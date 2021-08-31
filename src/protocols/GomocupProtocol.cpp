@@ -121,7 +121,7 @@ namespace ag
 			Message msg = output_queue.pop();
 			switch (msg.getType())
 			{
-				case MessageType::MAKE_MOVE:
+				case MessageType::BEST_MOVE:
 				{
 					if (msg.holdsString()) // used to swap colors
 					{
@@ -243,10 +243,11 @@ namespace ag
 		assert(tmp.size() == 2u);
 		tmp = split(tmp[1], ',');
 		assert(tmp.size() == 2u);
+		output_queue.push(Message(MessageType::ERROR, "rectangular boards are not supported"));
+		/* if it was supported, below is how it should be implemented */
 //		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
 //		input_queue.push(Message(MessageType::SET_OPTION, Option { "cols", tmp[0] }));
 //		input_queue.push(Message(MessageType::START_PROGRAM));
-		output_queue.push(Message(MessageType::ERROR, "rectangular boards are not supported"));
 	}
 	void GomocupProtocol::RESTART(InputListener &listener)
 	{
@@ -391,7 +392,7 @@ namespace ag
 			}
 			else
 			{
-				output_queue.push(Message(MessageType::ERROR, "incorrectly specified board"));
+				output_queue.push(Message(MessageType::ERROR, "invalid position"));
 				return; // impossible situation, incorrectly specified board state
 			}
 		}

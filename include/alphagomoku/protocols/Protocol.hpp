@@ -1,7 +1,7 @@
 /*
  * Protocol.hpp
  *
- *  Created on: 4 kwi 2021
+ *  Created on: Apr 4, 2021
  *      Author: Maciej Kozarzewski
  */
 
@@ -106,20 +106,20 @@ namespace ag
 	 */
 	enum class MessageType
 	{
-		CHANGE_PROTOCOL, // send to switch between different protocols
-		START_PROGRAM, // send to initialize program with specific board size
-		SET_OPTION, // send with option name and its value (unparsed)
-		SET_POSITION, // used to set specific position
-		START_SEARCH, // request to start searching with specific option what to do after the search ends
-		STOP_SEARCH, // request to immediately stop search
-		MAKE_MOVE, // used to send move made either by user or engine
-		EXIT_PROGRAM, // send to exit the program
-		EMPTY_MESSAGE, // specifies empty message with no data
-		PLAIN_STRING, // message containing string with no specific structure
-		UNKNOWN_COMMAND, // used as a response after unknown message from user
-		ERROR, // used as a response after an error
-		INFO_MESSAGE, // used to send some information string from engine
-		ABOUT_ENGINE // request to send some information about the engine
+		EMPTY_MESSAGE, /**< empty message with no data */
+		START_PROGRAM, /**< GUI -> Engine : send to initialize program */
+		SET_OPTION, /**< GUI -> Engine : send with option name and its value (as string) */
+		SET_POSITION, /**< GUI -> Engine : used to set specific position */
+		START_SEARCH, /**< GUI -> Engine : send to start searching with specific options what to do after the search ends */
+		STOP_SEARCH, /**< GUI -> Engine : send to immediately stop search */
+		EXIT_PROGRAM, /**< GUI -> Engine : send to exit the program */
+		ABOUT_ENGINE, /**< GUI -> Engine : request to send back information about the engine */
+		IS_READY, /**< GUI -> Engine : request to synchronize with the engine */
+		PLAIN_STRING, /**< GUI <- Engine message containing string with no specific structure */
+		UNKNOWN_COMMAND, /**< GUI <- Engine : used as a response after unknown message from user */
+		ERROR, /**< GUI <- Engine : used as a response after an error */
+		INFO_MESSAGE, /**< GUI <- Engine : used to send some information string from engine */
+		BEST_MOVE, /**< GUI <- Engine : used to send move made by the engine */
 	};
 	class Message
 	{
@@ -171,8 +171,9 @@ namespace ag
 
 	enum class ProtocolType
 	{
-		GOMOCUP, // protocol used in Gomocup tournament
-		UGI // protocol derived from Universal Chess Interface, to be specified and implemented later
+		GOMOCUP, /**< protocol used in Gomocup tournament */
+		YIXINBOARD, /**< protocol used by YixinBoard GUI */
+		UGI /**< protocol derived from Universal Chess Interface, to be specified and implemented later */
 	};
 	std::string toString(ProtocolType pt);
 	ProtocolType protocolFromString(const std::string &str);

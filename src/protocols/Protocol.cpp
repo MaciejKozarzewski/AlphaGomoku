@@ -1,7 +1,7 @@
 /*
  * Protocol.cpp
  *
- *  Created on: 4 kwi 2021
+ *  Created on: Apr 4, 2021
  *      Author: Maciej Kozarzewski
  */
 
@@ -146,8 +146,8 @@ namespace ag
 		std::string result = "type = ";
 		switch (getType())
 		{
-			case MessageType::CHANGE_PROTOCOL:
-				result += "CHANGE_PROTOCOL";
+			case MessageType::EMPTY_MESSAGE:
+				result += "EMPTY_MESSAGE";
 				break;
 			case MessageType::START_PROGRAM:
 				result += "START_PROGRAM";
@@ -164,14 +164,14 @@ namespace ag
 			case MessageType::STOP_SEARCH:
 				result += "STOP_SEARCH";
 				break;
-			case MessageType::MAKE_MOVE:
-				result += "MAKE_MOVE";
-				break;
 			case MessageType::EXIT_PROGRAM:
 				result += "EXIT_PROGRAM";
 				break;
-			case MessageType::EMPTY_MESSAGE:
-				result += "EMPTY_MESSAGE";
+			case MessageType::ABOUT_ENGINE:
+				result += "ABOUT_ENGINE";
+				break;
+			case MessageType::IS_READY:
+				result += "IS_READY";
 				break;
 			case MessageType::PLAIN_STRING:
 				result += "PLAIN_STRING";
@@ -185,8 +185,8 @@ namespace ag
 			case MessageType::INFO_MESSAGE:
 				result += "INFO_MESSAGE";
 				break;
-			case MessageType::ABOUT_ENGINE:
-				result += "ABOUT_ENGINE";
+			case MessageType::BEST_MOVE:
+				result += "BEST_MOVE";
 				break;
 		}
 		result += ", data";
@@ -251,6 +251,8 @@ namespace ag
 		{
 			case ProtocolType::GOMOCUP:
 				return "GOMOCUP";
+			case ProtocolType::YIXINBOARD:
+				return "YIXINBOARD";
 			case ProtocolType::UGI:
 				return "UGI";
 			default:
@@ -261,6 +263,8 @@ namespace ag
 	{
 		if (str == "GOMOCUP" or str == "gomocup")
 			return ProtocolType::GOMOCUP;
+		if (str == "YIXINBOARD" or str == "yixinboard")
+			return ProtocolType::YIXINBOARD;
 		if (str == "UGI" or str == "ugi")
 			return ProtocolType::UGI;
 		throw std::invalid_argument(str);

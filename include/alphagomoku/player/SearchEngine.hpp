@@ -2,7 +2,7 @@
  * SearchEngine.hpp
  *
  *  Created on: Mar 30, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_

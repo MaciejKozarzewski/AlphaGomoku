@@ -1,8 +1,8 @@
 /*
  * test_protocol.cpp
  *
- *  Created on: 5 kwi 2021
- *      Author: maciek
+ *  Created on: Apr 5, 2021
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/protocols/Protocol.hpp>

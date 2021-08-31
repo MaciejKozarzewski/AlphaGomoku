@@ -2,7 +2,7 @@
  * SearchEngine.cpp
  *
  *  Created on: Mar 30, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/player/SearchEngine.hpp>
@@ -293,7 +293,7 @@ namespace ag
 
 		// check for empty board first move
 		if (isBoardEmpty(board) == true)
-			return Message(MessageType::MAKE_MOVE, Move(board.rows() / 2, board.cols() / 2, sign_to_move));
+			return Message(MessageType::BEST_MOVE, Move(board.rows() / 2, board.cols() / 2, sign_to_move));
 
 		matrix<Sign> board_copy(board);
 		// check for own winning moves
@@ -323,7 +323,7 @@ namespace ag
 					if ((sign_to_move == Sign::CIRCLE and winner == GameOutcome::CROSS_WIN)
 							or (sign_to_move == Sign::CROSS and winner == GameOutcome::CIRCLE_WIN))
 					{
-						return Message(MessageType::MAKE_MOVE, Move(i, j, sign_to_move));
+						return Message(MessageType::BEST_MOVE, Move(i, j, sign_to_move));
 					}
 				}
 		return Message();
@@ -335,7 +335,7 @@ namespace ag
 		while (search_continues(resource_manager.getTimeForTurn()))
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		stopSearch();
-		return Message(MessageType::MAKE_MOVE, get_best_move());
+		return Message(MessageType::BEST_MOVE, get_best_move());
 	}
 	Message SearchEngine::swap2_0stones()
 	{
@@ -350,7 +350,7 @@ namespace ag
 			std::vector<Move> moves;
 //			for (int i = 0; i < json[r].size(); i++)
 //				moves.push_back(Move(json[r][i]));
-			return Message(MessageType::MAKE_MOVE, moves);
+			return Message(MessageType::BEST_MOVE, moves);
 		}
 	}
 	Message SearchEngine::swap2_3stones()
@@ -366,11 +366,11 @@ namespace ag
 		stopSearch();
 
 		if (get_root_eval() < 1.0f - swap2_evaluation_treshold)
-			return Message(MessageType::MAKE_MOVE, "swap");
+			return Message(MessageType::BEST_MOVE, "swap");
 		else
 		{
 			if (get_root_eval() > swap2_evaluation_treshold)
-				return Message(MessageType::MAKE_MOVE, std::vector<Move>( { get_best_move() }));
+				return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
 			else
 			{
 				if (getSimulationCount() > 0)
@@ -388,12 +388,12 @@ namespace ag
 				if (st.length() < 2) // there was not enough time for balancing, just pick color
 				{
 					if (get_root_eval() < 0.5f)
-						return Message(MessageType::MAKE_MOVE, "swap");
+						return Message(MessageType::BEST_MOVE, "swap");
 					else
-						return Message(MessageType::MAKE_MOVE, std::vector<Move>( { get_best_move() }));
+						return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
 				}
 				else
-					return Message(MessageType::MAKE_MOVE, std::vector<Move>( { st.getMove(1), st.getMove(2) }));
+					return Message(MessageType::BEST_MOVE, std::vector<Move>( { st.getMove(1), st.getMove(2) }));
 			}
 		}
 	}
@@ -407,9 +407,9 @@ namespace ag
 		stopSearch();
 
 		if (get_root_eval() < 0.5f)
-			return Message(MessageType::MAKE_MOVE, "swap");
+			return Message(MessageType::BEST_MOVE, "swap");
 		else
-			return Message(MessageType::MAKE_MOVE, std::vector<Move>( { get_best_move() }));
+			return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
 	}
 	bool SearchEngine::search_continues(double timeout)
 	{

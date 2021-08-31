@@ -1,8 +1,8 @@
 /*
  * test_GomocupProtocol.cpp
  *
- *  Created on: 16 kwi 2021
- *      Author: maciek
+ *  Created on: Apr 16, 2021
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
@@ -165,7 +165,7 @@ namespace ag
 		std::ostringstream oss;
 		OutputSender sender(oss);
 		std::vector<Move> list_of_moves = { Move(0, 0, Sign::CROSS), Move(2, 3, Sign::CIRCLE), Move(1, 4, Sign::CROSS) };
-		output_queue.push(Message(MessageType::MAKE_MOVE, list_of_moves));
+		output_queue.push(Message(MessageType::BEST_MOVE, list_of_moves));
 		protocol.processOutput(sender);
 		EXPECT_EQ(oss.str(), "0,0 3,2 4,1\n");
 	}
@@ -196,8 +196,8 @@ namespace ag
 		std::ostringstream oss;
 		OutputSender sender(oss);
 		std::vector<Move> list_of_moves = { Move(6, 5, Sign::CIRCLE), Move(5, 2, Sign::CROSS) };
-		output_queue.push(Message(MessageType::MAKE_MOVE, list_of_moves));
-		output_queue.push(Message(MessageType::MAKE_MOVE, "swap"));
+		output_queue.push(Message(MessageType::BEST_MOVE, list_of_moves));
+		output_queue.push(Message(MessageType::BEST_MOVE, "swap"));
 
 		protocol.processOutput(sender);
 		EXPECT_EQ(oss.str(), "5,6 2,5\nSWAP\n");
@@ -233,8 +233,8 @@ namespace ag
 		std::ostringstream oss;
 		OutputSender sender(oss);
 		std::vector<Move> list_of_moves = { Move(7, 7, Sign::CIRCLE) };
-		output_queue.push(Message(MessageType::MAKE_MOVE, list_of_moves));
-		output_queue.push(Message(MessageType::MAKE_MOVE, "swap"));
+		output_queue.push(Message(MessageType::BEST_MOVE, list_of_moves));
+		output_queue.push(Message(MessageType::BEST_MOVE, "swap"));
 
 		protocol.processOutput(sender);
 		EXPECT_EQ(oss.str(), "7,7\nSWAP\n");
@@ -372,7 +372,7 @@ namespace ag
 
 		std::ostringstream oss;
 		OutputSender sender(oss);
-		output_queue.push(Message(MessageType::MAKE_MOVE, Move(7, 7, Sign::CIRCLE)));
+		output_queue.push(Message(MessageType::BEST_MOVE, Move(7, 7, Sign::CIRCLE)));
 		protocol.processOutput(sender);
 		EXPECT_EQ(oss.str(), "7,7\n");
 

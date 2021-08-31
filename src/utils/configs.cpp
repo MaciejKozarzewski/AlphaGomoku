@@ -2,13 +2,33 @@
  * configs.cpp
  *
  *  Created on: Mar 21, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 
 #include <libml/utils/json.hpp>
+
+namespace
+{
+	template<typename T>
+	T get_value(const Json &json, const std::string &key)
+	{
+		if (json.contains(key))
+			return static_cast<T>(json[key]);
+		else
+			throw std::runtime_error("Missing parameter '" + key + "'");
+	}
+	template<typename T>
+	T get_value(const Json &json, const std::string &key, T default_value)
+	{
+		if (json.contains(key))
+			return static_cast<T>(json[key]);
+		else
+			return default_value;
+	}
+}
 
 namespace ag
 {
