@@ -12,10 +12,12 @@
 
 namespace ag
 {
-#define VERSION_MAJOR 5
-#define VERSION_MINOR 1
-#define VERSION_PATCH 0
-
+	struct Version
+	{
+			static const int major = 5;
+			static const int minor = 1;
+			static const int revision = 0;
+	};
 	class ProgramInfo
 	{
 		public:
@@ -25,7 +27,7 @@ namespace ag
 			}
 			static std::string version()
 			{
-				return std::to_string(VERSION_MAJOR) + '.' + std::to_string(VERSION_MINOR) + '.' + std::to_string(VERSION_PATCH);
+				return std::to_string(Version::major) + '.' + std::to_string(Version::minor) + '.' + std::to_string(Version::revision);
 			}
 			static std::string author()
 			{
@@ -42,6 +44,18 @@ namespace ag
 			static std::string email()
 			{
 				return "alphagomoku.mk@gmail.com";
+			}
+			static std::string copyright()
+			{
+				return "Copyright (C) 2017-2021 " + author();
+			}
+			static std::string build()
+			{
+				return "Build on " + std::string(__DATE__) + " at " + std::string(__TIME__);
+			}
+			static std::string license()
+			{
+				return "License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.";
 			}
 	};
 

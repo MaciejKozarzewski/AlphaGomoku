@@ -66,6 +66,7 @@ namespace ag
 			{
 				return static_cast<Sign>(move & 3);
 			}
+			static Move fromText(const std::string &txt, Sign sign);
 
 			friend bool operator==(const Move &lhs, const Move &rhs) noexcept
 			{

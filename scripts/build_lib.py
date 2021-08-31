@@ -198,7 +198,7 @@ class LibBuilder:
         if self._build_target == 'test':
             command += self.build_test()
         else:
-            command += ' \"../player_launcher/launcher.cpp\"'
+            command += ' \"../player_launcher/launcher.cpp\" \"../player_launcher/engine_manager.cpp\" \"../player_launcher/benchmark.cpp\" \"../player_launcher/configuration.cpp\"'
 
         command += self._includes() + self._optimizations() + self._math_flags() + self._libraries_path() + self._add_libraries()
         if self._use_cuda:

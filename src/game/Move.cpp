@@ -6,7 +6,6 @@
  */
 
 #include <alphagomoku/game/Move.hpp>
-#include <libml/utils/json.hpp>
 
 namespace
 {
@@ -60,6 +59,11 @@ namespace ag
 	std::string Move::text() const
 	{
 		return ag::text(sign) + static_cast<char>(static_cast<int>('a') + col) + std::to_string(row);
+	}
+	Move Move::fromText(const std::string &txt, Sign sign)
+	{
+		assert(txt[0] >= 'a' && txt[0] <= 'z');
+		return Move(ag::text(sign) + txt);
 	}
 }
 

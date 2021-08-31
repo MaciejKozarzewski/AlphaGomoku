@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include "configuration.hpp"
+#include "engine_manager.hpp"
 
 #include <alphagomoku/utils/file_util.hpp>
 
@@ -25,6 +25,7 @@ namespace
 	Json create_base_config()
 	{
 		Json result;
+		result["protocol"] = "gomocup";
 		result["use_logging"] = false;
 		result["always_ponder"] = false;
 		result["swap2_openings_file"] = "swap2_openings.json";
@@ -32,24 +33,15 @@ namespace
 		result["networks"]["standard"] = "standard_10x128.bin";
 		result["networks"]["renju"] = "";
 		result["networks"]["caro"] = "";
-		result["use_symmetries"] = true;
-		result["threads"][0] = Json();
-		result["search_options"]["batch_size"] = 1;
+		result["max_threads"] = 1;
+		result["devices"] = Json(JsonType::Array);
 		result["search_options"]["exploration_constant"] = 1.25;
 		result["search_options"]["expansion_prior_treshold"] = 1.0e-4;
 		result["search_options"]["max_children"] = 30;
-		result["search_options"]["noise_weight"] = 0.0;
-		result["search_options"]["use_endgame_solver"] = true;
 		result["search_options"]["use_vcf_solver"] = true;
-		result["tree_options"]["max_number_of_nodes"] = 500000000;
-		result["tree_options"]["bucket_size"] = 100000;
-		result["cache_options"]["min_cache_size"] = 1048576;
-		result["cache_options"]["max_cache_size"] = 1048576;
-		result["cache_options"]["update_from_search"] = false;
-		result["cache_options"]["update_visit_treshold"] = 1000;
+		result["search_options"]["use_symmetries"] = true;
 		return result;
 	}
-
 }
 
 namespace ag
@@ -71,8 +63,8 @@ namespace ag
 		else
 		{
 			std::cout << "Could not load configuration file.\n"
-					<< "You can generate new one by launching AlphaGomoku from command line with parameter 'configure'\n"
-					<< "If you are sure that file 'config.json' exists, it means that launch path might not have been parsed correctly due to some special characters in it."
+					<< "You can generate new one by launching AlphaGomoku from command line with parameter '--configure'\n"
+					<< "If you are sure that configuration file exists, it means that launch path might not have been parsed correctly due to some special characters in it."
 					<< std::endl;
 			return Json();
 		}
@@ -80,12 +72,12 @@ namespace ag
 
 	void createConfig(const std::string &localLaunchPath)
 	{
-#ifdef USE_TEXT_UI
 		std::vector<std::pair<bool, ml::Device>> list_of_devices;
 		list_of_devices.push_back( { false, ml::Device::cpu() });
 		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
 			list_of_devices.push_back( { false, ml::Device::cuda(i) });
 
+#ifdef USE_TEXT_UI
 		auto screen = ftxui::ScreenInteractive::FitComponent();
 
 		std::wstring number_of_threads;

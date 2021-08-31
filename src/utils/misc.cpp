@@ -91,7 +91,7 @@ namespace ag
 
 	double getTime()
 	{
-		return std::chrono::system_clock::now().time_since_epoch().count() * 1.0e-9;
+		return std::chrono::steady_clock::now().time_since_epoch().count() * 1.0e-9;
 	}
 	std::string currentDateTime()
 	{
