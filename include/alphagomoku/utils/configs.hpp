@@ -15,74 +15,79 @@ namespace ag
 {
 	struct GameConfig
 	{
-			GameRules rules = GameRules::FREESTYLE;
-			int rows = 0;
-			int cols = 0;
+		private:
+			struct Defaults
+			{
+					static constexpr GameRules rules = GameRules::FREESTYLE;
+					static constexpr int rows = 0;
+					static constexpr int cols = 0;
+			};
+		public:
+			GameRules rules;
+			int rows;
+			int cols;
 
-			GameConfig() = default;
-			GameConfig(int rows, int cols);
-			GameConfig(GameRules rules);
 			GameConfig(GameRules rules, int rows, int cols);
 			GameConfig(GameRules rules, int size);
 			GameConfig(const Json &cfg);
-
-			static Json getDefault();
+			Json toJson() const;
 	};
 
 	struct TreeConfig
 	{
-			int max_number_of_nodes = 5000000;
-			int bucket_size = 100000;
+		private:
+			struct Defaults
+			{
+					static constexpr int bucket_size = 1000000;
+			};
+		public:
+			int bucket_size = Defaults::bucket_size;
 
 			TreeConfig() = default;
 			TreeConfig(const Json &cfg);
-
-			static Json getDefault();
+			Json toJson() const;
 	};
 
 	struct CacheConfig
 	{
-			int min_cache_size = 8192;
-			int max_cache_size = 1048576;
-			bool update_from_search = false;
-			int update_visit_treshold = 10;
+		private:
+			struct Defaults
+			{
+					static constexpr int cache_size = 1048576;
+			};
+		public:
+			int cache_size = Defaults::cache_size;
 
 			CacheConfig() = default;
 			CacheConfig(const Json &cfg);
-
-			static Json getDefault();
+			Json toJson() const;
 	};
 
 	struct SearchConfig
 	{
-			int batch_size = 1;
-			float exploration_constant = 1.25f;
-			float expansion_prior_treshold = 0.0f;
-			int max_children = -1;
-			float noise_weight = 0.0f;
-			bool use_endgame_solver = false;
-			bool use_vcf_solver = false;
+		private:
+			struct Defaults
+			{
+					static constexpr int max_batch_size = 256;
+					static constexpr float exploration_constant = 1.25f;
+					static constexpr float expansion_prior_treshold = 0.0f;
+					static constexpr int max_children = std::numeric_limits<int>::max();
+					static constexpr float noise_weight = 0.0f;
+					static constexpr bool use_endgame_solver = false;
+					static constexpr bool use_vcf_solver = false;
+			};
+		public:
+			int max_batch_size = Defaults::max_batch_size;
+			float exploration_constant = Defaults::exploration_constant;
+			float expansion_prior_treshold = Defaults::expansion_prior_treshold;
+			int max_children = Defaults::max_children;
+			float noise_weight = Defaults::noise_weight;
+			bool use_endgame_solver = Defaults::use_endgame_solver;
+			bool use_vcf_solver = Defaults::use_vcf_solver;
 
 			SearchConfig() = default;
 			SearchConfig(const Json &cfg);
-
-			static Json getDefault();
-	};
-
-	struct VcfConfig
-	{
-			bool use_static_solver = true; // whether to use static tree pruning
-			bool use_recursive_solver = true; // whether to use recursive search to prove node
-			int max_nodes = 10000; // maximum number of nodes in buffer
-			int max_positions = 1000; // maximum number of positions that will be searched
-			int max_depth = 50; // maximum recursion depth
-			bool use_caching = false; // whether to use position caching or not
-			int cache_size = 100000; // number of positions in the cache
-
-			VcfConfig() = default;
-			VcfConfig(const Json &cfg);
-
-			static Json getDefault();
+			Json toJson() const;
 	};
 
 	Json getDefaultSelfplayConfig();

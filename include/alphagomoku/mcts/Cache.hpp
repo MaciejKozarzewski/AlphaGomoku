@@ -52,23 +52,16 @@ namespace ag
 		private:
 			struct Entry
 			{
-					static const int max_number_of_transpositions = 10;
-
-					Node *transpositions[max_number_of_transpositions]; // non-owning
 					Entry *next_entry = nullptr; // non-owning
 					std::unique_ptr<uint16_t[]> data;
 					uint64_t hash = 0;
 					Value value;
 					ProvenValue proven_value = ProvenValue::UNKNOWN;
-					int stored_transpositions = 0;
 
 					Entry(int boardSize);
 					void copyTo(EvaluationRequest &request) const noexcept;
 					void copyFrom(const EvaluationRequest &request, uint64_t boardHash) noexcept;
-					void addTransposition(Node *node) noexcept;
 					bool isPossible(const matrix<Sign> &newBoard) const noexcept;
-					void update(int visitTreshold, matrix<int> &workspace);
-					void clearTranspositions() noexcept;
 			};
 
 			ZobristHashing hashing;
@@ -98,7 +91,6 @@ namespace ag
 			int bufferedElements() const noexcept;
 			int numberOfBins() const noexcept;
 			double loadFactor() const noexcept;
-			int transpositionCount() const noexcept;
 			void clear() noexcept;
 
 			bool seek(EvaluationRequest &request) const noexcept;

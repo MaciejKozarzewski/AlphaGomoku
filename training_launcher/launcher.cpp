@@ -512,18 +512,18 @@ void test_evaluate()
 
 //	config["search_options"]["batch_size"] = 1;
 	config["search_options"]["batch_size"] = 4;
-	config["simulations"] = 5600;
+	config["simulations"] = 100;
 	manager.setFirstPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "batch_4");
 
 	config["search_options"]["batch_size"] = 32;
-	config["simulations"] = 9810;
+	config["simulations"] = 100;
 	manager.setSecondPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "batch_32");
 
-	manager.generate(200);
+	manager.generate(1000);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/effective10.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/fixed100.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -533,16 +533,15 @@ void generate_openings(int number)
 	GameConfig game_config(GameRules::STANDARD, 15);
 
 	TreeConfig tree_config;
-	tree_config.max_number_of_nodes = 500000000;
 	tree_config.bucket_size = 1000000;
 	Tree tree(tree_config);
 
 	CacheConfig cache_config;
-	cache_config.min_cache_size = 1024576;
+	cache_config.cache_size = 1024576;
 	Cache cache(game_config, cache_config);
 
 	SearchConfig search_config;
-	search_config.batch_size = 16;
+	search_config.max_batch_size = 16;
 	search_config.exploration_constant = 1.25f;
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-4f;
@@ -606,8 +605,8 @@ int main(int argc, char *argv[])
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
-//	test_evaluate();
-	generate_openings(500);
+	test_evaluate();
+//	generate_openings(500);
 
 //	benchmark_features();
 //	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/valid_buffer/", 119);
@@ -624,23 +623,18 @@ int main(int argc, char *argv[])
 
 	return 0;
 
-	GameConfig game_config;
-	game_config.rules = GameRules::FREESTYLE;
-	game_config.rows = 20;
-	game_config.cols = 20;
+	GameConfig game_config(GameRules::FREESTYLE, 20);
 
 	TreeConfig tree_config;
-	tree_config.max_number_of_nodes = 500000000;
 	tree_config.bucket_size = 1000000;
 	Tree tree(tree_config);
 
 	CacheConfig cache_config;
-	cache_config.min_cache_size = 1024576;
-	cache_config.update_from_search = false;
+	cache_config.cache_size = 1024576;
 	Cache cache(game_config, cache_config);
 
 	SearchConfig search_config;
-	search_config.batch_size = 16;
+	search_config.max_batch_size = 16;
 	search_config.exploration_constant = 1.25f;
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-4f;

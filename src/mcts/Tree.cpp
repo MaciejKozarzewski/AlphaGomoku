@@ -422,9 +422,6 @@ namespace ag
 
 	Node* Tree::reserve_nodes(int number)
 	{
-		if (usedNodes() + number > config.max_number_of_nodes)
-			return nullptr;
-
 		if (usedNodes() + number > allocatedNodes()) // allocate new bucket
 			nodes.push_back(std::make_unique<Node[]>(config.bucket_size));
 

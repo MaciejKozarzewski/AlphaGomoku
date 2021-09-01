@@ -2,7 +2,7 @@
  * Game.cpp
  *
  *  Created on: Mar 6, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
@@ -43,11 +43,7 @@ namespace ag
 
 	GameConfig Game::getConfig() const noexcept
 	{
-		GameConfig result;
-		result.rows = rows();
-		result.cols = cols();
-		result.rules = getRules();
-		return result;
+		return GameConfig(getRules(), rows(), cols());
 	}
 	int Game::rows() const noexcept
 	{

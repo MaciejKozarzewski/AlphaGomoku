@@ -36,6 +36,12 @@ namespace ag
 	uint64_t randLong();
 	bool randBool();
 
+	template<typename T>
+	constexpr bool isPowerOf2(T x) noexcept
+	{
+		return (x > 0) && !(x & (x - 1));
+	}
+
 	double getTime();
 	std::string currentDateTime();
 

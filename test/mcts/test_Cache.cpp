@@ -34,19 +34,12 @@ namespace
 
 	GameConfig getGameConfig()
 	{
-		GameConfig result;
-		result.rules = GameRules::STANDARD;
-		result.rows = 4;
-		result.cols = 5;
-		return result;
+		return GameConfig(GameRules::STANDARD, 4, 5);
 	}
 	CacheConfig getCacheConfig(int numberOfBins)
 	{
 		CacheConfig result;
-		result.min_cache_size = numberOfBins;
-		result.max_cache_size = numberOfBins;
-		result.update_from_search = false;
-		result.update_visit_treshold = 10;
+		result.cache_size = numberOfBins;
 		return result;
 	}
 }

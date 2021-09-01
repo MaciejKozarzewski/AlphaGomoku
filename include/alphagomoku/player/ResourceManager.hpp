@@ -38,6 +38,7 @@ namespace ag
 			double search_start_time = 0.0; // [seconds]
 			double time_for_pondering = 0.0; // [seconds]
 		public:
+			ResourceManager();
 
 			void setRows(int rows) noexcept;
 			void setCols(int cols) noexcept;

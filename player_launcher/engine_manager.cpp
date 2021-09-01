@@ -36,16 +36,36 @@ namespace ag
 
 	void EngineManager::processArguments(int argc, char *argv[])
 	{
-		argument_parser.parseArguments(argc, argv);
+		try
+		{
+			argument_parser.parseArguments(argc, argv);
+		} catch (ParsingError &pe)
+		{
+			output_sender.send(pe.what());
+			output_sender.send("Try '" + argument_parser.getExecutablename() + " --help' for more information.");
+			exit(-1);
+		}
 		if (display_help)
-			print_help_and_exit();
+		{
+			help();
+			exit(0);
+		}
 		if (display_version)
-			print_version_and_exit();
+		{
+			version();
+			exit(0);
+		}
 		load_config(argument_parser.getLaunchPath() + name_of_config);
 		if (run_configuration)
-			run_configuration_and_exit();
+		{
+			configure();
+			exit(0);
+		}
 		if (run_benchmark)
-			run_benchmark_and_exit();
+		{
+			benchmark();
+			exit(0);
+		}
 	}
 	void EngineManager::run()
 	{
@@ -168,25 +188,23 @@ namespace ag
 		{	this->display_help = true;});
 		argument_parser.addArgument("--version", "-v").help("display version information and exit").action([this]()
 		{	this->display_version = true;});
-		argument_parser.addArgument("--load-config").help("loads config named <value> with path relative to the executable. "
-				"If not specified, program will load file \"config.json\".").action([this](const std::string &arg)
+		argument_parser.addArgument("--load-config").help("load configuration file named <value> with path relative to the executable. "
+				"If this option is not specified, program will load file \"config.json\".").action([this](const std::string &arg)
 		{	this ->name_of_config = arg;});
 		argument_parser.addArgument("--configure").help(
-				"runs configuration mode and exits. Resulting configuration file is saved as <value> in path relative to the executable. "
-						"If such file already exists, it will be edited.").action([this](const std::string &arg)
-		{	this->run_configuration = true;
-			this->name_of_config = arg;});
-		argument_parser.addArgument("--benchmark", "-b").help("tests speed of all available hardware, saves to file \"benchmark.json\" and exits").action(
+				"run automatic configuration and exit. The result will be saved as 'config.json' overwriting previous content of this file (if existed).").action(
+				[this]()
+				{	this->run_configuration = true;});
+		argument_parser.addArgument("--benchmark", "-b").help("test speed of the available hardware, save to file \"benchmark.json\" and exit").action(
 				[this]()
 				{	this->run_benchmark = true;});
 	}
-	void EngineManager::print_help_and_exit() const
+	void EngineManager::help() const
 	{
 		std::string result = argument_parser.getHelpMessage();
 		output_sender.send(result);
-		exit(0);
 	}
-	void EngineManager::print_version_and_exit() const
+	void EngineManager::version() const
 	{
 		std::string result = argument_parser.getExecutablename() + " (" + ProgramInfo::name() + ") " + ProgramInfo::version() + '\n';
 		result += ProgramInfo::copyright() + '\n';
@@ -194,19 +212,41 @@ namespace ag
 		result += ProgramInfo::license() + '\n';
 		result += "For more information visit " + ProgramInfo::website() + '\n';
 		output_sender.send(result);
-		exit(0);
 	}
-	void EngineManager::run_benchmark_and_exit() const
+	void EngineManager::benchmark() const
 	{
 		Json benchmark_result = ag::run_benchmark(config["networks"]["standard"], output_sender);
 
 		FileSaver fs(argument_parser.getLaunchPath() + "benchmark.json");
 		fs.save(benchmark_result, SerializedObject(), 4, false);
-		exit(0);
 	}
-	void EngineManager::run_configuration_and_exit()
+	void EngineManager::configure()
 	{
+		output_sender.send("Starting automatic configuration");
+		const std::string path_to_benchmark = argument_parser.getLaunchPath() + "benchmark.json";
+		if (not std::filesystem::exists(path_to_benchmark))
+		{
+			output_sender.send("No benchmark file was found, creating new one.");
+			benchmark();
+		}
 
+		Json benchmark_results;
+		try
+		{
+			FileLoader fl(path_to_benchmark);
+			benchmark_results = fl.getJson();
+		} catch (std::exception &e)
+		{
+			output_sender.send("The benchmark file is invalid for some reason. Try deleting it and creating a new one.");
+			exit(-1);
+		}
+
+		if (static_cast<std::string>(benchmark_results["version"]) != ProgramInfo::version())
+		{
+			output_sender.send("Existing benchmark file is for different version, creating new one.");
+			benchmark();
+		}
+		createConfig(benchmark_results);
 	}
 	void EngineManager::load_config(const std::string &path)
 	{
@@ -216,11 +256,11 @@ namespace ag
 			{
 				FileLoader fl(path);
 				config = fl.getJson();
-				process_paths();
+				prepare_config();
 			} catch (std::exception &e)
 			{
 				output_sender.send("The configuration file is invalid for some reason. Try deleting it and creating a new one.");
-				exit(0);
+				exit(-1);
 			}
 		}
 		else
@@ -229,16 +269,17 @@ namespace ag
 			output_sender.send("You can generate new one by launching " + ProgramInfo::name() + " from command line with parameter '--configure'");
 			output_sender.send(
 					"If you are sure that configuration file exists, it means that the launch path might not have been parsed correctly due to some special characters in it.");
-			exit(0);
+			exit(-1);
 		}
 	}
-	void EngineManager::process_paths()
+	void EngineManager::prepare_config()
 	{
 		std::string launch_path = argument_parser.getLaunchPath();
 		config["swap2_openings_file"] = launch_path + static_cast<std::string>(config["swap2_openings_file"]);
 		launch_path += "networks" + path_separator;
 		config["networks"]["freestyle"] = launch_path + static_cast<std::string>(config["networks"]["freestyle"]);
 		config["networks"]["standard"] = launch_path + static_cast<std::string>(config["networks"]["standard"]);
+
 	}
 
 	void EngineManager::setup_protocol()

@@ -19,8 +19,7 @@
 namespace ag
 {
 	/* implemented in "configuration.cpp" */
-	Json loadConfig(const std::string &path);
-	void createConfig(const std::string &path);
+	void createConfig(const Json &benchmarkResults);
 
 	/* implemented in "benchmark.cpp" */
 	Json run_benchmark(const std::string &path_to_network, const OutputSender &output_sender);
@@ -37,7 +36,6 @@ namespace ag
 			MessageQueue output_queue;
 			std::unique_ptr<Protocol> protocol;
 			std::unique_ptr<SearchEngine> search_engine;
-			GameConfig game_config;
 			ResourceManager resource_manager;
 			std::future<void> input_future;
 			std::future<void> search_future;
@@ -58,12 +56,12 @@ namespace ag
 			void run();
 		private:
 			void create_arguments();
-			void print_help_and_exit() const;
-			void print_version_and_exit() const;
-			void run_benchmark_and_exit() const;
-			void run_configuration_and_exit();
+			void help() const;
+			void version() const;
+			void benchmark() const;
+			void configure();
 			void load_config(const std::string &path);
-			void process_paths();
+			void prepare_config();
 
 			void setup_protocol();
 			void process_input_from_user();

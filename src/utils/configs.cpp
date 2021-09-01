@@ -32,15 +32,7 @@ namespace
 
 namespace ag
 {
-	GameConfig::GameConfig(int rows, int cols) :
-			rows(rows),
-			cols(cols)
-	{
-	}
-	GameConfig::GameConfig(GameRules rules) :
-			rules(rules)
-	{
-	}
+
 	GameConfig::GameConfig(GameRules rules, int rows, int cols) :
 			rules(rules),
 			rows(rows),
@@ -54,68 +46,49 @@ namespace ag
 	{
 	}
 	GameConfig::GameConfig(const Json &cfg) :
-			rules(rulesFromString(cfg["rules"])),
-			rows(static_cast<int>(cfg["rows"])),
-			cols(static_cast<int>(cfg["cols"]))
+			rules(rulesFromString(get_value<std::string>(cfg, "rules"))),
+			rows(get_value<int>(cfg, "rows")),
+			cols(get_value<int>(cfg, "cols"))
 	{
 	}
-	Json GameConfig::getDefault()
+	Json GameConfig::toJson() const
 	{
-		return Json( { { "rules", toString(GameRules::FREESTYLE) }, { "rows", 0 }, { "cols", 0 } });
+		return Json( { { "rules", toString(rules) }, { "rows", rows }, { "cols", cols } });
 	}
 
 	TreeConfig::TreeConfig(const Json &cfg) :
-			max_number_of_nodes(cfg["max_number_of_nodes"]),
-			bucket_size(cfg["bucket_size"])
+			bucket_size(get_value<int>(cfg, "bucket_size", Defaults::bucket_size))
 	{
 	}
-	Json TreeConfig::getDefault()
+	Json TreeConfig::toJson() const
 	{
-		return Json( { { "max_number_of_nodes", 5000000 }, { "bucket_size", 100000 } });
+		return Json( { { "bucket_size", bucket_size } });
 	}
 
 	CacheConfig::CacheConfig(const Json &cfg) :
-			min_cache_size(cfg["min_cache_size"]),
-			max_cache_size(cfg["max_cache_size"]),
-			update_from_search(cfg["update_from_search"]),
-			update_visit_treshold(cfg["update_visit_treshold"])
+			cache_size(get_value<int>(cfg, "cache_size", Defaults::cache_size))
 	{
 	}
-	Json CacheConfig::getDefault()
+	Json CacheConfig::toJson() const
 	{
-		return Json( { { "min_cache_size", 8192 }, { "max_cache_size", 1048576 }, { "update_from_search", false }, { "update_visit_treshold", 10 } });
+		return Json( { { "cache_size", cache_size } });
 	}
 
 	SearchConfig::SearchConfig(const Json &cfg) :
-			batch_size(cfg["batch_size"]),
-			exploration_constant(cfg["exploration_constant"]),
-			expansion_prior_treshold(cfg["expansion_prior_treshold"]),
-			max_children(cfg["max_children"]),
-			noise_weight(cfg["noise_weight"]),
-			use_endgame_solver(cfg["use_endgame_solver"]),
-			use_vcf_solver(cfg["use_vcf_solver"])
+			max_batch_size(get_value<int>(cfg, "max_batch_size", Defaults::max_batch_size)),
+			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
+			expansion_prior_treshold(get_value<float>(cfg, "expansion_prior_treshold", Defaults::expansion_prior_treshold)),
+			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
+			noise_weight(get_value<float>(cfg, "noise_weight", Defaults::use_endgame_solver)),
+			use_endgame_solver(get_value<bool>(cfg, "use_endgame_solver", Defaults::use_endgame_solver)),
+			use_vcf_solver(get_value<bool>(cfg, "use_vcf_solver", Defaults::use_vcf_solver))
 	{
 	}
-	Json SearchConfig::getDefault()
+	Json SearchConfig::toJson() const
 	{
-		return Json( { { "batch_size", 1 }, { "exploration_constant", 1.25 }, { "expansion_prior_treshold", 1.0e-6 }, { "max_children", 1000 }, {
-				"noise_weight", 0.0 }, { "use_endgame_solver", false }, { "use_vcf_solver", false } });
-	}
-
-	VcfConfig::VcfConfig(const Json &cfg) :
-			use_static_solver(cfg["use_static_solver"]),
-			use_recursive_solver(cfg["use_recursive_solver"]),
-			max_nodes(cfg["max_nodes"]),
-			max_positions(cfg["max_positions"]),
-			max_depth(cfg["max_depth"]),
-			use_caching(cfg["use_caching"]),
-			cache_size(cfg["cache_size"])
-	{
-	}
-	Json VcfConfig::getDefault()
-	{
-		return Json( { { "use_static_solver", true }, { "use_recursive_solver", true }, { "max_nodes", 10000 }, { "max_positions", 1000 }, {
-				"max_depth", 50 }, { "use_caching", true }, { "cache_size", 100000 } });
+		return Json( { { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "expansion_prior_treshold",
+				expansion_prior_treshold }, { "max_children", max_children }, { "noise_weight", noise_weight }, { "use_endgame_solver",
+				use_endgame_solver }, { "use_vcf_solver", use_vcf_solver } });
 	}
 
 	Json getDefaultTrainingConfig()
@@ -142,10 +115,10 @@ namespace ag
 				"\"temperature\": 0.0,"
 				"\"use_symmetries\": \"false\""
 				"\"threads\": [{\"device\": \"CPU\"}]}");
-		result["search_options"] = SearchConfig::getDefault();
+		result["search_options"] = SearchConfig().toJson();
 		result["search_options"]["noise_weight"] = 0.25;
-		result["tree_options"] = TreeConfig::getDefault();
-		result["cache_options"] = CacheConfig::getDefault();
+		result["tree_options"] = TreeConfig().toJson();
+		result["cache_options"] = CacheConfig().toJson();
 		return result;
 	}
 	Json getDefaultEvaluationConfig()
@@ -159,9 +132,9 @@ namespace ag
 				"\"temperature\": 0.0,"
 				"\"use_symmetries\": \"false\""
 				"\"threads\": [{\"device\": \"CPU\"}]}");
-		result["search_options"] = SearchConfig::getDefault();
-		result["tree_options"] = TreeConfig::getDefault();
-		result["cache_options"] = CacheConfig::getDefault();
+		result["search_options"] = SearchConfig().toJson();
+		result["tree_options"] = TreeConfig().toJson();
+		result["cache_options"] = CacheConfig().toJson();
 		return result;
 	}
 

@@ -2,7 +2,7 @@
  * Cache.cpp
  *
  *  Created on: Mar 5, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/Cache.hpp>
@@ -66,7 +66,6 @@ namespace ag
 	Cache::Entry::Entry(int boardSize) :
 			data(std::make_unique<uint16_t[]>(boardSize))
 	{
-		clearTranspositions();
 	}
 	void Cache::Entry::copyTo(EvaluationRequest &request) const noexcept
 	{
@@ -87,20 +86,6 @@ namespace ag
 		value = request.getValue();
 		for (int i = 0; i < request.getPolicy().size(); i++)
 			data[i] = static_cast<int>(request.getBoard().data()[i]) | (static_cast<int>(request.getPolicy().data()[i] * 16383.0f) << 2);
-		clearTranspositions();
-		addTransposition(request.getNode());
-	}
-	void Cache::Entry::addTransposition(Node *node) noexcept
-	{
-		if (stored_transpositions >= max_number_of_transpositions || node == nullptr)
-			return;
-		for (int i = 0; i < stored_transpositions; i++)
-			if (transpositions[i] == node)
-				return;
-		transpositions[stored_transpositions] = node;
-		stored_transpositions++;
-		//if (proven_value == ProvenValue::UNKNOWN)
-		//	proven_value = node->getProvenValue(); // TODO potentially unsafe (lack of synchronization with the node)
 	}
 	bool Cache::Entry::isPossible(const matrix<Sign> &newBoard) const noexcept
 	{
@@ -109,52 +94,10 @@ namespace ag
 				return false;
 		return true;
 	}
-	void Cache::Entry::update(int visitTreshold, matrix<int> &workspace)
-	{
-		if (stored_transpositions == 0)
-			return;
-
-		int total_visits = 0;
-		double total_wins = 0.0, total_draws = 0.0, total_losses = 0.0;
-		for (int i = 0; i < stored_transpositions; i++)
-		{
-			assert(transpositions[i] != nullptr);
-			total_visits += transpositions[i]->getVisits();
-			total_wins += static_cast<double>(transpositions[i]->getValue().win) * transpositions[i]->getVisits();
-			total_draws += static_cast<double>(transpositions[i]->getValue().draw) * transpositions[i]->getVisits();
-			total_losses += static_cast<double>(transpositions[i]->getValue().loss) * transpositions[i]->getVisits();
-			if (proven_value == ProvenValue::UNKNOWN)
-				proven_value = transpositions[i]->getProvenValue();
-		}
-		assert(total_visits > 0);
-		this->value = Value(total_wins / total_visits, total_draws / total_visits, total_losses / total_visits);
-
-		if (total_visits >= visitTreshold and visitTreshold != -1)
-		{
-			total_visits = 0;
-			workspace.clear();
-			for (int i = 0; i < stored_transpositions; i++)
-				for (auto iter = transpositions[i]->begin(); iter < transpositions[i]->end(); iter++)
-				{
-					uint16_t move = iter->getMove();
-					workspace.at(Move::getRow(move), Move::getCol(move)) += iter->getVisits();
-					total_visits += iter->getVisits();
-				}
-
-			const float scale = 16383.0f / total_visits;
-			for (int i = 0; i < workspace.size(); i++)
-				data[i] = static_cast<int>(data[i] & 3) | (static_cast<int>(workspace.data()[i] * scale) << 2);
-		}
-	}
-	void Cache::Entry::clearTranspositions() noexcept
-	{
-		stored_transpositions = 0;
-		std::memset(transpositions, 0, sizeof(transpositions));
-	}
 
 	Cache::Cache(GameConfig gameOptions, CacheConfig cacheOptions) :
 			hashing(gameOptions.rows * gameOptions.cols),
-			bins(cacheOptions.min_cache_size, nullptr),
+			bins(cacheOptions.cache_size, nullptr),
 			game_config(gameOptions),
 			cache_config(cacheOptions)
 	{
@@ -213,21 +156,6 @@ namespace ag
 		std::lock_guard<std::mutex> lock(cache_mutex);
 		return static_cast<double>(stats.stored_entries) / bins.size();
 	}
-	int Cache::transpositionCount() const noexcept
-	{
-		std::lock_guard<std::mutex> lock(cache_mutex);
-		int result = 0;
-		for (size_t i = 0; i < bins.size(); i++)
-		{
-			Entry *current = bins[i];
-			while (current != nullptr)
-			{
-				result += current->stored_transpositions;
-				current = current->next_entry;
-			}
-		}
-		return result;
-	}
 	void Cache::clear() noexcept
 	{
 		std::lock_guard<std::mutex> lock(cache_mutex);
@@ -258,7 +186,6 @@ namespace ag
 			if (current->hash == hash)
 			{
 				current->copyTo(request);
-				current->addTransposition(request.getNode());
 				stats.hits++; // statistics
 				stats.time_seek += getTime() - start; // statistics
 				return true;
@@ -307,9 +234,6 @@ namespace ag
 				Entry *next = current->next_entry;
 				if (current->isPossible(newBoard))
 				{
-					if (cache_config.update_from_search)
-						current->update(cache_config.update_visit_treshold, workspace);
-					current->clearTranspositions();
 					current->next_entry = bins[i];
 					bins[i] = current;
 				}
@@ -388,7 +312,6 @@ namespace ag
 			stats.buffered_entries--;
 			Entry *result = buffer;
 			buffer = result->next_entry;
-			result->stored_transpositions = 0;
 			result->next_entry = nullptr;
 			return result;
 		}

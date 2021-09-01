@@ -15,7 +15,10 @@
 
 namespace ag
 {
-
+	ResourceManager::ResourceManager() :
+			game_config(GameRules::FREESTYLE, 0)
+	{
+	}
 	void ResourceManager::setRows(int rows) noexcept
 	{
 		std::lock_guard lock(mutex);

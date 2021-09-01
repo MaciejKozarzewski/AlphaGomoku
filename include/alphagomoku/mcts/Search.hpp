@@ -97,6 +97,7 @@ namespace ag
 			void cleanup();
 
 		private:
+			int get_batch_size() const noexcept;
 			SearchRequest& select();
 			GameOutcome evaluateFromGameRules(EvaluationRequest &position);
 			void evaluate(EvaluationRequest &position);

@@ -75,7 +75,7 @@ namespace ag
 			search_config(searchOptions)
 	{
 		moves_to_add.reserve(gameOptions.rows * gameOptions.cols);
-		search_buffer.reserve(search_config.batch_size);
+		search_buffer.reserve(search_config.max_batch_size);
 	}
 	void Search::clearStats() noexcept
 	{
@@ -130,7 +130,7 @@ namespace ag
 	bool Search::simulate(int maxSimulations)
 	{
 		assert(maxSimulations > 0);
-		while (static_cast<int>(search_buffer.size()) < search_config.batch_size)
+		while (static_cast<int>(search_buffer.size()) < get_batch_size())
 		{
 			if (simulation_count >= maxSimulations or tree.isProven())
 				return false; // search cannot be continued
@@ -183,6 +183,13 @@ namespace ag
 		search_buffer.clear();
 	}
 //private
+	int Search::get_batch_size() const noexcept
+	{
+		int result = 2;
+		for (int i = 1; i < simulation_count; i *= 10)
+			result *= 2; // doubling batch size for every 10x increase of simulations count
+		return std::min(search_config.max_batch_size, result);
+	}
 	Search::SearchRequest& Search::select()
 	{
 		double start = getTime(); // statistics
