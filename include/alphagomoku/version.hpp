@@ -1,7 +1,7 @@
 /*
  * version.hpp
  *
- *  Created on: 17 maj 2021
+ *  Created on: May 17, 2021
  *      Author: Maciej Kozarzewski
  */
 

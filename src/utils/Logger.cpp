@@ -1,8 +1,8 @@
 /*
  * Logger.cpp
  *
- *  Created on: 4 kwi 2021
- *      Author: maciek
+ *  Created on: Apr 4, 2021
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/utils/Logger.hpp>

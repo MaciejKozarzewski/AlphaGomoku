@@ -47,6 +47,12 @@ namespace ag
 			cols(cols)
 	{
 	}
+	GameConfig::GameConfig(GameRules rules, int size) :
+			rules(rules),
+			rows(size),
+			cols(size)
+	{
+	}
 	GameConfig::GameConfig(const Json &cfg) :
 			rules(rulesFromString(cfg["rules"])),
 			rows(static_cast<int>(cfg["rows"])),

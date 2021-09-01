@@ -1,8 +1,8 @@
 /*
  * Logger.hpp
  *
- *  Created on: 4 kwi 2021
- *      Author: maciek
+ *  Created on: Apr 4, 2021
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_UTILS_LOGGER_HPP_

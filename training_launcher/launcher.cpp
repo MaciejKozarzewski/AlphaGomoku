@@ -24,6 +24,7 @@
 #include <alphagomoku/evaluation/EvaluationManager.hpp>
 #include <alphagomoku/utils/ThreadPool.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
+#include <alphagomoku/utils/argument_parser.hpp>
 #include <libml/graph/Graph.hpp>
 #include <libml/hardware/Device.hpp>
 #include <libml/utils/json.hpp>
@@ -509,22 +510,95 @@ void test_evaluate()
 	EvaluationManager manager(fl.getJson());
 	Json config = fl.getJson()["evaluation_options"];
 
-	config["search_options"]["batch_size"] = 1;
-//	config["search_options"]["batch_size"] = 16;
-	config["simulations"] = 1600;
-	manager.setFirstPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "sim_1600");
+//	config["search_options"]["batch_size"] = 1;
+	config["search_options"]["batch_size"] = 4;
+	config["simulations"] = 5600;
+	manager.setFirstPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "batch_4");
 
-//	config["search_options"]["batch_size"] = 32;
-	config["simulations"] = 3200;
-	manager.setSecondPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "sim_3200");
+	config["search_options"]["batch_size"] = 32;
+	config["simulations"] = 9810;
+	manager.setSecondPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "batch_32");
 
-	manager.generate(1000);
+	manager.generate(200);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/batch1.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/effective10.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
+}
+
+void generate_openings(int number)
+{
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	TreeConfig tree_config;
+	tree_config.max_number_of_nodes = 500000000;
+	tree_config.bucket_size = 1000000;
+	Tree tree(tree_config);
+
+	CacheConfig cache_config;
+	cache_config.min_cache_size = 1024576;
+	Cache cache(game_config, cache_config);
+
+	SearchConfig search_config;
+	search_config.batch_size = 16;
+	search_config.exploration_constant = 1.25f;
+	search_config.noise_weight = 0.0f;
+	search_config.expansion_prior_treshold = 1.0e-4f;
+	search_config.max_children = 30;
+	search_config.use_endgame_solver = true;
+	search_config.use_vcf_solver = true;
+
+	ml::Device::cpu().setNumberOfThreads(1);
+	EvaluationQueue queue;
+	queue.loadGraph("/home/maciek/Desktop/AlphaGomoku501/networks/standard_10x128.bin", 32, ml::Device::cuda(1));
+
+	Search search(game_config, search_config, tree, cache, queue);
+
+	double start = getTime();
+	size_t counter = 0;
+	while (number > 0)
+	{
+		search.cleanup();
+		tree.clear();
+		cache.clear();
+
+		counter++;
+		std::vector<Move> opening = ag::prepareOpening(game_config, 2);
+
+		matrix<Sign> board(game_config.rows, game_config.cols);
+		for (size_t j = 0; j < opening.size(); j++)
+			board.at(opening[j].row, opening[j].col) = opening[j].sign;
+		tree.getRootNode().setMove(opening.back());
+		search.setBoard(board);
+
+		while (search.getSimulationCount() < 1000 and not tree.isProven())
+		{
+			search.simulate(1000);
+			queue.evaluateGraph();
+			search.handleEvaluation();
+		}
+
+		float balance = std::abs(tree.getRootNode().getValue().win - tree.getRootNode().getValue().loss);
+		if (counter % 100 == 0)
+			std::cout << (int) (getTime() - start) << "s, checked " << counter << " : " << balance << '\n';
+		if (balance < 0.1f)
+		{
+			std::cout << tree.getRootNode().toString() << '\n';
+			std::cout << boardToString(board) << '\n';
+			number--;
+
+			std::string to_save;
+			for (size_t j = 0; j < opening.size(); j++)
+				to_save += std::to_string(opening[j].row) + "," + std::to_string(opening[j].col) + " ";
+			to_save += '\n';
+
+			std::ofstream file("openings_standard.txt", std::ios::out | std::ios::app);
+			file.write(to_save.data(), to_save.size());
+			file.close();
+		}
+	}
 }
 
 int main(int argc, char *argv[])
@@ -532,18 +606,23 @@ int main(int argc, char *argv[])
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
-	test_evaluate();
+//	test_evaluate();
+	generate_openings(500);
 
 //	benchmark_features();
 //	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/valid_buffer/", 119);
-	return 0;
+//	return 0;
 
-	std::string path = (argc == 2) ? argv[1] : "/home/maciek/alphagomoku/freestyle_20x20/";
-
+//	std::string path;
+//	ArgumentParser ap;
+//	ap.addArgument("path", [&](const std::string &arg)
+//	{	path = arg;});
+//	ap.parseArguments(argc, argv);
 //	TrainingManager tm(path);
 //	for (int i = 0; i < 200; i++)
 //		tm.runIterationRL();
-//	return 0;
+
+	return 0;
 
 	GameConfig game_config;
 	game_config.rules = GameRules::FREESTYLE;

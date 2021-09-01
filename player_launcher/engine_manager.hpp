@@ -1,5 +1,5 @@
 /*
- * engine_settings.hpp
+ * engine_manager.hpp
  *
  *  Created on: Aug 30, 2021
  *      Author: Maciej Kozarzewski
@@ -13,6 +13,8 @@
 #include <alphagomoku/utils/argument_parser.hpp>
 
 #include <iostream>
+#include <fstream>
+#include <future>
 
 namespace ag
 {
@@ -37,6 +39,10 @@ namespace ag
 			std::unique_ptr<SearchEngine> search_engine;
 			GameConfig game_config;
 			ResourceManager resource_manager;
+			std::future<void> input_future;
+			std::future<void> search_future;
+			std::ofstream logfile;
+			bool is_running = true;
 
 			Json config;
 
@@ -49,14 +55,19 @@ namespace ag
 			EngineManager();
 
 			void processArguments(int argc, char *argv[]);
+			void run();
 		private:
 			void create_arguments();
-
 			void print_help_and_exit() const;
 			void print_version_and_exit() const;
 			void run_benchmark_and_exit() const;
 			void run_configuration_and_exit();
 			void load_config(const std::string &path);
+			void process_paths();
+
+			void setup_protocol();
+			void process_input_from_user();
+			void setup_logging();
 	};
 
 } /* namespace ag */

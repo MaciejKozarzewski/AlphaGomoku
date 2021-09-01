@@ -4,8 +4,10 @@
  *  Created on: Aug 30, 2021
  *      Author: Maciej Kozarzewski
  */
+#include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/version.hpp>
 #include <alphagomoku/utils/file_util.hpp>
+#include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 
 #include "engine_manager.hpp"
@@ -45,6 +47,120 @@ namespace ag
 		if (run_benchmark)
 			run_benchmark_and_exit();
 	}
+	void EngineManager::run()
+	{
+		setup_protocol();
+		while (is_running)
+		{
+			process_input_from_user();
+
+			while (input_queue.isEmpty() == false)
+			{
+				Message input_message = input_queue.pop();
+				switch (input_message.getType())
+				{
+					case MessageType::START_PROGRAM:
+					{
+						if (static_cast<bool>(config["use_logging"]))
+							setup_logging();
+						Logger::write("Using config : " + name_of_config);
+						break;
+					}
+					case MessageType::SET_OPTION:
+					{
+						bool success = resource_manager.setOption(input_message.getOption());
+						if (success == false)
+							output_queue.push(Message(MessageType::ERROR, std::string("unknown option ") + input_message.getOption().name));
+						break;
+					}
+					case MessageType::SET_POSITION:
+					{
+						resource_manager.setSearchStartTime(getTime());
+						if (search_engine == nullptr) // search engine is only initialized here
+							search_engine = std::make_unique<SearchEngine>(config, resource_manager);
+
+						search_engine->stopSearch();
+						if (search_future.valid())
+							search_future.get(); // wait for search task to end
+						search_engine->setPosition(input_message.getListOfMoves());
+						break;
+					}
+					case MessageType::START_SEARCH:	// START_SEARCH must be preceded with SET_POSITION message
+					{
+						if (search_engine == nullptr)
+						{
+							output_queue.push(Message(MessageType::ERROR, "search engine was not initialized"));
+							break;
+						}
+						if (search_future.valid() == true)
+						{
+							output_queue.push(Message(MessageType::ERROR, "search engine is already running"));
+							break;
+						}
+						if (input_message.getString() == "bestmove")
+						{
+							search_future = std::async(std::launch::async, [&]()
+							{
+								Message msg = search_engine->makeMove();
+								output_queue.push(search_engine->getSearchSummary());
+								output_queue.push(msg);
+								if (static_cast<bool>(config["always_ponder"]))
+								{
+									resource_manager.setSearchStartTime(getTime());
+									resource_manager.setTimeForPondering(2147483647.0);
+									search_engine->setPosition(msg.getMove());
+									output_queue.push(search_engine->ponder());
+									output_queue.push(search_engine->getSearchSummary());
+								}
+							});
+						}
+						if (input_message.getString() == "swap2")
+						{
+							search_future = std::async(std::launch::async, [&]()
+							{
+								Message msg = search_engine->swap2();
+								output_queue.push(search_engine->getSearchSummary());
+								output_queue.push(msg);
+							});
+						}
+						if (input_message.getString() == "ponder")
+						{
+							resource_manager.setSearchStartTime(getTime()); // pondering does not pay cost of initialization
+							search_future = std::async(std::launch::async, [&]()
+							{
+								Message msg = search_engine->ponder();
+								output_queue.push(search_engine->getSearchSummary());
+								output_queue.push(msg);
+							});
+						}
+						break;
+					}
+					case MessageType::STOP_SEARCH:
+					{
+						if (search_engine != nullptr)
+							search_engine->stopSearch();
+						break;
+					}
+					case MessageType::EXIT_PROGRAM:
+					{
+						is_running = false;
+						break;
+					}
+					default:
+						break;
+				}
+			}
+
+			if (search_future.valid())
+			{
+				std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
+				if (search_status == std::future_status::ready)
+					search_future.get();
+			}
+
+			protocol->processOutput(output_sender);
+		}
+	}
 
 	void EngineManager::create_arguments()
 	{
@@ -64,7 +180,6 @@ namespace ag
 				[this]()
 				{	this->run_benchmark = true;});
 	}
-
 	void EngineManager::print_help_and_exit() const
 	{
 		std::string result = argument_parser.getHelpMessage();
@@ -101,11 +216,7 @@ namespace ag
 			{
 				FileLoader fl(path);
 				config = fl.getJson();
-				std::string launch_path = argument_parser.getLaunchPath();
-				config["swap2_openings_file"] = launch_path + static_cast<std::string>(config["swap2_openings_file"]);
-				launch_path += "networks" + path_separator;
-				config["networks"]["freestyle"] = launch_path + static_cast<std::string>(config["networks"]["freestyle"]);
-				config["networks"]["standard"] = launch_path + static_cast<std::string>(config["networks"]["standard"]);
+				process_paths();
 			} catch (std::exception &e)
 			{
 				output_sender.send("The configuration file is invalid for some reason. Try deleting it and creating a new one.");
@@ -120,6 +231,53 @@ namespace ag
 					"If you are sure that configuration file exists, it means that the launch path might not have been parsed correctly due to some special characters in it.");
 			exit(0);
 		}
+	}
+	void EngineManager::process_paths()
+	{
+		std::string launch_path = argument_parser.getLaunchPath();
+		config["swap2_openings_file"] = launch_path + static_cast<std::string>(config["swap2_openings_file"]);
+		launch_path += "networks" + path_separator;
+		config["networks"]["freestyle"] = launch_path + static_cast<std::string>(config["networks"]["freestyle"]);
+		config["networks"]["standard"] = launch_path + static_cast<std::string>(config["networks"]["standard"]);
+	}
+
+	void EngineManager::setup_protocol()
+	{
+		if (not config.contains("protocol"))
+		{
+			config["protocol"] = "gomocup";
+			Logger::write("No 'protocol' field in the configuration, using GOMOCUP protocol");
+		}
+		switch (protocolFromString(config["protocol"]))
+		{
+			case ProtocolType::GOMOCUP:
+				protocol = std::make_unique<GomocupProtocol>(input_queue, output_queue);
+				break;
+			case ProtocolType::YIXINBOARD:
+				break;
+			case ProtocolType::UGI:
+				break;
+		}
+	}
+	void EngineManager::process_input_from_user()
+	{
+		if (input_future.valid())
+		{
+			std::future_status input_status = input_future.wait_for(std::chrono::milliseconds(10));
+			if (input_status == std::future_status::ready) // there is some input to process
+				input_future.get();
+		}
+		else
+		{
+			input_future = std::async(std::launch::async, [&]()
+			{	protocol->processInput(input_listener);});
+		}
+	}
+	void EngineManager::setup_logging()
+	{
+		logfile = std::ofstream(argument_parser.getLaunchPath() + "logs" + path_separator + currentDateTime() + ".log");
+		Logger::enable();
+		Logger::redirectTo(logfile);
 	}
 } /* namespace ag */
 

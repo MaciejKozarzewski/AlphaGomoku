@@ -15,16 +15,15 @@ namespace
 	using namespace ag;
 	std::pair<std::string, std::string> parse_launch_path(std::string text)
 	{
-#ifdef _WIN32
-		const std::string path_separator = "\\";
-#elif __linux__
-		const std::string path_separator = "/";
-#endif
 		size_t last_slash = text.length();
 		for (size_t i = 0; i < text.length(); i++)
 			if (text[i] == '\\' or text[i] == '/')
 			{
-				text[i] = path_separator[0];
+#ifdef _WIN32
+				text[i] = '\\';
+#elif __linux__
+				text[i] = '/';
+#endif
 				last_slash = i + 1;
 			}
 		return

@@ -2,7 +2,7 @@
  * configs.hpp
  *
  *  Created on: Mar 21, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_CONFIGS_HPP_
@@ -23,6 +23,7 @@ namespace ag
 			GameConfig(int rows, int cols);
 			GameConfig(GameRules rules);
 			GameConfig(GameRules rules, int rows, int cols);
+			GameConfig(GameRules rules, int size);
 			GameConfig(const Json &cfg);
 
 			static Json getDefault();
