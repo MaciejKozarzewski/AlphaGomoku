@@ -251,6 +251,8 @@ namespace ag
 		{
 			case ProtocolType::GOMOCUP:
 				return "GOMOCUP";
+			case ProtocolType::EXTENDED_GOMOCUP:
+				return "EXTENDED_GOMOCUP";
 			case ProtocolType::YIXINBOARD:
 				return "YIXINBOARD";
 			case ProtocolType::UGI:
@@ -263,6 +265,8 @@ namespace ag
 	{
 		if (str == "GOMOCUP" or str == "gomocup")
 			return ProtocolType::GOMOCUP;
+		if (str == "EXTENDED_GOMOCUP" or str == "extended_gomocup")
+			return ProtocolType::EXTENDED_GOMOCUP;
 		if (str == "YIXINBOARD" or str == "yixinboard")
 			return ProtocolType::YIXINBOARD;
 		if (str == "UGI" or str == "ugi")

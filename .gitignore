@@ -3,7 +3,6 @@
 /Testing/
 /cpu_only/
 bin/*
-doc/*
 bin/objects/*
 contrib/blis/*
 contrib/openblas/*

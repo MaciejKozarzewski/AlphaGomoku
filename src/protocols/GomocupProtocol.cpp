@@ -464,7 +464,7 @@ namespace ag
 		{
 			Move m = moveFromString(tmp[1], last_move.sign);
 			if (last_move != m)
-				output_queue.push(Message(MessageType::ERROR, "can undo only last move"));
+				output_queue.push(Message(MessageType::ERROR, "can undo only last move which is " + moveToString(last_move)));
 			else
 			{
 				{ 	// artificial scope for lock
