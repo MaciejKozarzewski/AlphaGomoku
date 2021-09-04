@@ -5,18 +5,11 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include "engine_manager.hpp"
-
+#include <alphagomoku/player/EngineManager.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <libml/hardware/Device.hpp>
-
-#ifdef USE_TEXT_UI
-#include <ftxui/component/component.hpp>
-#include <ftxui/component/screen_interactive.hpp>
-#include <ftxui/dom/elements.hpp>
-#endif
 
 #include <filesystem>
 #include <iostream>
@@ -86,30 +79,6 @@ namespace ag
 //		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
 //			list_of_devices.push_back( { false, ml::Device::cuda(i) });
 
-#ifdef USE_TEXT_UI
-		auto screen = ftxui::ScreenInteractive::FitComponent();
-
-		std::wstring number_of_threads;
-		auto input = ftxui::Input(&number_of_threads, L"placeholder");
-
-		auto checkboxes = ftxui::Container::Vertical( { });
-		for (size_t i = 0; i < list_of_devices.size(); ++i)
-		{
-			std::string description = list_of_devices[i].second.toString() + " : " + list_of_devices[i].second.info();
-			checkboxes->Add(ftxui::Checkbox(std::wstring(description.begin(), description.end()), &list_of_devices[i].first));
-		}
-		auto button = ftxui::Button(L"Save", screen.ExitLoopClosure());
-
-		auto layout = ftxui::Container::Vertical( { input, checkboxes, button });
-		auto component = ftxui::Renderer(layout, [&]
-		{
-			return ftxui::vbox(
-					{	input->Render(), ftxui::separator(), checkboxes->Render(), ftxui::separator(), button->Render()}) |
-			ftxui::xflex | size(ftxui::WIDTH, ftxui::GREATER_THAN, 40) | ftxui::border;
-		});
-
-		screen.Loop(component);
-#endif
 	}
 
 } /* namespace ag */

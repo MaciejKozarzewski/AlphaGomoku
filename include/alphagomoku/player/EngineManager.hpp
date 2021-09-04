@@ -1,12 +1,12 @@
 /*
- * engine_manager.hpp
+ * EngineManager.hpp
  *
  *  Created on: Aug 30, 2021
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ENGINE_MANAGER_HPP_
-#define ENGINE_MANAGER_HPP_
+#ifndef ENGINEMANAGER_HPP_
+#define ENGINEMANAGER_HPP_
 
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
@@ -24,7 +24,14 @@ namespace ag
 	/* implemented in "benchmark.cpp" */
 	Json run_benchmark(const std::string &path_to_network, const OutputSender &output_sender);
 
-	/* implemented in "engine_manager.cpp" */
+	/**
+	 * @brief Main class that interfaces between the user and the search engine.
+	 *
+	 * It parses and executes command line arguments (if any). Uses Protocol instance to translate runtime commands from user
+	 * into search commands, parses them and calls appropriate search engine methods.
+	 *
+	 * Implemented in "engine_manager.cpp"
+	 */
 	class EngineManager
 	{
 		private:
@@ -36,11 +43,11 @@ namespace ag
 			MessageQueue output_queue;
 			std::unique_ptr<Protocol> protocol;
 			std::unique_ptr<SearchEngine> search_engine;
-			ResourceManager resource_manager;
+			EngineSettings resource_manager;
 			std::future<void> input_future;
 			std::future<void> search_future;
 			std::ofstream logfile;
-			bool is_running = true;
+			std::string name_of_config = "config.json";
 
 			Json config;
 
@@ -48,7 +55,8 @@ namespace ag
 			bool display_version = false;
 			bool run_benchmark = false;
 			bool run_configuration = false;
-			std::string name_of_config = "config.json";
+			bool is_running = true;
+
 		public:
 			EngineManager();
 
@@ -70,4 +78,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ENGINE_MANAGER_HPP_ */
+#endif /* ENGINEMANAGER_HPP_ */

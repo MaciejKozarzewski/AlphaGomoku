@@ -14,7 +14,7 @@
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/EvaluationQueue.hpp>
-#include <alphagomoku/player/ResourceManager.hpp>
+#include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <libml/utils/json.hpp>
 
@@ -44,7 +44,7 @@ namespace ag
 	class SearchEngine
 	{
 		private:
-			ResourceManager &resource_manager;
+			EngineSettings &resource_manager;
 			ThreadPool thread_pool;
 			Tree tree;
 			Cache cache;
@@ -55,7 +55,7 @@ namespace ag
 			Json config;
 			double time_used_for_last_search = 0.0;
 		public:
-			SearchEngine(const Json &cfg, ResourceManager &rm);
+			SearchEngine(const Json &cfg, EngineSettings &rm);
 
 			/**
 			 * Used to setup entire board in one step. Moves must be in correct order (alternating colors)

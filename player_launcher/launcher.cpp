@@ -13,17 +13,17 @@
 int main(int argc, char *argv[])
 {
 	ag::EngineManager engine_manager;
-	try
-	{
+//	try
+//	{
 		engine_manager.processArguments(argc, argv);
 		engine_manager.run();
 		ag::Logger::write(ag::ProgramInfo::name() + " successfully exits");
-		return 0;
-	} catch (std::exception &e)
-	{
-		std::cerr << e.what() << std::endl;
-		ag::Logger::write(e.what());
-		return -1;
-	}
+//		return 0;
+//	} catch (std::exception &e)
+//	{
+//		std::cerr << e.what() << std::endl;
+//		ag::Logger::write(e.what());
+//		return -1;
+//	}
 }
 

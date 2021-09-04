@@ -1,16 +1,15 @@
 /*
- * engine_manager.cpp
+ * EngineManager.cpp
  *
  *  Created on: Aug 30, 2021
  *      Author: Maciej Kozarzewski
  */
+#include <alphagomoku/player/EngineManager.hpp>
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/version.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
-
-#include "engine_manager.hpp"
 
 #include <filesystem>
 
@@ -82,7 +81,7 @@ namespace ag
 					case MessageType::START_PROGRAM:
 					{
 						if (static_cast<bool>(config["use_logging"]))
-							setup_logging();
+							setup_logging(); // FIXME setting up logger in this way makes the initial 'START' command to disappear
 						Logger::write("Using config : " + name_of_config);
 						break;
 					}
@@ -191,11 +190,12 @@ namespace ag
 		argument_parser.addArgument("--load-config").help("load configuration file named <value> with path relative to the executable. "
 				"If this option is not specified, program will load file \"config.json\".").action([this](const std::string &arg)
 		{	this ->name_of_config = arg;});
-		argument_parser.addArgument("--configure").help(
-				"run automatic configuration and exit. The result will be saved as 'config.json' overwriting previous content of this file (if existed).").action(
+		argument_parser.addArgument("--configure", "-c").help(
+				"run automatic configuration and exit. The result will be saved as \"config.json\". If this file exists it will be overwritten.").action(
 				[this]()
 				{	this->run_configuration = true;});
-		argument_parser.addArgument("--benchmark", "-b").help("test speed of the available hardware, save to file \"benchmark.json\" and exit").action(
+		argument_parser.addArgument("--benchmark", "-b").help(
+				"test speed of the available hardware, save to file \"benchmark.json\" and exit. If this file exists it will be overwritten.").action(
 				[this]()
 				{	this->run_benchmark = true;});
 	}
@@ -226,8 +226,9 @@ namespace ag
 		const std::string path_to_benchmark = argument_parser.getLaunchPath() + "benchmark.json";
 		if (not std::filesystem::exists(path_to_benchmark))
 		{
-			output_sender.send("No benchmark file was found, creating new one.");
-			benchmark();
+			output_sender.send(
+					"No benchmark file was found, create it by launching " + ProgramInfo::name() + " from command line with parameter '--benchmark'");
+			exit(0);
 		}
 
 		Json benchmark_results;
@@ -243,8 +244,10 @@ namespace ag
 
 		if (static_cast<std::string>(benchmark_results["version"]) != ProgramInfo::version())
 		{
-			output_sender.send("Existing benchmark file is for different version, creating new one.");
-			benchmark();
+			output_sender.send(
+					"Existing benchmark file is for different version, create a new one by launching " + ProgramInfo::name()
+							+ " from command line with parameter '--configure'");
+			exit(0);
 		}
 		createConfig(benchmark_results);
 	}

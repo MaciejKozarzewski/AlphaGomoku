@@ -79,7 +79,7 @@ namespace ag
 		return eval_queue.getStats();
 	}
 
-	SearchEngine::SearchEngine(const Json &cfg, ResourceManager &rm) :
+	SearchEngine::SearchEngine(const Json &cfg, EngineSettings &rm) :
 			resource_manager(rm),
 			thread_pool(cfg["threads"].size()),
 			tree(cfg["tree_options"]),
