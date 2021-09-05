@@ -1,11 +1,11 @@
 /*
- * argument_parser.cpp
+ * ArgumentParser.cpp
  *
  *  Created on: Aug 20, 2021
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/utils/argument_parser.hpp>
+#include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <iostream>

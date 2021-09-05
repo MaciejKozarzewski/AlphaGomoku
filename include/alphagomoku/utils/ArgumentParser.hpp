@@ -1,5 +1,5 @@
 /*
- * argument_parser.hpp
+ * ArgumentParser.hpp
  *
  *  Created on: Aug 20, 2021
  *      Author: Maciej Kozarzewski
