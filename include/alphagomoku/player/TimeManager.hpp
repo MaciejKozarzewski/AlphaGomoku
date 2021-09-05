@@ -12,34 +12,65 @@
 
 namespace ag
 {
+	class EngineSettings;
+} /* namespace ag */
+
+namespace ag
+{
+	enum class OpeningType
+	{
+
+	};
 
 	class TimeManager
 	{
 		private:
+			static constexpr double TIME_FRACTION = 0.04; /**< fraction of the remaining time that is used every move */
+			static constexpr double SWAP2_FRACTION = 0.1;
+			const EngineSettings &engine_settings;
+
 			mutable std::mutex mutex;
-			const double TIME_FRACTION = 0.04; /**< fraction of time_left that is used every move */
-			const double SWAP2_FRACTION = 0.1;
+			double start_time = 0.0; /**< [seconds] */
+			double stop_time = 0.0; /**< [seconds] */
+			double used_time = 0.0; /**< [seconds] */
 
-			const double PROTOCOL_OVERHEAD = 0.4; /**< [seconds] lag between sending a message from program and receiving it by GUI   */
-
-			double search_start_time = 0.0; /**< [seconds] */
-			double time_for_pondering = 0.0; /**< [seconds] */
+			bool is_search_running = false;
 
 		public:
-			void setSearchStartTime(double t) noexcept;
+			TimeManager(const EngineSettings &settings);
+
+			/**
+			 * @brief Setup the time manager for general search.
+			 */
+			void setup() noexcept;
+			/**
+			 * @brief Setup the time manager for fixed time search.
+			 */
+			void setup(double time) noexcept;
+			/**
+			 * @brief Setup the time manager for specific phase of an opening.
+			 */
+			void setup(OpeningType opening, int phase) noexcept;
+			/**
+			 * @brief Starts measuring elapsed time.
+			 */
+			void startTimer() noexcept;
+			/**
+			 * @brief Stops the timer.
+			 *
+			 * Is needed to be able to get elapsed time after the search ended.
+			 */
+			void stopTimer() noexcept;
+			/**
+			 * @brief Decides whether the search should be continued.
+			 */
+			bool shouldTheSearchContinue() const noexcept;
+			/**
+			 * @brief Returns time spent on the search.
+			 *
+			 * If the search is not running at the point of calling this method, the time of previous search is returned.
+			 */
 			double getElapsedTime() const noexcept;
-
-			uint64_t getMaxMemory() const noexcept;
-			double getTimeForTurn() const noexcept;
-			double getTimeForSwap2(int stones) const noexcept;
-			double getTimeForPondering() const noexcept;
-
-			void setMaxMemory(uint64_t m) noexcept;
-			void setTimeForMatch(double t) noexcept;
-			void setTimeForTurn(double t) noexcept;
-			void setTimeLeft(double t) noexcept;
-			void setTimeForPondering(double t) noexcept;
-
 	};
 
 } /* namespace ag */

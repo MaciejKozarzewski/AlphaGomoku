@@ -128,14 +128,14 @@ namespace ag
 						if (msg.getString() == "swap")
 							sender.send("SWAP");
 					}
-					if (msg.holdsMove()) // used to return best move
+					if (msg.holdsMove()) // used to return the best move
 					{
 						assert(msg.getMove().sign == get_sign_to_move());
 						sender.send(moveToString(msg.getMove()));
 						std::lock_guard lock(board_mutex);
 						list_of_moves.push_back(msg.getMove());
 					}
-					if (msg.holdsListOfMoves()) // used in swap2
+					if (msg.holdsListOfMoves()) // used to return an opening in swap2
 					{
 						std::string str;
 						for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
@@ -181,55 +181,81 @@ namespace ag
 	void GomocupProtocol::INFO(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		auto tmp = split(line, ' ');
+		std::vector<std::string> tmp = split(line, ' ');
 		assert(tmp.size() == 3u);
 		if (tmp[1] == "timeout_turn")
+		{
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_turn", tmp[2] }));
+			return;
+		}
 		if (tmp[1] == "timeout_match")
+		{
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_match", tmp[2] }));
+			return;
+		}
 		if (tmp[1] == "time_left")
+		{
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_left", tmp[2] }));
+			return;
+		}
 		if (tmp[1] == "max_memory")
+		{
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_memory", tmp[2] }));
+			return;
+		}
 		if (tmp[1] == "game_type")
+		{
 			input_queue.push(Message());
+			return;
+		}
 		if (tmp[1] == "rule")
 		{
 			switch (std::stoi(tmp[2]))
 			{
 				case 0:
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::FREESTYLE) }));
-					break;
+					return;
 				case 1:
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::STANDARD) }));
-					break;
+					return;
 				case 2:
 					input_queue.push(Message());
 					output_queue.push(Message(MessageType::ERROR, "continuous game is not supported"));
-					break;
+					return;
 				case 4:
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) }));
 					output_queue.push(Message(MessageType::ERROR, "renju rule is not supported"));
-					break;
+					return;
 				case 8:
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) }));
 					output_queue.push(Message(MessageType::ERROR, "caro rule is not supported"));
-					break;
+					return;
+				default:
+					input_queue.push(Message());
+					output_queue.push(Message(MessageType::ERROR, "invalid rule " + tmp[2]));
+					return;
 			}
 		}
 		if (tmp[1] == "evaluate")
+		{
+			Move m = moveFromString(tmp[1], get_sign_to_move());
 			input_queue.push(Message());
+			return;
+		}
 		if (tmp[1] == "folder")
+		{
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "folder", tmp[2] }));
+			return;
+		}
 	}
 	void GomocupProtocol::START(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		auto tmp = split(line, ' ');
+		std::vector<std::string> tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 		input_queue.push(Message(MessageType::START_PROGRAM));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "cols", tmp[1] }));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp[1] }));
 
 		if (std::stoi(tmp[1]) == 15 or std::stoi(tmp[1]) == 20)
 			output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
@@ -239,14 +265,14 @@ namespace ag
 	void GomocupProtocol::RECTSTART(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		auto tmp = split(line, ' ');
+		std::vector<std::string> tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 		tmp = split(tmp[1], ',');
 		assert(tmp.size() == 2u);
 		output_queue.push(Message(MessageType::ERROR, "rectangular boards are not supported"));
 		/* if it was supported, below is how it should be implemented */
 //		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
-//		input_queue.push(Message(MessageType::SET_OPTION, Option { "cols", tmp[0] }));
+//		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp[0] }));
 //		input_queue.push(Message(MessageType::START_PROGRAM));
 	}
 	void GomocupProtocol::RESTART(InputListener &listener)
@@ -418,7 +444,7 @@ namespace ag
 	void GomocupProtocol::TURN(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		auto tmp = split(line, ' ');
+		std::vector<std::string> tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 		Move m = moveFromString(tmp[1], get_sign_to_move());
 		{ 	// artificial scope for lock
@@ -431,7 +457,7 @@ namespace ag
 	void GomocupProtocol::PONDER(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		auto tmp = split(line, ' ');
+		std::vector<std::string> tmp = split(line, ' ');
 		if (tmp.size() == 1)
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", "-1" }));
 		else
@@ -447,7 +473,7 @@ namespace ag
 	void GomocupProtocol::TAKEBACK(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		auto tmp = split(line, ' ');
+		std::vector<std::string> tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 
 		int number_of_moves;

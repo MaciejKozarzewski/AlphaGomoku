@@ -2,7 +2,7 @@
  * augmentations.cpp
  *
  *  Created on: Mar 2, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/utils/augmentations.hpp>

@@ -255,8 +255,6 @@ namespace ag
 				return "EXTENDED_GOMOCUP";
 			case ProtocolType::YIXINBOARD:
 				return "YIXINBOARD";
-			case ProtocolType::UGI:
-				return "UGI";
 			default:
 				return "";
 		}
@@ -269,8 +267,6 @@ namespace ag
 			return ProtocolType::EXTENDED_GOMOCUP;
 		if (str == "YIXINBOARD" or str == "yixinboard")
 			return ProtocolType::YIXINBOARD;
-		if (str == "UGI" or str == "ugi")
-			return ProtocolType::UGI;
 		throw std::invalid_argument(str);
 	}
 

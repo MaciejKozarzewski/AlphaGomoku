@@ -173,8 +173,7 @@ namespace ag
 	{
 		GOMOCUP, /**< protocol used in Gomocup tournament */
 		EXTENDED_GOMOCUP, /**< protocol derived from the base one, extended with several new commands */
-		YIXINBOARD, /**< protocol used by YixinBoard GUI */
-		UGI /**< protocol derived from Universal Chess Interface, to be specified and implemented later */
+		YIXINBOARD /**< protocol used by YixinBoard GUI */
 	};
 	std::string toString(ProtocolType pt);
 	ProtocolType protocolFromString(const std::string &str);

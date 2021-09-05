@@ -530,7 +530,7 @@ namespace ag
 	}
 	ag::Move moveFromString(const std::string &str, ag::Sign sign)
 	{
-		auto tmp = split(str, ',');
+		std::vector<std::string> tmp = split(str, ',');
 		assert(tmp.size() == 2u);
 		// coordinates in Gomocup protocol are inverted relative to those used internally here
 		int row = std::stoi(tmp[1]);
