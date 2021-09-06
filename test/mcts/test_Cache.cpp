@@ -118,13 +118,12 @@ namespace ag
 	TEST(TestCache, cleanup)
 	{
 		Cache cache(getGameConfig(), getCacheConfig(1024));
-		std::unique_ptr<Node[]> children_node1 = std::make_unique<Node[]>(12);
-		std::unique_ptr<Node[]> children_node2 = std::make_unique<Node[]>(5);
-		Node node1, node2;
+		std::unique_ptr<Node_old[]> children_node1 = std::make_unique<Node_old[]>(12);
+		std::unique_ptr<Node_old[]> children_node2 = std::make_unique<Node_old[]>(5);
+		Node_old node1, node2;
 
 		node1.createChildren(children_node1.get(), 12);
 		node2.createChildren(children_node2.get(), 5);
-
 	}
 }
 

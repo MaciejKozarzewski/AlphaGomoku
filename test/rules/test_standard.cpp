@@ -18,6 +18,7 @@ namespace ag
 {
 	TEST(TestRules, standardFullBoard)
 	{
+		GTEST_SKIP();
 		std::vector<int> cross_winning_patterns, circle_winning_patterns;
 		for (size_t i = 0; i < standard_winning_patterns.size(); i++)
 		{
@@ -55,6 +56,7 @@ namespace ag
 	}
 	TEST(TestRules, standardLastMove)
 	{
+		GTEST_SKIP();
 		std::vector<int> cross_winning_patterns, circle_winning_patterns;
 		for (size_t i = 0; i < standard_winning_patterns.size(); i++)
 		{

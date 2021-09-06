@@ -1,11 +1,11 @@
 /*
- * test_argument_parser.cpp
+ * test_ArgumentParser.cpp
  *
  *  Created on: Aug 21, 2021
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/utils/argument_parser.hpp>
+#include <alphagomoku/utils/ArgumentParser.hpp>
 
 #include <gtest/gtest.h>
 

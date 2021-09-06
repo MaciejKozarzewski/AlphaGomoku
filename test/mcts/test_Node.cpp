@@ -2,7 +2,7 @@
  * test_Node.cpp
  *
  *  Created on: Mar 3, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/Node.hpp>
@@ -14,26 +14,23 @@ namespace ag
 	TEST(TestNode, init)
 	{
 		Node node;
-		EXPECT_EQ(node.getPolicyPrior(), 0.0f);
 		EXPECT_EQ(node.getValue().win, 0.0f);
 		EXPECT_EQ(node.getValue().draw, 0.0f);
-		EXPECT_EQ(node.getValue().loss, 0.0f);
 		EXPECT_EQ(node.getVisits(), 0);
 		EXPECT_EQ(node.getProvenValue(), ProvenValue::UNKNOWN);
-		EXPECT_EQ(node.getMove(), 0);
-		EXPECT_EQ(node.numberOfChildren(), 0);
+		EXPECT_EQ(node.numberOfEdges(), 0);
 		EXPECT_TRUE(node.isLeaf());
 		EXPECT_FALSE(node.isProven());
 	}
 	TEST(TestNode, createChildren)
 	{
 		Node node;
-		Node array[123];
+		Edge array[123];
 
-		node.createChildren(array, 123);
+		node.assignEdges(array, 123);
 
 		EXPECT_EQ(node.getProvenValue(), ProvenValue::UNKNOWN);
-		EXPECT_EQ(node.numberOfChildren(), 123);
+		EXPECT_EQ(node.numberOfEdges(), 123);
 		EXPECT_FALSE(node.isLeaf());
 		EXPECT_FALSE(node.isProven());
 	}
@@ -82,13 +79,13 @@ namespace ag
 	TEST(TestNode, setProvenValue)
 	{
 		Node node;
-		Node array[123];
+		Edge array[123];
 
-		node.createChildren(array, 123);
+		node.assignEdges(array, 123);
 		node.setProvenValue(ProvenValue::WIN);
 
 		EXPECT_EQ(node.getProvenValue(), ProvenValue::WIN);
-		EXPECT_EQ(node.numberOfChildren(), 123);
+		EXPECT_EQ(node.numberOfEdges(), 123);
 		EXPECT_FALSE(node.isLeaf());
 		EXPECT_TRUE(node.isProven());
 	}

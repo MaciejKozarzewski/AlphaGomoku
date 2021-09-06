@@ -238,7 +238,7 @@ namespace ag
 		}
 		if (tmp[1] == "evaluate")
 		{
-			Move m = moveFromString(tmp[1], get_sign_to_move());
+			Move m = moveFromString(tmp[2], get_sign_to_move());
 			input_queue.push(Message());
 			return;
 		}

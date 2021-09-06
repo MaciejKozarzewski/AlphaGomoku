@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_MCTS_EDGE_HPP_
 
 #include <alphagomoku/mcts/Value.hpp>
+#include <alphagomoku/game/Move.hpp>
 
 #include <inttypes.h>
 #include <cassert>
@@ -50,6 +51,10 @@ namespace ag
 			{
 				return node;
 			}
+			float getPolicyPrior() const noexcept
+			{
+				return policy_prior;
+			}
 			Value getValue() const noexcept
 			{
 				return Value(win_rate, draw_rate, 1.0f - win_rate - draw_rate);
@@ -61,6 +66,10 @@ namespace ag
 			ProvenValue getProvenValue() const noexcept
 			{
 				return static_cast<ProvenValue>(data & 3);
+			}
+			uint16_t getMove() const noexcept
+			{
+				return move;
 			}
 			void assignNode(Node *ptr) noexcept
 			{
@@ -92,6 +101,14 @@ namespace ag
 			void setProvenValue(ProvenValue ev) noexcept
 			{
 				data = (data & 16383) | static_cast<uint16_t>(ev);
+			}
+			void setMove(uint16_t m) noexcept
+			{
+				move = m;
+			}
+			void setMove(const Move &m) noexcept
+			{
+				move = m.toShort();
 			}
 			bool isLeaf() const noexcept
 			{
