@@ -2,7 +2,7 @@
  * ThreadPool.cpp
  *
  *  Created on: Mar 23, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/utils/ThreadPool.hpp>
@@ -52,7 +52,7 @@ namespace ag
 	void ThreadPool::waitForFinish()
 	{
 		std::unique_lock lock(queue_mutex);
-		ready_cond.wait(lock, [this] // @suppress("Invalid arguments")
+		ready_cond.wait(lock, [this]() // @suppress("Invalid arguments")
 		{	return this->is_ready() or is_running == false;});
 	}
 	void ThreadPool::thread_run(ThreadPool *arg)
