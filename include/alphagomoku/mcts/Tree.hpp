@@ -38,6 +38,25 @@ namespace ag
 			TreeStats& operator/=(int i) noexcept;
 	};
 
+	class TreeLock
+	{
+		private:
+			std::mutex* tree_mutex;
+		public:
+			TreeLock(std::mutex &t) :
+					tree_mutex(&t)
+			{
+			}
+			TreeLock(TreeLock &&other) = default;
+			TreeLock& operator=(TreeLock &&other) = default;
+			~TreeLock()
+			{
+				tree_mutex->unlock();
+			}
+			TreeLock(const TreeLock &other) = delete;
+			TreeLock& operator=(const TreeLock &other) = delete;
+	};
+
 	class Tree
 	{
 		private:
@@ -50,6 +69,8 @@ namespace ag
 			int balancing_depth = -1;
 		public:
 			Tree(TreeConfig treeOptions);
+			[[nodiscard]] TreeLock lock() const noexcept;
+
 			uint64_t getMemory() const noexcept;
 			void clearStats() noexcept;
 			TreeStats getStats() const noexcept;
@@ -77,6 +98,7 @@ namespace ag
 		private:
 			Node* reserve_nodes(int number);
 	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_TREE_HPP_ */

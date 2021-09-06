@@ -2,7 +2,7 @@
  * Tree.cpp
  *
  *  Created on: Mar 2, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
@@ -224,6 +224,12 @@ namespace ag
 			config(treeOptions)
 	{
 	}
+	TreeLock Tree::lock() const noexcept
+	{
+		tree_mutex.lock();
+		return TreeLock(tree_mutex);
+	}
+
 	uint64_t Tree::getMemory() const noexcept
 	{
 		return sizeof(Node) * usedNodes();
