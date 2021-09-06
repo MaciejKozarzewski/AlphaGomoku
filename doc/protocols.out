@@ -1,0 +1,46 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Gomocup Protocol}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{START [size]}{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{TURN [C],[R]}{section.2}% 4
+\BOOKMARK [2][-]{subsection.2.3}{BEGIN}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.4}{BOARD}{section.2}% 6
+\BOOKMARK [2][-]{subsection.2.5}{INFO [key] [value]}{section.2}% 7
+\BOOKMARK [3][-]{subsubsection.2.5.1}{INFO timeout\137turn [x]}{subsection.2.5}% 8
+\BOOKMARK [3][-]{subsubsection.2.5.2}{INFO timeout\137match [x]}{subsection.2.5}% 9
+\BOOKMARK [3][-]{subsubsection.2.5.3}{INFO time\137left [x]}{subsection.2.5}% 10
+\BOOKMARK [3][-]{subsubsection.2.5.4}{INFO max\137memory [x]}{subsection.2.5}% 11
+\BOOKMARK [3][-]{subsubsection.2.5.5}{INFO game\137type [x]}{subsection.2.5}% 12
+\BOOKMARK [3][-]{subsubsection.2.5.6}{INFO rule [x]}{subsection.2.5}% 13
+\BOOKMARK [3][-]{subsubsection.2.5.7}{INFO evaluate [C],[R]}{subsection.2.5}% 14
+\BOOKMARK [3][-]{subsubsection.2.5.8}{INFO folder [x]}{subsection.2.5}% 15
+\BOOKMARK [3][-]{subsubsection.2.5.9}{Default values}{subsection.2.5}% 16
+\BOOKMARK [2][-]{subsection.2.6}{END}{section.2}% 17
+\BOOKMARK [2][-]{subsection.2.7}{ABOUT}{section.2}% 18
+\BOOKMARK [2][-]{subsection.2.8}{RECTSTART [width],[height]}{section.2}% 19
+\BOOKMARK [2][-]{subsection.2.9}{RESTART}{section.2}% 20
+\BOOKMARK [2][-]{subsection.2.10}{TAKEBACK [C],[R]}{section.2}% 21
+\BOOKMARK [2][-]{subsection.2.11}{UNKNOWN [error message]}{section.2}% 22
+\BOOKMARK [2][-]{subsection.2.12}{ERROR [error message]}{section.2}% 23
+\BOOKMARK [2][-]{subsection.2.13}{MESSAGE [message]}{section.2}% 24
+\BOOKMARK [2][-]{subsection.2.14}{DEBUG [message]}{section.2}% 25
+\BOOKMARK [1][-]{section.3}{Extended Gomocup Protocol}{}% 26
+\BOOKMARK [2][-]{subsection.3.1}{SUGGEST [C],[R]}{section.3}% 27
+\BOOKMARK [2][-]{subsection.3.2}{PLAY [C],[R]}{section.3}% 28
+\BOOKMARK [2][-]{subsection.3.3}{Additional INFO keys}{section.3}% 29
+\BOOKMARK [3][-]{subsubsection.3.3.1}{INFO evaluate [C1],[R1] [C2],[R2] ...}{subsection.3.3}% 30
+\BOOKMARK [3][-]{subsubsection.3.3.2}{INFO analysis\137mode [x]}{subsection.3.3}% 31
+\BOOKMARK [3][-]{subsubsection.3.3.3}{INFO max\137depth [x]}{subsection.3.3}% 32
+\BOOKMARK [3][-]{subsubsection.3.3.4}{INFO max\137node [x]}{subsection.3.3}% 33
+\BOOKMARK [3][-]{subsubsection.3.3.5}{INFO time\137increment [x]}{subsection.3.3}% 34
+\BOOKMARK [3][-]{subsubsection.3.3.6}{INFO style [x]}{subsection.3.3}% 35
+\BOOKMARK [3][-]{subsubsection.3.3.7}{INFO auto\137pondering [x]}{subsection.3.3}% 36
+\BOOKMARK [3][-]{subsubsection.3.3.8}{INFO protocol\137lag [x]}{subsection.3.3}% 37
+\BOOKMARK [3][-]{subsubsection.3.3.9}{INFO }{subsection.3.3}% 38
+\BOOKMARK [3][-]{subsubsection.3.3.10}{Default values}{subsection.3.3}% 39
+\BOOKMARK [2][-]{subsection.3.4}{PONDER [value]}{section.3}% 40
+\BOOKMARK [2][-]{subsection.3.5}{STOP}{section.3}% 41
+\BOOKMARK [2][-]{subsection.3.6}{SWAP2BOARD}{section.3}% 42
+\BOOKMARK [2][-]{subsection.3.7}{SWAPBOARD}{section.3}% 43
+\BOOKMARK [2][-]{subsection.3.8}{SHOWFORBID}{section.3}% 44
+\BOOKMARK [2][-]{subsection.3.9}{BALANCE [n]}{section.3}% 45
+\BOOKMARK [2][-]{subsection.3.10}{CLEARHASH}{section.3}% 46

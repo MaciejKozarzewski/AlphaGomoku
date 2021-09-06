@@ -1,0 +1,431 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage[breaklinks]{hyperref}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{enumitem}
+
+\title{Communication protocols specification}
+\author{Maciej Kozarzewski}
+\date{ }
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+This document describes the details of how protocols are implemented in AlphaGomoku (AG).
+
+
+\newpage
+\section{Gomocup Protocol}
+Here are listed all Gomocup protocol \cite{newprotocol} commands that are implemented in AG with description how they work in this particular program.
+
+The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [C],[R].
+
+\textbf{Note:} In order to use this protocol in AG, field "protocol" in the configuration file must be set to "gomocup".
+
+\subsection{START [size]}
+\label{cmd_start}
+Upon receiving this command, engine sets the board size.
+
+\textbf{Note:} In AG, [size] can be either 15 or 20. For any other value AG will respond with an \texttt{ERROR} message. This is later checked in combination with \texttt{INFO rule} value where also an \texttt{ERROR} can be sent.
+
+\textbf{Note:} In contrary to the official protocol description, AG does not actually initialize itself here.
+
+\textbf{Note:} If logging to file is enabled, a new file will be created for every \texttt{START} command.
+
+
+\subsection{TURN [C],[R]}
+\label{cmd_turn}
+This command is implemented exactly like in the protocol description. If \texttt{TURN} command is sent as the first one after \texttt{START}, engine will behave like if it received:\\
+\texttt{BOARD} \\
+\texttt{[C],[R],2} \\
+\texttt{DONE}\\
+
+
+\subsection{BEGIN}
+\label{cmd_begin}
+This command is implemented exactly like in the protocol description.
+
+
+\subsection{BOARD}
+\label{cmd_board}
+This command is implemented exactly like in the protocol description.
+
+\textbf{Note:} The third field (move type) value of 3 is not supported. 
+
+\textbf{Note:} If the position is invalid (too many black or white stones, etc.), AG will respond with an \texttt{ERROR} message.
+
+\textbf{Note:} AG will keep its cache from previous searches, clearing only those entries that are provably useless given the current board state. It means that if the same board is set two times in a row, in the second search AG will use all the information collected during the first search.
+
+
+\subsection{INFO [key] [value]}
+\label{cmd_info}
+In theory AG can react to the change of any parameters even during search (except \texttt{rule} which must be specified before any search starts), but no guarantees are made if some contradictory values are sent. If anything goes wrong the error description might be found in the logfile. The key can be:\\
+
+\subsubsection{INFO timeout{\_}turn [x]}
+\label{cmd_info_timeout_turn}
+Sets the time limit for each move in milliseconds. If \text{$[x] < 0$} the time for move is unlimited.
+
+\textbf{Note:} AG will end the search when it runs out of memory.
+
+\textbf{Note:} If \text{$[x]=0$} is set, it may take some more time than exactly 0 ms for AG to respond.
+
+\textbf{Note:} If remaining timeouts are set to be infinite, AG will search exactly for \texttt{timeout{\_}turn} milliseconds.
+
+\subsubsection{INFO timeout{\_}match [x]}
+\label{cmd_timeout_match}
+Sets the time limit of a whole match in milliseconds.
+
+\textbf{Note:} If \text{$[x] \leq 0$} the time for match is unlimited.
+
+\subsubsection{INFO time{\_}left [x]}
+\label{cmd_info_time_left}
+Specifies how much time remains for the match in milliseconds.
+
+\textbf{Note:} If \text{$[x] < 0$} the remaining time is unlimited.
+
+\textbf{Note:} AG will end the search when it runs out of memory.
+
+\subsubsection{INFO max{\_}memory [x]}
+\label{cmd_info_max_memory}
+Sets the memory limit in bytes.
+
+\textbf{Note:} If \text{$[x]<=0$} memory usage is not limited.
+
+\textbf{Note:} AG uses only as much memory as it needs, often lower than [x].
+
+\textbf{Note:} If the memory limit is too low, AG may stop the search when it runs out of memory.
+
+\textbf{Note:} This setting cannot be changed during the search.
+
+\subsubsection{INFO game{\_}type [x]}
+\label{cmd_info_game_type}
+\textbf{Note:} This information is ignored by the AG.
+
+\subsubsection{INFO rule [x]}
+\label{cmd_info_rule}
+Specifies the rules used for the game. A bitmask that can have several possible values:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{five or more wins - freestyle rule. Supported only for 20x20 board.}
+	\item[\text{$[x]=1$}]{exactly five wins - standard rule. Supported only for 15x15 board.}
+	\item[\text{$[x]=2$}]{continuous game - not supported.}
+	\item[\text{$[x]=4$}]{renju rule. Currently not implemented.}
+	\item[\text{$[x]=8$}]{caro rule (OXXXXXO is not a win). Currently not implemented.}
+\end{enumerate}
+
+\textbf{Note:} This setting cannot be changed during the search.
+
+\subsubsection{INFO evaluate [C],[R]}
+\label{cmd_info_evaluate}
+A request to evaluate move with coordinates [C],[R]. AG will answer with a \texttt{MESSAGE} with evaluation of the [C],[R] move at root, similar to the one sent after search ends.
+
+\subsubsection{INFO folder [x]}
+\label{cmd_info_folder}
+\textbf{Note:} AG does not save any temporary data so this info is ignored.
+
+\subsubsection{Default values}
+Some parameters have default values so AG works even if no \texttt{INFO} was sent:
+\begin{itemize}
+\item{\textbf{timeout{\_}turn } = 5000 (5 seconds)}
+\item{\textbf{timeout{\_}match} = -1 (no limit)}
+\item{\textbf{max{\_}memory} = 268435456 (256MB)}
+\item{\textbf{time{\_}left} = -1 (no limit)}
+\item{\textbf{rule} = 0 (freestyle rule)}
+\end{itemize}
+
+
+\subsection{END}
+\label{cmd_end}
+This command is implemented exactly like in the protocol description.
+
+\textbf{Note:} AG often exceeds GUI timeout limits because it needs to deallocate all its resources that can reach gigabytes of RAM memory (for long searches using GPUs).
+
+
+\subsection{ABOUT}
+\label{cmd_about}
+AG will respond with following informations : "name", "version", "author", "country", "www", "email".
+
+
+\subsection{RECTSTART [width],[height]}
+\label{cmd_rectstart}
+Rectangular boards are not supported in AG, but this command is implemented and will return an \texttt{ERROR} message.
+
+
+\subsection{RESTART}
+\label{cmd_restart}
+AG behaves just like for \texttt{START} command keeping the previous settings.
+
+
+\subsection{TAKEBACK [C],[R]}
+\label{cmd_takeback}
+This command \textbf{might not be} implemented like in the protocol description. This command can be used to undo \textbf{only the last move}. It can be used repeatedly to undo several moves, but they must be sent in the opposite order to the one in which they were played. During regular game this condition is obviously fulfilled. Problems may appear when trying to undo moves that were sent in the \texttt{BOARD} command as it may send moves in random order. If an incorrect last move was specified, AG will simply send an \texttt{ERROR} message with the description which move it considers to be the last one.
+
+
+\subsection{UNKNOWN [error message]}
+\label{cmd_unknown}
+This command is implemented exactly like in the protocol description. 
+
+\textbf{Note:} AG will send back the command that was not understood.
+
+
+\subsection{ERROR [error message]}
+\label{cmd_error}
+This command is implemented exactly like in the protocol description.
+
+\textbf{Note:} Usually AG will send some information about what went wrong.
+
+
+\subsection{MESSAGE [message]}
+\label{cmd_message}
+Currently the only \texttt{MESSAGE} AG sends by itself, is the summary of the search sent every time search stops, either naturally or by \texttt{STOP} command. It has the following format:\\
+\begin{enumerate}[leftmargin=7.5em]
+\item[\textbf{depth [x]-[y]}]{the minimal [x] and maximal [y] depth of the search.
+
+\textbf{Note:} Minimal is always 1 and maximal is taken as the length of principal variation.}
+\item[\textbf{ev [x]}]{is the expectation outcome in {\%} (probability of $P_{win} + \frac{1}{2}P_{draw}$) or proven value - (U)nknown, (L)oss, (D)raw, (W)in.}
+\item[\textbf{n [x]}]{is the number of evaluated nodes.}
+\item[\textbf{n/s [x]}]{is the number of evaluated nodes per second (including cache hits).}
+\item[\textbf{tm [x]}]{is the time used for this turn (in milliseconds).}
+\item[\textbf{pv [x1] [x2] ...}]{is the principal variation.}
+\end{enumerate}
+
+Example:\\
+\texttt{MESSAGE} depth 1-14 ev 56.2 n 3381 n/s 932 tm 3627 pv Oe4 Xe3 Of4 Xg4 Oh5 Xc3 Od3 Xf2 Oc5 Xg3 Og2 Xe1 Oh4 Xb2 \\
+
+Principal variation encoding format:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\textbf{X} or \textbf{O}]{color - X is black, O is white.}
+\item[\textbf{letter}]{column, from left to right, lowercase.}
+\item[\textbf{number}]{row, from top to bottom, starting from 0.}
+\end{enumerate}
+
+
+\subsection{DEBUG [message]}
+\label{cmd_debug}
+AG does not send any \texttt{DEBUG} messages.
+
+
+\newpage
+\section{Extended Gomocup Protocol}
+This protocol implements all commands from the base Gomocup protocol. Additionally it introduces new commands. Sometimes extends how the original ones work.
+
+The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [C],[R].
+
+\textbf{Note:} In order to use this protocol in AG, field "protocol" in the configuration file must be set to "extended{\_}gomocup".
+
+\subsection{SUGGEST [C],[R]}
+\label{cmd_suggest}
+If \texttt{INFO analysis{\_}mode} is set to \texttt{1}, engine will answer \texttt{BEGIN}, \texttt{BOARD} and \texttt{TURN} commands with \texttt{SUGGEST} [C],[R] instead of [C],[R] and will not change its internal state.
+
+\textbf{Note:} The engine should not hang after \texttt{SUGGEST} waiting infinitely for \texttt{PLAY} command.
+
+
+\subsection{PLAY [C],[R]}
+\label{cmd_play}
+It is used by the manager only as a respond to \texttt{SUGGEST} command. It imposes move [C],[R] to the engine. It must be answered by the engine with the same [C],[R] move as the sent one.
+
+
+\subsection{Additional INFO keys}
+\label{cmd_info_extension1}
+In addition to the keys described earlier, also the following will be recognized.
+
+\subsubsection{INFO evaluate [C1],[R1] [C2],[R2] ...}
+The original \texttt{INFO evaluate} command is extended to handle arbitrary number of moves, so that they describe specific path within the tree. For example 
+\begin{itemize}
+\item{\texttt{INFO evaluate} without any parameters is a request for evaluation info of the current board state.}
+\item{\texttt{INFO evaluate 3,4} is a request for evaluation info of the board state after making move [3],[4] from the current board state.}
+\item{\texttt{INFO evaluate 3,4 5,6} is a request for evaluation info of the board state after making moves [3],[4] and [5],[6] from the current board state.}
+\end{itemize}
+If path specified in the command does not exist in the tree for any reason, the engine should send an empty \texttt{MESSAGE}.
+
+\subsubsection{INFO analysis{\_}mode [x]}
+Controls how engine responds to the \texttt{BEGIN}, \texttt{BOARD} and \texttt{TURN} commands. The allowed values are:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{engine will respond with the best move.}
+	\item[\text{$[x]=1$}]{engine will respond with \texttt{SUGGEST}.}
+\end{enumerate}
+
+\subsubsection{INFO max{\_}depth [x]}
+Sets maximum search depth. If \text{$[x]<0$} the search depth is unlimited.
+
+\textbf{Note:} Since AG evaluates multiple nodes in parallel, it will stop as soon as the limit is reached but may exceed it by small amount.
+
+\subsubsection{INFO max{\_}node [x]}
+Sets maximum number of nodes. If \text{$[x]<0$} the number of nodes is unlimited.
+
+\textbf{Note:} Since AG evaluates multiple nodes in parallel, it will stop as soon as the limit is reached but may exceed it by small amount.
+
+\subsubsection{INFO time{\_}increment [x]}
+Sets amount of time that is added after each move (see Fischer time controls \cite{fischer}). Must not be negative.
+
+\subsubsection{INFO style [x]}
+Controls the style of the search. Allowed values are:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{defensive - AG will try to maximize the probability of not losing, $P_{win} + P_{draw}$.}
+	\item[\text{$[x]=1$}]{classic - AG will try to maximize the expectation outcome, $P_{win} + \frac{1}{2}P_{draw}$.
+	
+	\textbf{Note:} In general, this is the strongest setting.}
+	\item[\text{$[x]=2$}]{offensive - AG will try to maximize the probability of winning, $P_{win}$.}
+\end{enumerate}
+
+\subsubsection{INFO auto{\_}pondering [x]}
+Toggles the automatic pondering after each move. This command overrides the value of "auto{\_}pondering" loaded from the configuration file. Allowed values are:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{automatic pondering is turned off}
+	\item[\text{$[x]=1$}]{automatic pondering is turned on}
+\end{enumerate}
+
+\textbf{Note:} This option does not start/stop the pondering by itself, only allows/forbids the engine to automatically start pondering.
+
+\subsubsection{INFO protocol{\_}lag [x]}
+Sets the estimated protocol overhead i.e. the time difference between sending the message by the engine and receiving it by the GUI (and in the opposite direction). Must not be negative.
+
+\subsubsection{INFO }
+
+\subsubsection{Default values}
+Some parameters have default values so the engine works even if no \texttt{INFO} was sent:
+\begin{itemize}
+\item{\textbf{analysis{\_}mode} = 0 (disabled)}
+\item{\textbf{max{\_}depth } = -1 (no limit)}
+\item{\textbf{max{\_}nodes} = -1 (no limit)}
+\item{\textbf{time{\_}increment} = 0 ("sudden death" \cite{suddendeath} type time controls)}
+\item{\textbf{style} = 1 (classic)}
+\item{\textbf{auto{\_}pondering} = as loaded from configuration file}
+\item{\textbf{protocol{\_}lag} \text{$ \approx 400$} (varies from version to version)}
+\end{itemize}
+
+
+\subsection{PONDER [value]}
+\label{cmd_ponder}
+This command starts the search in pondering mode for [value] milliseconds. The pondering search mode differs from the regular search mode at one point - it will not output any best move at the end. If [value] is not specified or is negative, engine starts infinite pondering. In any case the pondering can be stopped using \texttt{STOP} command. Pondering mode must exit automatically if any new position is set, either by \texttt{BEGIN}, \texttt{BOARD} or \texttt{TURN} command.
+
+
+\subsection{STOP}
+\label{cmd_stop}
+This command stops the current search. If it was regular search, either the best move will be returned or \texttt{SUGGEST} message will be sent, depending on the \texttt{INFO analysis{\_}mode} settings. Such interrupted pondering can be launched again by another \texttt{PONDER} command.
+
+
+\subsection{SWAP2BOARD}
+\label{cmd_swap2board}
+This command is used for swap2 opening rule. It is described on Gomocup webpage and was included here for completeness. It has three cases:
+
+\textbf{Case 1.} The manager asks for the first three stones:\\
+\texttt{SWAP2BOARD}\\
+\texttt{DONE}\\
+The engine answers with three moves separated by spaces, for example\\
+\texttt{7,7 8,7 9,9}
+
+\textbf{Case 2.} The manager sends the coordinates of the first three stones and asks for the choice of options:\\
+\texttt{SWAP2BOARD}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{[C4],[R4]}]{output the coordinate of the 4th move if the engine decides to stay with white color}
+\item[\texttt{[C4],[R4] [C5],[R5]}]{output the coordinates of the 4th and 5th stones if the engine decides to put two stones and let the opponent choose the color}
+\end{enumerate}
+
+\textbf{Case 3.} The manager sends the coordinates of the first five stones and asks for the choice of options:\\
+\texttt{SWAP2BOARD}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{C5,R5}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{[C6][R6]}]{output the coordinate of the 6th move if the engine decides to stay with white color}
+\end{enumerate}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{SWAP2BOARD} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{SWAPBOARD}
+\label{cmd_swapboard}
+This command is used for swap opening rule. It is very similar to the \texttt{SWAP2BOARD} but it only has two cases:
+
+\textbf{Case 1.} The manager asks for the first three stones:\\
+\texttt{SWAPBOARD}\\
+\texttt{DONE}\\
+The engine answers with three moves separated by spaces, for example\\
+\texttt{7,7 8,7 9,9}
+
+\textbf{Case 2.} The manager sends the coordinates of the first three stones and asks for the choice of options:\\
+\texttt{SWAPBOARD}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{[C4],[R4]}]{output the coordinate of the 4th move if the engine decides to stay with white color}
+\end{enumerate}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{SWAPBOARD} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{SHOWFORBID}
+\label{cmd_showforbid}
+This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it returns all forbidden moves according to renju rule. The engine will respond with \texttt{FORBID} followed by the list of moves separated by spaces. For example\\
+\texttt{SHOWFORBID}\\
+\texttt{[C1],[R1],[S1]} \\
+\texttt{[C2],[R2],[S2]} \\
+\texttt{...}\\
+\texttt{[Cn],[Rn],[Sn]} \\
+\texttt{DONE}\\
+and engine responds for example with\\
+\texttt{FORBID 5,4 8,7 10,11}\\
+If the rule is not renju or there are no forbidden moves on board, engine should respond with a \texttt{FORBID} message without any moves.
+
+\textbf{Note:} Execution of \texttt{SHOWFORBID} command is \textbf{not} considered to be a "turn", so the engine \textbf{does not have to} obey the time controls. It is recommended (but not required) for the engine to be able to respond to this command at any time.
+
+
+\subsection{BALANCE [n]}
+\label{cmd_balance}
+This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it searches for [n] moves that create the most balanced position (balanced position is such where both players have the same probability of winning). For example\\
+\texttt{BALANCE 2} \\
+\texttt{[C1],[R1],2} \\
+\texttt{[C2],[R2],1} \\
+\texttt{[C3],[R3],2} \\
+\texttt{DONE}\\
+will order the engine to find two moves that balance this 3-stone position. Value of [n] must be sctictly positive. Only [n]=1 and [n]=2 are required but the engine is encouraged to accept any values of [n]. If the rule is renju, the moves must be sent in the order they were played. For other rules the ordering may be random.
+
+\textbf{Note:} Execution of \texttt{BALANCE} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{CLEARHASH}
+\label{cmd_clearhash}
+Upon receiving this command the engine should clear its internal memory, so that the next search would start "fresh", without any data collected in previous searches. For example in $\alpha$-$\beta$ engines, this command probably will mean clearing the hashtable.
+
+\textbf{Note:} AG does not have such kind of hashtable like in $\alpha$-$\beta$ engines, but still there is some cache that will be cleared upon receiving this command.
+
+
+\begin{thebibliography}{99}
+\bibitem{newprotocol}
+Petr Laštovička, \href{http://petr.lastovicka.sweb.cz/protocl2en.htm}{New Gomocup Protocol}
+
+\bibitem{swap2board}
+Kai Sun, Tianyi Hao, \href{https://gomocup.org/news/experimental-tournament-update-2020/}{[Updated on 4/10] Experimental Tournament}
+
+\bibitem{fischer}
+\href{https://en.wikipedia.org/wiki/Time_control#Increment_and_delay_methods}{Time control - Wikipedia}
+
+\bibitem{suddendeath}
+\href{https://en.wikipedia.org/wiki/Time_control#Sudden_death}{Time control - Wikipedia}
+
+\end{thebibliography}
+
+\end{document}
