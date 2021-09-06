@@ -19,7 +19,7 @@ namespace ag
 	class SearchTrajectory
 	{
 		private:
-			std::vector<Node*> visited_nodes;
+			std::vector<Node_old*> visited_nodes;
 			std::vector<Move> visited_moves;
 		public:
 			void clear() noexcept
@@ -31,12 +31,12 @@ namespace ag
 			{
 				return static_cast<int>(visited_nodes.size());
 			}
-			const Node& getNode(int index) const noexcept
+			const Node_old& getNode(int index) const noexcept
 			{
 				assert(index >= 0 && index < length());
 				return *(visited_nodes[index]);
 			}
-			Node& getNode(int index) noexcept
+			Node_old& getNode(int index) noexcept
 			{
 				assert(index >= 0 && index < length());
 				return *(visited_nodes[index]);
@@ -46,12 +46,12 @@ namespace ag
 				assert(index >= 0 && index < length());
 				return visited_moves[index];
 			}
-			void append(Node *node, Move move)
+			void append(Node_old *node, Move move)
 			{
 				visited_nodes.push_back(node);
 				visited_moves.push_back(move);
 			}
-			Node& getLeafNode() const noexcept
+			Node_old& getLeafNode() const noexcept
 			{
 				assert(length() > 0);
 				return *(visited_nodes.back());

@@ -60,10 +60,10 @@ namespace ag
 	class Tree
 	{
 		private:
-			std::vector<std::unique_ptr<Node[]>> nodes;
+			std::vector<std::unique_ptr<Node_old[]>> nodes;
 			std::pair<int, int> current_index { 0, 0 };
 			mutable std::mutex tree_mutex;
-			Node root_node;
+			Node_old root_node;
 
 			TreeConfig config;
 			int balancing_depth = -1;
@@ -80,23 +80,23 @@ namespace ag
 			int usedNodes() const noexcept;
 
 			bool isProven() const noexcept;
-			const Node& getRootNode() const noexcept;
-			Node& getRootNode() noexcept;
+			const Node_old& getRootNode() const noexcept;
+			Node_old& getRootNode() noexcept;
 			void setBalancingDepth(int depth) noexcept;
-			bool isRootNode(const Node *node) const noexcept;
+			bool isRootNode(const Node_old *node) const noexcept;
 			void select(SearchTrajectory &trajectory, float explorationConstant = 1.25f);
-			bool expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
+			bool expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
 			void backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue);
 			void cancelVirtualLoss(SearchTrajectory &trajectory);
 
-			void getPolicyPriors(const Node &node, matrix<float> &result) const;
-			void getPlayoutDistribution(const Node &node, matrix<float> &result) const;
-			void getProvenValues(const Node &node, matrix<ProvenValue> &result) const;
-			void getActionValues(const Node &node, matrix<Value> &result) const;
+			void getPolicyPriors(const Node_old &node, matrix<float> &result) const;
+			void getPlayoutDistribution(const Node_old &node, matrix<float> &result) const;
+			void getProvenValues(const Node_old &node, matrix<ProvenValue> &result) const;
+			void getActionValues(const Node_old &node, matrix<Value> &result) const;
 			SearchTrajectory getPrincipalVariation();
-			void printSubtree(const Node &node, int depth = -1, bool sort = false, int top_n = -1) const;
+			void printSubtree(const Node_old &node, int depth = -1, bool sort = false, int top_n = -1) const;
 		private:
-			Node* reserve_nodes(int number);
+			Node_old* reserve_nodes(int number);
 	};
 
 } /* namespace ag */

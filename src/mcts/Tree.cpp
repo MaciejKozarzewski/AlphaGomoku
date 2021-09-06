@@ -19,7 +19,7 @@ namespace
 	using namespace ag;
 
 	template<typename T>
-	Node* select_puct(Node *parent, const float exploration_constant, const T &get_value)
+	Node_old* select_puct(Node_old *parent, const float exploration_constant, const T &get_value)
 	{
 		assert(parent->getVisits() > 0);
 		const float my_value = 1.0f - get_value(parent);
@@ -41,7 +41,7 @@ namespace
 		assert(selected != parent->end());
 		return selected;
 	}
-	Node* select_balanced(Node *parent)
+	Node_old* select_balanced(Node_old *parent)
 	{
 		MaxBalance get_value;
 		auto selected = parent->end();
@@ -55,7 +55,7 @@ namespace
 		assert(selected != parent->end());
 		return selected;
 	}
-	Node* select_by_visit(Node *parent)
+	Node_old* select_by_visit(Node_old *parent)
 	{
 		auto selected = parent->end();
 		double bestValue = std::numeric_limits<float>::lowest();
@@ -72,7 +72,7 @@ namespace
 		assert(selected != parent->end());
 		return selected;
 	}
-	Node* select_by_value(Node *parent)
+	Node_old* select_by_value(Node_old *parent)
 	{
 		auto selected = parent->end();
 //		float max_value = std::numeric_limits<float>::lowest();
@@ -106,7 +106,7 @@ namespace
 //		assert(selected != parent->end());
 		return selected;
 	}
-	bool update_proven_value(Node &parent)
+	bool update_proven_value(Node_old &parent)
 	{
 		// the node can be proven as leaf if it represents terminal state
 		// or it can be proven as non-leaf if VCF solver has been used
@@ -117,7 +117,7 @@ namespace
 		int unknown_count = 0;
 		for (int i = 0; i < parent.numberOfChildren(); i++)
 		{
-			const Node &child = parent.getChild(i);
+			const Node_old &child = parent.getChild(i);
 			unknown_count += static_cast<int>(child.getProvenValue() == ProvenValue::UNKNOWN);
 			if (child.getProvenValue() == ProvenValue::WIN)
 			{
@@ -138,7 +138,7 @@ namespace
 			return false;
 		return true;
 	}
-	void print_subtree(const Node &node, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child = false)
+	void print_subtree(const Node_old &node, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child = false)
 	{
 		for (int i = 0; i < current_depth - 1; i++)
 			std::cout << "│  ";
@@ -232,8 +232,8 @@ namespace ag
 
 	uint64_t Tree::getMemory() const noexcept
 	{
-		return sizeof(Node) * usedNodes();
-//		return sizeof(Node) * allocatedNodes();
+		return sizeof(Node_old) * usedNodes();
+//		return sizeof(Node_old) * allocatedNodes();
 	}
 	void Tree::clearStats() noexcept
 	{
@@ -282,11 +282,11 @@ namespace ag
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		return root_node.isProven();
 	}
-	const Node& Tree::getRootNode() const noexcept
+	const Node_old& Tree::getRootNode() const noexcept
 	{
 		return root_node;
 	}
-	Node& Tree::getRootNode() noexcept
+	Node_old& Tree::getRootNode() noexcept
 	{
 		return root_node;
 	}
@@ -295,7 +295,7 @@ namespace ag
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		balancing_depth = depth;
 	}
-	bool Tree::isRootNode(const Node *node) const noexcept
+	bool Tree::isRootNode(const Node_old *node) const noexcept
 	{
 		return node == &root_node;
 	}
@@ -304,7 +304,7 @@ namespace ag
 		trajectory.clear();
 		std::lock_guard<std::mutex> lock(tree_mutex);
 
-		Node *current = &getRootNode();
+		Node_old *current = &getRootNode();
 		current->applyVirtualLoss();
 		trajectory.append(current, current->getMove());
 		while (not current->isLeaf())
@@ -318,7 +318,7 @@ namespace ag
 		}
 
 	}
-	bool Tree::expand(Node &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
+	bool Tree::expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
 	{
 		assert(Move::getSign(parent.getMove()) != Sign::NONE);
 		assert(movesToAdd.size() > 0);
@@ -326,7 +326,7 @@ namespace ag
 		if (parent.isLeaf() == false)
 			return false; // node has already been expanded
 
-		Node *children = reserve_nodes(movesToAdd.size());
+		Node_old *children = reserve_nodes(movesToAdd.size());
 		if (children == nullptr) // there are no nodes left in the tree
 			return true; // don't expand if there is no memory
 
@@ -366,7 +366,7 @@ namespace ag
 		for (int i = 0; i < trajectory.length(); i++)
 			trajectory.getNode(i).cancelVirtualLoss();
 	}
-	void Tree::getPolicyPriors(const Node &node, matrix<float> &result) const
+	void Tree::getPolicyPriors(const Node_old &node, matrix<float> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		result.fill(0.0f);
@@ -376,7 +376,7 @@ namespace ag
 			result.at(move.row, move.col) = iter->getPolicyPrior();
 		}
 	}
-	void Tree::getPlayoutDistribution(const Node &node, matrix<float> &result) const
+	void Tree::getPlayoutDistribution(const Node_old &node, matrix<float> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		result.fill(0.0f);
@@ -386,7 +386,7 @@ namespace ag
 			result.at(move.row, move.col) = iter->getVisits();
 		}
 	}
-	void Tree::getProvenValues(const Node &node, matrix<ProvenValue> &result) const
+	void Tree::getProvenValues(const Node_old &node, matrix<ProvenValue> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		result.fill(ProvenValue::UNKNOWN);
@@ -396,7 +396,7 @@ namespace ag
 			result.at(move.row, move.col) = iter->getProvenValue();
 		}
 	}
-	void Tree::getActionValues(const Node &node, matrix<Value> &result) const
+	void Tree::getActionValues(const Node_old &node, matrix<Value> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		result.fill(Value());
@@ -411,7 +411,7 @@ namespace ag
 		SearchTrajectory result;
 		std::lock_guard<std::mutex> lock(tree_mutex);
 
-		Node *current = &getRootNode();
+		Node_old *current = &getRootNode();
 		result.append(current, current->getMove());
 		while (not current->isLeaf())
 		{
@@ -420,23 +420,23 @@ namespace ag
 		}
 		return result;
 	}
-	void Tree::printSubtree(const Node &node, int depth, bool sort, int top_n) const
+	void Tree::printSubtree(const Node_old &node, int depth, bool sort, int top_n) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		print_subtree(node, depth, sort, top_n, 0);
 	}
 
-	Node* Tree::reserve_nodes(int number)
+	Node_old* Tree::reserve_nodes(int number)
 	{
 		if (usedNodes() + number > allocatedNodes()) // allocate new bucket
-			nodes.push_back(std::make_unique<Node[]>(config.bucket_size));
+			nodes.push_back(std::make_unique<Node_old[]>(config.bucket_size));
 
 		if (current_index.second + number > config.bucket_size)
 		{
 			current_index.first++; // switch to next bucket
 			current_index.second = 0;
 		}
-		Node *result = nodes.at(current_index.first).get() + current_index.second;
+		Node_old *result = nodes.at(current_index.first).get() + current_index.second;
 		current_index.second += number;
 		return result;
 	}

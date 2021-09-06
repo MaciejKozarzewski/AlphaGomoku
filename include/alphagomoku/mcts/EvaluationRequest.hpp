@@ -25,7 +25,7 @@ namespace ag
 		public:
 			matrix<Sign> board;
 			matrix<float> policy;
-			Node *node = nullptr;
+			Node_old *node = nullptr;
 			Move last_move;
 			Value value;
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
@@ -36,7 +36,7 @@ namespace ag
 
 			void clear() noexcept;
 			void setTrajectory(const matrix<Sign> &base_board, const SearchTrajectory &trajectory) noexcept;
-			Node* getNode() const noexcept
+			Node_old* getNode() const noexcept
 			{
 				return node;
 			}
@@ -101,7 +101,7 @@ namespace ag
 			{
 				last_move = move;
 			}
-			void setNode(Node *n) noexcept
+			void setNode(Node_old *n) noexcept
 			{
 				node = n;
 			}
