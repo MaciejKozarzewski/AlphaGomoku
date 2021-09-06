@@ -28,12 +28,13 @@ namespace ag
 	EngineManager::EngineManager() :
 			argument_parser(""),
 			input_listener(std::cin),
-			output_sender(std::cout)
+			output_sender(std::cout),
+			time_manager(engine_settings)
 	{
 		create_arguments();
 	}
 
-	void EngineManager::processArguments(int argc, char *argv[])
+	bool EngineManager::processArguments(int argc, char *argv[])
 	{
 		try
 		{
@@ -42,29 +43,30 @@ namespace ag
 		{
 			output_sender.send(pe.what());
 			output_sender.send("Try '" + argument_parser.getExecutablename() + " --help' for more information.");
-			exit(-1);
+			throw;
 		}
 		if (display_help)
 		{
 			help();
-			exit(0);
+			return false;
 		}
 		if (display_version)
 		{
 			version();
-			exit(0);
+			return false;
 		}
-		load_config(argument_parser.getLaunchPath() + name_of_config);
 		if (run_configuration)
 		{
 			configure();
-			exit(0);
+			return false;
 		}
 		if (run_benchmark)
 		{
 			benchmark();
-			exit(0);
+			return false;
 		}
+		bool successfully_loaded = load_config(argument_parser.getLaunchPath() + name_of_config);
+		return successfully_loaded;
 	}
 	void EngineManager::run()
 	{
@@ -87,16 +89,18 @@ namespace ag
 					}
 					case MessageType::SET_OPTION:
 					{
-						bool success = resource_manager.setOption(input_message.getOption());
+						bool success = engine_settings.setOption(input_message.getOption());
 						if (success == false)
 							output_queue.push(Message(MessageType::ERROR, std::string("unknown option ") + input_message.getOption().name));
 						break;
 					}
 					case MessageType::SET_POSITION:
 					{
-						resource_manager.setSearchStartTime(getTime());
-						if (search_engine == nullptr) // search engine is only initialized here
-							search_engine = std::make_unique<SearchEngine>(config, resource_manager);
+						time_manager.setup();
+						time_manager.startTimer();
+//						if (search_engine == nullptr) // search engine is only initialized here
+//							search_engine = std::make_unique<SearchEngine>(config, resource_manager);
+						time_manager.stopTimer();
 
 						search_engine->stopSearch();
 						if (search_future.valid())
@@ -120,36 +124,36 @@ namespace ag
 						{
 							search_future = std::async(std::launch::async, [&]()
 							{
-								Message msg = search_engine->makeMove();
-								output_queue.push(search_engine->getSearchSummary());
-								output_queue.push(msg);
-								if (static_cast<bool>(config["always_ponder"]))
-								{
-									resource_manager.setSearchStartTime(getTime());
-									resource_manager.setTimeForPondering(2147483647.0);
-									search_engine->setPosition(msg.getMove());
-									output_queue.push(search_engine->ponder());
-									output_queue.push(search_engine->getSearchSummary());
-								}
+//								Message msg = search_engine->makeMove();
+//								output_queue.push(search_engine->getSearchSummary());
+//								output_queue.push(msg);
+//								if (static_cast<bool>(config["always_ponder"]))
+//								{
+//									resource_manager.setSearchStartTime(getTime());
+//									resource_manager.setTimeForPondering(2147483647.0);
+//									search_engine->setPosition(msg.getMove());
+//									output_queue.push(search_engine->ponder());
+//									output_queue.push(search_engine->getSearchSummary());
+//								}
 							});
 						}
 						if (input_message.getString() == "swap2")
 						{
 							search_future = std::async(std::launch::async, [&]()
 							{
-								Message msg = search_engine->swap2();
-								output_queue.push(search_engine->getSearchSummary());
-								output_queue.push(msg);
+//								Message msg = search_engine->swap2();
+//								output_queue.push(search_engine->getSearchSummary());
+//								output_queue.push(msg);
 							});
 						}
 						if (input_message.getString() == "ponder")
 						{
-							resource_manager.setSearchStartTime(getTime()); // pondering does not pay cost of initialization
+//							resource_manager.setSearchStartTime(getTime()); // pondering does not pay cost of initialization
 							search_future = std::async(std::launch::async, [&]()
 							{
-								Message msg = search_engine->ponder();
-								output_queue.push(search_engine->getSearchSummary());
-								output_queue.push(msg);
+//								Message msg = search_engine->ponder();
+//								output_queue.push(search_engine->getSearchSummary());
+//								output_queue.push(msg);
 							});
 						}
 						break;
@@ -251,7 +255,7 @@ namespace ag
 		}
 		createConfig(benchmark_results);
 	}
-	void EngineManager::load_config(const std::string &path)
+	bool EngineManager::load_config(const std::string &path)
 	{
 		if (std::filesystem::exists(path))
 		{
@@ -260,10 +264,11 @@ namespace ag
 				FileLoader fl(path);
 				config = fl.getJson();
 				prepare_config();
+				return true;
 			} catch (std::exception &e)
 			{
 				output_sender.send("The configuration file is invalid for some reason. Try deleting it and creating a new one.");
-				exit(-1);
+				throw;
 			}
 		}
 		else
@@ -272,7 +277,7 @@ namespace ag
 			output_sender.send("You can generate new one by launching " + ProgramInfo::name() + " from command line with parameter '--configure'");
 			output_sender.send(
 					"If you are sure that configuration file exists, it means that the launch path might not have been parsed correctly due to some special characters in it.");
-			exit(-1);
+			throw std::runtime_error("file " + path + " not found");
 		}
 	}
 	void EngineManager::prepare_config()
@@ -297,9 +302,9 @@ namespace ag
 			case ProtocolType::GOMOCUP:
 				protocol = std::make_unique<GomocupProtocol>(input_queue, output_queue);
 				break;
-			case ProtocolType::YIXINBOARD:
+			case ProtocolType::EXTENDED_GOMOCUP:
 				break;
-			case ProtocolType::UGI:
+			case ProtocolType::YIXINBOARD:
 				break;
 		}
 	}

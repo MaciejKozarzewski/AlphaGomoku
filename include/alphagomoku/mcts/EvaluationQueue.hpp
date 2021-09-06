@@ -2,7 +2,7 @@
  * EvaluationQueue.hpp
  *
  *  Created on: Mar 6, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_MCTS_EVALUATIONQUEUE_HPP_

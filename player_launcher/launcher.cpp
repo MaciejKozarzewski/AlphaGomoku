@@ -7,23 +7,25 @@
 
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/version.hpp>
-
-#include "engine_manager.hpp"
+#include <alphagomoku/player/EngineManager.hpp>
 
 int main(int argc, char *argv[])
 {
 	ag::EngineManager engine_manager;
-//	try
-//	{
-		engine_manager.processArguments(argc, argv);
-		engine_manager.run();
-		ag::Logger::write(ag::ProgramInfo::name() + " successfully exits");
-//		return 0;
-//	} catch (std::exception &e)
-//	{
-//		std::cerr << e.what() << std::endl;
-//		ag::Logger::write(e.what());
-//		return -1;
-//	}
+	try
+	{
+		bool can_continue = engine_manager.processArguments(argc, argv);
+		if (can_continue)
+		{
+			engine_manager.run();
+			ag::Logger::write(ag::ProgramInfo::name() + " successfully exits");
+		}
+		return 0;
+	} catch (std::exception &e)
+	{
+		std::cerr << e.what() << std::endl;
+		ag::Logger::write(e.what());
+	}
+	return -1;
 }
 

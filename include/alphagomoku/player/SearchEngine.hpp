@@ -44,35 +44,23 @@ namespace ag
 	class SearchEngine
 	{
 		private:
-			EngineSettings &resource_manager;
-			ThreadPool thread_pool;
-			Tree tree;
-			Cache cache;
-			std::vector<std::unique_ptr<SearchThread>> search_threads;
+			EngineSettings settings;
+
+			std::unique_ptr<Tree> tree;
+			std::unique_ptr<Cache> cache;
+			std::vector<std::unique_ptr<Search>> searchers;
+			std::vector<std::unique_ptr<EvaluationQueue>> evaluators;
 
 			matrix<Sign> board;
 			Sign sign_to_move = Sign::NONE;
-			Json config;
-			double time_used_for_last_search = 0.0;
 		public:
-			SearchEngine(const Json &cfg, EngineSettings &rm);
-
 			/**
 			 * Used to setup entire board in one step. Moves must be in correct order (alternating colors)
 			 */
 			void setPosition(const std::vector<Move> &listOfMoves);
-			/**
-			 * Used to incrementally add moves to board. Moves must be in correct order (alternating colors)
-			 */
-			void setPosition(const Move &move);
-
-			Message makeMove();
-			Message ponder();
-			Message swap2();
-			Message swap();
-			void exit();
-
+			void startSearch();
 			void stopSearch();
+
 			int getSimulationCount() const;
 			Message getSearchSummary();
 			bool isSearchFinished() const noexcept;

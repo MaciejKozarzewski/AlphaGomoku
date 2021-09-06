@@ -9,9 +9,10 @@
 #define ENGINEMANAGER_HPP_
 
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
+#include <alphagomoku/player/EngineSettings.hpp>
+#include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
-#include <alphagomoku/utils/argument_parser.hpp>
-
+#include <alphagomoku/utils/ArgumentParser.hpp>
 #include <iostream>
 #include <fstream>
 #include <future>
@@ -30,7 +31,7 @@ namespace ag
 	 * It parses and executes command line arguments (if any). Uses Protocol instance to translate runtime commands from user
 	 * into search commands, parses them and calls appropriate search engine methods.
 	 *
-	 * Implemented in "engine_manager.cpp"
+	 * Implemented in "EngineManager.cpp"
 	 */
 	class EngineManager
 	{
@@ -43,7 +44,9 @@ namespace ag
 			MessageQueue output_queue;
 			std::unique_ptr<Protocol> protocol;
 			std::unique_ptr<SearchEngine> search_engine;
-			EngineSettings resource_manager;
+			EngineSettings engine_settings;
+			TimeManager time_manager;
+
 			std::future<void> input_future;
 			std::future<void> search_future;
 			std::ofstream logfile;
@@ -57,10 +60,12 @@ namespace ag
 			bool run_configuration = false;
 			bool is_running = true;
 
+			size_t game_counter = 0;
+
 		public:
 			EngineManager();
 
-			void processArguments(int argc, char *argv[]);
+			bool processArguments(int argc, char *argv[]);
 			void run();
 		private:
 			void create_arguments();
@@ -68,7 +73,7 @@ namespace ag
 			void version() const;
 			void benchmark() const;
 			void configure();
-			void load_config(const std::string &path);
+			bool load_config(const std::string &path);
 			void prepare_config();
 
 			void setup_protocol();
