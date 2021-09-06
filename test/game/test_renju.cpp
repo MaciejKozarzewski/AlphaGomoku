@@ -15,6 +15,7 @@ namespace ag
 {
 	TEST(TestRenju, WinIn1)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" ! _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -42,6 +43,7 @@ namespace ag
 	}
 	TEST(TestRenju, Overline)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" ! _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -69,6 +71,7 @@ namespace ag
 	}
 	TEST(TestRenju, WinInsideOverline)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 	    Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" ! _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -96,6 +99,7 @@ namespace ag
 	}
 	TEST(TestRenju, FourAndFour)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ X ! _ X X _\n" /*  0 */
@@ -134,6 +138,7 @@ namespace ag
 	}
 	TEST(TestRenju, FourAndFreeThree)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -170,6 +175,7 @@ namespace ag
 	}
 	TEST(TestRenju, ThreeAndThree)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -206,6 +212,7 @@ namespace ag
 	}
 	TEST(TestRenju, DeadThree)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -230,6 +237,7 @@ namespace ag
 	}
 	TEST(TestRenju, ForbiddenPatterns)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -263,6 +271,7 @@ namespace ag
 	}
 	TEST(TestRenju, TwoDeathEnds)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -287,6 +296,7 @@ namespace ag
 	}
 	TEST(TestRenju, ChainedForbidden)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -321,6 +331,7 @@ namespace ag
 	}
 	TEST(TestRenju, LegalMove)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -345,6 +356,7 @@ namespace ag
 	}
 	TEST(TestRenju, No33BlockedBy44)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -368,6 +380,7 @@ namespace ag
 	}
 	TEST(TestRenju, MultipleForks)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ O X O _\n" /*  0 */
@@ -401,6 +414,7 @@ namespace ag
 	}
 	TEST(TestRenju, WinInFork)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ O X O _\n" /*  0 */
@@ -434,6 +448,7 @@ namespace ag
 	}
 	TEST(TestRenju, ForcedForbidden)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -470,6 +485,7 @@ namespace ag
 	}
 	TEST(TestRenju, ForcedForbiddenOpponent)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -494,6 +510,7 @@ namespace ag
 	}
 	TEST(TestRenju, RemoveForbidden)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -524,6 +541,7 @@ namespace ag
 	}
 	TEST(TestRenju, Fake433)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -551,6 +569,7 @@ namespace ag
 	}
 	TEST(TestRenju, Fake43)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -575,6 +594,7 @@ namespace ag
 	}
 	TEST(TestRenju, FoulR2225)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -609,6 +629,7 @@ namespace ag
 	}
 	TEST(TestRenju, WhiteOverline)
 	{
+		GTEST_SKIP();
 		// @formatter:off
 		Board board(/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
