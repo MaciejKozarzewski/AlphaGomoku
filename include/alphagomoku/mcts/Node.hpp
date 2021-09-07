@@ -25,82 +25,47 @@ namespace ag
 			Edge *edges = nullptr; // non-owning
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
-			int32_t visits = 0;
-			uint16_t data = 0; // 0:2 proven value, 2:16 number of edges
-			bool is_transposition = false;
+			uint32_t visits = 0;
+			/* following fields need to be packed inside 4 bytes */
+			ProvenValue proven_value :2;
+			bool is_transposition :1;
+			uint32_t number_of_edges :10;
+			uint32_t depth :10;
+			uint32_t virtual_loss :9; // effectively limits maximum batch size to 512
 		public:
-			static constexpr int max_number_of_edges = 16383;
 			void clear() noexcept
 			{
-				edges = nullptr;
-				win_rate = 0.0f;
-				draw_rate = 0.0f;
-				visits = 0;
-				data = 0;
-				is_transposition = false;
+				std::memset(this, 0, sizeof(Node));
 			}
-			const Edge& getEdge(int index) const noexcept
+			bool isLeaf() const noexcept
 			{
-				assert(index >= 0 && index < numberOfEdges());
+				return edges == nullptr;
+			}
+			Edge& getEdge(uint32_t index) const noexcept
+			{
+				assert(index < numberOfEdges());
+				assert(edges != nullptr);
 				return edges[index];
 			}
-			Edge& getEdge(int index) noexcept
+			float getWinRate() const noexcept
 			{
-				assert(index >= 0 && index < numberOfEdges());
-				return edges[index];
+				return win_rate;
+			}
+			float getDrawRate() const noexcept
+			{
+				return draw_rate;
 			}
 			Value getValue() const noexcept
 			{
 				return Value(win_rate, draw_rate, 1.0f - win_rate - draw_rate);
 			}
-			int32_t getVisits() const noexcept
+			uint32_t getVisits() const noexcept
 			{
 				return visits;
 			}
 			ProvenValue getProvenValue() const noexcept
 			{
-				return static_cast<ProvenValue>(data & 3);
-			}
-			int numberOfEdges() const noexcept
-			{
-				return static_cast<int>(data >> 2);
-			}
-			void assignEdges(Edge *ptr, int number) noexcept
-			{
-				assert(number >= 0 && number < max_number_of_edges);
-				assert(ptr != nullptr);
-				edges = ptr;
-				data = (data & 3) | (static_cast<uint16_t>(number) << 2);
-			}
-			void updateValue(Value eval) noexcept
-			{
-				visits++;
-				const float tmp = 1.0f / static_cast<float>(visits);
-				win_rate += (eval.win - win_rate) * tmp;
-				draw_rate += (eval.draw - draw_rate) * tmp;
-			}
-			void applyVirtualLoss() noexcept
-			{
-				visits++;
-				const float tmp = 1.0f / static_cast<float>(visits);
-				win_rate -= win_rate * tmp;
-				draw_rate -= draw_rate * tmp;
-			}
-			void cancelVirtualLoss() noexcept
-			{
-				assert(visits > 1);
-				visits--;
-				const float tmp = 1.0f / static_cast<float>(visits);
-				win_rate += win_rate * tmp;
-				draw_rate += draw_rate * tmp;
-			}
-			void setProvenValue(ProvenValue ev) noexcept
-			{
-				data = (data & 16383) | static_cast<uint16_t>(ev);
-			}
-			bool isLeaf() const noexcept
-			{
-				return edges == nullptr;
+				return proven_value;
 			}
 			bool isProven() const noexcept
 			{
@@ -110,30 +75,67 @@ namespace ag
 			{
 				return is_transposition;
 			}
+			uint32_t numberOfEdges() const noexcept
+			{
+				return number_of_edges;
+			}
+			uint32_t getDepth() const noexcept
+			{
+				return depth;
+			}
+			uint32_t getVirtualLoss() const noexcept
+			{
+				return virtual_loss;
+			}
+			void assignEdges(Edge *ptr, uint32_t number) noexcept
+			{
+				assert(number < 1024u);
+				assert(ptr != nullptr);
+				edges = ptr;
+				number_of_edges = number;
+			}
+			void updateValue(Value eval) noexcept
+			{
+				visits++;
+				const float tmp = 1.0f / static_cast<float>(visits);
+				win_rate += (eval.win - win_rate) * tmp;
+				draw_rate += (eval.draw - draw_rate) * tmp;
+			}
+			void setProvenValue(ProvenValue ev) noexcept
+			{
+				proven_value = ev;
+			}
 			void markAsTransposition() noexcept
 			{
 				assert(isTransposition() == false);
 				is_transposition = true;
 			}
+			void setDepth(uint32_t d) noexcept
+			{
+				depth = d;
+			}
+			void applyVirtualLoss() noexcept
+			{
+				assert(virtual_loss < 512u);
+				virtual_loss++;
+			}
+			void cancelVirtualLoss() noexcept
+			{
+				assert(virtual_loss > 0u);
+				virtual_loss--;
+			}
+			Edge* begin() const noexcept
+			{
+				assert(edges != nullptr);
+				return edges;
+			}
+			Edge* end() const noexcept
+			{
+				assert(edges != nullptr);
+				return edges + numberOfEdges();
+			}
 			std::string toString() const;
-			void sortChildren() const;
-
-			Edge* begin() noexcept
-			{
-				return edges;
-			}
-			Edge* end() noexcept
-			{
-				return edges + numberOfEdges();
-			}
-			const Edge* begin() const noexcept
-			{
-				return edges;
-			}
-			const Edge* end() const noexcept
-			{
-				return edges + numberOfEdges();
-			}
+			void sortEdges() const;
 	};
 
 	class Node_old
