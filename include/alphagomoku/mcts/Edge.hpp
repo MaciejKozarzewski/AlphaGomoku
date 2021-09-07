@@ -29,11 +29,10 @@ namespace ag
 			float policy_prior = 0.0f;
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
-
+			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			uint32_t visits = 0;
 			uint16_t move = 0;
-			ProvenValue proven_value :2;
-			uint32_t virtual_loss :9; // effectively limits maximum batch size to 512
+			uint16_t virtual_loss = 0;
 		public:
 			void clear() noexcept
 			{
@@ -63,14 +62,6 @@ namespace ag
 			{
 				return Value(win_rate, draw_rate, 1.0f - win_rate - draw_rate);
 			}
-			uint32_t getVisits() const noexcept
-			{
-				return visits;
-			}
-			uint16_t getMove() const noexcept
-			{
-				return move;
-			}
 			ProvenValue getProvenValue() const noexcept
 			{
 				return proven_value;
@@ -78,6 +69,14 @@ namespace ag
 			bool isProven() const noexcept
 			{
 				return getProvenValue() != ProvenValue::UNKNOWN;
+			}
+			uint32_t getVisits() const noexcept
+			{
+				return visits;
+			}
+			uint16_t getMove() const noexcept
+			{
+				return move;
 			}
 			uint32_t getVirtualLoss() const noexcept
 			{
@@ -99,6 +98,10 @@ namespace ag
 				win_rate += (eval.win - win_rate) * tmp;
 				draw_rate += (eval.draw - draw_rate) * tmp;
 			}
+			void setProvenValue(ProvenValue ev) noexcept
+			{
+				proven_value = ev;
+			}
 			void setMove(uint16_t m) noexcept
 			{
 				move = m;
@@ -107,13 +110,9 @@ namespace ag
 			{
 				move = m.toShort();
 			}
-			void setProvenValue(ProvenValue ev) noexcept
-			{
-				proven_value = ev;
-			}
 			void applyVirtualLoss() noexcept
 			{
-				assert(virtual_loss < 512u);
+				assert(virtual_loss < (1u << 16));
 				virtual_loss++;
 			}
 			void cancelVirtualLoss() noexcept

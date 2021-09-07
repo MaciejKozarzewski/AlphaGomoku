@@ -25,13 +25,12 @@ namespace ag
 			Edge *edges = nullptr; // non-owning
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
+			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			uint32_t visits = 0;
-			/* following fields need to be packed inside 4 bytes */
-			ProvenValue proven_value :2;
-			bool is_transposition :1;
-			uint32_t number_of_edges :10;
-			uint32_t depth :10;
-			uint32_t virtual_loss :9; // effectively limits maximum batch size to 512
+			uint16_t number_of_edges = 0;
+			uint16_t depth = 0;
+			bool is_transposition = false;
+			bool is_used = false;
 		public:
 			void clear() noexcept
 			{
@@ -83,13 +82,9 @@ namespace ag
 			{
 				return depth;
 			}
-			uint32_t getVirtualLoss() const noexcept
-			{
-				return virtual_loss;
-			}
 			void assignEdges(Edge *ptr, uint32_t number) noexcept
 			{
-				assert(number < 1024u);
+				assert(number < (1u << 16));
 				assert(ptr != nullptr);
 				edges = ptr;
 				number_of_edges = number;
@@ -112,17 +107,8 @@ namespace ag
 			}
 			void setDepth(uint32_t d) noexcept
 			{
+				assert(d < (1u << 13));
 				depth = d;
-			}
-			void applyVirtualLoss() noexcept
-			{
-				assert(virtual_loss < 512u);
-				virtual_loss++;
-			}
-			void cancelVirtualLoss() noexcept
-			{
-				assert(virtual_loss > 0u);
-				virtual_loss--;
 			}
 			Edge* begin() const noexcept
 			{
