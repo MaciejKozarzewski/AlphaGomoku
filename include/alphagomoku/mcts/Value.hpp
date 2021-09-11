@@ -2,25 +2,26 @@
  * Value.hpp
  *
  *  Created on: Mar 26, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_MCTS_VALUE_HPP_
 #define ALPHAGOMOKU_MCTS_VALUE_HPP_
 
+#include <alphagomoku/game/Move.hpp>
+
 #include <string>
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 
 namespace ag
 {
 	enum class GameOutcome;
-	enum class Sign;
 } /* namespace ag */
 
 namespace ag
 {
-	enum class ProvenValue
+	enum class ProvenValue : int16_t
 	{
 		UNKNOWN,
 		LOSS,

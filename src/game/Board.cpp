@@ -6,8 +6,8 @@
  */
 
 #include <alphagomoku/game/Board.hpp>
-#include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/mcts/Value.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 #include <algorithm>
 #include <iostream>
@@ -22,7 +22,7 @@ namespace
 	};
 	board_size get_board_size_from_string(const std::string &str)
 	{
-		int height = std::count(str.begin(), str.end(), '\n');		// every line must end with new line character "\n"
+		int height = std::count(str.begin(), str.end(), '\n'); // every line must end with new line character "\n"
 		assert(str.size() % height == 0);
 		int width = std::count(str.begin(), str.end(), ' ') / height; // every board spot must contain exactly one leading space
 		return board_size { height, width };
@@ -53,15 +53,6 @@ namespace
 			}
 		return result;
 	}
-//	std::vector<Move> extract_moves(const std::string &str)
-//	{
-//		board_size size = get_board_size_from_string(str);
-//		std::vector<Move> result;
-//		for (size_t i = 0; i < str.size(); i++)
-//			if (str.at(i) == '!')
-//				result.push_back(Move(i / size.cols, i % size.cols)); // FIXME this is incorrect
-//		return result;
-//	}
 
 	std::string to_string(Sign s)
 	{
@@ -135,125 +126,16 @@ namespace
 
 namespace ag
 {
-	std::string toString(Sign sign)
-	{
-		switch (sign)
-		{
-			default:
-			case Sign::NONE:
-				return "NONE  ";
-			case Sign::CROSS:
-				return "CROSS ";
-			case Sign::CIRCLE:
-				return "CIRCLE";
-		}
-	}
-	std::string text(Sign sign)
-	{
-		switch (sign)
-		{
-			case Sign::NONE:
-				return "_";
-			case Sign::CROSS:
-				return "X";
-			case Sign::CIRCLE:
-				return "O";
-			default:
-			case Sign::ILLEGAL:
-				return "|";
-		}
-	}
-	Sign signFromString(const std::string &str)
-	{
-		if (str == "CROSS")
-			return Sign::CROSS;
-		else
-		{
-			if (str == "CIRCLE")
-				return Sign::CIRCLE;
-			else
-				return Sign::NONE;
-		}
-	}
-	std::ostream& operator<<(std::ostream &stream, Sign sign)
-	{
-		stream << ag::toString(sign);
-		return stream;
-	}
-	std::string operator+(const std::string &lhs, Sign rhs)
-	{
-		return lhs + ag::toString(rhs);
-	}
-	std::string operator+(Sign lhs, const std::string &rhs)
-	{
-		return ag::toString(lhs) + rhs;
-	}
-
-	std::string toString(GameRules rules)
-	{
-		switch (rules)
-		{
-			case GameRules::FREESTYLE:
-				return "FREESTYLE";
-			case GameRules::STANDARD:
-				return "STANDARD";
-			case GameRules::RENJU:
-				return "RENJU";
-			case GameRules::CARO:
-				return "CARO";
-			default:
-				throw std::logic_error("unknown rule");
-		}
-	}
-	GameRules rulesFromString(const std::string &str)
-	{
-		if (str == "FREESTYLE")
-			return GameRules::FREESTYLE;
-		if (str == "STANDARD")
-			return GameRules::STANDARD;
-		if (str == "RENJU")
-			return GameRules::RENJU;
-		if (str == "CARO")
-			return GameRules::CARO;
-		throw std::logic_error("unknown rule");
-	}
-
-	std::string toString(GameOutcome outcome)
-	{
-		switch (outcome)
-		{
-			default:
-			case GameOutcome::UNKNOWN:
-				return "UNKNOWN";
-			case GameOutcome::DRAW:
-				return "DRAW";
-			case GameOutcome::CROSS_WIN:
-				return "CROSS_WIN";
-			case GameOutcome::CIRCLE_WIN:
-				return "CIRCLE_WIN";
-		}
-	}
-	GameOutcome outcomeFromString(const std::string &str)
-	{
-		if (str == "DRAW")
-			return GameOutcome::DRAW;
-		if (str == "CROSS_WIN")
-			return GameOutcome::CROSS_WIN;
-		if (str == "CIRCLE_WIN")
-			return GameOutcome::CIRCLE_WIN;
-		return GameOutcome::UNKNOWN;
-	}
-
-	Board::Board(int rows, int cols, GameRules rules) :
-			board_data(rows, cols),
-			sign_to_move(Sign::CROSS),
-			game_rules(rules)
+	Board::Board(GameConfig cfg) :
+			board_data(cfg.rows, cfg.cols),
+			game_rules(cfg.rules),
+			sign_to_move(Sign::CROSS)
 	{
 	}
 	Board::Board(const std::string &str, Sign signToMove, GameRules rules) :
 			board_data(board_from_string(str)),
-			sign_to_move(signToMove),
-			game_rules(rules)
+			game_rules(rules),
+			sign_to_move(signToMove)
 	{
 	}
 
@@ -270,7 +152,7 @@ namespace ag
 
 	void Board::putMove(Move move) noexcept
 	{
-		assert(move.sign == sign_to_move);
+		assert(move.sign == signToMove());
 		assert(board_data.at(move.row, move.col) == Sign::NONE);
 
 		board_data.at(move.row, move.col) = move.sign;
@@ -278,13 +160,25 @@ namespace ag
 	}
 	void Board::undoMove(Move move) noexcept
 	{
-		assert(move.sign == invertSign(sign_to_move));
+		assert(move.sign == invertSign(signToMove()));
 		assert(board_data.at(move.row, move.col) == move.sign);
 
 		board_data.at(move.row, move.col) = Sign::NONE;
 		sign_to_move = move.sign;
 	}
 
+	bool Board::isValid() const noexcept
+	{
+		if (sign_to_move != Sign::CROSS and sign_to_move != Sign::CIRCLE)
+			return false;
+		int cross_count = std::count(board_data.begin(), board_data.end(), Sign::CROSS);
+		int circle_count = std::count(board_data.begin(), board_data.end(), Sign::CIRCLE);
+
+		if (sign_to_move == Sign::CROSS)
+			return cross_count == circle_count;
+		else
+			return cross_count == circle_count + 1;
+	}
 	bool Board::isSquare() const noexcept
 	{
 		return rows() == cols();
@@ -310,7 +204,7 @@ namespace ag
 	{
 		return GameOutcome::UNKNOWN; // TODO
 	}
-	GameOutcome Board::getOutcome(Move last_move) const noexcept
+	GameOutcome Board::getOutcome(Move lastMove) const noexcept
 	{
 		return GameOutcome::UNKNOWN; // TODO
 	}

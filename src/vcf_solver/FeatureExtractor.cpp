@@ -240,7 +240,7 @@ namespace ag
 
 	void FeatureExtractor::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
-		static_assert(sizeof(Sign) == sizeof(int));
+//		static_assert(sizeof(Sign) == sizeof(int)); FIXME
 		assert(board.rows() + 2 * pad == internal_board.rows());
 		assert(board.cols() + 2 * pad == internal_board.cols());
 

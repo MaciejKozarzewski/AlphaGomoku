@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_UTILS_MISC_HPP_
 
 #include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <algorithm>
@@ -19,10 +20,8 @@
 
 namespace ag
 {
-	class Value;
 	enum class GameRules;
 	enum class GameOutcome;
-	enum class ProvenValue;
 }
 
 namespace ag

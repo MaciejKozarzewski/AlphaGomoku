@@ -24,7 +24,6 @@
 #include <alphagomoku/evaluation/EvaluationManager.hpp>
 #include <alphagomoku/utils/ThreadPool.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
-#include <alphagomoku/utils/argument_parser.hpp>
 #include <libml/graph/Graph.hpp>
 #include <libml/hardware/Device.hpp>
 #include <libml/utils/json.hpp>
@@ -605,7 +604,7 @@ int main(int argc, char *argv[])
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
-	test_evaluate();
+//	test_evaluate();
 //	generate_openings(500);
 
 //	benchmark_features();
@@ -621,9 +620,9 @@ int main(int argc, char *argv[])
 //	for (int i = 0; i < 200; i++)
 //		tm.runIterationRL();
 
-	return 0;
+//	return 0;
 
-	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
 
 	TreeConfig tree_config;
 	tree_config.bucket_size = 1000000;
@@ -646,7 +645,7 @@ int main(int argc, char *argv[])
 	EvaluationQueue queue;
 //	queue.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin", 32, ml::Device::cuda(0));
 //	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
-//	queue.loadGraph("/home/maciek/repos/AlphaGomoku/Release/networks/freestyle_10x128.bin", 8, ml::Device::cpu(), false);
+	queue.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin", 16, ml::Device::cuda(0), false);
 
 	Search search(game_config, search_config, tree, cache, queue);
 
@@ -829,46 +828,61 @@ int main(int argc, char *argv[])
 //							" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
 //	sign_to_move = Sign::CIRCLE;
 
-	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X X X O _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O X O O X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O X X O O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O O X X _ O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ O X X X _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ O X _ X _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
-	sign_to_move = Sign::CROSS;
+//	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ X X X O _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ O X O O X _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ O X X O O _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ O O X X _ O _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ O X X X _ O _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ O X _ X _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n");
+//	sign_to_move = Sign::CROSS;
 
-	board = boardFromString(" O O O O O O O _ _ _ _ _ _ _ _\n"
-			" X _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-			" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" X _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-			" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//	board = boardFromString(" O O O O O O O _ _ _ _ _ _ _ _\n"
+//			" X _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+//			" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" X _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+//			" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+//	sign_to_move = Sign::CROSS;
+
+	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ O _ _ X _ _ _ _\n"
+			" _ _ _ _ _ _ _ X X X O _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O O O X _ _ _\n"
+			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ O X _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-	sign_to_move = Sign::CROSS;
-	std::cout << toString(getOutcome(GameRules::STANDARD, board, Move(0, 0, Sign::CROSS))) << '\n';
-	return 0;
+	sign_to_move = Sign::CIRCLE;
 
 //	board = boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //							" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
@@ -1079,27 +1093,27 @@ int main(int argc, char *argv[])
 	extractor.setBoard(board, sign_to_move);
 	extractor.printAllThreats();
 
-	std::vector<std::pair<uint16_t, float>> list_of_moves;
-	matrix<float> qwer(board.rows(), board.cols());
-	double t0 = getTime();
-	for (int i = 0; i < 1000; i++)
-	{
-		ProvenValue asdf = extractor.solve(qwer, list_of_moves);
-	}
-	std::cout << "time = " << (getTime() - t0) << "ms\n";
+//	std::vector<std::pair<uint16_t, float>> list_of_moves;
+//	matrix<float> qwer(board.rows(), board.cols());
+//	double t0 = getTime();
+//	for (int i = 0; i < 1000; i++)
+//	{
+//		ProvenValue asdf = extractor.solve(qwer, list_of_moves);
+//	}
+//	std::cout << "time = " << (getTime() - t0) << "ms\n";
 //	std::cout << toString(asdf) << '\n';
-	return 0;
+//	return 0;
 
 	double start = getTime();
 	tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
 	search.setBoard(board);
 
 	matrix<float> policy(board.rows(), board.cols());
-	for (int i = 0; i <= 1; i++)
+	for (int i = 0; i <= 10; i++)
 	{
-		while (search.getSimulationCount() < i * 100000)
+		while (search.getSimulationCount() < i * 10000)
 		{
-			search.simulate(i * 100000);
+			search.simulate(i * 10000);
 			queue.evaluateGraph();
 			search.handleEvaluation();
 			if (tree.isProven())

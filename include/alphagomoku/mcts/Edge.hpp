@@ -29,14 +29,19 @@ namespace ag
 			float policy_prior = 0.0f;
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
-			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			uint32_t visits = 0;
-			uint16_t move = 0;
+			Move move;
+			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			uint16_t virtual_loss = 0;
 		public:
 			void clear() noexcept
 			{
-				std::memset(this, 0, sizeof(Edge));
+				node = nullptr;
+				policy_prior = win_rate = draw_rate = 0.0f;
+				visits = 0;
+				move = Move();
+				proven_value = ProvenValue::UNKNOWN;
+				virtual_loss = 0;
 			}
 			bool isLeaf() const noexcept
 			{
@@ -74,7 +79,7 @@ namespace ag
 			{
 				return visits;
 			}
-			uint16_t getMove() const noexcept
+			Move getMove() const noexcept
 			{
 				return move;
 			}
@@ -102,13 +107,9 @@ namespace ag
 			{
 				proven_value = ev;
 			}
-			void setMove(uint16_t m) noexcept
+			void setMove(Move m) noexcept
 			{
 				move = m;
-			}
-			void setMove(const Move &m) noexcept
-			{
-				move = m.toShort();
 			}
 			void applyVirtualLoss() noexcept
 			{

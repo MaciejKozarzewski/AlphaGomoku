@@ -2,12 +2,11 @@
  * misc.cpp
  *
  *  Created on: Mar 1, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
-#include <alphagomoku/mcts/Node.hpp>
 #include <inttypes.h>
 #include <chrono>
 #include <cmath>

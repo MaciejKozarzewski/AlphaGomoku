@@ -2,11 +2,10 @@
  * Value.cpp
  *
  *  Created on: Mar 26, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/Value.hpp>
-#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 
 #include <assert.h>

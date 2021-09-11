@@ -12,6 +12,7 @@
 #include <libml/hardware/Device.hpp>
 
 #include <inttypes.h>
+#include <vector>
 #include <mutex>
 
 namespace ag

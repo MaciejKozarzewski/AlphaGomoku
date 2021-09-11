@@ -8,8 +8,9 @@
 #ifndef ALPHAGOMOKU_RULES_GAME_RULES_HPP_
 #define ALPHAGOMOKU_RULES_GAME_RULES_HPP_
 
-#include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/game/rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/game/Move.hpp>
 
 namespace ag
 {

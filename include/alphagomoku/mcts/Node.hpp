@@ -25,12 +25,11 @@ namespace ag
 			Edge *edges = nullptr; // non-owning
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
-			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			uint32_t visits = 0;
+			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			uint16_t number_of_edges = 0;
 			uint16_t depth = 0;
 			bool is_transposition = false;
-			bool is_used = false;
 		public:
 			void clear() noexcept
 			{

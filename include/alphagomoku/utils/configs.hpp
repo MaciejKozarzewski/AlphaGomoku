@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_CONFIGS_HPP_
 #define ALPHAGOMOKU_CONFIGS_HPP_
 
-#include <alphagomoku/rules/game_rules.hpp>
+#include <alphagomoku/game/rules.hpp>
 
 class Json;
 namespace ag

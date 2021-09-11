@@ -7,6 +7,8 @@
 
 #include <alphagomoku/game/Move.hpp>
 
+#include <stdexcept>
+
 namespace
 {
 	using namespace ag;
@@ -38,11 +40,64 @@ namespace
 }
 namespace ag
 {
+	std::string toString(Sign sign)
+	{
+		switch (sign)
+		{
+			default:
+			case Sign::NONE:
+				return "NONE  ";
+			case Sign::CROSS:
+				return "CROSS ";
+			case Sign::CIRCLE:
+				return "CIRCLE";
+		}
+	}
+	Sign signFromString(const std::string &str)
+	{
+		if (str == "CROSS")
+			return Sign::CROSS;
+		else
+		{
+			if (str == "CIRCLE")
+				return Sign::CIRCLE;
+			else
+				return Sign::NONE;
+		}
+	}
+	std::string text(Sign sign)
+	{
+		switch (sign)
+		{
+			case Sign::NONE:
+				return "_";
+			case Sign::CROSS:
+				return "X";
+			case Sign::CIRCLE:
+				return "O";
+			default:
+			case Sign::ILLEGAL:
+				return "|";
+		}
+	}
+	std::ostream& operator<<(std::ostream &stream, Sign sign)
+	{
+		stream << ag::toString(sign);
+		return stream;
+	}
+	std::string operator+(const std::string &lhs, Sign rhs)
+	{
+		return lhs + ag::toString(rhs);
+	}
+	std::string operator+(Sign lhs, const std::string &rhs)
+	{
+		return ag::toString(lhs) + rhs;
+	}
 
 	Move::Move(const std::string &str) :
+			sign(extract_sign(str)),
 			row(extract_row(str)),
-			col(extract_col(str)),
-			sign(extract_sign(str))
+			col(extract_col(str))
 	{
 	}
 	std::string Move::toString() const

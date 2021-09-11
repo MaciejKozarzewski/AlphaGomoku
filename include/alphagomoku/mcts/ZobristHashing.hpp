@@ -2,19 +2,21 @@
  * ZobristHashing.hpp
  *
  *  Created on: Mar 1, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_MCTS_ZOBRISTHASHING_HPP_
 #define ALPHAGOMOKU_MCTS_ZOBRISTHASHING_HPP_
 
 #include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/game/Board.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <vector>
 #include <inttypes.h>
 
 namespace ag
 {
-	enum class Sign;
+	struct GameConfig;
 } /* namespace ag */
 
 namespace ag
@@ -24,8 +26,12 @@ namespace ag
 		private:
 			std::vector<uint64_t> keys;
 		public:
-			ZobristHashing(int boardSize, uint64_t seed = 0);
+			ZobristHashing(GameConfig cfg);
+			ZobristHashing(GameConfig cfg, uint64_t seed);
 			uint64_t getHash(const matrix<Sign> &board, Sign signToMove) const noexcept;
+
+			uint64_t getHash(const Board &board) const noexcept;
+
 	};
 } /* namespace ag */
 
