@@ -6,11 +6,12 @@
  */
 
 #include <alphagomoku/mcts/NodeCache.hpp>
+#include <alphagomoku/utils/misc.hpp>
 
 namespace ag
 {
 	NodeCacheStats::NodeCacheStats() :
-			contains("contains"),
+			seek("seek"),
 			insert("insert"),
 			remove("remove"),
 			rehash("rehash")
@@ -23,23 +24,20 @@ namespace ag
 			result += "hit rate = N/A\n";
 		else
 			result += "hit rate = " + std::to_string(static_cast<int>(1000.0 * static_cast<double>(hits) / calls) / 10.0) + "%\n";
-		result += contains.toString() + '\n';
+		result += seek.toString() + '\n';
 		result += insert.toString() + '\n';
 		result += remove.toString() + '\n';
 		result += rehash.toString() + '\n';
-		result += "entries = " + std::to_string(stored_entries) + " : " + std::to_string(buffered_entries) + " : " + std::to_string(allocated_entries)
-				+ " (stored:buffered:allocated)\n";
+//		result += "entries = " + std::to_string(stored_entries) + " : " + std::to_string(buffered_entries) + " : " + std::to_string(allocated_entries)
+//				+ " (stored:buffered:allocated)\n";
 		return result;
 	}
 	NodeCacheStats& NodeCacheStats::operator+=(const NodeCacheStats &other) noexcept
 	{
 		this->hits += other.hits;
 		this->calls += other.calls;
-		this->allocated_entries += other.allocated_entries;
-		this->stored_entries += other.stored_entries;
-		this->buffered_entries += other.buffered_entries;
 
-		this->contains += other.contains;
+		this->seek += other.seek;
 		this->insert += other.insert;
 		this->remove += other.remove;
 		this->rehash += other.rehash;
@@ -49,36 +47,30 @@ namespace ag
 	{
 		this->hits /= i;
 		this->calls /= i;
-		this->allocated_entries /= i;
-		this->stored_entries /= i;
-		this->buffered_entries /= i;
 
-		this->contains /= i;
+		this->seek /= i;
 		this->insert /= i;
 		this->remove /= i;
 		this->rehash /= i;
 		return *this;
 	}
 
-	NodeCache::NodeCache(GameConfig gameOptions) :
-			hashing(gameOptions)
+	NodeCache::NodeCache(GameConfig gameOptions, size_t size) :
+			hashing(gameOptions),
+			bins(1 << size, nullptr),
+			bin_index_mask(bins.size() - 1)
 	{
 	}
 	NodeCache::~NodeCache()
 	{
 		clear();
-		while (buffer != nullptr)
-		{
-			Entry *next = buffer->next_entry;
-			delete buffer;
-			buffer = next;
-		}
+		freeUnusedMemory();
 	}
 
 	void NodeCache::clearStats() noexcept
 	{
 		stats.hits = stats.calls = 0;
-		stats.contains.reset();
+		stats.seek.reset();
 		stats.insert.reset();
 		stats.remove.reset();
 		stats.rehash.reset();
@@ -90,19 +82,19 @@ namespace ag
 
 	uint64_t NodeCache::getMemory() const noexcept
 	{
-		return sizeof(Entry) * stats.allocated_entries + sizeof(Entry*) * bins.size();
+		return sizeof(Entry) * allocated_entries + sizeof(Entry*) * bins.size();
 	}
 	int NodeCache::allocatedElements() const noexcept
 	{
-		return stats.allocated_entries;
+		return allocated_entries;
 	}
 	int NodeCache::storedElements() const noexcept
 	{
-		return stats.stored_entries;
+		return stored_entries;
 	}
 	int NodeCache::bufferedElements() const noexcept
 	{
-		return stats.buffered_entries;
+		return buffered_entries;
 	}
 	int NodeCache::numberOfBins() const noexcept
 	{
@@ -110,87 +102,153 @@ namespace ag
 	}
 	double NodeCache::loadFactor() const noexcept
 	{
-		return static_cast<double>(stats.stored_entries) / bins.size();
+		return static_cast<double>(stored_entries) / bins.size();
 	}
 
-	/**
-	 * @brief Clears the cache.
-	 * All entries are moved to the temporary buffer to be used again.
-	 */
 	void NodeCache::clear() noexcept
 	{
 		for (size_t i = 0; i < bins.size(); i++)
 		{
-			Entry *current = bins[i];
-			while (current != nullptr)
+			while (bins[i] != nullptr)
 			{
-				Entry *next = current->next_entry;
-				add_to_buffer(current);
-				current = next;
+				Entry *tmp = unlink(bins[i]);
+				move_to_buffer(tmp);
 			}
-			bins[i] = nullptr;
+			assert(bins[i] == nullptr);
 		}
-		assert(stats.stored_entries + stats.buffered_entries == stats.allocated_entries);
+		assert(stored_entries + buffered_entries == allocated_entries);
 	}
-	/**
-	 * @brief Checks if the given board state is in the cache.
-	 */
 	bool NodeCache::contains(const Board &board) const noexcept
 	{
-		TimerGuard timer(stats.contains);
+		const uint64_t hash = hashing.getHash(board);
+		Entry *current = bins[hash & bin_index_mask];
+		while (current != nullptr)
+		{
+			if (current->hash == hash)
+				return true;
+			current = current->next_entry;
+		}
+		return false;
 	}
-	/**
-	 * @brief Adds new board state to the cache and returns its node.
-	 */
-	Node* NodeCache::insert(const Board &board) noexcept
+	Node* NodeCache::seek(const Board &board) noexcept
 	{
-		TimerGuard timer(stats.insert);
+		TimerGuard timer(stats.seek);
+		const uint64_t hash = hashing.getHash(board);
+		stats.calls++; // statistics
+
+		Entry *current = bins[hash & bin_index_mask];
+		while (current != nullptr)
+		{
+			if (current->hash == hash)
+			{
+				stats.hits++; // statistics
+				return &(current->node);
+			}
+			current = current->next_entry;
+		}
+
+		Entry *new_entry = get_new_entry();
+		new_entry->hash = hash;
+
+		link(bins[hash & bin_index_mask], new_entry);
+		stored_entries++;
+		assert(stored_entries + buffered_entries == allocated_entries);
+		return &(new_entry->node);
 	}
-	/**
-	 * @brief Removes given board state from the cache, if it exists in the cache.
-	 */
 	void NodeCache::remove(const Board &board) noexcept
 	{
 		TimerGuard timer(stats.remove);
+		const uint64_t hash = hashing.getHash(board);
+
+		size_t bin_index = hash & bin_index_mask;
+		Entry *&current = bins[bin_index];
+		while (current != nullptr)
+		{
+			if (current->hash == hash)
+			{
+				Entry *tmp = unlink(current);
+				move_to_buffer(tmp);
+			}
+			else
+				current = current->next_entry;
+		}
+		assert(stored_entries + buffered_entries == allocated_entries);
 	}
-	/**
-	 * @brief Changes the number of bins.
-	 */
-	void NodeCache::rehash(int newNumberOfBins)
+	void NodeCache::rehash(size_t newSize)
 	{
 		TimerGuard timer(stats.rehash);
-	}
-	/**
-	 * @brief Deallocates all buffered entries.
-	 */
-	void NodeCache::freeUnusedMemory()
-	{
-	}
+		assert(newSize < 64);
+		newSize = 1 << newSize;
+		bin_index_mask = newSize - 1;
+		if (stored_entries == 0 or bins.size() == newSize)
+			return;
 
+		Entry *storage = nullptr;
+		for (size_t i = 0; i < bins.size(); i++)
+		{
+			while (bins[i] != nullptr)
+			{
+				Entry *tmp = unlink(bins[i]);
+				link(storage, tmp);
+			}
+			assert(bins[i] == nullptr);
+		}
+
+		bins.resize(newSize, nullptr);
+
+		while (storage != nullptr)
+		{
+			Entry *tmp = unlink(storage);
+			link(bins[tmp->hash & bin_index_mask], tmp);
+		}
+		assert(stored_entries + buffered_entries == allocated_entries);
+	}
+	void NodeCache::freeUnusedMemory() noexcept
+	{
+		while (buffer != nullptr)
+		{
+			Entry *tmp = unlink(buffer);
+			delete tmp;
+		}
+		buffered_entries = 0;
+	}
+	void NodeCache::link(Entry *&prev, Entry *next) noexcept
+	{
+		// changes : prev == &entry1{...}
+		// into    : prev == &next{next_entry == &entry1{...}}
+		next->next_entry = prev;
+		prev = next;
+	}
+	NodeCache::Entry* NodeCache::unlink(Entry *&prev) noexcept
+	{
+		// changes : prev == &entry1{next_entry == &entry2{...}}
+		// into    : prev == &entry2{...} and returns pointer to entry1{next_entry == nullptr}
+		Entry *result = prev;
+		prev = result->next_entry;
+		result->next_entry = nullptr;
+		return result;
+	}
 	NodeCache::Entry* NodeCache::get_new_entry()
 	{
 		if (buffer == nullptr)
 		{
-			stats.allocated_entries++;
+			assert(buffered_entries == 0);
+			allocated_entries++;
 			return new Entry();
 		}
 		else
 		{
-			assert(stats.buffered_entries > 0);
-			stats.buffered_entries--;
-			Entry *result = buffer;
-			buffer = result->next_entry;
-			result->next_entry = nullptr;
-			return result;
+			assert(buffered_entries > 0);
+			buffered_entries--;
+			return unlink(buffer);
 		}
 	}
-	void NodeCache::add_to_buffer(NodeCache::Entry *entry) noexcept
+	void NodeCache::move_to_buffer(NodeCache::Entry *entry) noexcept
 	{
-		entry->next_entry = buffer;
-		buffer = entry;
-		assert(stats.stored_entries > 0);
-		stats.stored_entries--;
-		stats.buffered_entries++;
+		link(buffer, entry);
+		assert(stored_entries > 0);
+		stored_entries--;
+		buffered_entries++;
 	}
 } /* namespace ag */
 

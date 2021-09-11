@@ -41,17 +41,17 @@ namespace ag
 	class TreeLock
 	{
 		private:
-			std::mutex* tree_mutex;
+			std::mutex& tree_mutex;
 		public:
 			TreeLock(std::mutex &t) :
-					tree_mutex(&t)
+					tree_mutex(t)
 			{
 			}
 			TreeLock(TreeLock &&other) = default;
 			TreeLock& operator=(TreeLock &&other) = default;
 			~TreeLock()
 			{
-				tree_mutex->unlock();
+				tree_mutex.unlock();
 			}
 			TreeLock(const TreeLock &other) = delete;
 			TreeLock& operator=(const TreeLock &other) = delete;
