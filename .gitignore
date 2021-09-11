@@ -2,6 +2,8 @@
 /Release/
 /Testing/
 /cpu_only/
+doc/html/*
+doc/latex/*
 bin/*
 bin/objects/*
 contrib/blis/*
