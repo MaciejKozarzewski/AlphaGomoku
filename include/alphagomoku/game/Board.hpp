@@ -81,6 +81,7 @@ namespace ag
 
 			void putMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
+			void clear() noexcept;
 
 			bool isValid() const noexcept;
 			bool isSquare() const noexcept;
@@ -89,11 +90,28 @@ namespace ag
 			bool isForbidden(Move m) const noexcept;
 			GameOutcome getOutcome() const noexcept;
 			GameOutcome getOutcome(Move lastMove) const noexcept;
+			/**
+			 * @brief Checks if it is possible to obtain other board state by placing more stones.
+			 */
+			bool isPossibleToGetFrom(const Board &other) const noexcept;
 
 			std::string toString() const;
 			std::string toString(const matrix<ProvenValue> &pv) const;
 			std::string toString(const matrix<float> &policy) const;
 			std::string toString(const matrix<Value> &actionValues) const;
+
+			friend bool operator==(const Board &lhs, const Board &rhs) noexcept
+			{
+				return lhs.board_data == rhs.board_data;
+			}
+			friend bool operator!=(const Board &lhs, const Board &rhs) noexcept
+			{
+				return lhs.board_data != rhs.board_data;
+			}
+			friend bool equalSize(const Board &lhs, const Board &rhs) noexcept
+			{
+				return lhs.rows() == rhs.rows() and lhs.cols() == rhs.cols();
+			}
 	};
 
 } /* namespace ag */

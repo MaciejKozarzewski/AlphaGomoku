@@ -115,13 +115,13 @@ namespace ag
 				return rows() == cols();
 			}
 
-			friend bool operator==(const matrix<T> &lhs, const matrix<T> &rhs)
+			friend bool operator==(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
 			{
 				if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols())
 					return false;
 				return std::equal(lhs.begin(), lhs.end(), rhs.begin());
 			}
-			friend bool operator!=(const matrix<T> &lhs, const matrix<T> &rhs)
+			friend bool operator!=(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
 			{
 				return !(lhs == rhs);
 			}

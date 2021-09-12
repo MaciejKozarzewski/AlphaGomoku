@@ -166,6 +166,10 @@ namespace ag
 		board_data.at(move.row, move.col) = Sign::NONE;
 		sign_to_move = move.sign;
 	}
+	void Board::clear() noexcept
+	{
+		board_data.clear();
+	}
 
 	bool Board::isValid() const noexcept
 	{
@@ -207,6 +211,14 @@ namespace ag
 	GameOutcome Board::getOutcome(Move lastMove) const noexcept
 	{
 		return GameOutcome::UNKNOWN; // TODO
+	}
+	bool Board::isPossibleToGetFrom(const Board &other) const noexcept
+	{
+		assert(equalSize(*this, other));
+		for (int i = 0; i < other.size(); i++)
+			if (this->data()[i] != other.data()[i] and other.data()[i] != Sign::NONE)
+				return false;
+		return true;
 	}
 
 	std::string Board::toString() const

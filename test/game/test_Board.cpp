@@ -103,5 +103,48 @@ namespace ag
 
 		EXPECT_FALSE(board.isValid());
 	}
+	TEST(TestBoard, is_possible)
+	{
+		// @formatter:off
+		Board current(/*        a b c d e          */
+					  /*  0 */" _ O _ _ _\n" /*  0 */
+				      /*  1 */" _ _ _ _ _\n" /*  1 */
+					  /*  2 */" _ X _ _ _\n" /*  2 */
+					  /*  3 */" _ _ _ _ _\n" /*  3 */
+					  /*  4 */" _ _ _ _ _\n" /*  4 */
+					  /*        a b c d e          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+
+		// @formatter:off
+		Board next1(/*        a b c d e          */
+					  /*  0 */" _ X _ _ _\n" /*  0 */
+					  /*  1 */" _ _ _ _ _\n" /*  1 */
+					  /*  2 */" _ X _ _ _\n" /*  2 */
+					  /*  3 */" _ _ _ _ _\n" /*  3 */
+					  /*  4 */" _ _ _ _ _\n" /*  4 */
+					  /*        a b c d e          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+
+		// @formatter:off
+		Board next2(/*        a b c d e          */
+					  /*  0 */" _ O _ _ _\n" /*  0 */
+					  /*  1 */" _ _ X _ _\n" /*  1 */
+					  /*  2 */" _ _ _ _ _\n" /*  2 */
+					  /*  3 */" _ _ _ _ _\n" /*  3 */
+					  /*  4 */" _ _ _ _ _\n" /*  4 */
+					  /*        a b c d e          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+
+		// @formatter:off
+		Board next3(/*        a b c d e          */
+					  /*  0 */" _ O _ _ _\n" /*  0 */
+				      /*  1 */" _ _ X _ _\n" /*  1 */
+					  /*  2 */" _ X _ _ _\n" /*  2 */
+					  /*  3 */" _ _ _ _ _\n" /*  3 */
+					  /*  4 */" _ _ _ _ _\n" /*  4 */
+					  /*        a b c d e          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+
+		EXPECT_FALSE(next1.isPossibleToGetFrom(current));
+		EXPECT_FALSE(next2.isPossibleToGetFrom(current));
+		EXPECT_TRUE(next3.isPossibleToGetFrom(current));
+	}
+
 } /* namespace ag */
 
