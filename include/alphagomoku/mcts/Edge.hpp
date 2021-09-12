@@ -29,10 +29,10 @@ namespace ag
 			float policy_prior = 0.0f;
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
-			uint32_t visits = 0;
+			int32_t visits = 0;
 			Move move;
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
-			uint16_t virtual_loss = 0;
+			int16_t virtual_loss = 0;
 		public:
 			void clear() noexcept
 			{
@@ -77,7 +77,6 @@ namespace ag
 			}
 			int getVisits() const noexcept
 			{
-				assert(visits <= std::numeric_limits<int>::max());
 				return visits;
 			}
 			Move getMove() const noexcept
@@ -114,12 +113,12 @@ namespace ag
 			}
 			void applyVirtualLoss() noexcept
 			{
-				assert(virtual_loss < std::numeric_limits<uint16_t>::max());
+				assert(virtual_loss < std::numeric_limits<int16_t>::max());
 				virtual_loss++;
 			}
 			void cancelVirtualLoss() noexcept
 			{
-				assert(virtual_loss > 0u);
+				assert(virtual_loss > 0);
 				virtual_loss--;
 			}
 			std::string toString() const;

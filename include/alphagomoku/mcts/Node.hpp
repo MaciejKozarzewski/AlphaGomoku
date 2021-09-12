@@ -25,10 +25,10 @@ namespace ag
 			Edge *edges = nullptr; // non-owning
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
-			uint32_t visits = 0;
+			int32_t visits = 0;
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
-			uint16_t number_of_edges = 0;
-			uint16_t depth = 0;
+			int16_t number_of_edges = 0;
+			int16_t depth = 0;
 			bool is_transposition = false;
 		public:
 			void clear() noexcept
@@ -59,7 +59,6 @@ namespace ag
 			}
 			int getVisits() const noexcept
 			{
-				assert(visits < std::numeric_limits<int>::max());
 				return visits;
 			}
 			ProvenValue getProvenValue() const noexcept
@@ -84,10 +83,10 @@ namespace ag
 			}
 			void assignEdges(Edge *ptr, int number) noexcept
 			{
-				assert(number >= 0 && number < std::numeric_limits<uint16_t>::max());
+				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
 				assert(ptr != nullptr);
 				edges = ptr;
-				number_of_edges = number;
+				number_of_edges = static_cast<int16_t>(number);
 			}
 			void updateValue(Value eval) noexcept
 			{
@@ -107,8 +106,8 @@ namespace ag
 			}
 			void setDepth(int d) noexcept
 			{
-				assert(d >= 0 && d < std::numeric_limits<uint16_t>::max());
-				depth = static_cast<uint16_t>(d);
+				assert(d >= 0 && d < std::numeric_limits<int16_t>::max());
+				depth = static_cast<int16_t>(d);
 			}
 			Edge* begin() const noexcept
 			{
