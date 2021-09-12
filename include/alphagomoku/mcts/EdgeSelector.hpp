@@ -32,7 +32,7 @@ namespace ag
 			virtual ~EdgeSelector() = default;
 
 			virtual EdgeSelector* clone() const = 0;
-			virtual Edge* select(const Node *node) noexcept = 0;
+			virtual Edge* select(const Node *node) const noexcept = 0;
 	};
 
 	/**
@@ -47,7 +47,7 @@ namespace ag
 
 			PuctSelector(float exploration, float styleFactor);
 			PuctSelector* clone() const;
-			Edge* select(const Node *node) noexcept;
+			Edge* select(const Node *node) const noexcept;
 	};
 
 	/**
@@ -62,7 +62,7 @@ namespace ag
 
 			UctSelector(float exploration, float styleFactor);
 			UctSelector* clone() const;
-			Edge* select(const Node *node) noexcept;
+			Edge* select(const Node *node) const noexcept;
 	};
 
 	/**
@@ -77,7 +77,7 @@ namespace ag
 
 			BalancedSelector(int balanceDepth, const EdgeSelector &baseSelector);
 			BalancedSelector* clone() const;
-			Edge* select(const Node *node) noexcept;
+			Edge* select(const Node *node) const noexcept;
 	};
 
 	/**
@@ -90,7 +90,7 @@ namespace ag
 		public:
 			ValueSelector(float styleFactor);
 			ValueSelector* clone() const;
-			Edge* select(const Node *node) noexcept;
+			Edge* select(const Node *node) const noexcept;
 	};
 
 	/**
@@ -100,7 +100,7 @@ namespace ag
 	{
 		public:
 			VisitSelector* clone() const;
-			Edge* select(const Node *node) noexcept;
+			Edge* select(const Node *node) const noexcept;
 	};
 
 } /* namespace ag */

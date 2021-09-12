@@ -43,7 +43,7 @@ namespace ag
 	{
 		return new PuctSelector(exploration_constant, style_factor);
 	}
-	Edge* PuctSelector::select(const Node *node) noexcept
+	Edge* PuctSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
 		const float parent_value = 1.0f - getQ(node, style_factor);
@@ -75,7 +75,7 @@ namespace ag
 	{
 		return new UctSelector(exploration_constant, style_factor);
 	}
-	Edge* UctSelector::select(const Node *node) noexcept
+	Edge* UctSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
 		const float parent_value = 1.0f - getQ(node, style_factor);
@@ -108,7 +108,7 @@ namespace ag
 	{
 		return new BalancedSelector(balance_depth, *base_selector);
 	}
-	Edge* BalancedSelector::select(const Node *node) noexcept
+	Edge* BalancedSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
 		if (node->getDepth() < balance_depth)
@@ -139,7 +139,7 @@ namespace ag
 	{
 		return new ValueSelector(style_factor);
 	}
-	Edge* ValueSelector::select(const Node *node) noexcept
+	Edge* ValueSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
 		Edge *selected = node->end();
@@ -161,7 +161,7 @@ namespace ag
 	{
 		return new VisitSelector();
 	}
-	Edge* VisitSelector::select(const Node *node) noexcept
+	Edge* VisitSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
 		Edge *selected = node->end();
