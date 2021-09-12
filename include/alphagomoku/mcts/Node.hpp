@@ -39,9 +39,9 @@ namespace ag
 			{
 				return edges == nullptr;
 			}
-			Edge& getEdge(uint32_t index) const noexcept
+			Edge& getEdge(int index) const noexcept
 			{
-				assert(index < numberOfEdges());
+				assert(index >= 0 && index < number_of_edges);
 				assert(edges != nullptr);
 				return edges[index];
 			}
@@ -57,8 +57,9 @@ namespace ag
 			{
 				return Value(win_rate, draw_rate, 1.0f - win_rate - draw_rate);
 			}
-			uint32_t getVisits() const noexcept
+			int getVisits() const noexcept
 			{
+				assert(visits < std::numeric_limits<int>::max());
 				return visits;
 			}
 			ProvenValue getProvenValue() const noexcept
@@ -67,23 +68,23 @@ namespace ag
 			}
 			bool isProven() const noexcept
 			{
-				return getProvenValue() != ProvenValue::UNKNOWN;
+				return proven_value != ProvenValue::UNKNOWN;
 			}
 			bool isTransposition() const noexcept
 			{
 				return is_transposition;
 			}
-			uint32_t numberOfEdges() const noexcept
+			int numberOfEdges() const noexcept
 			{
 				return number_of_edges;
 			}
-			uint32_t getDepth() const noexcept
+			int getDepth() const noexcept
 			{
 				return depth;
 			}
-			void assignEdges(Edge *ptr, uint32_t number) noexcept
+			void assignEdges(Edge *ptr, int number) noexcept
 			{
-				assert(number < (1u << 16));
+				assert(number >= 0 && number < std::numeric_limits<uint16_t>::max());
 				assert(ptr != nullptr);
 				edges = ptr;
 				number_of_edges = number;
@@ -95,19 +96,19 @@ namespace ag
 				win_rate += (eval.win - win_rate) * tmp;
 				draw_rate += (eval.draw - draw_rate) * tmp;
 			}
-			void setProvenValue(ProvenValue ev) noexcept
+			void setProvenValue(ProvenValue pv) noexcept
 			{
-				proven_value = ev;
+				proven_value = pv;
 			}
 			void markAsTransposition() noexcept
 			{
-				assert(isTransposition() == false);
+				assert(is_transposition == false);
 				is_transposition = true;
 			}
-			void setDepth(uint32_t d) noexcept
+			void setDepth(int d) noexcept
 			{
-				assert(d < (1u << 13));
-				depth = d;
+				assert(d >= 0 && d < std::numeric_limits<uint16_t>::max());
+				depth = static_cast<uint16_t>(d);
 			}
 			Edge* begin() const noexcept
 			{
@@ -117,7 +118,7 @@ namespace ag
 			Edge* end() const noexcept
 			{
 				assert(edges != nullptr);
-				return edges + numberOfEdges();
+				return edges + number_of_edges;
 			}
 			std::string toString() const;
 			void sortEdges() const;

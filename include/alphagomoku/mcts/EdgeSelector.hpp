@@ -35,67 +35,70 @@ namespace ag
 			virtual Edge* select(const Node *node) noexcept = 0;
 	};
 
+	/**
+	 * @brief PUCT edge selector that optimizes P(win) + styleFactor * P(draw).
+	 */
 	class PuctSelector: public EdgeSelector
 	{
 		private:
 			const float exploration_constant; /**< controls the level of exploration */
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
-			/**
-			 * @brief PUCT edge selector that optimizes P(win) + styleFactor * P(draw).
-			 */
+
 			PuctSelector(float exploration, float styleFactor);
 			PuctSelector* clone() const;
 			Edge* select(const Node *node) noexcept;
 	};
 
+	/**
+	 * @brief UCT edge selector that optimizes P(win) + styleFactor * P(draw).
+	 */
 	class UctSelector: public EdgeSelector
 	{
 		private:
 			const float exploration_constant; /**< controls the level of exploration */
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
-			/**
-			 * @brief UCT edge selector that optimizes P(win) + styleFactor * P(draw).
-			 */
+
 			UctSelector(float exploration, float styleFactor);
 			UctSelector* clone() const;
 			Edge* select(const Node *node) noexcept;
 	};
 
+	/**
+	 * @brief Edge selector used to find few balanced moves, then continues with the baseSelector.
+	 */
 	class BalancedSelector: public EdgeSelector
 	{
 		private:
 			const uint32_t balance_depth;
 			std::unique_ptr<EdgeSelector> base_selector;
 		public:
-			/**
-			 * @brief Edge selector used to find few balanced moves, then continues with the baseSelector.
-			 */
+
 			BalancedSelector(int balanceDepth, const EdgeSelector &baseSelector);
 			BalancedSelector* clone() const;
 			Edge* select(const Node *node) noexcept;
 	};
 
+	/**
+	 * @brief Edge selector that chooses edge with the largest Q-value = P(win) + styleFactor * P(draw).
+	 */
 	class ValueSelector: public EdgeSelector
 	{
 		private:
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
-			/**
-			 * @brief Edge selector that chooses edge with the largest Q-value = P(win) + styleFactor * P(draw).
-			 */
 			ValueSelector(float styleFactor);
 			ValueSelector* clone() const;
 			Edge* select(const Node *node) noexcept;
 	};
 
+	/**
+	 * @brief Edge selector that chooses edge with the most visits.
+	 */
 	class VisitSelector: public EdgeSelector
 	{
 		public:
-			/**
-			 * @brief Edge selector that chooses edge with the most visits.
-			 */
 			VisitSelector* clone() const;
 			Edge* select(const Node *node) noexcept;
 	};

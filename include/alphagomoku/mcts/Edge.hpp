@@ -73,17 +73,18 @@ namespace ag
 			}
 			bool isProven() const noexcept
 			{
-				return getProvenValue() != ProvenValue::UNKNOWN;
+				return proven_value != ProvenValue::UNKNOWN;
 			}
-			uint32_t getVisits() const noexcept
+			int getVisits() const noexcept
 			{
+				assert(visits <= std::numeric_limits<int>::max());
 				return visits;
 			}
 			Move getMove() const noexcept
 			{
 				return move;
 			}
-			uint32_t getVirtualLoss() const noexcept
+			int getVirtualLoss() const noexcept
 			{
 				return virtual_loss;
 			}
@@ -103,9 +104,9 @@ namespace ag
 				win_rate += (eval.win - win_rate) * tmp;
 				draw_rate += (eval.draw - draw_rate) * tmp;
 			}
-			void setProvenValue(ProvenValue ev) noexcept
+			void setProvenValue(ProvenValue pv) noexcept
 			{
-				proven_value = ev;
+				proven_value = pv;
 			}
 			void setMove(Move m) noexcept
 			{
@@ -113,7 +114,7 @@ namespace ag
 			}
 			void applyVirtualLoss() noexcept
 			{
-				assert(virtual_loss < (1u << 16));
+				assert(virtual_loss < std::numeric_limits<uint16_t>::max());
 				virtual_loss++;
 			}
 			void cancelVirtualLoss() noexcept
