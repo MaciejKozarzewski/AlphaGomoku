@@ -57,7 +57,6 @@ namespace ag
 			void startTimer() noexcept;
 			/**
 			 * @brief Stops the timer.
-			 *
 			 * Is needed to be able to get elapsed time after the search ended.
 			 */
 			void stopTimer() noexcept;
@@ -67,8 +66,7 @@ namespace ag
 			bool shouldTheSearchContinue() const noexcept;
 			/**
 			 * @brief Returns time spent on the search.
-			 *
-			 * If the search is not running at the point of calling this method, the time of previous search is returned.
+			 * If the search is not running at the point of calling this method, the time of the last completed search is returned.
 			 */
 			double getElapsedTime() const noexcept;
 	};
