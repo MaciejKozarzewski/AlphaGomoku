@@ -47,22 +47,17 @@ namespace ag
 		EXPECT_EQ(cache.storedElements(), 0);
 		EXPECT_EQ(cache.numberOfBins(), (1 << 10));
 	}
-	TEST_F(TestNodeCache, contains)
-	{
-		bool flag = cache.contains(board);
-		EXPECT_FALSE(flag);
-	}
 	TEST_F(TestNodeCache, seek_not_in_cache)
 	{
 		Node *node = cache.seek(board);
-		EXPECT_NE(node, nullptr);
-		EXPECT_EQ(cache.storedElements(), 1);
-		EXPECT_EQ(cache.allocatedElements(), 1);
+		EXPECT_EQ(node, nullptr);
+		EXPECT_EQ(cache.storedElements(), 0);
+		EXPECT_EQ(cache.allocatedElements(), 0);
 		EXPECT_EQ(cache.bufferedElements(), 0);
 	}
 	TEST_F(TestNodeCache, seek_in_cache)
 	{
-		Node *node = cache.seek(board);
+		Node *node = cache.insert(board);
 		Node *found = cache.seek(board);
 		EXPECT_EQ(cache.storedElements(), 1);
 		EXPECT_EQ(cache.allocatedElements(), 1);
@@ -71,22 +66,26 @@ namespace ag
 	}
 	TEST_F(TestNodeCache, remove)
 	{
-		[[maybe_unused]] Node *node = cache.seek(board);
+		[[maybe_unused]] Node *node = cache.insert(board);
 		cache.remove(board);
 		EXPECT_EQ(cache.storedElements(), 0);
 		EXPECT_EQ(cache.allocatedElements(), 1);
 		EXPECT_EQ(cache.bufferedElements(), 1);
-		bool flag = cache.contains(board);
-		EXPECT_FALSE(flag);
+		node = cache.seek(board);
+		EXPECT_EQ(node, nullptr);
 	}
-	TEST_F(TestNodeCache, rehash)
+	TEST_F(TestNodeCache, resize)
 	{
 		for (int i = 0; i < 1000; i++)
-			cache.seek(getRandomBoard(game_config));
-		cache.seek(board);
-		cache.rehash(12);
-		bool flag = cache.contains(board);
-		EXPECT_TRUE(flag);
+		{
+			Board b = getRandomBoard(game_config);
+			if (b != board and cache.seek(b) == nullptr)
+				cache.insert(b);
+		}
+		cache.insert(board);
+		cache.resize(12);
+		Node *node = cache.seek(board);
+		EXPECT_NE(node, nullptr);
 	}
 
 } /* namespace ag */

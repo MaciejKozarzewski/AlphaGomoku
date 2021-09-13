@@ -9,7 +9,6 @@
 #define ALPHAGOMOKU_MCTS_NODECACHE_HPP_
 
 #include <alphagomoku/mcts/Node.hpp>
-#include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 
@@ -23,7 +22,7 @@ namespace ag
 			TimedStat seek;
 			TimedStat insert;
 			TimedStat remove;
-			TimedStat rehash;
+			TimedStat resize;
 
 			NodeCacheStats();
 
@@ -48,7 +47,6 @@ namespace ag
 					Entry *next_entry = nullptr; // non-owning
 			};
 
-			ZobristHashing hashing;
 			std::vector<Entry*> bins; // non-owning
 			Entry *buffer = nullptr; // non-owning
 			uint64_t bin_index_mask;
@@ -61,7 +59,7 @@ namespace ag
 			/**
 			 * @brief Creates cache with 2^size initial bins.
 			 */
-			NodeCache(GameConfig gameOptions, size_t size = 10);
+			NodeCache(size_t size = 10);
 			~NodeCache();
 
 			void clearStats() noexcept;
@@ -75,28 +73,32 @@ namespace ag
 			double loadFactor() const noexcept;
 
 			/**
+			 * @brief Ensures that at least n entries are allocated and ready to use.
+			 */
+			void reserve(int n);
+			/**
 			 * @brief Clears the cache.
 			 * All entries are moved to the temporary buffer to be used again.
 			 */
 			void clear() noexcept;
 			/**
-			 * @brief Checks if the given board state is in the cache.
+			 * @brief If given board is in the cache, returns pointer to node.
+			 * If board is not in cache a null pointer is returned.
 			 */
-			bool contains(const Board &board) const noexcept;
+			Node* seek(uint64_t hash) const noexcept;
 			/**
-			 * @brief If given board is in the cache, return pointer to node.
-			 * If board is not in cache a new entry is added.
+			 * @brief Inserts new entry to the cache.
 			 */
-			Node* seek(const Board &board) noexcept;
+			Node* insert(uint64_t hash) noexcept;
 			/**
 			 * @brief Removes given board state from the cache, if it exists in the cache.
 			 * If not, the function does nothing.
 			 */
-			void remove(const Board &board) noexcept;
+			void remove(uint64_t hash) noexcept;
 			/**
 			 * @brief Changes the number of bins to 2^newSize.
 			 */
-			void rehash(size_t newSize);
+			void resize(size_t newSize);
 			/**
 			 * @brief Deallocates all buffered entries.
 			 */

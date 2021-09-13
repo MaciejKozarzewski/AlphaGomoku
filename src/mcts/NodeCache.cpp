@@ -11,10 +11,10 @@
 namespace ag
 {
 	NodeCacheStats::NodeCacheStats() :
-			seek("seek"),
-			insert("insert"),
-			remove("remove"),
-			rehash("rehash")
+			seek("seek    "),
+			insert("insert  "),
+			remove("remove  "),
+			resize("resize  ")
 	{
 	}
 	std::string NodeCacheStats::toString() const
@@ -27,7 +27,7 @@ namespace ag
 		result += seek.toString() + '\n';
 		result += insert.toString() + '\n';
 		result += remove.toString() + '\n';
-		result += rehash.toString() + '\n';
+		result += resize.toString() + '\n';
 //		result += "entries = " + std::to_string(stored_entries) + " : " + std::to_string(buffered_entries) + " : " + std::to_string(allocated_entries)
 //				+ " (stored:buffered:allocated)\n";
 		return result;
@@ -40,7 +40,7 @@ namespace ag
 		this->seek += other.seek;
 		this->insert += other.insert;
 		this->remove += other.remove;
-		this->rehash += other.rehash;
+		this->resize += other.resize;
 		return *this;
 	}
 	NodeCacheStats& NodeCacheStats::operator/=(int i) noexcept
@@ -51,12 +51,11 @@ namespace ag
 		this->seek /= i;
 		this->insert /= i;
 		this->remove /= i;
-		this->rehash /= i;
+		this->resize /= i;
 		return *this;
 	}
 
-	NodeCache::NodeCache(GameConfig gameOptions, size_t size) :
-			hashing(gameOptions),
+	NodeCache::NodeCache(size_t size) :
 			bins(1 << size, nullptr),
 			bin_index_mask(bins.size() - 1)
 	{
@@ -73,7 +72,7 @@ namespace ag
 		stats.seek.reset();
 		stats.insert.reset();
 		stats.remove.reset();
-		stats.rehash.reset();
+		stats.resize.reset();
 	}
 	NodeCacheStats NodeCache::getStats() const noexcept
 	{
@@ -105,6 +104,11 @@ namespace ag
 		return static_cast<double>(stored_entries) / bins.size();
 	}
 
+	void NodeCache::reserve(int n)
+	{
+		for (int64_t i = buffered_entries; i < n; i++)
+			move_to_buffer(new Entry());
+	}
 	void NodeCache::clear() noexcept
 	{
 		for (size_t i = 0; i < bins.size(); i++)
@@ -118,24 +122,11 @@ namespace ag
 		}
 		assert(stored_entries + buffered_entries == allocated_entries);
 	}
-	bool NodeCache::contains(const Board &board) const noexcept
-	{
-		const uint64_t hash = hashing.getHash(board);
-		Entry *current = bins[hash & bin_index_mask];
-		while (current != nullptr)
-		{
-			if (current->hash == hash)
-				return true;
-			current = current->next_entry;
-		}
-		return false;
-	}
-	Node* NodeCache::seek(const Board &board) noexcept
+	Node* NodeCache::seek(uint64_t hash) const noexcept
 	{
 		TimerGuard timer(stats.seek);
-		const uint64_t hash = hashing.getHash(board);
-		stats.calls++; // statistics
 
+		stats.calls++; // statistics
 		Entry *current = bins[hash & bin_index_mask];
 		while (current != nullptr)
 		{
@@ -146,6 +137,12 @@ namespace ag
 			}
 			current = current->next_entry;
 		}
+		return nullptr;
+	}
+	Node* NodeCache::insert(uint64_t hash) noexcept
+	{
+		assert(seek(hash) == nullptr);
+		TimerGuard timer(stats.insert);
 
 		Entry *new_entry = get_new_entry();
 		new_entry->hash = hash;
@@ -155,10 +152,9 @@ namespace ag
 		assert(stored_entries + buffered_entries == allocated_entries);
 		return &(new_entry->node);
 	}
-	void NodeCache::remove(const Board &board) noexcept
+	void NodeCache::remove(uint64_t hash) noexcept
 	{
 		TimerGuard timer(stats.remove);
-		const uint64_t hash = hashing.getHash(board);
 
 		size_t bin_index = hash & bin_index_mask;
 		Entry *&current = bins[bin_index];
@@ -174,9 +170,9 @@ namespace ag
 		}
 		assert(stored_entries + buffered_entries == allocated_entries);
 	}
-	void NodeCache::rehash(size_t newSize)
+	void NodeCache::resize(size_t newSize)
 	{
-		TimerGuard timer(stats.rehash);
+		TimerGuard timer(stats.resize);
 		assert(newSize < 64);
 		newSize = 1 << newSize;
 		bin_index_mask = newSize - 1;
