@@ -40,6 +40,11 @@ namespace ag
 	{
 		return (x > 0) && !(x & (x - 1));
 	}
+	template<typename T>
+	constexpr T square(T x) noexcept
+	{
+		return x * x;
+	}
 
 	double getTime();
 	std::string currentDateTime();

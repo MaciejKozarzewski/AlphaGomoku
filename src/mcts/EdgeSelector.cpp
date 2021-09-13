@@ -7,11 +7,25 @@
 
 #include <alphagomoku/mcts/EdgeSelector.hpp>
 #include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/utils/misc.hpp>
 
 #include <cassert>
 
 namespace
 {
+	/**
+	 * @brief Calculates contribution to Q from virtual loss
+	 * 1 / (visits + vloss) is approximated by:
+	 * 1 / visits - vloss / visits^2	if vloss < visits
+	 * 1 / visits - visits / vloss^2	if vloss >= visits
+	 */
+	float getVloss(const ag::Edge *e) noexcept
+	{
+		if (e->getVirtualLoss() < e->getVisits())
+			return e->getVirtualLoss() / ag::square(static_cast<float>(e->getVisits()));
+		else
+			return -e->getVisits() / ag::square(static_cast<float>(e->getVirtualLoss()));
+	}
 	template<typename T>
 	float getQ(const T *n, float sf) noexcept
 	{
@@ -53,7 +67,9 @@ namespace ag
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 		{
-			float Q = (edge->getVisits() == 0) ? parent_value : (getQ(edge, style_factor) - edge->isProven());
+			float Q = parent_value;
+			if (edge->getVisits() > 0)
+				Q = getQ(edge, style_factor) - getVloss(edge) - edge->isProven();
 			float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
 
 			if (Q + U > bestValue)
@@ -85,7 +101,9 @@ namespace ag
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 		{
-			float Q = (edge->getVisits() == 0) ? parent_value : (getQ(edge, style_factor) - edge->isProven());
+			float Q = parent_value;
+			if (edge->getVisits() > 0)
+				Q = getQ(edge, style_factor) - getVloss(edge) - edge->isProven();
 			float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
 			float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
 
@@ -117,7 +135,7 @@ namespace ag
 			float bestValue = std::numeric_limits<float>::lowest();
 			for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			{
-				float Q = getBalance(edge);
+				float Q = getBalance(edge) - getVloss(edge);
 				if (Q > bestValue)
 				{
 					selected = edge;
@@ -178,5 +196,4 @@ namespace ag
 		return selected;
 	}
 } /* namespace ag */
-
 

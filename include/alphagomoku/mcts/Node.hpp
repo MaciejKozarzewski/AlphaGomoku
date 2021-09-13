@@ -29,7 +29,6 @@ namespace ag
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			int16_t number_of_edges = 0;
 			int16_t depth = 0;
-			bool is_transposition = false;
 		public:
 			void clear() noexcept
 			{
@@ -38,12 +37,6 @@ namespace ag
 			bool isLeaf() const noexcept
 			{
 				return edges == nullptr;
-			}
-			Edge& getEdge(int index) const noexcept
-			{
-				assert(index >= 0 && index < number_of_edges);
-				assert(edges != nullptr);
-				return edges[index];
 			}
 			float getWinRate() const noexcept
 			{
@@ -68,10 +61,6 @@ namespace ag
 			bool isProven() const noexcept
 			{
 				return proven_value != ProvenValue::UNKNOWN;
-			}
-			bool isTransposition() const noexcept
-			{
-				return is_transposition;
 			}
 			int numberOfEdges() const noexcept
 			{
@@ -98,11 +87,6 @@ namespace ag
 			void setProvenValue(ProvenValue pv) noexcept
 			{
 				proven_value = pv;
-			}
-			void markAsTransposition() noexcept
-			{
-				assert(is_transposition == false);
-				is_transposition = true;
 			}
 			void setDepth(int d) noexcept
 			{

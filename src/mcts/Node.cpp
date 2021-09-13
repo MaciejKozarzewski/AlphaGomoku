@@ -16,9 +16,9 @@ namespace ag
 	std::string Node::toString() const
 	{
 		std::string result = "Node : depth=";
-		if (getDepth() < 10u)
+		if (getDepth() < 10)
 			result += ' ';
-		if (getDepth() < 100u)
+		if (getDepth() < 100)
 			result += ' ';
 		result += std::to_string(getDepth());
 		switch (getProvenValue())
@@ -40,8 +40,6 @@ namespace ag
 		result += " : Q=" + getValue().toString();
 		result += " : Visits=" + std::to_string(getVisits());
 		result += " : Edges=" + std::to_string(numberOfEdges());
-		if (isTransposition())
-			result += " : transposition";
 		return result;
 	}
 	void Node::sortEdges() const

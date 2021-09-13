@@ -71,7 +71,7 @@ namespace ag
 	class BalancedSelector: public EdgeSelector
 	{
 		private:
-			const uint32_t balance_depth;
+			const int balance_depth;
 			std::unique_ptr<EdgeSelector> base_selector;
 		public:
 
