@@ -126,6 +126,11 @@ namespace
 
 namespace ag
 {
+	Board::Board() :
+			game_rules(GameRules::FREESTYLE),
+			sign_to_move(Sign::NONE)
+	{
+	}
 	Board::Board(GameConfig cfg) :
 			board_data(cfg.rows, cfg.cols),
 			game_rules(cfg.rules),

@@ -29,6 +29,7 @@ namespace ag
 			GameRules game_rules;
 			Sign sign_to_move;
 		public:
+			Board();
 			/**
 			 * @brief Creates board with given rules and size.
 			 */
@@ -74,6 +75,22 @@ namespace ag
 			int size() const noexcept
 			{
 				return rows() * cols();
+			}
+			Sign* begin() noexcept
+			{
+				return board_data.begin();
+			}
+			const Sign* begin() const noexcept
+			{
+				return board_data.begin();
+			}
+			Sign* end() noexcept
+			{
+				return board_data.end();
+			}
+			const Sign* end() const noexcept
+			{
+				return board_data.end();
 			}
 
 			Sign& at(const std::string &text) noexcept;
