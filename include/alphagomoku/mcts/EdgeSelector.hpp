@@ -45,7 +45,7 @@ namespace ag
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
 
-			PuctSelector(float exploration, float styleFactor);
+			PuctSelector(float exploration, float styleFactor = 0.5f);
 			PuctSelector* clone() const;
 			Edge* select(const Node *node) const noexcept;
 	};
@@ -60,7 +60,7 @@ namespace ag
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
 
-			UctSelector(float exploration, float styleFactor);
+			UctSelector(float exploration, float styleFactor = 0.5f);
 			UctSelector* clone() const;
 			Edge* select(const Node *node) const noexcept;
 	};
