@@ -11,12 +11,14 @@
 #include <alphagomoku/game/Move.hpp>
 
 #include <string>
+#include <cmath>
 #include <algorithm>
 #include <cassert>
 
 namespace ag
 {
-	enum class GameOutcome;
+	enum class GameOutcome
+	;
 } /* namespace ag */
 
 namespace ag
@@ -61,13 +63,25 @@ namespace ag
 			{
 				return std::to_string(win) + " : " + std::to_string(draw) + " : " + std::to_string(loss);
 			}
-			friend bool operator ==(const Value &lhs, const Value &rhs)
+			friend bool operator ==(const Value &lhs, const Value &rhs) noexcept
 			{
 				return lhs.win == rhs.win and lhs.draw == rhs.draw and lhs.loss == rhs.loss;
 			}
-			friend bool operator !=(const Value &lhs, const Value &rhs)
+			friend bool operator !=(const Value &lhs, const Value &rhs) noexcept
 			{
 				return lhs.win != rhs.win or lhs.draw != rhs.draw or lhs.loss != rhs.loss;
+			}
+			friend Value operator+(const Value &lhs, const Value &rhs) noexcept
+			{
+				return Value(lhs.win + rhs.win, lhs.draw + rhs.draw, lhs.loss + rhs.draw);
+			}
+			friend Value operator-(const Value &lhs, const Value &rhs) noexcept
+			{
+				return Value(lhs.win - rhs.win, lhs.draw - rhs.draw, lhs.loss - rhs.draw);
+			}
+			friend Value operator*(const Value &lhs, float rhs) noexcept
+			{
+				return Value(lhs.win * rhs, lhs.draw * rhs, lhs.loss * rhs);
 			}
 	};
 
