@@ -16,11 +16,8 @@
 namespace ag
 {
 	ZobristHashing::ZobristHashing(GameConfig cfg) :
-			keys(3 + 3 * cfg.rows * cfg.cols)
+			ZobristHashing(cfg, std::chrono::system_clock::now().time_since_epoch().count())
 	{
-		std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
-		for (size_t i = 0; i < keys.size(); i++)
-			keys[i] = generator();
 	}
 	ZobristHashing::ZobristHashing(GameConfig cfg, uint64_t seed) :
 			keys(3 + 3 * cfg.rows * cfg.cols)
@@ -45,4 +42,26 @@ namespace ag
 			result ^= keys[k + static_cast<int>(board.data()[i])];
 		return result;
 	}
+	void ZobristHashing::updateHash(uint64_t &hash, const Board &board, Move move) const noexcept
+	{
+		assert(hash == getHash(board));
+		hash ^= keys[static_cast<int>(move.sign)]; // XOR-ing out previous sign to move
+		hash ^= keys[static_cast<int>(invertSign(move.sign))]; // XOR-ing in new sign to move
+
+		if (board.at(move.row, move.col) == Sign::NONE)
+		{
+			assert(move.sign != Sign::NONE);
+			assert(move.sign == board.signToMove());
+			hash ^= keys[3 * (1 + move.row * board.cols() + move.col) + static_cast<int>(Sign::NONE)];
+			hash ^= keys[3 * (1 + move.row * board.cols() + move.col) + static_cast<int>(move.sign)];
+		}
+		else
+		{
+			assert(board.at(move.row, move.col) == move.sign);
+			assert(invertSign(move.sign) == board.signToMove());
+			hash ^= keys[3 * (1 + move.row * board.cols() + move.col) + static_cast<int>(board.at(move.row, move.col))];
+			hash ^= keys[3 * (1 + move.row * board.cols() + move.col) + static_cast<int>(Sign::NONE)];
+		}
+	}
+
 } /* namespace ag */
