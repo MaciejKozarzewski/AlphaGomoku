@@ -73,11 +73,11 @@ namespace ag
 			}
 			friend Value operator+(const Value &lhs, const Value &rhs) noexcept
 			{
-				return Value(lhs.win + rhs.win, lhs.draw + rhs.draw, lhs.loss + rhs.draw);
+				return Value(lhs.win + rhs.win, lhs.draw + rhs.draw, lhs.loss + rhs.loss);
 			}
 			friend Value operator-(const Value &lhs, const Value &rhs) noexcept
 			{
-				return Value(lhs.win - rhs.win, lhs.draw - rhs.draw, lhs.loss - rhs.draw);
+				return Value(lhs.win - rhs.win, lhs.draw - rhs.draw, lhs.loss - rhs.loss);
 			}
 			friend Value operator*(const Value &lhs, float rhs) noexcept
 			{

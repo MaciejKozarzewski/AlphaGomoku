@@ -16,11 +16,11 @@ namespace ag
 	std::string Node::toString() const
 	{
 		std::string result = "Node : depth=";
-		if (getDepth() < 10)
-			result += ' ';
-		if (getDepth() < 100)
-			result += ' ';
-		result += std::to_string(getDepth());
+//		if (getDepth() < 10)
+//			result += ' ';
+//		if (getDepth() < 100)
+//			result += ' ';
+		result += std::to_string(getDepth()) + " : ";
 		switch (getProvenValue())
 		{
 			default:

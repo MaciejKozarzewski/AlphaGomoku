@@ -11,7 +11,11 @@ namespace ag
 {
 	std::string Edge::toString() const
 	{
-		std::string result = "Edge : " + Move(getMove()).toString() + " : ";
+		std::string result = "Edge : " + getMove().text();
+		if (getMove().row < 10)
+			result += "     : ";
+		else
+			result += "    : ";
 		switch (getProvenValue())
 		{
 			default:
@@ -29,8 +33,8 @@ namespace ag
 				break;
 		}
 		result += " : Q=" + getValue().toString();
-		result += " : P=" + std::to_string(getPolicyPrior());
 		result += " : Visits=" + std::to_string(getVisits());
+		result += " : P=" + std::to_string(getPolicyPrior());
 		return result;
 	}
 } /* namespace ag */

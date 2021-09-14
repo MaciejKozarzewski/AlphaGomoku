@@ -115,9 +115,9 @@ namespace
 		{
 			for (int j = 0; j < board.cols(); j++)
 				if (board.at(i, j) == Sign::NONE)
-					result += "  " + to_string(board.at(i, j)) + " ";
-				else
 					result += std::string(" ") + to_string(other.at(i, j));
+				else
+					result += "  " + to_string(board.at(i, j)) + " ";
 			result += '\n';
 		}
 		return result;
