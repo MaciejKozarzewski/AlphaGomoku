@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_MCTS_NODECACHE_HPP_
 
 #include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 
@@ -49,6 +50,7 @@ namespace ag
 
 			std::vector<Entry*> bins; // non-owning
 			Entry *buffer = nullptr; // non-owning
+			ZobristHashing hashing;
 			uint64_t bin_index_mask;
 			int64_t allocated_entries = 0;
 			int64_t stored_entries = 0;
@@ -59,7 +61,7 @@ namespace ag
 			/**
 			 * @brief Creates cache with 2^size initial bins.
 			 */
-			NodeCache(size_t size = 10);
+			NodeCache(GameConfig gameConfig, size_t size = 10);
 			~NodeCache();
 
 			void clearStats() noexcept;
@@ -75,7 +77,7 @@ namespace ag
 			/**
 			 * @brief Ensures that at least n entries are allocated and ready to use.
 			 */
-			void reserve(int n);
+			void reserve(size_t n);
 			/**
 			 * @brief Clears the cache.
 			 * All entries are moved to the temporary buffer to be used again.
@@ -85,16 +87,17 @@ namespace ag
 			 * @brief If given board is in the cache, returns pointer to node.
 			 * If board is not in cache a null pointer is returned.
 			 */
-			Node* seek(uint64_t hash) const noexcept;
+			Node* seek(const matrix<Sign> &board, Sign signToMove) const noexcept;
 			/**
 			 * @brief Inserts new entry to the cache.
+			 * The inserted entry must not be in cache.
 			 */
-			Node* insert(uint64_t hash) noexcept;
+			Node* insert(const matrix<Sign> &board, Sign signToMove) noexcept;
 			/**
 			 * @brief Removes given board state from the cache, if it exists in the cache.
 			 * If not, the function does nothing.
 			 */
-			void remove(uint64_t hash) noexcept;
+			void remove(const matrix<Sign> &board, Sign signToMove) noexcept;
 			/**
 			 * @brief Changes the number of bins to 2^newSize.
 			 */

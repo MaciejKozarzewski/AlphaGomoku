@@ -55,8 +55,9 @@ namespace ag
 		return *this;
 	}
 
-	NodeCache::NodeCache(size_t size) :
+	NodeCache::NodeCache(GameConfig gameConfig, size_t size) :
 			bins(1 << size, nullptr),
+			hashing(gameConfig),
 			bin_index_mask(bins.size() - 1)
 	{
 	}
@@ -104,13 +105,15 @@ namespace ag
 		return static_cast<double>(stored_entries) / bins.size();
 	}
 
-	void NodeCache::reserve(int n)
+	void NodeCache::reserve(size_t n)
 	{
-		for (int64_t i = buffered_entries; i < n; i++)
+		for (size_t i = buffered_entries; i < n; i++)
 			move_to_buffer(new Entry());
 	}
 	void NodeCache::clear() noexcept
 	{
+		if (stored_entries == 0)
+			return;
 		for (size_t i = 0; i < bins.size(); i++)
 		{
 			while (bins[i] != nullptr)
@@ -122,9 +125,10 @@ namespace ag
 		}
 		assert(stored_entries + buffered_entries == allocated_entries);
 	}
-	Node* NodeCache::seek(uint64_t hash) const noexcept
+	Node* NodeCache::seek(const matrix<Sign> &board, Sign signToMove) const noexcept
 	{
 		TimerGuard timer(stats.seek);
+		const uint64_t hash = hashing.getHash(board, signToMove);
 
 		stats.calls++; // statistics
 		Entry *current = bins[hash & bin_index_mask];
@@ -139,10 +143,11 @@ namespace ag
 		}
 		return nullptr;
 	}
-	Node* NodeCache::insert(uint64_t hash) noexcept
+	Node* NodeCache::insert(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
-		assert(seek(hash) == nullptr);
+		assert(seek(board, signToMove) == nullptr);
 		TimerGuard timer(stats.insert);
+		const uint64_t hash = hashing.getHash(board, signToMove);
 
 		Entry *new_entry = get_new_entry();
 		new_entry->hash = hash;
@@ -152,9 +157,10 @@ namespace ag
 		assert(stored_entries + buffered_entries == allocated_entries);
 		return &(new_entry->node);
 	}
-	void NodeCache::remove(uint64_t hash) noexcept
+	void NodeCache::remove(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
 		TimerGuard timer(stats.remove);
+		const uint64_t hash = hashing.getHash(board, signToMove);
 
 		size_t bin_index = hash & bin_index_mask;
 		Entry *&current = bins[bin_index];
@@ -164,6 +170,7 @@ namespace ag
 			{
 				Entry *tmp = unlink(current);
 				move_to_buffer(tmp);
+				break;
 			}
 			else
 				current = current->next_entry;
@@ -176,10 +183,15 @@ namespace ag
 		assert(newSize < 64);
 		newSize = 1 << newSize;
 		bin_index_mask = newSize - 1;
-		if (stored_entries == 0 or bins.size() == newSize)
+		if (bins.size() == newSize)
 			return;
+		if (stored_entries == 0)
+		{
+			bins.resize(newSize, nullptr);
+			return;
+		}
 
-		Entry *storage = nullptr;
+		Entry *storage = nullptr; // all currently stored elements will be appended here
 		for (size_t i = 0; i < bins.size(); i++)
 		{
 			while (bins[i] != nullptr)

@@ -29,9 +29,6 @@ namespace ag
 			ZobristHashing(GameConfig cfg);
 			ZobristHashing(GameConfig cfg, uint64_t seed);
 			uint64_t getHash(const matrix<Sign> &board, Sign signToMove) const noexcept;
-
-			uint64_t getHash(const Board &board) const noexcept;
-			void updateHash(uint64_t &hash, const Board &board, Move move) const noexcept;
 	};
 } /* namespace ag */
 
