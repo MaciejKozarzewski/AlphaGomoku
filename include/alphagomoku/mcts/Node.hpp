@@ -30,13 +30,29 @@ namespace ag
 			int16_t number_of_edges = 0;
 			int16_t depth = 0;
 		public:
-			void clear() noexcept
-			{
-				std::memset(this, 0, sizeof(Node));
-			}
 			bool isLeaf() const noexcept
 			{
 				return edges == nullptr;
+			}
+			const Edge& operator[](int index) const noexcept
+			{
+				assert(index >= 0 && index < number_of_edges);
+				return edges[index];
+			}
+			Edge& operator[](int index) noexcept
+			{
+				assert(index >= 0 && index < number_of_edges);
+				return edges[index];
+			}
+			Edge* begin() const noexcept
+			{
+				assert(edges != nullptr);
+				return edges;
+			}
+			Edge* end() const noexcept
+			{
+				assert(edges != nullptr);
+				return edges + number_of_edges;
 			}
 			float getWinRate() const noexcept
 			{
@@ -70,12 +86,17 @@ namespace ag
 			{
 				return depth;
 			}
-			void assignEdges(Edge *ptr, int number) noexcept
+			void setEdges(Edge *ptr, int number) noexcept
 			{
-				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
 				assert(ptr != nullptr);
+				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
 				edges = ptr;
 				number_of_edges = static_cast<int16_t>(number);
+			}
+			void setValue(Value value) noexcept
+			{
+				win_rate = value.win;
+				draw_rate = value.draw;
 			}
 			void updateValue(Value eval) noexcept
 			{
@@ -91,17 +112,7 @@ namespace ag
 			void setDepth(int d) noexcept
 			{
 				assert(d >= 0 && d < std::numeric_limits<int16_t>::max());
-				depth = static_cast<int16_t>(d);
-			}
-			Edge* begin() const noexcept
-			{
-				assert(edges != nullptr);
-				return edges;
-			}
-			Edge* end() const noexcept
-			{
-				assert(edges != nullptr);
-				return edges + number_of_edges;
+				depth = d;
 			}
 			std::string toString() const;
 			void sortEdges() const;
