@@ -60,6 +60,7 @@ namespace ag
 	Edge* PuctSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
+		assert(node->isLeaf() == false);
 		const float parent_value = 1.0f - getQ(node, style_factor);
 		const float sqrt_visit = exploration_constant * sqrtf(node->getVisits());
 
@@ -94,6 +95,7 @@ namespace ag
 	Edge* UctSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
+		assert(node->isLeaf() == false);
 		const float parent_value = 1.0f - getQ(node, style_factor);
 		const float log_visit = logf(node->getVisits());
 
@@ -129,6 +131,7 @@ namespace ag
 	Edge* BalancedSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
+		assert(node->isLeaf() == false);
 		if (node->getDepth() < balance_depth)
 		{
 			Edge *selected = node->end();
@@ -160,6 +163,7 @@ namespace ag
 	Edge* ValueSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
+		assert(node->isLeaf() == false);
 		Edge *selected = node->end();
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
@@ -182,6 +186,7 @@ namespace ag
 	Edge* VisitSelector::select(const Node *node) const noexcept
 	{
 		assert(node != nullptr);
+		assert(node->isLeaf() == false);
 		Edge *selected = node->end();
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)

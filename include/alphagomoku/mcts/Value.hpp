@@ -17,8 +17,7 @@
 
 namespace ag
 {
-	enum class GameOutcome
-	;
+	enum class GameOutcome;
 } /* namespace ag */
 
 namespace ag
@@ -82,6 +81,10 @@ namespace ag
 			friend Value operator*(const Value &lhs, float rhs) noexcept
 			{
 				return Value(lhs.win * rhs, lhs.draw * rhs, lhs.loss * rhs);
+			}
+			float abs() const noexcept
+			{
+				return fabsf(win) + fabsf(draw) + fabsf(loss);
 			}
 	};
 

@@ -15,11 +15,7 @@ namespace ag
 {
 	std::string Node::toString() const
 	{
-		std::string result = "Node : depth=";
-//		if (getDepth() < 10)
-//			result += ' ';
-//		if (getDepth() < 100)
-//			result += ' ';
+		std::string result = "depth=";
 		result += std::to_string(getDepth()) + " : ";
 		switch (getProvenValue())
 		{
@@ -44,14 +40,17 @@ namespace ag
 	}
 	void Node::sortEdges() const
 	{
-//		MaxExpectation expectation;
-//		std::sort(this->begin(), this->end(), [expectation](const Edge &lhs, const Edge &rhs)
-//		{	double lhs_value = lhs.getVisits() + expectation(&lhs) + 0.001 * lhs.getPolicyPrior();
-//			lhs_value+= ((int)(lhs.getProvenValue() == ProvenValue::WIN) - (int)(lhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
-//			double rhs_value = rhs.getVisits() + expectation(&rhs) + 0.001 * rhs.getPolicyPrior();
-//			rhs_value+= ((int)(rhs.getProvenValue() == ProvenValue::WIN) - (int)(rhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
-//			return lhs_value > rhs_value;
-//		});
+		auto expectation = [](const Edge &e)
+		{
+			return e.getWinRate() + 0.5f * e.getDrawRate();
+		};
+		std::sort(this->begin(), this->end(), [expectation](const Edge &lhs, const Edge &rhs)
+		{	double lhs_value = lhs.getVisits() + expectation(lhs) + 0.001 * lhs.getPolicyPrior();
+			lhs_value+= ((int)(lhs.getProvenValue() == ProvenValue::WIN) - (int)(lhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
+			double rhs_value = rhs.getVisits() + expectation(rhs) + 0.001 * rhs.getPolicyPrior();
+			rhs_value+= ((int)(rhs.getProvenValue() == ProvenValue::WIN) - (int)(rhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
+			return lhs_value > rhs_value;
+		});
 	}
 
 	std::string Node_old::toString() const

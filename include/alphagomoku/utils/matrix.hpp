@@ -22,7 +22,6 @@ namespace ag
 			int m_rows = 0;
 			int m_cols = 0;
 		public:
-
 			matrix() = default;
 			matrix(int rows, int cols) :
 					m_data(rows * cols),
@@ -77,8 +76,7 @@ namespace ag
 			}
 			void copyFrom(const matrix<T> &other)
 			{
-				assert(this->rows() == other.rows());
-				assert(this->cols() == other.cols());
+				assert(equalSize(*this, other));
 				this->m_data = other.m_data;
 			}
 			const T& at(int row, int col) const noexcept
@@ -92,6 +90,16 @@ namespace ag
 				assert(row >= 0 && row < rows());
 				assert(col >= 0 && col < cols());
 				return m_data[row * cols() + col];
+			}
+			const T& operator[](int idx) const noexcept
+			{
+				assert(idx >= 0 && idx < size());
+				return m_data[idx];
+			}
+			T& operator[](int idx) noexcept
+			{
+				assert(idx >= 0 && idx < size());
+				return m_data[idx];
 			}
 
 			T* begin() noexcept
@@ -115,9 +123,13 @@ namespace ag
 				return rows() == cols();
 			}
 
+			friend bool equalSize(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
+			{
+				return lhs.rows() == rhs.rows() and lhs.cols() == rhs.cols();
+			}
 			friend bool operator==(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
 			{
-				if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols())
+				if (not equalSize(lhs, rhs))
 					return false;
 				return std::equal(lhs.begin(), lhs.end(), rhs.begin());
 			}

@@ -6,16 +6,17 @@
  */
 
 #include <alphagomoku/mcts/Edge.hpp>
+#include <alphagomoku/mcts/SearchTask.hpp>
 
 namespace ag
 {
 	std::string Edge::toString() const
 	{
-		std::string result = "Edge : " + getMove().text();
+		std::string result = getMove().text();
 		if (getMove().row < 10)
-			result += "     : ";
+			result += "  : ";
 		else
-			result += "    : ";
+			result += " : ";
 		switch (getProvenValue())
 		{
 			default:
