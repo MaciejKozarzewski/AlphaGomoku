@@ -10,8 +10,13 @@
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/mcts/NodeCache.hpp>
+#include <alphagomoku/utils/ObjectPool.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
+
 #include <inttypes.h>
 #include <memory>
 #include <mutex>
@@ -20,7 +25,8 @@
 
 namespace ag
 {
-	class SearchTrajectory;
+	class SearchTask;
+	class SearchTrajectory_old;
 } /* namespace ag */
 
 namespace ag
@@ -38,26 +44,43 @@ namespace ag
 			TreeStats& operator/=(int i) noexcept;
 	};
 
-	class TreeLock
+	enum class SelectOutcome
 	{
-		private:
-			std::mutex& tree_mutex;
-		public:
-			TreeLock(std::mutex &t) :
-					tree_mutex(t)
-			{
-			}
-			TreeLock(TreeLock &&other) = default;
-			TreeLock& operator=(TreeLock &&other) = default;
-			~TreeLock()
-			{
-				tree_mutex.unlock();
-			}
-			TreeLock(const TreeLock &other) = delete;
-			TreeLock& operator=(const TreeLock &other) = delete;
+		REACHED_LEAF,
+		INFORMATION_LEAK
+	};
+	enum class ExpandOutcome
+	{
+		SUCCESS,
+		ALREADY_EXPANDED
 	};
 
+	class TreeLock;
 	class Tree
+	{
+		private:
+			friend class TreeLock;
+
+			mutable std::mutex tree_mutex;
+			matrix<Sign> base_board;
+			Sign sign_to_move;
+			NodeCache node_cache;
+			ObjectPool<Edge> edge_pool;
+			Node *root_node = nullptr;
+
+		public:
+			Tree(GameConfig gameOptions, TreeConfig treeOptions);
+
+			void setBoard(const matrix<Sign> &newBoard, Sign signToMove);
+			int getSimulationCount() const noexcept;
+			SelectOutcome select(SearchTask &searchTask, const EdgeSelector &selector);
+			ExpandOutcome expand(const SearchTask &searchTask);
+			void backup(const SearchTask &searchTask);
+			void cancelVirtualLoss(SearchTask &searchTask);
+			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
+	};
+
+	class Tree_old
 	{
 		private:
 			std::vector<std::unique_ptr<Node_old[]>> nodes;
@@ -68,8 +91,7 @@ namespace ag
 			TreeConfig config;
 			int balancing_depth = -1;
 		public:
-			Tree(TreeConfig treeOptions);
-			[[nodiscard]] TreeLock lock() const noexcept;
+			Tree_old(TreeConfig treeOptions);
 
 			uint64_t getMemory() const noexcept;
 			void clearStats() noexcept;
@@ -84,19 +106,39 @@ namespace ag
 			Node_old& getRootNode() noexcept;
 			void setBalancingDepth(int depth) noexcept;
 			bool isRootNode(const Node_old *node) const noexcept;
-			void select(SearchTrajectory &trajectory, float explorationConstant = 1.25f);
+			void select(SearchTrajectory_old &trajectory, float explorationConstant = 1.25f);
 			bool expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
-			void backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue);
-			void cancelVirtualLoss(SearchTrajectory &trajectory);
+			void backup(SearchTrajectory_old &trajectory, Value value, ProvenValue provenValue);
+			void cancelVirtualLoss(SearchTrajectory_old &trajectory);
 
 			void getPolicyPriors(const Node_old &node, matrix<float> &result) const;
 			void getPlayoutDistribution(const Node_old &node, matrix<float> &result) const;
 			void getProvenValues(const Node_old &node, matrix<ProvenValue> &result) const;
 			void getActionValues(const Node_old &node, matrix<Value> &result) const;
-			SearchTrajectory getPrincipalVariation();
+			SearchTrajectory_old getPrincipalVariation();
 			void printSubtree(const Node_old &node, int depth = -1, bool sort = false, int top_n = -1) const;
 		private:
 			Node_old* reserve_nodes(int number);
+	};
+
+	class TreeLock
+	{
+		private:
+			const Tree &tree;
+		public:
+			TreeLock(const Tree &t) :
+					tree(t)
+			{
+				t.tree_mutex.lock();
+			}
+			~TreeLock()
+			{
+				tree.tree_mutex.unlock();
+			}
+			TreeLock(const TreeLock &other) = delete;
+			TreeLock(TreeLock &&other) = delete;
+			TreeLock& operator=(const TreeLock &other) = delete;
+			TreeLock& operator=(TreeLock &&other) = delete;
 	};
 
 } /* namespace ag */

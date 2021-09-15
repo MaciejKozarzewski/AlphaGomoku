@@ -28,7 +28,7 @@ namespace ag
 		is_ready = false;
 
 	}
-	void EvaluationRequest::setTrajectory(const matrix<Sign> &base_board, const SearchTrajectory &trajectory) noexcept
+	void EvaluationRequest::setTrajectory(const matrix<Sign> &base_board, const SearchTrajectory_old &trajectory) noexcept
 	{
 		node = &(trajectory.getLeafNode());
 		last_move = trajectory.getLastMove();

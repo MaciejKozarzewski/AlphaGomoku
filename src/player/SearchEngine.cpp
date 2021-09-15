@@ -20,7 +20,7 @@
 
 namespace ag
 {
-	SearchThread::SearchThread(GameConfig gameConfig, const Json &cfg, Tree &tree, Cache &cache, ml::Device device) :
+	SearchThread::SearchThread(GameConfig gameConfig, const Json &cfg, Tree_old &tree, Cache &cache, ml::Device device) :
 			eval_queue(),
 			search(gameConfig, SearchConfig(cfg["search_options"]), tree, cache, eval_queue)
 	{
@@ -380,17 +380,17 @@ namespace ag
 //					std::this_thread::sleep_for(std::chrono::milliseconds(10));
 				stopSearch();
 
-				SearchTrajectory st;
+//				SearchTrajectory st;
 //				tree.select(st, 0.0f);
-				if (st.length() < 2) // there was not enough time for balancing, just pick color
-				{
-					if (get_root_eval() < 0.5f)
-						return Message(MessageType::BEST_MOVE, "swap");
-					else
-						return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
-				}
-				else
-					return Message(MessageType::BEST_MOVE, std::vector<Move>( { st.getMove(1), st.getMove(2) }));
+//				if (st.length() < 2) // there was not enough time for balancing, just pick color
+//				{
+//					if (get_root_eval() < 0.5f)
+//						return Message(MessageType::BEST_MOVE, "swap");
+//					else
+//						return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
+//				}
+//				else
+//					return Message(MessageType::BEST_MOVE, std::vector<Move>( { st.getMove(1), st.getMove(2) }));
 			}
 		}
 	}

@@ -5,8 +5,10 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
+#include <alphagomoku/mcts/SearchTask.hpp>
+#include <alphagomoku/mcts/SearchTrajectory.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -188,6 +190,119 @@ namespace
 				print_subtree(node.getChild(i), max_depth, sort, top_n, current_depth + 1, i == node.numberOfChildren() - 1);
 		}
 	}
+
+	void print_subtree(const Node *node, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child = false);
+	void print_subtree(const Edge &edge, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child = false)
+	{
+		if (current_depth > 0)
+		{
+			if (is_last_child)
+			{
+				for (int i = 0; i < current_depth - 1; i++)
+					std::cout << "   " << "   ";
+				std::cout << "└──";
+			}
+			else
+			{
+				for (int i = 0; i < current_depth - 1; i++)
+					std::cout << "│  " << "   ";
+				std::cout << "├──";
+			}
+		}
+		std::cout << edge.toString() << '\n';
+		if (edge.isLeaf() == false)
+		{
+			for (int i = 0; i < current_depth; i++)
+				std::cout << "│  ";
+			std::cout << "└──";
+			print_subtree(edge.getNode(), max_depth, sort, top_n, current_depth, is_last_child);
+		}
+	}
+	void print_subtree(const Node *node, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child)
+	{
+		if (node == nullptr)
+			return;
+		std::cout << node << " " << node->toString() << '\n';
+		if (max_depth != -1 && current_depth >= max_depth)
+		{
+			for (int i = 0; i < 2 * current_depth; i++)
+				std::cout << "│  ";
+			std::cout << "└──... (subtree skipped)\n";
+			for (int i = 0; i < 2 * current_depth; i++)
+				std::cout << "│  ";
+			std::cout << '\n';
+			return;
+		}
+		if (sort)
+			node->sortEdges();
+		if (top_n == -1 || 2 * top_n >= node->numberOfEdges())
+		{
+			for (int i = 0; i < node->numberOfEdges(); i++)
+				print_subtree(node->getEdge(i), max_depth, sort, top_n, current_depth + 1, i == node->numberOfEdges() - 1);
+		}
+		else
+		{
+			for (int i = 0; i < top_n; i++)
+				print_subtree(node->getEdge(i).getNode(), max_depth, sort, top_n, current_depth + 1);
+			for (int i = 0; i < 2 * current_depth; i++)
+				std::cout << "│  ";
+			std::cout << "├──... (" << (node->numberOfEdges() - 2 * top_n) << " nodes skipped)\n";
+			for (int i = node->numberOfEdges() - top_n; i < node->numberOfEdges(); i++)
+				print_subtree(node->getEdge(i), max_depth, sort, top_n, current_depth + 1, i == node->numberOfEdges() - 1);
+		}
+	}
+	bool is_information_leak(const Edge *edge, const Node *node) noexcept
+	{
+		assert(edge != nullptr);
+		assert(edge->getNode() == node); // ensure that they are linked
+		if (node == nullptr)
+			return false;
+		if (edge->getProvenValue() != node->getProvenValue())
+			return true;
+		if ((edge->getValue() - node->getValue()).abs() >= 0.01f)
+			return true;
+		return false;
+	}
+	void update_proven_value(Edge *edge) noexcept
+	{
+		if (edge->isLeaf())
+			return;
+		else
+		{
+			ProvenValue node_pv = edge->getNode()->getProvenValue();
+			edge->setProvenValue(invert(node_pv));
+		}
+	}
+	bool update_proven_value(Node *node) noexcept
+	{
+		assert(node->isLeaf() == false);
+		if (node->isProven())
+			return true; // if node is already proven there is no need to analyze its edges
+
+		bool has_draw_child = false;
+		int unknown_count = 0;
+		for (Edge *edge = node->begin(); edge < node->end(); edge++)
+		{
+			unknown_count += static_cast<int>(edge->getProvenValue() == ProvenValue::UNKNOWN);
+			if (edge->getProvenValue() == ProvenValue::WIN)
+			{
+				node->setProvenValue(ProvenValue::LOSS);
+				return true;
+			}
+			if (edge->getProvenValue() == ProvenValue::DRAW)
+				has_draw_child = true;
+		}
+		if (unknown_count == 0)
+		{
+			if (has_draw_child)
+				node->setProvenValue(ProvenValue::DRAW);
+			else
+				node->setProvenValue(ProvenValue::WIN);
+		}
+		else
+			return false;
+		return true;
+	}
 }
 
 namespace ag
@@ -220,25 +335,137 @@ namespace ag
 		return *this;
 	}
 
-	Tree::Tree(TreeConfig treeOptions) :
+	Tree::Tree(GameConfig gameOptions, TreeConfig treeOptions) :
+			node_cache(gameOptions)
+	{
+	}
+
+	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove)
+	{
+		if (newBoard == base_board and signToMove == sign_to_move)
+			return;
+
+		base_board = newBoard;
+//		if (newBoard.isEmpty())
+//			return;
+		// TODO tree pruning
+
+//		root_node = node_cache.seek(base_board);
+	}
+	int Tree::getSimulationCount() const noexcept
+	{
+		if (root_node == nullptr)
+			return 0;
+		else
+			return root_node->getVisits();
+	}
+	SelectOutcome Tree::select(SearchTask &searchTask, const EdgeSelector &selector)
+	{
+//		searchTask.reset(base_board);
+		Node *node = root_node;
+		while (node != nullptr)
+		{
+			Edge *edge = selector.select(node);
+			searchTask.append(node, edge);
+			edge->increaseVirtualLoss();
+
+			node = edge->getNode();
+//			if (node == nullptr) // edge appears to be a leaf
+//				node = node_cache.seek(searchTask.getBoard()); // try to find the node in cache
+
+			if (is_information_leak(edge, node))
+				return SelectOutcome::INFORMATION_LEAK;
+		}
+		return SelectOutcome::REACHED_LEAF;
+	}
+	ExpandOutcome Tree::expand(const SearchTask &searchTask)
+	{
+//		assert(searchTask.isReady());
+//		if (searchTask.size() > 0)
+//		{
+//			if (searchTask.getLastPair().edge->isLeaf() == false)
+//				return ExpandOutcome::ALREADY_EXPANDED;
+//		}
+//		else
+//		{
+//			if (root_node != nullptr)
+//				return ExpandOutcome::ALREADY_EXPANDED;
+//		}
+//
+//		const size_t number_of_moves = searchTask.getMoves().size();
+//		Node *node_to_add = node_cache.insert(searchTask.getBoard());
+//		Edge *new_edges = edge_pool.allocate(number_of_moves);
+//
+//		node_to_add->init(new_edges, number_of_moves, searchTask.getValue().getInverted(), searchTask.getDepth());
+//		for (size_t i = 0; i < number_of_moves; i++)
+//			node_to_add->getEdge(i).init(searchTask.getMoves()[i]);
+//
+//		if (searchTask.size() > 0)
+//			searchTask.getLastPair().edge->assignNode(node_to_add);
+//		else
+//			root_node = node_to_add;
+		return ExpandOutcome::SUCCESS;
+	}
+	void Tree::backup(const SearchTask &searchTask)
+	{
+		assert(searchTask.isReady());
+//		for (int i = 0; i < searchTask.size(); i++)
+//		{
+//			NodeEdgePair pair = searchTask.getPair(i);
+//			Value value = searchTask.getValue();
+//			if (pair.edge->getMove().sign == searchTask.getSignToMove())
+//			{
+//				pair.node->updateValue(value.getInverted());
+//				pair.edge->updateValue(value);
+//			}
+//			else
+//			{
+//				pair.node->updateValue(value);
+//				pair.edge->updateValue(value.getInverted());
+//			}
+//			pair.edge->cancelVirtualLoss();
+//		}
+//		if (searchTask.size() > 0)
+//		{
+//			NodeEdgePair pair = searchTask.getLastPair();
+//			pair.edge->setProvenValue(searchTask.getProvenValue());
+//			bool continue_updating = update_proven_value(pair.node);
+//			if (continue_updating == false)
+//				return;
+//		}
+//		for (int i = searchTask.size() - 2; i >= 0; i--)
+//		{
+//			NodeEdgePair pair = searchTask.getPair(i);
+//			update_proven_value(pair.edge);
+//			bool continue_updating = update_proven_value(pair.node);
+//			if (continue_updating == false)
+//				break;
+//		}
+	}
+	void Tree::cancelVirtualLoss(SearchTask &searchTask)
+	{
+		for (int i = 0; i < searchTask.size(); i++)
+			searchTask.getPair(i).edge->decreaseVirtualLoss();
+	}
+	void Tree::printSubtree(int depth, bool sort, int top_n) const
+	{
+		print_subtree(root_node, depth, sort, top_n, 0);
+	}
+
+	Tree_old::Tree_old(TreeConfig treeOptions) :
 			config(treeOptions)
 	{
 	}
-	TreeLock Tree::lock() const noexcept
-	{
-		tree_mutex.lock();
-		return TreeLock(tree_mutex);
-	}
 
-	uint64_t Tree::getMemory() const noexcept
+	uint64_t Tree_old::getMemory() const noexcept
 	{
 		return sizeof(Node_old) * usedNodes();
 //		return sizeof(Node_old) * allocatedNodes();
 	}
-	void Tree::clearStats() noexcept
+	void Tree_old::clearStats() noexcept
 	{
 	}
-	TreeStats Tree::getStats() const noexcept
+	TreeStats Tree_old::getStats() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		TreeStats result;
@@ -263,43 +490,43 @@ namespace ag
 				}
 		return result;
 	}
-	void Tree::clear() noexcept
+	void Tree_old::clear() noexcept
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		current_index = { 0, 0 };
 		root_node.clear();
 	}
-	int Tree::allocatedNodes() const noexcept
+	int Tree_old::allocatedNodes() const noexcept
 	{
 		return static_cast<int>(nodes.size()) * config.bucket_size;
 	}
-	int Tree::usedNodes() const noexcept
+	int Tree_old::usedNodes() const noexcept
 	{
 		return current_index.first * config.bucket_size + current_index.second;
 	}
-	bool Tree::isProven() const noexcept
+	bool Tree_old::isProven() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		return root_node.isProven();
 	}
-	const Node_old& Tree::getRootNode() const noexcept
+	const Node_old& Tree_old::getRootNode() const noexcept
 	{
 		return root_node;
 	}
-	Node_old& Tree::getRootNode() noexcept
+	Node_old& Tree_old::getRootNode() noexcept
 	{
 		return root_node;
 	}
-	void Tree::setBalancingDepth(int depth) noexcept
+	void Tree_old::setBalancingDepth(int depth) noexcept
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		balancing_depth = depth;
 	}
-	bool Tree::isRootNode(const Node_old *node) const noexcept
+	bool Tree_old::isRootNode(const Node_old *node) const noexcept
 	{
 		return node == &root_node;
 	}
-	void Tree::select(SearchTrajectory &trajectory, float explorationConstant)
+	void Tree_old::select(SearchTrajectory_old &trajectory, float explorationConstant)
 	{
 		trajectory.clear();
 		std::lock_guard<std::mutex> lock(tree_mutex);
@@ -316,9 +543,8 @@ namespace ag
 			current->applyVirtualLoss();
 			trajectory.append(current, current->getMove());
 		}
-
 	}
-	bool Tree::expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
+	bool Tree_old::expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
 	{
 		assert(Move::getSign(parent.getMove()) != Sign::NONE);
 		assert(movesToAdd.size() > 0);
@@ -340,7 +566,7 @@ namespace ag
 		}
 		return true;
 	}
-	void Tree::backup(SearchTrajectory &trajectory, Value value, ProvenValue provenValue)
+	void Tree_old::backup(SearchTrajectory_old &trajectory, Value value, ProvenValue provenValue)
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 
@@ -360,13 +586,13 @@ namespace ag
 				break;
 		}
 	}
-	void Tree::cancelVirtualLoss(SearchTrajectory &trajectory)
+	void Tree_old::cancelVirtualLoss(SearchTrajectory_old &trajectory)
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		for (int i = 0; i < trajectory.length(); i++)
 			trajectory.getNode(i).cancelVirtualLoss();
 	}
-	void Tree::getPolicyPriors(const Node_old &node, matrix<float> &result) const
+	void Tree_old::getPolicyPriors(const Node_old &node, matrix<float> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		result.fill(0.0f);
@@ -376,7 +602,7 @@ namespace ag
 			result.at(move.row, move.col) = iter->getPolicyPrior();
 		}
 	}
-	void Tree::getPlayoutDistribution(const Node_old &node, matrix<float> &result) const
+	void Tree_old::getPlayoutDistribution(const Node_old &node, matrix<float> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		result.fill(0.0f);
@@ -386,7 +612,7 @@ namespace ag
 			result.at(move.row, move.col) = iter->getVisits();
 		}
 	}
-	void Tree::getProvenValues(const Node_old &node, matrix<ProvenValue> &result) const
+	void Tree_old::getProvenValues(const Node_old &node, matrix<ProvenValue> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		result.fill(ProvenValue::UNKNOWN);
@@ -396,7 +622,7 @@ namespace ag
 			result.at(move.row, move.col) = iter->getProvenValue();
 		}
 	}
-	void Tree::getActionValues(const Node_old &node, matrix<Value> &result) const
+	void Tree_old::getActionValues(const Node_old &node, matrix<Value> &result) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		result.fill(Value());
@@ -406,9 +632,9 @@ namespace ag
 			result.at(move.row, move.col) = iter->getValue();
 		}
 	}
-	SearchTrajectory Tree::getPrincipalVariation()
+	SearchTrajectory_old Tree_old::getPrincipalVariation()
 	{
-		SearchTrajectory result;
+		SearchTrajectory_old result;
 		std::lock_guard<std::mutex> lock(tree_mutex);
 
 		Node_old *current = &getRootNode();
@@ -420,13 +646,13 @@ namespace ag
 		}
 		return result;
 	}
-	void Tree::printSubtree(const Node_old &node, int depth, bool sort, int top_n) const
+	void Tree_old::printSubtree(const Node_old &node, int depth, bool sort, int top_n) const
 	{
 		std::lock_guard<std::mutex> lock(tree_mutex);
 		print_subtree(node, depth, sort, top_n, 0);
 	}
 
-	Node_old* Tree::reserve_nodes(int number)
+	Node_old* Tree_old::reserve_nodes(int number)
 	{
 		if (usedNodes() + number > allocatedNodes()) // allocate new bucket
 			nodes.push_back(std::make_unique<Node_old[]>(config.bucket_size));

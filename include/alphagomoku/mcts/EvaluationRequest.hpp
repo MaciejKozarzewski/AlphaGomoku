@@ -15,7 +15,7 @@
 
 namespace ag
 {
-	class SearchTrajectory;
+	class SearchTrajectory_old;
 } /* namespace ag */
 
 namespace ag
@@ -35,7 +35,7 @@ namespace ag
 			EvaluationRequest(int rows, int cols);
 
 			void clear() noexcept;
-			void setTrajectory(const matrix<Sign> &base_board, const SearchTrajectory &trajectory) noexcept;
+			void setTrajectory(const matrix<Sign> &base_board, const SearchTrajectory_old &trajectory) noexcept;
 			Node_old* getNode() const noexcept
 			{
 				return node;

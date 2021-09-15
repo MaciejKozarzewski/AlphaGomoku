@@ -26,23 +26,21 @@ namespace ag
 	{
 		private:
 			std::vector<NodeEdgePair> visited_pairs;
-			Board board;
-			Move last_move;
+			matrix<Sign> board;
+			Sign sign_to_move = Sign::NONE;
 			matrix<float> policy;
 			Value value;
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			bool is_ready = false;
 		public:
-			void reset(const Board &base) noexcept;
-			void correctInformationLeak() noexcept;
-			void chackIfTerminal() noexcept;
+			void reset(const matrix<Sign> &base, Sign signToMove) noexcept;
 			int size() const noexcept
 			{
 				return static_cast<int>(visited_pairs.size());
 			}
 			NodeEdgePair getPair(int index) const noexcept
 			{
-				assert(index >= 0 && index < length());
+				assert(index >= 0 && index < size());
 				return visited_pairs[index];
 			}
 			void append(Node *node, Edge *edge)
@@ -50,17 +48,24 @@ namespace ag
 				assert(node != nullptr);
 				assert(edge != nullptr);
 				visited_pairs.push_back( { node, edge });
-				last_move = edge->getMove();
-				board.putMove(last_move);
+				Move m = edge->getMove();
+				assert(m.sign == sign_to_move);
+				board.at(m.row, m.col) = m.sign;
+				sign_to_move = invertSign(m.sign);
 			}
 			NodeEdgePair getLastPair() const noexcept
 			{
 				assert(size() > 0);
 				return visited_pairs.back();
 			}
+			Move getLastMove() const noexcept
+			{
+				assert(size() > 0);
+				return visited_pairs.back().edge->getMove();
+			}
 			Sign getSignToMove() const noexcept
 			{
-				return board.signToMove();
+				return sign_to_move;
 			}
 			Value getValue() const noexcept
 			{
@@ -74,11 +79,11 @@ namespace ag
 			{
 				return is_ready;
 			}
-			const Board& getBoard() const noexcept
+			const matrix<Sign>& getBoard() const noexcept
 			{
 				return board;
 			}
-			Board& getBoard() noexcept
+			matrix<Sign>& getBoard() noexcept
 			{
 				return board;
 			}

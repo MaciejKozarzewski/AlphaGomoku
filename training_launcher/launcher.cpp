@@ -34,6 +34,24 @@
 #include <istream>
 #include <thread>
 
+namespace
+{
+	struct KeyHash2
+	{
+			size_t operator()(uint64_t h) const noexcept
+			{
+				return static_cast<size_t>(h);
+			}
+	};
+	struct KeyCompare2
+	{
+			bool operator()(uint64_t lhs, uint64_t rhs) const noexcept
+			{
+				return lhs == rhs;
+			}
+	};
+}
+
 using namespace ag;
 
 void benchmark_features()
@@ -533,7 +551,7 @@ void generate_openings(int number)
 
 	TreeConfig tree_config;
 	tree_config.bucket_size = 1000000;
-	Tree tree(tree_config);
+	Tree_old tree(tree_config);
 
 	CacheConfig cache_config;
 	cache_config.cache_size = 1024576;
@@ -552,7 +570,7 @@ void generate_openings(int number)
 	EvaluationQueue queue;
 	queue.loadGraph("/home/maciek/Desktop/AlphaGomoku501/networks/standard_10x128.bin", 32, ml::Device::cuda(1));
 
-	Search search(game_config, search_config, tree, cache, queue);
+	Search_old search(game_config, search_config, tree, cache, queue);
 
 	double start = getTime();
 	size_t counter = 0;
@@ -626,7 +644,7 @@ int main(int argc, char *argv[])
 
 	TreeConfig tree_config;
 	tree_config.bucket_size = 1000000;
-	Tree tree(tree_config);
+	Tree_old tree(tree_config);
 
 	CacheConfig cache_config;
 	cache_config.cache_size = 1024576;
@@ -647,7 +665,7 @@ int main(int argc, char *argv[])
 //	queue.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin", 32, ml::Device::cuda(0));
 	queue.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin", 16, ml::Device::cuda(0), false);
 
-	Search search(game_config, search_config, tree, cache, queue);
+	Search_old search(game_config, search_config, tree, cache, queue);
 
 	Sign sign_to_move = Sign::CIRCLE;
 	matrix<Sign> board(game_config.rows, game_config.cols);

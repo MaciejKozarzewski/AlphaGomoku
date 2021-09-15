@@ -16,15 +16,15 @@ namespace ag
 	TEST(TestTree, init)
 	{
 		TreeConfig cfg;
-		Tree tree(cfg);
+		Tree_old tree(cfg);
 		EXPECT_EQ(tree.allocatedNodes(), 0);
 		EXPECT_EQ(tree.usedNodes(), 0);
 	}
 	TEST(TestTree, simulation)
 	{
-		SearchTrajectory trajectory;
+		SearchTrajectory_old trajectory;
 		TreeConfig cfg;
-		Tree tree(cfg);
+		Tree_old tree(cfg);
 		tree.getRootNode().setMove(Move(0, 2, Sign::CIRCLE));
 
 		//simulation 1
@@ -69,9 +69,9 @@ namespace ag
 	TEST(TestTree , exactSearch)
 	{
 		GTEST_SKIP();// test was created for "init to loss" select strategy
-		SearchTrajectory trajectory;
+		SearchTrajectory_old trajectory;
 		TreeConfig cfg;
-		Tree tree(cfg);
+		Tree_old tree(cfg);
 		tree.getRootNode().setMove(Move(0, 2, Sign::CIRCLE));
 
 		//simulation 1

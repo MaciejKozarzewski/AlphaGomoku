@@ -27,11 +27,11 @@ namespace ag
 	{
 		private:
 			EvaluationQueue eval_queue;
-			Search search;
+			Search_old search;
 			mutable std::mutex search_mutex;
 			bool is_running = false;
 		public:
-			SearchThread(GameConfig gameConfig, const Json &cfg, Tree &tree, Cache &cache, ml::Device device);
+			SearchThread(GameConfig gameConfig, const Json &cfg, Tree_old &tree, Cache &cache, ml::Device device);
 			void setup(const matrix<Sign> &board);
 			void stop() noexcept;
 			bool isRunning() const noexcept;
@@ -46,9 +46,9 @@ namespace ag
 		private:
 			EngineSettings settings;
 
-			std::unique_ptr<Tree> tree;
+			std::unique_ptr<Tree_old> tree;
 			std::unique_ptr<Cache> cache;
-			std::vector<std::unique_ptr<Search>> searchers;
+			std::vector<std::unique_ptr<Search_old>> searchers;
 			std::vector<std::unique_ptr<EvaluationQueue>> evaluators;
 
 			matrix<Sign> board;

@@ -9,42 +9,18 @@
 
 namespace ag
 {
-	void SearchTask::reset(const Board &base) noexcept
+	void SearchTask::reset(const matrix<Sign> &base, Sign signToMove) noexcept
 	{
 		visited_pairs.clear();
 		board = base;
-		last_move = Move();
-		policy.clear();
+		sign_to_move = signToMove;
+		if (policy.size() == board.size())
+			policy.clear();
+		else
+			policy = matrix<float>(base.rows(), base.cols());
 		value = Value();
 		proven_value = ProvenValue::UNKNOWN;
 		is_ready = false;
-	}
-	void SearchTask::correctInformationLeak() noexcept
-	{
-		assert(size() > 0);
-		Edge *edge = getLastPair().edge;
-		Node *node = edge->getNode();
-		assert(node !=nullptr);
-		Value edgeQ = edge->getValue();
-		Value nodeQ = node->getValue();
-
-		this->value = (nodeQ - edgeQ) * edge->getVisits() + nodeQ;
-		this->proven_value = node->getProvenValue();
-		is_ready = true;
-	}
-	void SearchTask::chackIfTerminal() noexcept
-	{
-		GameOutcome outcome;
-		if (size() > 0)
-			outcome = board.getOutcome(last_move);
-		else
-			outcome = board.getOutcome();
-		if (outcome != GameOutcome::UNKNOWN)
-		{
-			setReady();
-			setValue(convertOutcome(outcome, getSignToMove()));
-			setProvenValue(convertProvenValue(outcome, getSignToMove()));
-		}
 	}
 	std::string SearchTask::toString() const
 	{
@@ -52,8 +28,19 @@ namespace ag
 		for (int i = 0; i < size(); i++)
 		{
 			result += getPair(i).node->toString() + '\n';
-			result += getPair(i).edge->toString() + '\n';
+			result += "---" + getPair(i).edge->toString() + '\n';
 		}
+		result += "sign to move = " + getSignToMove() + '\n';
+		if (is_ready)
+		{
+			result += "value = " + value.toString();
+			if (proven_value != ProvenValue::UNKNOWN)
+				result += " : proven " + ag::toString(proven_value);
+			result += '\n';
+			result += Board::toString(board, policy);
+		}
+		else
+			result += Board::toString(board);
 		return result;
 	}
 } /* namespace ag */

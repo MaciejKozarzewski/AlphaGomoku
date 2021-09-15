@@ -31,9 +31,9 @@ namespace ag
 		private:
 			EvaluationQueue &queue;
 			GameConfig game_config;
-			Tree tree;
+			Tree_old tree;
 			Cache cache;
-			Search search;
+			Search_old search;
 
 			std::string name;
 			Sign sign = Sign::NONE;

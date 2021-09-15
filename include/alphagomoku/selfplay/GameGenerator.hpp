@@ -35,9 +35,9 @@ namespace ag
 			EvaluationRequest request;
 			bool is_request_scheduled = false;
 
-			Tree tree;
+			Tree_old tree;
 			Cache cache;
-			Search search;
+			Search_old search;
 
 			GameState state = GAME_NOT_STARTED;
 			int opening_trials = 0;

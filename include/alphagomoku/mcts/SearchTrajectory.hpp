@@ -16,7 +16,8 @@
 
 namespace ag
 {
-	class SearchTrajectory
+
+	class SearchTrajectory_old
 	{
 		private:
 			std::vector<Node_old*> visited_nodes;

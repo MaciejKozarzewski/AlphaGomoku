@@ -2,14 +2,14 @@
  * SearchTrajectory.cpp
  *
  *  Created on: Mar 3, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 
 namespace ag
 {
-	std::string SearchTrajectory::toString() const
+	std::string SearchTrajectory_old::toString() const
 	{
 		std::string result;
 		for (int i = 0; i < length(); i++)

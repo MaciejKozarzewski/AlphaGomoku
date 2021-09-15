@@ -34,12 +34,12 @@ namespace ag
 			{
 				return edges == nullptr;
 			}
-			const Edge& operator[](int index) const noexcept
+			const Edge& getEdge(int index) const noexcept
 			{
 				assert(index >= 0 && index < number_of_edges);
 				return edges[index];
 			}
-			Edge& operator[](int index) noexcept
+			Edge& getEdge(int index) noexcept
 			{
 				assert(index >= 0 && index < number_of_edges);
 				return edges[index];
