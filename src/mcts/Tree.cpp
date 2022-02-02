@@ -251,6 +251,7 @@ namespace
 				print_subtree(node->getEdge(i), max_depth, sort, top_n, current_depth + 1, i == node->numberOfEdges() - 1);
 		}
 	}
+
 	bool is_information_leak(const Edge *edge, const Node *node) noexcept
 	{
 		constexpr float leak_threshold = 0.01f;
@@ -343,14 +344,16 @@ namespace ag
 		if (newBoard == base_board and signToMove == sign_to_move)
 			return;
 
+		// TODO tree pruning
+//		if(root_node!=nullptr)
+//			prune(root_node, base_board, newBoard)
+
 		base_board = newBoard;
 		sign_to_move = signToMove;
-		root_node = nullptr;
+		root_node = node_cache.seek(base_board, sign_to_move);
+		root_node->setDepth(Board::numberOfMoves(newBoard));
 		if (Board::isEmpty(newBoard))
 			return;
-		// TODO tree pruning
-
-		root_node = node_cache.seek(base_board, sign_to_move);
 	}
 	int Tree::getSimulationCount() const noexcept
 	{
@@ -397,14 +400,18 @@ namespace ag
 		}
 
 		const size_t number_of_moves = task.getEdges().size();
-		Node *node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove());
 		Edge *new_edges = edge_pool.allocate(number_of_moves);
-
-		node_to_add->setEdges(new_edges, number_of_moves);
 		for (size_t i = 0; i < number_of_moves; i++)
 			new_edges[i] = task.getEdges()[i];
+
+		Node *node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove());
+		node_to_add->clear();
+		node_to_add->setEdges(new_edges, number_of_moves);
 		node_to_add->updateValue(task.getValue().getInverted());
 		update_proven_value(node_to_add);
+		node_to_add->setDepth(root_node->getDepth() + task.visitedPathLength());
+		node_to_add->setSignToMove(task.getSignToMove());
+		node_to_add->markAsUsed();
 
 		if (task.visitedPathLength() > 0)
 			task.getLastPair().edge->setNode(node_to_add); // make last visited edge point to the newly added node
@@ -415,10 +422,10 @@ namespace ag
 	void Tree::backup(const SearchTask &task)
 	{
 		assert(task.isReady());
+		const Value value = task.getValue();
 		for (int i = 0; i < task.visitedPathLength(); i++)
 		{
 			NodeEdgePair pair = task.getPair(i);
-			Value value = task.getValue();
 			if (pair.edge->getMove().sign == task.getSignToMove())
 			{
 				pair.node->updateValue(value.getInverted());
@@ -448,6 +455,29 @@ namespace ag
 	void Tree::printSubtree(int depth, bool sort, int top_n) const
 	{
 		print_subtree(root_node, depth, sort, top_n, 0);
+	}
+	// private
+	void Tree::prune(Node *node, matrix<Sign> &currentBoard, const matrix<Sign> &newBoard, const Sign signToMove)
+	{
+		assert(node != nullptr);
+		if (Board::isTransitionPossible(currentBoard, newBoard))
+			return; // if the board state at this node is possible, then all nodes in the subtree below also are
+		else
+		{
+			if (node->isLeaf() == false)
+			{
+				for (auto edge = node->begin(); edge < node->end(); edge++)
+					if (edge->getNode() != nullptr and edge->getNode()->isUsed())
+					{
+						Board::putMove(currentBoard, edge->getMove());
+						prune(edge->getNode(), currentBoard, newBoard, invertSign(signToMove));
+						Board::undoMove(currentBoard, edge->getMove());
+					}
+			}
+			edge_pool.free(node->begin(), node->numberOfEdges());
+			node->markAsUnused();
+			node_cache.remove(currentBoard, signToMove);
+		}
 	}
 
 	Tree_old::Tree_old(TreeConfig treeOptions) :

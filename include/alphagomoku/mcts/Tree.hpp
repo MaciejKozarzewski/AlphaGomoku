@@ -78,6 +78,9 @@ namespace ag
 			void backup(const SearchTask &task);
 			void cancelVirtualLoss(SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
+
+		private:
+			void prune(Node *node, matrix<Sign> &currentBoard, const matrix<Sign> &newBoard, const Sign signToMove);
 	};
 
 	class Tree_old
