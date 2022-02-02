@@ -83,21 +83,21 @@ namespace ag
 				private:
 					std::unique_ptr<T[]> m_objects;
 					std::unique_ptr<bool[]> m_is_free;
-					size_t m_size;
+					size_t m_elements;
 				public:
-					BlockOfObjects(size_t size) :
-							m_objects(std::make_unique<T[]>(size)),
-							m_is_free(std::make_unique<bool[]>(size)),
-							m_size(size)
+					BlockOfObjects(size_t elements) :
+							m_objects(std::make_unique<T[]>(elements)),
+							m_is_free(std::make_unique<bool[]>(elements)),
+							m_elements(elements)
 					{
 					}
 			};
 		public:
-			[[nodiscard]] T* allocate(size_t size)
+			[[nodiscard]] T* allocate(size_t elements)
 			{
-				return new T[size]; // TODO this needs to be rewritten
+				return new T[elements]; // TODO this needs to be rewritten
 			}
-			void free(T *ptr, size_t size)
+			void free(T *ptr, size_t elements)
 			{
 				delete[] ptr; // TODO this needs to be rewritten
 			}
