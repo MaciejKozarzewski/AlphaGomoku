@@ -19,12 +19,12 @@ namespace
 	 * 1 / visits - vloss / visits^2	if vloss < visits
 	 * 1 / visits - visits / vloss^2	if vloss >= visits
 	 */
-	float getVloss(const ag::Edge *e) noexcept
+	float getVloss(const ag::Edge *edge) noexcept
 	{
-		if (e->getVirtualLoss() < e->getVisits())
-			return e->getVirtualLoss() / ag::square(static_cast<float>(e->getVisits()));
+		if (edge->getVirtualLoss() < edge->getVisits())
+			return edge->getVirtualLoss() / ag::square(static_cast<float>(edge->getVisits()));
 		else
-			return -e->getVisits() / ag::square(static_cast<float>(e->getVirtualLoss()));
+			return edge->getVisits() / ag::square(static_cast<float>(edge->getVirtualLoss()));
 	}
 	template<typename T>
 	float getQ(const T *n, float sf) noexcept
