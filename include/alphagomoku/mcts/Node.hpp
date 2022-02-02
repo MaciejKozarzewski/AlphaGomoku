@@ -29,7 +29,22 @@ namespace ag
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			int16_t number_of_edges = 0;
 			int16_t depth = 0;
+			Sign sign_to_move = Sign::NONE;
+			bool is_used = false;
 		public:
+			void clear() noexcept
+			{
+				edges = nullptr;
+				win_rate = 0.0f;
+				draw_rate = 0.0f;
+				visits = 0;
+				proven_value = ProvenValue::UNKNOWN;
+				number_of_edges = 0;
+				depth = 0;
+				sign_to_move = Sign::NONE;
+				is_used = false;
+			}
+
 			bool isLeaf() const noexcept
 			{
 				return edges == nullptr;
@@ -86,6 +101,15 @@ namespace ag
 			{
 				return depth;
 			}
+			Sign getSignToMove() const noexcept
+			{
+				return sign_to_move;
+			}
+			bool isUsed() const noexcept
+			{
+				return is_used;
+			}
+
 			void setEdges(Edge *ptr, int number) noexcept
 			{
 				assert(ptr != nullptr);
@@ -113,6 +137,20 @@ namespace ag
 			{
 				assert(d >= 0 && d < std::numeric_limits<int16_t>::max());
 				depth = d;
+			}
+			void setSignToMove(Sign s) noexcept
+			{
+				sign_to_move = s;
+			}
+			void markAsUsed() noexcept
+			{
+				assert(is_used == false);
+				is_used = true;
+			}
+			void markAsUnused() noexcept
+			{
+				assert(is_used == true);
+				is_used = false;
 			}
 			std::string toString() const;
 			void sortEdges() const;

@@ -21,7 +21,7 @@ namespace ag
 		{
 			default:
 			case ProvenValue::UNKNOWN:
-				result += 'U';
+				result += 'u';
 				break;
 			case ProvenValue::LOSS:
 				result += 'L';
@@ -36,6 +36,7 @@ namespace ag
 		result += " : Q=" + getValue().toString();
 		result += " : Visits=" + std::to_string(getVisits());
 		result += " : Edges=" + std::to_string(numberOfEdges());
+		result += isUsed() ? " : used" : " : unused";
 		return result;
 	}
 	void Node::sortEdges() const
