@@ -63,7 +63,7 @@ namespace ag
 
 			mutable std::mutex tree_mutex;
 			matrix<Sign> base_board;
-			Sign sign_to_move;
+			Sign sign_to_move = Sign::NONE;
 			NodeCache node_cache;
 			ObjectPool<Edge> edge_pool;
 			Node *root_node = nullptr;
@@ -73,10 +73,10 @@ namespace ag
 
 			void setBoard(const matrix<Sign> &newBoard, Sign signToMove);
 			int getSimulationCount() const noexcept;
-			SelectOutcome select(SearchTask &searchTask, const EdgeSelector &selector);
-			ExpandOutcome expand(const SearchTask &searchTask);
-			void backup(const SearchTask &searchTask);
-			void cancelVirtualLoss(SearchTask &searchTask);
+			SelectOutcome select(SearchTask &task, const EdgeSelector &selector);
+			ExpandOutcome expand(const SearchTask &task);
+			void backup(const SearchTask &task);
+			void cancelVirtualLoss(SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 	};
 

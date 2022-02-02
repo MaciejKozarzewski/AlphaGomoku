@@ -52,9 +52,13 @@ namespace ag
 			case GameOutcome::DRAW:
 				return Value(0.0f, 1.0f, 0.0f);
 			case GameOutcome::CROSS_WIN:
-				return (signToMove == Sign::CIRCLE) ? Value(1.0f, 0.0f, 0.0f) : Value(0.0f, 0.0f, 1.0f);
-			case GameOutcome::CIRCLE_WIN:
 				return (signToMove == Sign::CROSS) ? Value(1.0f, 0.0f, 0.0f) : Value(0.0f, 0.0f, 1.0f);
+			case GameOutcome::CIRCLE_WIN:
+				return (signToMove == Sign::CIRCLE) ? Value(1.0f, 0.0f, 0.0f) : Value(0.0f, 0.0f, 1.0f);
+//			case GameOutcome::CROSS_WIN:
+//				return (signToMove == Sign::CIRCLE) ? Value(1.0f, 0.0f, 0.0f) : Value(0.0f, 0.0f, 1.0f);
+//			case GameOutcome::CIRCLE_WIN:
+//				return (signToMove == Sign::CROSS) ? Value(1.0f, 0.0f, 0.0f) : Value(0.0f, 0.0f, 1.0f);
 		}
 	}
 	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove)
@@ -67,9 +71,13 @@ namespace ag
 			case GameOutcome::DRAW:
 				return ProvenValue::DRAW;
 			case GameOutcome::CROSS_WIN:
-				return (signToMove == Sign::CIRCLE) ? ProvenValue::WIN : ProvenValue::LOSS;
-			case GameOutcome::CIRCLE_WIN:
 				return (signToMove == Sign::CROSS) ? ProvenValue::WIN : ProvenValue::LOSS;
+			case GameOutcome::CIRCLE_WIN:
+				return (signToMove == Sign::CIRCLE) ? ProvenValue::WIN : ProvenValue::LOSS;
+//			case GameOutcome::CROSS_WIN:
+//				return (signToMove == Sign::CIRCLE) ? ProvenValue::WIN : ProvenValue::LOSS;
+//			case GameOutcome::CIRCLE_WIN:
+//				return (signToMove == Sign::CROSS) ? ProvenValue::WIN : ProvenValue::LOSS;
 		}
 	}
 }

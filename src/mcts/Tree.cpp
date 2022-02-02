@@ -253,28 +253,26 @@ namespace
 	}
 	bool is_information_leak(const Edge *edge, const Node *node) noexcept
 	{
+		constexpr float leak_threshold = 0.01f;
 		assert(edge != nullptr);
 		assert(edge->getNode() == node); // ensure that they are linked
 		if (node == nullptr)
-			return false;
+			return false; // the edge is a leaf so there is no information leak
 		if (edge->getProvenValue() != node->getProvenValue())
 			return true;
-		if ((edge->getValue() - node->getValue()).abs() >= 0.01f)
+		if ((edge->getValue() - node->getValue()).abs() >= leak_threshold)
 			return true;
 		return false;
 	}
 	void update_proven_value(Edge *edge) noexcept
 	{
-		if (edge->isLeaf())
-			return;
-		else
-		{
-			ProvenValue node_pv = edge->getNode()->getProvenValue();
-			edge->setProvenValue(invert(node_pv));
-		}
+		assert(edge != nullptr);
+		assert(edge->isLeaf() == false);
+		edge->setProvenValue(edge->getNode()->getProvenValue());
 	}
 	bool update_proven_value(Node *node) noexcept
 	{
+		assert(node != nullptr);
 		assert(node->isLeaf() == false);
 		if (node->isProven())
 			return true; // if node is already proven there is no need to analyze its edges
@@ -346,11 +344,13 @@ namespace ag
 			return;
 
 		base_board = newBoard;
-//		if (newBoard.isEmpty())
-//			return;
+		sign_to_move = signToMove;
+		root_node = nullptr;
+		if (Board::isEmpty(newBoard))
+			return;
 		// TODO tree pruning
 
-//		root_node = node_cache.seek(base_board);
+		root_node = node_cache.seek(base_board, sign_to_move);
 	}
 	int Tree::getSimulationCount() const noexcept
 	{
@@ -359,93 +359,91 @@ namespace ag
 		else
 			return root_node->getVisits();
 	}
-	SelectOutcome Tree::select(SearchTask &searchTask, const EdgeSelector &selector)
+	SelectOutcome Tree::select(SearchTask &task, const EdgeSelector &selector)
 	{
-//		searchTask.reset(base_board);
+		task.reset(base_board, sign_to_move);
 		Node *node = root_node;
 		while (node != nullptr)
 		{
 			Edge *edge = selector.select(node);
-			searchTask.append(node, edge);
+			task.append(node, edge);
 			edge->increaseVirtualLoss();
 
 			node = edge->getNode();
-//			if (node == nullptr) // edge appears to be a leaf
-//				node = node_cache.seek(searchTask.getBoard()); // try to find the node in cache
+			if (node == nullptr) // edge appears to be a leaf
+			{
+				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find the node in cache
+				if (node != nullptr) // if found in the cache
+					edge->setNode(node); // link that edge to this node
+			}
 
 			if (is_information_leak(edge, node))
 				return SelectOutcome::INFORMATION_LEAK;
 		}
 		return SelectOutcome::REACHED_LEAF;
 	}
-	ExpandOutcome Tree::expand(const SearchTask &searchTask)
+	ExpandOutcome Tree::expand(const SearchTask &task)
 	{
-//		assert(searchTask.isReady());
-//		if (searchTask.size() > 0)
-//		{
-//			if (searchTask.getLastPair().edge->isLeaf() == false)
-//				return ExpandOutcome::ALREADY_EXPANDED;
-//		}
-//		else
-//		{
-//			if (root_node != nullptr)
-//				return ExpandOutcome::ALREADY_EXPANDED;
-//		}
-//
-//		const size_t number_of_moves = searchTask.getMoves().size();
-//		Node *node_to_add = node_cache.insert(searchTask.getBoard());
-//		Edge *new_edges = edge_pool.allocate(number_of_moves);
-//
-//		node_to_add->init(new_edges, number_of_moves, searchTask.getValue().getInverted(), searchTask.getDepth());
-//		for (size_t i = 0; i < number_of_moves; i++)
-//			node_to_add->getEdge(i).init(searchTask.getMoves()[i]);
-//
-//		if (searchTask.size() > 0)
-//			searchTask.getLastPair().edge->assignNode(node_to_add);
-//		else
-//			root_node = node_to_add;
+		assert(task.isReady());
+		if (task.visitedPathLength() > 0)
+		{
+			if (task.getLastPair().edge->isLeaf() == false)
+				return ExpandOutcome::ALREADY_EXPANDED; // can happen either because of multithreading or minibatch evaluation
+		}
+		else
+		{
+			if (root_node != nullptr)
+				return ExpandOutcome::ALREADY_EXPANDED; // rare case if the tree has just been initialized but root node was already evaluated
+		}
+
+		const size_t number_of_moves = task.getEdges().size();
+		Node *node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove());
+		Edge *new_edges = edge_pool.allocate(number_of_moves);
+
+		node_to_add->setEdges(new_edges, number_of_moves);
+		for (size_t i = 0; i < number_of_moves; i++)
+			new_edges[i] = task.getEdges()[i];
+		node_to_add->updateValue(task.getValue().getInverted());
+		update_proven_value(node_to_add);
+
+		if (task.visitedPathLength() > 0)
+			task.getLastPair().edge->setNode(node_to_add); // make last visited edge point to the newly added node
+		else
+			root_node = node_to_add; // if no pairs were visited, it means that the tree is empty
 		return ExpandOutcome::SUCCESS;
 	}
-	void Tree::backup(const SearchTask &searchTask)
+	void Tree::backup(const SearchTask &task)
 	{
-		assert(searchTask.isReady());
-//		for (int i = 0; i < searchTask.size(); i++)
-//		{
-//			NodeEdgePair pair = searchTask.getPair(i);
-//			Value value = searchTask.getValue();
-//			if (pair.edge->getMove().sign == searchTask.getSignToMove())
-//			{
-//				pair.node->updateValue(value.getInverted());
-//				pair.edge->updateValue(value);
-//			}
-//			else
-//			{
-//				pair.node->updateValue(value);
-//				pair.edge->updateValue(value.getInverted());
-//			}
-//			pair.edge->cancelVirtualLoss();
-//		}
-//		if (searchTask.size() > 0)
-//		{
-//			NodeEdgePair pair = searchTask.getLastPair();
-//			pair.edge->setProvenValue(searchTask.getProvenValue());
-//			bool continue_updating = update_proven_value(pair.node);
-//			if (continue_updating == false)
-//				return;
-//		}
-//		for (int i = searchTask.size() - 2; i >= 0; i--)
-//		{
-//			NodeEdgePair pair = searchTask.getPair(i);
-//			update_proven_value(pair.edge);
-//			bool continue_updating = update_proven_value(pair.node);
-//			if (continue_updating == false)
-//				break;
-//		}
+		assert(task.isReady());
+		for (int i = 0; i < task.visitedPathLength(); i++)
+		{
+			NodeEdgePair pair = task.getPair(i);
+			Value value = task.getValue();
+			if (pair.edge->getMove().sign == task.getSignToMove())
+			{
+				pair.node->updateValue(value.getInverted());
+				pair.edge->updateValue(value);
+			}
+			else
+			{
+				pair.node->updateValue(value);
+				pair.edge->updateValue(value.getInverted());
+			}
+			pair.edge->decreaseVirtualLoss();
+		}
+		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
+		{
+			NodeEdgePair pair = task.getPair(i);
+			update_proven_value(pair.edge);
+			bool continue_updating = update_proven_value(pair.node);
+			if (continue_updating == false)
+				break;
+		}
 	}
-	void Tree::cancelVirtualLoss(SearchTask &searchTask)
+	void Tree::cancelVirtualLoss(SearchTask &task) noexcept
 	{
-		for (int i = 0; i < searchTask.size(); i++)
-			searchTask.getPair(i).edge->decreaseVirtualLoss();
+		for (int i = 0; i < task.visitedPathLength(); i++)
+			task.getPair(i).edge->decreaseVirtualLoss();
 	}
 	void Tree::printSubtree(int depth, bool sort, int top_n) const
 	{

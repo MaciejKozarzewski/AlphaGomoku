@@ -8,6 +8,10 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/configs.hpp>
+#include <alphagomoku/rules/freestyle.hpp>
+#include <alphagomoku/rules/standard.hpp>
+#include <alphagomoku/rules/renju.hpp>
+#include <alphagomoku/rules/caro.hpp>
 
 #include <algorithm>
 #include <iostream>
@@ -42,14 +46,14 @@ namespace
 			return "  _ ";
 		else
 		{
-			if (t < 1000)
-				return " " + std::to_string(t);
+			if (t < 10)
+				return "   " + std::to_string(t);
 			else
 			{
 				if (t < 100)
 					return "  " + std::to_string(t);
 				else
-					return "   " + std::to_string(t);
+					return " " + std::to_string(t);
 			}
 		}
 	}
@@ -60,13 +64,12 @@ namespace
 	template<class T>
 	std::string board_to_string(const matrix<Sign> &board, const T &other)
 	{
-		std::string result(board.rows() * (4 * board.cols() + 1), '\0');
-		;
+		std::string result;
 		for (int i = 0; i < board.rows(); i++)
 		{
 			for (int j = 0; j < board.cols(); j++)
 				if (board.at(i, j) == Sign::NONE)
-					result += std::string(" ") + to_string(other.at(i, j));
+					result += " " + to_string(other.at(i, j));
 				else
 					result += "  " + to_string(board.at(i, j)) + " ";
 			result += '\n';
@@ -131,18 +134,42 @@ namespace ag
 	{
 		return false; // TODO
 	}
-	GameOutcome Board::getOutcome(const matrix<Sign> &board) noexcept
+	GameOutcome Board::getOutcome(GameRules rules, const matrix<Sign> &board) noexcept
 	{
-		return GameOutcome::UNKNOWN; // TODO
+		switch (rules)
+		{
+			default:
+				return GameOutcome::UNKNOWN;
+			case GameRules::FREESTYLE:
+				return getOutcomeFreestyle(board);
+			case GameRules::STANDARD:
+				return getOutcomeStandard(board);
+			case GameRules::RENJU:
+				return getOutcomeRenju(board);
+			case GameRules::CARO:
+				return getOutcomeCaro(board);
+		}
 	}
-	GameOutcome Board::getOutcome(const matrix<Sign> &board, Move lastMove) noexcept
+	GameOutcome Board::getOutcome(GameRules rules, const matrix<Sign> &board, Move lastMove) noexcept
 	{
-		return GameOutcome::UNKNOWN; // TODO
+		switch (rules)
+		{
+			default:
+				return GameOutcome::UNKNOWN;
+			case GameRules::FREESTYLE:
+				return getOutcomeFreestyle(board, lastMove);
+			case GameRules::STANDARD:
+				return getOutcomeStandard(board, lastMove);
+			case GameRules::RENJU:
+				return getOutcomeRenju(board, lastMove);
+			case GameRules::CARO:
+				return getOutcomeCaro(board, lastMove);
+		}
 	}
 
 	std::string Board::toString(const matrix<Sign> &board)
 	{
-		std::string result(board.rows() * (2 * board.cols() + 1), '\0');
+		std::string result;
 		for (int i = 0; i < board.rows(); i++)
 		{
 			for (int j = 0; j < board.cols(); j++)

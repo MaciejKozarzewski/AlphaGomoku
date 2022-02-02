@@ -123,9 +123,10 @@ namespace ag
 				return rows() == cols();
 			}
 
-			friend bool equalSize(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
+			template<typename U>
+			friend bool equalSize(const matrix<T> &lhs, const matrix<U> &rhs) noexcept
 			{
-				return lhs.rows() == rhs.rows() and lhs.cols() == rhs.cols();
+				return (lhs.rows() == rhs.rows()) and (lhs.cols() == rhs.cols());
 			}
 			friend bool operator==(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
 			{
@@ -135,7 +136,7 @@ namespace ag
 			}
 			friend bool operator!=(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
 			{
-				return !(lhs == rhs);
+				return not (lhs == rhs);
 			}
 
 	};

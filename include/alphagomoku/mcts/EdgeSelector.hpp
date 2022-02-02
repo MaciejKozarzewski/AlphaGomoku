@@ -19,7 +19,7 @@ namespace ag
 namespace ag
 {
 	/**
-	 * @brief Base interface responsible for selecting edge within the tree..
+	 * @brief Base interface responsible for selecting edge within the tree.
 	 */
 	class EdgeSelector
 	{

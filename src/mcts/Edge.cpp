@@ -21,7 +21,7 @@ namespace ag
 		{
 			default:
 			case ProvenValue::UNKNOWN:
-				result += 'U';
+				result += 'u';
 				break;
 			case ProvenValue::LOSS:
 				result += 'L';

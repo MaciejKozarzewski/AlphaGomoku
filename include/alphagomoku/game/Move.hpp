@@ -51,13 +51,13 @@ namespace ag
 			 * @see text()
 			 */
 			Move(const std::string &str);
-			[[deprecated]] Move(uint16_t m)
+			Move(uint16_t m)
 			{
 				sign = static_cast<Sign>(m & 3);
 				row = (m >> 2) & 127;
 				col = (m >> 9) & 127;
 			}
-			Move(int r, int c, Sign s) noexcept:
+			Move(int r, int c, Sign s) noexcept :
 					sign(s),
 					row(r),
 					col(c)
@@ -65,12 +65,20 @@ namespace ag
 				assert(row >= 0 && row < 128);
 				assert(col >= 0 && col < 128);
 			}
-			Move(int r, int c) noexcept:
-					Move(r, c, Sign::NONE)
+			Move(Sign s, int r, int c) noexcept :
+					sign(s),
+					row(r),
+					col(c)
+			{
+				assert(row >= 0 && row < 128);
+				assert(col >= 0 && col < 128);
+			}
+			Move(int r, int c) noexcept :
+					Move(Sign::NONE, r, c)
 			{
 			}
 
-			[[deprecated]] uint16_t toShort() const noexcept
+			uint16_t toShort() const noexcept
 			{
 //				return Move::move_to_short(row, col, sign);
 				return static_cast<uint16_t>(sign) + (row << 2) + (col << 9);
@@ -89,19 +97,19 @@ namespace ag
 			 */
 			std::string text() const;
 
-			[[deprecated]]static uint16_t move_to_short(int r, int c, Sign s) noexcept
+			static uint16_t move_to_short(int r, int c, Sign s) noexcept
 			{
 				return static_cast<uint16_t>(s) + (r << 2) + (c << 9);
 			}
-			[[deprecated]] static int getRow(uint16_t move) noexcept
+			static int getRow(uint16_t move) noexcept
 			{
 				return (move >> 2) & 127;
 			}
-			[[deprecated]]static int getCol(uint16_t move) noexcept
+			static int getCol(uint16_t move) noexcept
 			{
 				return (move >> 9) & 127;
 			}
-			[[deprecated]]static Sign getSign(uint16_t move) noexcept
+			static Sign getSign(uint16_t move) noexcept
 			{
 				return static_cast<Sign>(move & 3);
 			}

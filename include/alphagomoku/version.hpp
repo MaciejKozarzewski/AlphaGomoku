@@ -15,8 +15,8 @@ namespace ag
 	struct Version
 	{
 			static const int major = 5;
-			static const int minor = 1;
-			static const int revision = 1;
+			static const int minor = 2;
+			static const int revision = 0;
 	};
 	class ProgramInfo
 	{
@@ -47,7 +47,7 @@ namespace ag
 			}
 			static std::string copyright()
 			{
-				return "Copyright (C) 2017-2021 " + author();
+				return "Copyright (C) 2017-2022 " + author();
 			}
 			static std::string build()
 			{

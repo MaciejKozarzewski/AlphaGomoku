@@ -213,7 +213,7 @@ namespace ag
 	}
 	void Search::correct_information_leak(SearchTask &task) const
 	{
-		assert(task.size() > 0);
+		assert(task.visitedPathLength() > 0);
 		Edge *edge = task.getLastPair().edge;
 		Node *node = edge->getNode();
 		assert(node != nullptr);
@@ -221,7 +221,7 @@ namespace ag
 		Value nodeQ = node->getValue();
 
 		task.setValue((nodeQ - edgeQ) * edge->getVisits() + nodeQ);
-		task.setProvenValue(invert(node->getProvenValue()));
+		task.getLastPair().edge->setProvenValue(node->getProvenValue());
 		task.setReady();
 	}
 	void Search::check_if_terminal(SearchTask &task) const
@@ -235,7 +235,7 @@ namespace ag
 		{
 			task.setReady();
 			task.setValue(convertOutcome(outcome, task.getSignToMove()));
-			task.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
+//			task.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
 		}
 	}
 

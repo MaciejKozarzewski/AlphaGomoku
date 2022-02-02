@@ -34,6 +34,12 @@ namespace ag
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			int16_t virtual_loss = 0;
 		public:
+			Edge() noexcept = default;
+			Edge(Move m) noexcept :
+					move(m)
+			{
+			}
+
 			bool isLeaf() const noexcept
 			{
 				return node == nullptr;

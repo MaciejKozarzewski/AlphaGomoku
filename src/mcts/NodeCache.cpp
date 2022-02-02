@@ -180,9 +180,9 @@ namespace ag
 	void NodeCache::resize(size_t newSize)
 	{
 		TimerGuard timer(stats.resize);
-		assert(newSize < 64);
-		newSize = 1 << newSize;
-		bin_index_mask = newSize - 1;
+		assert(newSize < 64ull);
+		newSize = 1ull << newSize;
+		bin_index_mask = newSize - 1ull;
 		if (bins.size() == newSize)
 			return;
 		if (stored_entries == 0)
