@@ -87,6 +87,7 @@ namespace ag
 
 			void addProvenEdge(Move m, ProvenValue pv);
 			void addEdge(Move m);
+			void addEdge(const Edge &other);
 
 			std::string toString() const;
 	};

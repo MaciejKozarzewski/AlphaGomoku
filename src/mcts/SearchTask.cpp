@@ -132,6 +132,7 @@ namespace ag
 	}
 	void SearchTask::addProvenEdge(Move m, ProvenValue pv)
 	{
+		assert(m.sign == sign_to_move);
 		Edge e;
 		e.setMove(m);
 		e.setProvenValue(pv);
@@ -139,7 +140,12 @@ namespace ag
 	}
 	void SearchTask::addEdge(Move m)
 	{
+		assert(m.sign == sign_to_move);
 		edges.push_back(Edge(m));
+	}
+	void SearchTask::addEdge(const Edge &other)
+	{
+		edges.push_back(other);
 	}
 	std::string SearchTask::toString() const
 	{
