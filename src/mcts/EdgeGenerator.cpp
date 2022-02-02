@@ -54,7 +54,10 @@ namespace ag
 		assert(task.isReady());
 
 		if (task.getProvenEdges().size() > 0)
-			std::copy(task.getProvenEdges().begin(), task.getProvenEdges().end(), task.getEdges().begin());
+		{
+			for (size_t i = 0; i < task.getProvenEdges().size(); i++)
+				task.addEdge(task.getProvenEdges()[i]);
+		}
 
 		if (not contains_winning_edge(task.getEdges()))
 		{
