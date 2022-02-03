@@ -8,6 +8,8 @@
 #include <alphagomoku/mcts/NodeCache.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <iostream>
+
 namespace ag
 {
 	NodeCacheStats::NodeCacheStats() :
@@ -276,16 +278,16 @@ namespace ag
 	{
 		const Node &node = entry->node;
 		if (node.getSignToMove() != signToMove)
-			return true;
+			return true; // sign to move mismatch
 		if (node.getDepth() != Board::numberOfMoves(board))
-			return true;
+			return true; // depth mismatch
 		for (int i = 0; i < node.numberOfEdges(); i++)
 		{
 			Move move = node.getEdge(i).getMove();
 			if (board.at(move.row, move.col) != Sign::NONE)
 				return true; // we found an edge representing move that is invalid in this position
 		}
-		return false; // unfortunately the above test do not give 100% confidence, but there is nothing more that could be checked
+		return false; // unfortunately the above checks do not give 100% confidence, but there is nothing more that could be done
 	}
 
 } /* namespace ag */

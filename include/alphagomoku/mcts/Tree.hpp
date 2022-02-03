@@ -90,6 +90,10 @@ namespace ag
 			 * \brief Recursively deletes all nodes in the subtree.
 			 */
 			void delete_subtree(Node *node, matrix<Sign> &tmpBoard);
+			/*
+			 * \brief Remove given node from the tree, freeing its edges and removing from cache.
+			 */
+			void remove_from_tree(Node *node, const matrix<Sign> &tmpBoard);
 	};
 
 	class TreeLock

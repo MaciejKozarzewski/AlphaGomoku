@@ -341,7 +341,7 @@ namespace ag
 	Tree::~Tree()
 	{
 		matrix<Sign> tmp_board = base_board;
-		delete_subtree(root_node, tmp_board);
+		delete_subtree(root_node, tmp_board); // FIXME after implementing proper object pooling this action will not be required
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove)
 	{
@@ -408,7 +408,6 @@ namespace ag
 			new_edges[i] = task.getEdges()[i];
 
 		Node *node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove());
-		node_to_add->clear();
 		node_to_add->setEdges(new_edges, number_of_moves);
 		node_to_add->updateValue(task.getValue().getInverted());
 		update_proven_value(node_to_add);
@@ -482,8 +481,7 @@ namespace ag
 						Board::undoMove(tmpBoard, edge->getMove());
 					}
 			}
-			edge_pool.free(node->begin(), node->numberOfEdges());
-			node_cache.remove(tmpBoard, node->getSignToMove());
+			remove_from_tree(node, tmpBoard);
 		}
 	}
 	void Tree::delete_subtree(Node *node, matrix<Sign> &tmpBoard)
@@ -500,8 +498,13 @@ namespace ag
 					Board::undoMove(tmpBoard, edge->getMove());
 				}
 		}
-		edge_pool.free(node->begin(), node->numberOfEdges());
-		node_cache.remove(tmpBoard, node->getSignToMove());
+		remove_from_tree(node, tmpBoard);
+	}
+	void Tree::remove_from_tree(Node *node, const matrix<Sign> &tmpBoard)
+	{
+		node_cache.remove(tmpBoard, node->getSignToMove()); // cache operations optionally check validity of the board state using edges of the node
+		edge_pool.free(node->begin(), node->numberOfEdges()); // this is why freeing edges must occur after removal from cache
+		node->clear();
 	}
 
 	Tree_old::Tree_old(TreeConfig treeOptions) :

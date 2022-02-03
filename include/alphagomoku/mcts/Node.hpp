@@ -35,12 +35,10 @@ namespace ag
 			void clear() noexcept
 			{
 				edges = nullptr;
-				win_rate = 0.0f;
-				draw_rate = 0.0f;
+				win_rate = draw_rate = 0.0f;
 				visits = 0;
 				proven_value = ProvenValue::UNKNOWN;
-				number_of_edges = 0;
-				depth = 0;
+				number_of_edges = depth = 0;
 				sign_to_move = Sign::NONE;
 				is_used = false;
 			}
