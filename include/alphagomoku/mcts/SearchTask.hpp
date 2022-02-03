@@ -85,8 +85,8 @@ namespace ag
 			void setActionValues(const float *q) noexcept;
 			void setValue(Value v) noexcept;
 
-			void addProvenEdge(Move m, ProvenValue pv);
-			void addEdge(Move m);
+			void addProvenEdge(Move move, ProvenValue pv);
+			void addEdge(Move move);
 			void addEdge(const Edge &other);
 
 			std::string toString() const;

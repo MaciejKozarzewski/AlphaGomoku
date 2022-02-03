@@ -130,18 +130,26 @@ namespace ag
 	{
 		value = v;
 	}
-	void SearchTask::addProvenEdge(Move m, ProvenValue pv)
+	void SearchTask::addProvenEdge(Move move, ProvenValue pv)
 	{
-		assert(m.sign == sign_to_move);
+		assert(move.sign == sign_to_move);
+		assert(std::none_of(proven_edges.begin(), proven_edges.end(), [move](const Edge &edge)
+		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
+
 		Edge e;
-		e.setMove(m);
+		e.setMove(move);
 		e.setProvenValue(pv);
 		proven_edges.push_back(e);
 	}
-	void SearchTask::addEdge(Move m)
+	void SearchTask::addEdge(Move move)
 	{
-		assert(m.sign == sign_to_move);
-		edges.push_back(Edge(m));
+		assert(move.sign == sign_to_move);
+		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge)
+		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
+
+		edges.push_back(Edge(move));
 	}
 	void SearchTask::addEdge(const Edge &other)
 	{
