@@ -216,21 +216,22 @@ namespace ag
 		while (buffer != nullptr)
 		{
 			Entry *tmp = unlink(buffer);
+			assert(tmp->node.isUsed() == false);
 			delete tmp;
 		}
 		buffered_entries = 0;
 	}
 	void NodeCache::link(Entry *&prev, Entry *next) noexcept
 	{
-		// changes : prev == &entry1{...}
-		// into    : prev == &next{next_entry == &entry1{...}}
+		// changes : prev = &entry1{...}
+		// into    : prev = &next{next_entry = &entry1{...}}
 		next->next_entry = prev;
 		prev = next;
 	}
 	NodeCache::Entry* NodeCache::unlink(Entry *&prev) noexcept
 	{
-		// changes : prev == &entry1{next_entry == &entry2{...}}
-		// into    : prev == &entry2{...} and returns pointer to entry1{next_entry == nullptr}
+		// changes : prev = &entry1{next_entry = &entry2{...}}
+		// into    : prev = &entry2{...} and returns pointer to entry1{next_entry = nullptr}
 		Entry *result = prev;
 		prev = result->next_entry;
 		result->next_entry = nullptr;

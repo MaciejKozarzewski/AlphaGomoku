@@ -109,6 +109,7 @@ namespace ag
 			exclude_weak_moves(task.getEdges(), max_edges);
 
 		renormalize_edges(task.getEdges());
+		assert(task.getEdges().size() > 0);
 	}
 
 } /* namespace ag */

@@ -338,22 +338,22 @@ namespace ag
 			node_cache(gameOptions)
 	{
 	}
-
+	Tree::~Tree()
+	{
+		delete_subtree(root_node);
+	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove)
 	{
 		if (newBoard == base_board and signToMove == sign_to_move)
 			return;
 
-		// TODO tree pruning
-//		if(root_node!=nullptr)
-//			prune(root_node, base_board, newBoard)
-
+		matrix<Sign> tmp_board = base_board;
 		base_board = newBoard;
 		sign_to_move = signToMove;
+
+		prune_subtree(root_node, tmp_board);
+
 		root_node = node_cache.seek(base_board, sign_to_move);
-		root_node->setDepth(Board::numberOfMoves(newBoard));
-		if (Board::isEmpty(newBoard))
-			return;
 	}
 	int Tree::getSimulationCount() const noexcept
 	{
@@ -400,6 +400,7 @@ namespace ag
 		}
 
 		const size_t number_of_moves = task.getEdges().size();
+		assert(number_of_moves > 0);
 		Edge *new_edges = edge_pool.allocate(number_of_moves);
 		for (size_t i = 0; i < number_of_moves; i++)
 			new_edges[i] = task.getEdges()[i];
@@ -409,14 +410,19 @@ namespace ag
 		node_to_add->setEdges(new_edges, number_of_moves);
 		node_to_add->updateValue(task.getValue().getInverted());
 		update_proven_value(node_to_add);
-		node_to_add->setDepth(root_node->getDepth() + task.visitedPathLength());
 		node_to_add->setSignToMove(task.getSignToMove());
 		node_to_add->markAsUsed();
 
 		if (task.visitedPathLength() > 0)
+		{
 			task.getLastPair().edge->setNode(node_to_add); // make last visited edge point to the newly added node
+			node_to_add->setDepth(root_node->getDepth() + task.visitedPathLength());
+		}
 		else
+		{
 			root_node = node_to_add; // if no pairs were visited, it means that the tree is empty
+			root_node->setDepth(Board::numberOfMoves(base_board));
+		}
 		return ExpandOutcome::SUCCESS;
 	}
 	void Tree::backup(const SearchTask &task)
@@ -456,11 +462,15 @@ namespace ag
 	{
 		print_subtree(root_node, depth, sort, top_n, 0);
 	}
-	// private
-	void Tree::prune(Node *node, matrix<Sign> &currentBoard, const matrix<Sign> &newBoard, const Sign signToMove)
+
+// private
+	void Tree::prune_subtree(Node *node, matrix<Sign> &tmpBoard)
 	{
-		assert(node != nullptr);
-		if (Board::isTransitionPossible(currentBoard, newBoard))
+		if (node == nullptr)
+			return;
+		std::cout << "tmp board\n" << Board::toString(tmpBoard) << '\n';
+		std::cout << "base board\n" << Board::toString(base_board) << '\n';
+		if (Board::isTransitionPossible(base_board, tmpBoard))
 			return; // if the board state at this node is possible, then all nodes in the subtree below also are
 		else
 		{
@@ -469,15 +479,29 @@ namespace ag
 				for (auto edge = node->begin(); edge < node->end(); edge++)
 					if (edge->getNode() != nullptr and edge->getNode()->isUsed())
 					{
-						Board::putMove(currentBoard, edge->getMove());
-						prune(edge->getNode(), currentBoard, newBoard, invertSign(signToMove));
-						Board::undoMove(currentBoard, edge->getMove());
+						Board::putMove(tmpBoard, edge->getMove());
+						prune_subtree(edge->getNode(), tmpBoard);
+						Board::undoMove(tmpBoard, edge->getMove());
 					}
 			}
 			edge_pool.free(node->begin(), node->numberOfEdges());
 			node->markAsUnused();
-			node_cache.remove(currentBoard, signToMove);
+			node_cache.remove(tmpBoard, node->getSignToMove());
 		}
+	}
+	void Tree::delete_subtree(Node *node)
+	{
+		if (node == nullptr)
+			return;
+		if (node->isLeaf() == false)
+		{
+			for (auto edge = node->begin(); edge < node->end(); edge++)
+				if (edge->getNode() != nullptr and edge->getNode()->isUsed())
+					delete_subtree(edge->getNode());
+		}
+		edge_pool.free(node->begin(), node->numberOfEdges());
+		node->markAsUnused();
+//		node_cache.remove(currentBoard, signToMove);
 	}
 
 	Tree_old::Tree_old(TreeConfig treeOptions) :

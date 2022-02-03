@@ -70,6 +70,7 @@ namespace ag
 
 		public:
 			Tree(GameConfig gameOptions, TreeConfig treeOptions);
+			~Tree();
 
 			void setBoard(const matrix<Sign> &newBoard, Sign signToMove);
 			int getSimulationCount() const noexcept;
@@ -80,7 +81,28 @@ namespace ag
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 
 		private:
-			void prune(Node *node, matrix<Sign> &currentBoard, const matrix<Sign> &newBoard, const Sign signToMove);
+			void prune_subtree(Node *node, matrix<Sign> &currentBoard);
+			void delete_subtree(Node *node);
+	};
+
+	class TreeLock
+	{
+		private:
+			const Tree &tree;
+		public:
+			TreeLock(const Tree &t) :
+					tree(t)
+			{
+				t.tree_mutex.lock();
+			}
+			~TreeLock()
+			{
+				tree.tree_mutex.unlock();
+			}
+			TreeLock(const TreeLock &other) = delete;
+			TreeLock(TreeLock &&other) = delete;
+			TreeLock& operator=(const TreeLock &other) = delete;
+			TreeLock& operator=(TreeLock &&other) = delete;
 	};
 
 	class Tree_old
@@ -122,26 +144,6 @@ namespace ag
 			void printSubtree(const Node_old &node, int depth = -1, bool sort = false, int top_n = -1) const;
 		private:
 			Node_old* reserve_nodes(int number);
-	};
-
-	class TreeLock
-	{
-		private:
-			const Tree &tree;
-		public:
-			TreeLock(const Tree &t) :
-					tree(t)
-			{
-				t.tree_mutex.lock();
-			}
-			~TreeLock()
-			{
-				tree.tree_mutex.unlock();
-			}
-			TreeLock(const TreeLock &other) = delete;
-			TreeLock(TreeLock &&other) = delete;
-			TreeLock& operator=(const TreeLock &other) = delete;
-			TreeLock& operator=(TreeLock &&other) = delete;
 	};
 
 } /* namespace ag */

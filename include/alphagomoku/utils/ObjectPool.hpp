@@ -95,7 +95,10 @@ namespace ag
 		public:
 			[[nodiscard]] T* allocate(size_t elements)
 			{
-				return new T[elements]; // TODO this needs to be rewritten
+				if (elements == 0)
+					return nullptr;
+				else
+					return new T[elements]; // TODO this needs to be rewritten
 			}
 			void free(T *ptr, size_t elements)
 			{
