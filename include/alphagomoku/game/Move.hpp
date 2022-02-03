@@ -51,12 +51,6 @@ namespace ag
 			 * @see text()
 			 */
 			Move(const std::string &str);
-			Move(uint16_t m)
-			{
-				sign = static_cast<Sign>(m & 3);
-				row = (m >> 2) & 127;
-				col = (m >> 9) & 127;
-			}
 			Move(int r, int c, Sign s) noexcept :
 					sign(s),
 					row(r),
@@ -100,6 +94,10 @@ namespace ag
 			static uint16_t move_to_short(int r, int c, Sign s) noexcept
 			{
 				return static_cast<uint16_t>(s) + (r << 2) + (c << 9);
+			}
+			static Move move_from_short(uint16_t m) noexcept
+			{
+				return Move(static_cast<Sign>(m & 3), (m >> 2) & 127, (m >> 9) & 127);
 			}
 			static int getRow(uint16_t move) noexcept
 			{

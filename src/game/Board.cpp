@@ -209,6 +209,11 @@ namespace ag
 		assert(board.at(move.row, move.col) == move.sign);
 		board.at(move.row, move.col) = Sign::NONE;
 	}
+	Sign Board::getSignAt(const matrix<Sign> &board, Move m) noexcept
+	{
+		return board.at(m.row, m.col);
+	}
+
 	int Board::numberOfMoves(const matrix<Sign> &board) noexcept
 	{
 		return std::count_if(board.begin(), board.end(), [](Sign s)

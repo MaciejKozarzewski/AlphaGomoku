@@ -7,6 +7,7 @@
 
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
+#include <alphagomoku/mcts/SearchTask.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
@@ -245,12 +246,90 @@ namespace ag
 		assert(board.cols() + 2 * pad == internal_board.cols());
 
 		sign_to_move = signToMove;
-		for (int r = 0; r < board.rows(); r++)
-			std::memcpy(internal_board.data(pad + r) + pad, board.data(r), sizeof(int) * board.cols());
+		for (int row = 0; row < board.rows(); row++)
+			for (int col = 0; col < board.cols(); col++)
+				internal_board.at(pad + row, pad + col) = static_cast<int>(board.at(row, col));
+//		for (int r = 0; r < board.rows(); r++)
+//			std::memcpy(internal_board.data(pad + r) + pad, board.data(r), sizeof(int) * board.cols());
 		current_board_hash = get_hash();
 		calc_all_features();
 		get_threat_lists();
 		root_depth = board.rows() * board.cols() - std::count(board.begin(), board.end(), Sign::NONE);
+	}
+	void FeatureExtractor::solve(SearchTask &task)
+	{
+		setBoard(task.getBoard(), task.getSignToMove());
+
+		std::vector<Move> &own_five = (sign_to_move == Sign::CROSS) ? cross_five : circle_five;
+		if (own_five.size() > 0) // can make a five
+		{
+			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
+				task.addProvenEdge(*iter, ProvenValue::WIN);
+			task.setReady();
+			return; // it is instant win
+		}
+		std::vector<Move> &opponent_five = (sign_to_move == Sign::CROSS) ? circle_five : cross_five;
+		if (opponent_five.size() > 0) // opponent can make a five
+		{
+			ProvenValue pv = (opponent_five.size() > 1) ? ProvenValue::LOSS : ProvenValue::UNKNOWN;
+			for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
+				task.addProvenEdge(*iter, pv);
+			if (opponent_five.size() > 1)
+				task.setReady(); // the state is provably losing, there is no need to further evaluate it
+			return;
+		}
+
+		std::vector<Move> &own_open_four = (sign_to_move == Sign::CROSS) ? cross_open_four : circle_open_four;
+		if (own_open_four.size() > 0) // can make an open four, but it was already checked that opponent cannot make any five
+		{
+			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
+				task.addProvenEdge(*iter, ProvenValue::WIN); // it is win in 3 plys
+			task.setReady();
+			return;
+		}
+
+		std::vector<Move> &own_half_open_four = (sign_to_move == Sign::CROSS) ? cross_half_open_four : circle_half_open_four;
+		std::vector<Move> &opponent_open_four = (sign_to_move == Sign::CROSS) ? circle_open_four : cross_open_four;
+		std::vector<Move> &opponent_half_open_four = (sign_to_move == Sign::CROSS) ? circle_half_open_four : cross_half_open_four;
+		if (opponent_open_four.size() > 0) // opponent can make an open four, but no fives. We also cannot make any five or open four
+		{
+			for (auto iter = opponent_open_four.begin(); iter < opponent_open_four.end(); iter++)
+				task.addProvenEdge(*iter, ProvenValue::UNKNOWN);
+			for (auto iter = opponent_half_open_four.begin(); iter < opponent_half_open_four.end(); iter++)
+				task.addProvenEdge(*iter, ProvenValue::UNKNOWN);
+
+			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++)
+			{
+				bool is_already_added = std::any_of(task.getProvenEdges().begin(), task.getProvenEdges().end(), [iter](const Edge &edge)
+				{	return edge.getMove() == *iter;}); // find if such move has been added in any of two loops above
+				if (not is_already_added) // move must not be added twice
+					task.addProvenEdge(*iter, ProvenValue::UNKNOWN);
+			}
+			return;
+		}
+
+		if (own_open_four.size() + own_half_open_four.size() == 0)
+			return; // there are not threats that we can make
+
+		if (use_caching)
+			hashtable.clear();
+
+		position_counter = 0;
+		node_counter = 1; // prepare node stack
+		nodes_buffer.front().init(0, 0, invertSign(sign_to_move)); // prepare node stack
+		recursive_solve(nodes_buffer.front(), false, 0);
+
+		total_positions += position_counter;
+		statistics[root_depth].add(nodes_buffer.front().solved_value == SolvedValue::SOLVED_LOSS, position_counter);
+		//		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
+		//				<< position_counter << " positions, total = " << total_positions << ", in cache " << hashtable.size() << "\n";
+		if (nodes_buffer.front().solved_value == SolvedValue::SOLVED_LOSS)
+		{
+			for (auto iter = nodes_buffer[0].children; iter < nodes_buffer[0].children + nodes_buffer[0].number_of_children; iter++)
+				if (iter->solved_value == SolvedValue::SOLVED_WIN)
+					task.addProvenEdge(iter->move, ProvenValue::WIN);
+			task.setReady();
+		}
 	}
 	ProvenValue FeatureExtractor::solve(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList)
 	{

@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/game/Board.hpp>
+#include <alphagomoku/game/rules.hpp>
 
 #include <gtest/gtest.h>
 
@@ -14,7 +15,8 @@ namespace ag
 	TEST(TestBoard, empty_from_string)
 	{
 		// @formatter:off
-		Board board(/*        a b c d e f g h i j k l m n o          */
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
 					/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
@@ -30,20 +32,21 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */, Sign::CROSS, GameRules::STANDARD); // @formatter:on
+					/*        a b c d e f g h i j k l m n o          */); // @formatter:on
 
-		EXPECT_TRUE(board.isEmpty());
-		EXPECT_TRUE(board.isValid());
-		EXPECT_FALSE(board.isFull());
+		Sign sign_to_move = Sign::CROSS;
+
+		EXPECT_TRUE(Board::isEmpty(board));
+		EXPECT_TRUE(Board::isValid(board, sign_to_move));
+		EXPECT_FALSE(Board::isFull(board));
 		EXPECT_EQ(board.rows(), 15);
 		EXPECT_EQ(board.cols(), 15);
-		EXPECT_EQ(board.signToMove(), Sign::CROSS);
-		EXPECT_EQ(board.rules(), GameRules::STANDARD);
 	}
 	TEST(TestBoard, from_string)
 	{
 		// @formatter:off
-		Board board(/*        a b c d e f g h i j k l m n o p q r s t          */
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i j k l m n o p q r s t          */
 					/*  0 */" _ O _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
 					/*  2 */" _ X _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
@@ -64,26 +67,27 @@ namespace ag
 					/* 17 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 17 */
 					/* 18 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 18 */
 					/* 19 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 19 */
-					/*        a b c d e f g h i j k l m n o p q r s t          */, Sign::CIRCLE, GameRules::FREESTYLE); // @formatter:on
+					/*        a b c d e f g h i j k l m n o p q r s t          */); // @formatter:on
 
-		EXPECT_FALSE(board.isEmpty());
-		EXPECT_TRUE(board.isValid());
-		EXPECT_FALSE(board.isFull());
+		Sign sign_to_move = Sign::CIRCLE;
+
+		EXPECT_FALSE(Board::isEmpty(board));
+		EXPECT_TRUE(Board::isValid(board, sign_to_move));
+		EXPECT_FALSE(Board::isFull(board));
 		EXPECT_EQ(board.rows(), 20);
 		EXPECT_EQ(board.cols(), 20);
-		EXPECT_EQ(board.signToMove(), Sign::CIRCLE);
-		EXPECT_EQ(board.rules(), GameRules::FREESTYLE);
 
-		EXPECT_EQ(board.at("b0"), Sign::CIRCLE);
-		EXPECT_EQ(board.at("b2"), Sign::CROSS);
-		EXPECT_EQ(board.at("b3"), Sign::CIRCLE);
-		EXPECT_EQ(board.at("b4"), Sign::CROSS);
-		EXPECT_EQ(board.at("d4"), Sign::CROSS);
+		EXPECT_EQ(Board::getSignAt(board, Move("Ob0")), Sign::CIRCLE);
+		EXPECT_EQ(Board::getSignAt(board, Move("Xb2")), Sign::CROSS);
+		EXPECT_EQ(Board::getSignAt(board, Move("Ob3")), Sign::CIRCLE);
+		EXPECT_EQ(Board::getSignAt(board, Move("Xb4")), Sign::CROSS);
+		EXPECT_EQ(Board::getSignAt(board, Move("Xd4")), Sign::CROSS);
 	}
 	TEST(TestBoard, invalid_from_string)
 	{
 		// @formatter:off
-		Board board(/*        a b c d e f g h i j k l m n o          */
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
 					/*  2 */" _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
@@ -99,51 +103,57 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+					/*        a b c d e f g h i j k l m n o          */); // @formatter:on
 
-		EXPECT_FALSE(board.isValid());
+		Sign sign_to_move = Sign::CIRCLE;
+
+		EXPECT_FALSE(Board::isValid(board, sign_to_move));
 	}
 	TEST(TestBoard, is_possible)
 	{
 		// @formatter:off
-		Board current(/*        a b c d e          */
-					  /*  0 */" _ O _ _ _\n" /*  0 */
-				      /*  1 */" _ _ _ _ _\n" /*  1 */
-					  /*  2 */" _ X _ _ _\n" /*  2 */
-					  /*  3 */" _ _ _ _ _\n" /*  3 */
-					  /*  4 */" _ _ _ _ _\n" /*  4 */
-					  /*        a b c d e          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+		matrix<Sign> current = Board::fromString(
+					/*        a b c d e          */
+					/*  0 */" _ O _ _ _\n" /*  0 */
+				    /*  1 */" _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ X _ _ _\n" /*  2 */
+					/*  3 */" _ _ _ _ _\n" /*  3 */
+					/*  4 */" _ _ _ _ _\n" /*  4 */
+					/*        a b c d e          */); // @formatter:on
 
 		// @formatter:off
-		Board next1(/*        a b c d e          */
-					  /*  0 */" _ X _ _ _\n" /*  0 */
-					  /*  1 */" _ _ _ _ _\n" /*  1 */
-					  /*  2 */" _ X _ _ _\n" /*  2 */
-					  /*  3 */" _ _ _ _ _\n" /*  3 */
-					  /*  4 */" _ _ _ _ _\n" /*  4 */
-					  /*        a b c d e          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+		matrix<Sign> next1 = Board::fromString(
+					/*        a b c d e          */
+					/*  0 */" _ X _ _ _\n" /*  0 */
+					/*  1 */" _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ X _ _ _\n" /*  2 */
+					/*  3 */" _ _ _ _ _\n" /*  3 */
+					/*  4 */" _ _ _ _ _\n" /*  4 */
+					/*        a b c d e          */); // @formatter:on
 
 		// @formatter:off
-		Board next2(/*        a b c d e          */
-					  /*  0 */" _ O _ _ _\n" /*  0 */
-					  /*  1 */" _ _ X _ _\n" /*  1 */
-					  /*  2 */" _ _ _ _ _\n" /*  2 */
-					  /*  3 */" _ _ _ _ _\n" /*  3 */
-					  /*  4 */" _ _ _ _ _\n" /*  4 */
-					  /*        a b c d e          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+		matrix<Sign> next2 = Board::fromString(
+					/*        a b c d e          */
+					/*  0 */" _ O _ _ _\n" /*  0 */
+					/*  1 */" _ _ X _ _\n" /*  1 */
+					/*  2 */" _ _ _ _ _\n" /*  2 */
+					/*  3 */" _ _ _ _ _\n" /*  3 */
+					/*  4 */" _ _ _ _ _\n" /*  4 */
+					/*        a b c d e          */); // @formatter:on
 
 		// @formatter:off
-		Board next3(/*        a b c d e          */
-					  /*  0 */" _ O _ _ _\n" /*  0 */
-				      /*  1 */" _ _ X _ _\n" /*  1 */
-					  /*  2 */" _ X _ _ _\n" /*  2 */
-					  /*  3 */" _ _ _ _ _\n" /*  3 */
-					  /*  4 */" _ _ _ _ _\n" /*  4 */
-					  /*        a b c d e          */, Sign::CIRCLE, GameRules::STANDARD); // @formatter:on
+		matrix<Sign> next3 = Board::fromString(
+					/*        a b c d e          */
+					/*  0 */" _ O _ _ _\n" /*  0 */
+				    /*  1 */" _ _ X _ _\n" /*  1 */
+					/*  2 */" _ X _ _ _\n" /*  2 */
+					/*  3 */" _ _ _ _ _\n" /*  3 */
+					/*  4 */" _ _ _ _ _\n" /*  4 */
+					/*        a b c d e          */); // @formatter:on
 
-		EXPECT_FALSE(next1.isPossibleToGetFrom(current));
-		EXPECT_FALSE(next2.isPossibleToGetFrom(current));
-		EXPECT_TRUE(next3.isPossibleToGetFrom(current));
+		EXPECT_FALSE(Board::isTransitionPossible(current, next1));
+		EXPECT_FALSE(Board::isTransitionPossible(current, next2));
+		EXPECT_TRUE(Board::isTransitionPossible(current, next3));
 	}
 
 } /* namespace ag */

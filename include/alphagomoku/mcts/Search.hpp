@@ -24,6 +24,8 @@
 
 namespace ag
 {
+	class EdgeSelector;
+	class EdgeGenerator;
 	class EvaluationQueue;
 	class Cache;
 	class Tree;
@@ -66,7 +68,6 @@ namespace ag
 		private:
 			std::vector<SearchTask> search_tasks;
 			size_t active_task_count = 0;
-			std::vector<std::pair<uint16_t, float>> moves_to_add;
 
 			FeatureExtractor vcf_solver;
 
@@ -82,16 +83,15 @@ namespace ag
 			SearchStats getStats() const noexcept;
 			SearchConfig getConfig() const noexcept;
 
-			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
+			void select(Tree &tree, const EdgeSelector &selector, int maxSimulations = std::numeric_limits<int>::max());
 			void evaluate();
 			void scheduleToNN(EvaluationQueue &queue);
-			void expand(Tree &tree);
+			void expand(Tree &tree, const EdgeGenerator& generator);
 			void backup(Tree &tree);
 		private:
 			int get_batch_size(int simulation_count) const noexcept;
 			SearchTask& get_next_task();
 			void correct_information_leak(SearchTask &task) const;
-			void check_if_terminal(SearchTask &task) const;
 	};
 
 	class Search_old

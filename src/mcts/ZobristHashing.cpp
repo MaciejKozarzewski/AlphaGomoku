@@ -31,10 +31,10 @@ namespace ag
 		assert(signToMove >= Sign::NONE && signToMove <= Sign::CIRCLE);
 		uint64_t result = keys[static_cast<int>(signToMove)];
 
-		assert(3u * (1 + board.size()) == keys.size());
+		assert(3u * (1u + board.size()) == keys.size());
 		for (int i = 0, k = 3; i < board.size(); i++, k += 3)
 		{
-			assert(board[i] >= Sign::NONE && board[i] <= Sign::CIRCLE);
+			assert(Sign::NONE <= board[i] && board[i] <= Sign::CIRCLE);
 			result ^= keys[k + static_cast<int>(board[i])];
 		}
 		return result;

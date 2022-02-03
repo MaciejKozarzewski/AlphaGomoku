@@ -2,7 +2,7 @@
  * test_misc.cpp
  *
  *  Created on: Mar 30, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/utils/misc.hpp>

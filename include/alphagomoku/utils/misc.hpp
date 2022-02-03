@@ -46,6 +46,9 @@ namespace ag
 		return x * x;
 	}
 
+	/*
+	 * \brief Returns current time in seconds.
+	 */
 	double getTime();
 	std::string currentDateTime();
 

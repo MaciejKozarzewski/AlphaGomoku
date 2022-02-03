@@ -84,6 +84,7 @@ namespace ag
 			{
 				return virtual_loss;
 			}
+
 			void setNode(Node *ptr) noexcept
 			{
 				assert(ptr != nullptr);

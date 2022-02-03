@@ -36,6 +36,7 @@ namespace ag
 	{
 		this->hits += other.hits;
 		this->calls += other.calls;
+		this->collisions += other.collisions;
 
 		this->seek += other.seek;
 		this->insert += other.insert;
@@ -47,6 +48,7 @@ namespace ag
 	{
 		this->hits /= i;
 		this->calls /= i;
+		this->collisions /= i;
 
 		this->seek /= i;
 		this->insert /= i;
@@ -136,6 +138,7 @@ namespace ag
 		{
 			if (current->hash == hash)
 			{
+				assert(is_hash_collision(current, board, signToMove) == false);
 				stats.hits++; // statistics
 				return &(current->node);
 			}
@@ -155,6 +158,10 @@ namespace ag
 		link(bins[hash & bin_index_mask], new_entry);
 		stored_entries++;
 		assert(stored_entries + buffered_entries == allocated_entries);
+
+		new_entry->node.setDepth(Board::numberOfMoves(board));
+		new_entry->node.setSignToMove(signToMove);
+		new_entry->node.markAsUsed();
 		return &(new_entry->node);
 	}
 	void NodeCache::remove(const matrix<Sign> &board, Sign signToMove) noexcept
@@ -168,6 +175,7 @@ namespace ag
 		{
 			if (current->hash == hash)
 			{
+				assert(is_hash_collision(current, board, signToMove) == false);
 				Entry *tmp = unlink(current);
 				move_to_buffer(tmp);
 				break;
@@ -179,8 +187,10 @@ namespace ag
 	}
 	void NodeCache::resize(size_t newSize)
 	{
-		TimerGuard timer(stats.resize);
 		assert(newSize < 64ull);
+
+		TimerGuard timer(stats.resize);
+
 		newSize = 1ull << newSize;
 		bin_index_mask = newSize - 1ull;
 		if (bins.size() == newSize)
@@ -199,7 +209,6 @@ namespace ag
 				Entry *tmp = unlink(bins[i]);
 				link(storage, tmp);
 			}
-			assert(bins[i] == nullptr);
 		}
 
 		bins.resize(newSize, nullptr);
@@ -221,6 +230,9 @@ namespace ag
 		}
 		buffered_entries = 0;
 	}
+	/*
+	 * private
+	 */
 	void NodeCache::link(Entry *&prev, Entry *next) noexcept
 	{
 		// changes : prev = &entry1{...}
@@ -254,10 +266,27 @@ namespace ag
 	}
 	void NodeCache::move_to_buffer(NodeCache::Entry *entry) noexcept
 	{
+		entry->node.markAsUnused();
 		link(buffer, entry);
 		assert(stored_entries > 0);
 		stored_entries--;
 		buffered_entries++;
 	}
+	bool NodeCache::is_hash_collision(const Entry *entry, const matrix<Sign> &board, Sign signToMove) const noexcept
+	{
+		const Node &node = entry->node;
+		if (node.getSignToMove() != signToMove)
+			return true;
+		if (node.getDepth() != Board::numberOfMoves(board))
+			return true;
+		for (int i = 0; i < node.numberOfEdges(); i++)
+		{
+			Move move = node.getEdge(i).getMove();
+			if (board.at(move.row, move.col) != Sign::NONE)
+				return true; // we found an edge representing move that is invalid in this position
+		}
+		return false; // unfortunately the above test do not give 100% confidence, but there is nothing more that could be checked
+	}
+
 } /* namespace ag */
 

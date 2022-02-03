@@ -87,7 +87,7 @@ namespace ag
 					break;
 				case ProvenValue::LOSS:
 				{
-					edge->setPolicyPrior(0.0f);
+					edge->setPolicyPrior(1.0e-6f); // setting zero would crash renormalization in case when all moves are provably losing as the policy sum would be 0
 					edge->setValue(Value(0.0f, 0.0f, 1.0f));
 					break;
 				}

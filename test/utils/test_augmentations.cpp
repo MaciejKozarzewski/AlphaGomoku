@@ -2,7 +2,7 @@
  * test_augmentations.cpp
  *
  *  Created on: Apr 7, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/utils/augmentations.hpp>

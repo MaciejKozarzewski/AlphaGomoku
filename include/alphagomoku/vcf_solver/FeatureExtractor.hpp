@@ -17,6 +17,11 @@
 
 namespace ag
 {
+	class SearchTask;
+}
+
+namespace ag
+{
 	struct KeyHash
 	{
 			size_t operator()(uint64_t h) const noexcept
@@ -121,6 +126,7 @@ namespace ag
 			FeatureExtractor(GameConfig gameConfig);
 
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
+			void solve(SearchTask &task);
 			ProvenValue solve(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList);
 
 			uint32_t getFeatureAt(int row, int col, Direction dir) const noexcept;

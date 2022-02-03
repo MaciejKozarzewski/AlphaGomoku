@@ -2,7 +2,7 @@
  * test_launcher.cpp
  *
  *  Created on: Mar 1, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <gtest/gtest.h>

@@ -15,9 +15,9 @@
 namespace
 {
 	using namespace ag;
-	Board getRandomBoard(GameConfig cfg)
+	matrix<Sign> getRandomBoard(GameConfig cfg)
 	{
-		Board result(cfg);
+		matrix<Sign> result(cfg.rows, cfg.cols);
 		for (int i = 0; i < result.rows(); i++)
 			for (int j = 0; j < result.cols(); j++)
 				if (randInt(4) == 0)
@@ -30,14 +30,15 @@ namespace
 			const GameConfig game_config;
 			NodeCache cache;
 			ZobristHashing hashing;
-			const Board board;
-			const uint64_t hash;
+			const matrix<Sign> board;
+			const Sign sign_to_move;
 
 			TestNodeCache() :
 					game_config(GameRules::STANDARD, 4, 5),
+					cache(game_config),
 					hashing(game_config),
 					board(getRandomBoard(game_config)),
-					hash(hashing.getHash(board))
+					sign_to_move(Sign::CROSS)
 			{
 			}
 	};
@@ -54,7 +55,7 @@ namespace ag
 	}
 	TEST_F(TestNodeCache, seek_not_in_cache)
 	{
-		Node *node = cache.seek(hash);
+		Node *node = cache.seek(board, sign_to_move);
 		EXPECT_EQ(node, nullptr);
 		EXPECT_EQ(cache.storedElements(), 0);
 		EXPECT_EQ(cache.allocatedElements(), 0);
@@ -62,8 +63,8 @@ namespace ag
 	}
 	TEST_F(TestNodeCache, seek_in_cache)
 	{
-		Node *node = cache.insert(hash);
-		Node *found = cache.seek(hash);
+		Node *node = cache.insert(board, sign_to_move);
+		Node *found = cache.seek(board, sign_to_move);
 		EXPECT_EQ(cache.storedElements(), 1);
 		EXPECT_EQ(cache.allocatedElements(), 1);
 		EXPECT_EQ(cache.bufferedElements(), 0);
@@ -71,25 +72,25 @@ namespace ag
 	}
 	TEST_F(TestNodeCache, remove)
 	{
-		[[maybe_unused]] Node *node = cache.insert(hash);
-		cache.remove(hash);
+		[[maybe_unused]] Node *node = cache.insert(board, sign_to_move);
+		cache.remove(board, sign_to_move);
 		EXPECT_EQ(cache.storedElements(), 0);
 		EXPECT_EQ(cache.allocatedElements(), 1);
 		EXPECT_EQ(cache.bufferedElements(), 1);
-		node = cache.seek(hash);
+		node = cache.seek(board, sign_to_move);
 		EXPECT_EQ(node, nullptr);
 	}
 	TEST_F(TestNodeCache, resize)
 	{
 		for (int i = 0; i < 1000; i++)
 		{
-			Board b = getRandomBoard(game_config);
-			if (b != board and cache.seek(hashing.getHash(b)) == nullptr)
-				cache.insert(hashing.getHash(b));
+			matrix<Sign> b = getRandomBoard(game_config);
+			if (b != board and cache.seek(b, sign_to_move) == nullptr)
+				cache.insert(b, sign_to_move);
 		}
-		cache.insert(hash);
+		cache.insert(board, sign_to_move);
 		cache.resize(12);
-		Node *node = cache.seek(hash);
+		Node *node = cache.seek(board, sign_to_move);
 		EXPECT_NE(node, nullptr);
 	}
 

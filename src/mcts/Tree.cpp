@@ -340,7 +340,8 @@ namespace ag
 	}
 	Tree::~Tree()
 	{
-		delete_subtree(root_node);
+		matrix<Sign> tmp_board = base_board;
+		delete_subtree(root_node, tmp_board);
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove)
 	{
@@ -349,6 +350,7 @@ namespace ag
 
 		matrix<Sign> tmp_board = base_board;
 		base_board = newBoard;
+		base_depth = Board::numberOfMoves(base_board);
 		sign_to_move = signToMove;
 
 		prune_subtree(root_node, tmp_board);
@@ -375,7 +377,7 @@ namespace ag
 			node = edge->getNode();
 			if (node == nullptr) // edge appears to be a leaf
 			{
-				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find the node in cache
+				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
 				if (node != nullptr) // if found in the cache
 					edge->setNode(node); // link that edge to this node
 			}
@@ -410,19 +412,11 @@ namespace ag
 		node_to_add->setEdges(new_edges, number_of_moves);
 		node_to_add->updateValue(task.getValue().getInverted());
 		update_proven_value(node_to_add);
-		node_to_add->setSignToMove(task.getSignToMove());
-		node_to_add->markAsUsed();
 
 		if (task.visitedPathLength() > 0)
-		{
 			task.getLastPair().edge->setNode(node_to_add); // make last visited edge point to the newly added node
-			node_to_add->setDepth(root_node->getDepth() + task.visitedPathLength());
-		}
 		else
-		{
 			root_node = node_to_add; // if no pairs were visited, it means that the tree is empty
-			root_node->setDepth(Board::numberOfMoves(base_board));
-		}
 		return ExpandOutcome::SUCCESS;
 	}
 	void Tree::backup(const SearchTask &task)
@@ -468,8 +462,6 @@ namespace ag
 	{
 		if (node == nullptr)
 			return;
-		std::cout << "tmp board\n" << Board::toString(tmpBoard) << '\n';
-		std::cout << "base board\n" << Board::toString(base_board) << '\n';
 		if (Board::isTransitionPossible(base_board, tmpBoard))
 			return; // if the board state at this node is possible, then all nodes in the subtree below also are
 		else
@@ -480,16 +472,21 @@ namespace ag
 					if (edge->getNode() != nullptr and edge->getNode()->isUsed())
 					{
 						Board::putMove(tmpBoard, edge->getMove());
-						prune_subtree(edge->getNode(), tmpBoard);
+						if (node->getDepth() > base_depth)
+						{
+							assert(Board::isTransitionPossible(base_board, tmpBoard) == false);
+							delete_subtree(edge->getNode(), tmpBoard);
+						}
+						else
+							prune_subtree(edge->getNode(), tmpBoard);
 						Board::undoMove(tmpBoard, edge->getMove());
 					}
 			}
 			edge_pool.free(node->begin(), node->numberOfEdges());
-			node->markAsUnused();
 			node_cache.remove(tmpBoard, node->getSignToMove());
 		}
 	}
-	void Tree::delete_subtree(Node *node)
+	void Tree::delete_subtree(Node *node, matrix<Sign> &tmpBoard)
 	{
 		if (node == nullptr)
 			return;
@@ -497,11 +494,14 @@ namespace ag
 		{
 			for (auto edge = node->begin(); edge < node->end(); edge++)
 				if (edge->getNode() != nullptr and edge->getNode()->isUsed())
-					delete_subtree(edge->getNode());
+				{
+					Board::putMove(tmpBoard, edge->getMove());
+					delete_subtree(edge->getNode(), tmpBoard);
+					Board::undoMove(tmpBoard, edge->getMove());
+				}
 		}
 		edge_pool.free(node->begin(), node->numberOfEdges());
-		node->markAsUnused();
-//		node_cache.remove(currentBoard, signToMove);
+		node_cache.remove(tmpBoard, node->getSignToMove());
 	}
 
 	Tree_old::Tree_old(TreeConfig treeOptions) :
@@ -585,7 +585,7 @@ namespace ag
 
 		Node_old *current = &getRootNode();
 		current->applyVirtualLoss();
-		trajectory.append(current, current->getMove());
+		trajectory.append(current, Move::move_from_short(current->getMove()));
 		while (not current->isLeaf())
 		{
 			if (trajectory.length() <= balancing_depth)
@@ -593,7 +593,7 @@ namespace ag
 			else
 				current = select_puct(current, explorationConstant, MaxExpectation());
 			current->applyVirtualLoss();
-			trajectory.append(current, current->getMove());
+			trajectory.append(current, Move::move_from_short(current->getMove()));
 		}
 	}
 	bool Tree_old::expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
@@ -650,7 +650,7 @@ namespace ag
 		result.fill(0.0f);
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
-			Move move = iter->getMove();
+			Move move = Move::move_from_short(iter->getMove());
 			result.at(move.row, move.col) = iter->getPolicyPrior();
 		}
 	}
@@ -660,7 +660,7 @@ namespace ag
 		result.fill(0.0f);
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
-			Move move = iter->getMove();
+			Move move = Move::move_from_short(iter->getMove());
 			result.at(move.row, move.col) = iter->getVisits();
 		}
 	}
@@ -670,7 +670,7 @@ namespace ag
 		result.fill(ProvenValue::UNKNOWN);
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
-			Move move = iter->getMove();
+			Move move = Move::move_from_short(iter->getMove());
 			result.at(move.row, move.col) = iter->getProvenValue();
 		}
 	}
@@ -680,7 +680,7 @@ namespace ag
 		result.fill(Value());
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
-			Move move = iter->getMove();
+			Move move = Move::move_from_short(iter->getMove());
 			result.at(move.row, move.col) = iter->getValue();
 		}
 	}
@@ -690,11 +690,11 @@ namespace ag
 		std::lock_guard<std::mutex> lock(tree_mutex);
 
 		Node_old *current = &getRootNode();
-		result.append(current, current->getMove());
+		result.append(current, Move::move_from_short(current->getMove()));
 		while (not current->isLeaf())
 		{
 			current = select_by_visit(current);
-			result.append(current, current->getMove());
+			result.append(current, Move::move_from_short(current->getMove()));
 		}
 		return result;
 	}

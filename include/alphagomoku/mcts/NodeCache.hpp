@@ -19,6 +19,7 @@ namespace ag
 	{
 			uint64_t hits = 0;
 			uint64_t calls = 0;
+			uint64_t collisions = 0;
 
 			TimedStat seek;
 			TimedStat insert;
@@ -117,6 +118,7 @@ namespace ag
 			NodeCache::Entry* unlink(Entry *&prev) noexcept;
 			NodeCache::Entry* get_new_entry();
 			void move_to_buffer(NodeCache::Entry *entry) noexcept;
+			bool is_hash_collision(const Entry *entry, const matrix<Sign> &board, Sign signToMove) const noexcept;
 	};
 
 } /* namespace ag */

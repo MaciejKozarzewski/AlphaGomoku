@@ -2,7 +2,7 @@
  * test_standard.cpp
  *
  *  Created on: Mar 4, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include "test_rules.hpp"

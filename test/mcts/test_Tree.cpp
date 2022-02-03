@@ -2,7 +2,7 @@
  * test_Tree.cpp
  *
  *  Created on: Mar 3, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/Node.hpp>

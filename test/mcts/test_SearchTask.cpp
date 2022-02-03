@@ -30,16 +30,16 @@ namespace
 
 			TestSearchTask()
 			{
-				task.reset(Board(GameConfig(GameRules::FREESTYLE, 15)));
-				node1.assignEdges(edges1, 1);
-				edges1[0].assignNode(&node2);
-				edges1[0].setMove(Move(0, 0, Sign::CROSS));
-				task.append(&node1, &edges1[0]);
-
-				for (int i = 0; i < 30; i++)
-					node1.updateValue(Value(0.4f, 0.3f, 0.2f));
-				for (int i = 0; i < 14; i++)
-					edges1[0].updateValue(Value(0.2f, 0.3f, 0.4f));
+//				task.reset(Board(GameConfig(GameRules::FREESTYLE, 15)));
+//				node1.assignEdges(edges1, 1);
+//				edges1[0].assignNode(&node2);
+//				edges1[0].setMove(Move(0, 0, Sign::CROSS));
+//				task.append(&node1, &edges1[0]);
+//
+//				for (int i = 0; i < 30; i++)
+//					node1.updateValue(Value(0.4f, 0.3f, 0.2f));
+//				for (int i = 0; i < 14; i++)
+//					edges1[0].updateValue(Value(0.2f, 0.3f, 0.4f));
 			}
 	};
 }

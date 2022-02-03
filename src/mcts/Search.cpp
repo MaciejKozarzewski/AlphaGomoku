@@ -11,8 +11,20 @@
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/EvaluationQueue.hpp>
 #include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/EdgeGenerator.hpp>
 
 #include <numeric>
+
+namespace
+{
+	using namespace ag;
+	bool is_terminal(const SearchTask &task)
+	{
+		if (task.visitedPathLength() == 0)
+			return false;
+		return task.getLastPair().edge->isProven();
+	}
+}
 
 namespace ag
 {
@@ -80,17 +92,18 @@ namespace ag
 	}
 	SearchStats Search::getStats() const noexcept
 	{
+		return stats;
 	}
 	SearchConfig Search::getConfig() const noexcept
 	{
+		return search_config;
 	}
 
-	void Search::select(Tree &tree, int maxSimulations)
+	void Search::select(Tree &tree, const EdgeSelector &selector, int maxSimulations)
 	{
 		assert(maxSimulations > 0);
 
 		TimerGuard timer(stats.select);
-		TreeLock lock(tree);
 
 		const size_t batch_size = get_batch_size(tree.getSimulationCount());
 
@@ -99,7 +112,7 @@ namespace ag
 		{
 			SearchTask &current_task = get_next_task();
 
-			SelectOutcome out = tree.select(current_task, PuctSelector(1.25f));
+			SelectOutcome out = tree.select(current_task, selector);
 			if (out == SelectOutcome::INFORMATION_LEAK)
 			{
 				stats.nb_information_leaks++;
@@ -116,28 +129,23 @@ namespace ag
 		if (search_config.use_vcf_solver)
 		{
 			for (size_t i = 0; i < active_task_count; i++)
-				check_if_terminal(search_tasks[i]);
-		}
-		else
-		{
-			for (size_t i = 0; i < active_task_count; i++)
-			{
-
-			}
+				if (is_terminal(search_tasks[i]) == false)
+					vcf_solver.solve(search_tasks[i]);
 		}
 	}
 	void Search::scheduleToNN(EvaluationQueue &queue)
 	{
 		TimerGuard timer(stats.schedule);
 	}
-	void Search::expand(Tree &tree)
+	void Search::expand(Tree &tree, const EdgeGenerator &generator)
 	{
 		TimerGuard timer(stats.expand);
 		for (size_t i = 0; i < active_task_count; i++)
-		{
+			generator.generate(search_tasks[i]);
 
-		}
-		TreeLock lock(tree);
+		for (size_t i = 0; i < active_task_count; i++)
+			tree.expand(search_tasks[i]);
+
 //		if (search_config.use_vcf_solver)
 //		{
 //			double start = getTime(); // statistics
@@ -195,8 +203,12 @@ namespace ag
 	void Search::backup(Tree &tree)
 	{
 		TimerGuard timer(stats.backup);
-		TreeLock lock(tree);
+		for (size_t i = 0; i < active_task_count; i++)
+			tree.backup(search_tasks[i]);
 	}
+	/*
+	 * private
+	 */
 	int Search::get_batch_size(int simulation_count) const noexcept
 	{
 		int result = 2;
@@ -223,20 +235,6 @@ namespace ag
 		task.setValue((nodeQ - edgeQ) * edge->getVisits() + nodeQ);
 		task.getLastPair().edge->setProvenValue(node->getProvenValue());
 		task.setReady();
-	}
-	void Search::check_if_terminal(SearchTask &task) const
-	{
-		GameOutcome outcome;
-//		if (task.size() > 0)
-//			outcome = task.getBoard().getOutcome(task.getLastMove());
-//		else
-//			outcome = task.getBoard().getOutcome();
-		if (outcome != GameOutcome::UNKNOWN)
-		{
-			task.setReady();
-			task.setValue(convertOutcome(outcome, task.getSignToMove()));
-//			task.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
-		}
 	}
 
 	Search_old::Search_old(GameConfig gameOptions, SearchConfig searchOptions, Tree_old &tree, Cache &cache, EvaluationQueue &queue) :

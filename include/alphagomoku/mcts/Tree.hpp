@@ -63,6 +63,7 @@ namespace ag
 
 			mutable std::mutex tree_mutex;
 			matrix<Sign> base_board;
+			int base_depth = 0;
 			Sign sign_to_move = Sign::NONE;
 			NodeCache node_cache;
 			ObjectPool<Edge> edge_pool;
@@ -81,8 +82,14 @@ namespace ag
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 
 		private:
-			void prune_subtree(Node *node, matrix<Sign> &currentBoard);
-			void delete_subtree(Node *node);
+			/*
+			 * \brief Recursively checks every node in the subtree and deletes those representing states that can no longer appear in the tree (given current state at root).
+			 */
+			void prune_subtree(Node *node, matrix<Sign> &tmpBoard);
+			/*
+			 * \brief Recursively deletes all nodes in the subtree.
+			 */
+			void delete_subtree(Node *node, matrix<Sign> &tmpBoard);
 	};
 
 	class TreeLock

@@ -2,7 +2,7 @@
  * test_Cache.cpp
  *
  *  Created on: Mar 5, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/Cache.hpp>

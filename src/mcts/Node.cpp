@@ -56,7 +56,7 @@ namespace ag
 
 	std::string Node_old::toString() const
 	{
-		std::string result = Move(getMove()).toString() + " : ";
+		std::string result = Move::move_from_short(getMove()).toString() + " : ";
 		switch (getProvenValue())
 		{
 			default:

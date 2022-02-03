@@ -2,7 +2,7 @@
  * test_rules.hpp
  *
  *  Created on: Mar 4, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef RULES_TEST_RULES_HPP_

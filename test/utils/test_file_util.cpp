@@ -2,7 +2,7 @@
  * test_file_util.cpp
  *
  *  Created on: Mar 6, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/utils/file_util.hpp>

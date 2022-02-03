@@ -33,7 +33,7 @@ namespace ag
 		game_outcome = static_cast<GameOutcome>(so.load<int>(offset));
 		offset += sizeof(int);
 
-		played_move = Move(so.load<uint16_t>(offset));
+		played_move = Move::move_from_short(so.load<uint16_t>(offset));
 		offset += sizeof(uint16_t);
 	}
 	SearchData::SearchData(int rows, int cols) :

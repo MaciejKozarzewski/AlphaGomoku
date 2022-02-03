@@ -42,6 +42,8 @@ namespace ag
 			static void putMove(matrix<Sign> &board, Move move) noexcept;
 			static void undoMove(matrix<Sign> &board, Move move) noexcept;
 
+			static Sign getSignAt(const matrix<Sign> &board, Move m) noexcept;
+
 			/**
 			 * @brief Generates string representation of board state that can be loaded by fromString() method.
 			 */
