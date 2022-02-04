@@ -14,6 +14,7 @@
 #include <alphagomoku/mcts/SearchTask.hpp>
 #include <alphagomoku/mcts/SearchTrajectory.hpp>
 #include <alphagomoku/mcts/EvaluationRequest.hpp>
+#include <alphagomoku/mcts/EvaluationQueue.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
@@ -26,7 +27,7 @@ namespace ag
 {
 	class EdgeSelector;
 	class EdgeGenerator;
-	class EvaluationQueue;
+	class NNEvaluator;
 	class Cache;
 	class Tree;
 	class Tree_old;
@@ -39,24 +40,12 @@ namespace ag
 			TimedStat select;
 			TimedStat evaluate;
 			TimedStat schedule;
+			TimedStat generate;
 			TimedStat expand;
 			TimedStat backup;
 
-			uint64_t nb_select = 0;
-			uint64_t nb_expand = 0;
-			uint64_t nb_vcf_solver = 0;
-			uint64_t nb_backup = 0;
-			uint64_t nb_evaluate = 0;
-			uint64_t nb_game_rules = 0;
 			uint64_t nb_duplicate_nodes = 0;
 			uint64_t nb_information_leaks = 0;
-
-			double time_select = 0.0;
-			double time_expand = 0.0;
-			double time_vcf_solver = 0.0;
-			double time_backup = 0.0;
-			double time_evaluate = 0.0;
-			double time_game_rules = 0.0;
 
 			std::string toString() const;
 			SearchStats& operator+=(const SearchStats &other) noexcept;
@@ -85,9 +74,11 @@ namespace ag
 
 			void select(Tree &tree, const EdgeSelector &selector, int maxSimulations = std::numeric_limits<int>::max());
 			void evaluate();
-			void scheduleToNN(EvaluationQueue &queue);
-			void expand(Tree &tree, const EdgeGenerator& generator);
+			void scheduleToNN(NNEvaluator &evaluator);
+			void generateEdges(const EdgeGenerator &generator);
+			void expand(Tree &tree);
 			void backup(Tree &tree);
+			void cleanup(Tree &tree);
 		private:
 			int get_batch_size(int simulation_count) const noexcept;
 			SearchTask& get_next_task();

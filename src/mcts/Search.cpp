@@ -9,6 +9,7 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/Cache.hpp>
+#include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/mcts/EvaluationQueue.hpp>
 #include <alphagomoku/mcts/EdgeSelector.hpp>
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
@@ -32,48 +33,45 @@ namespace ag
 	{
 		std::string result = "----SearchStats----\n";
 		result += "nb_duplicate_nodes = " + std::to_string(nb_duplicate_nodes) + '\n';
-		result += printStatistics("select    ", nb_select, time_select);
-		result += printStatistics("expand    ", nb_expand, time_expand);
-		result += printStatistics("vcf solver", nb_vcf_solver, time_vcf_solver);
-		result += printStatistics("backup    ", nb_backup, time_backup);
-		result += printStatistics("evaluate  ", nb_evaluate, time_evaluate);
-		result += printStatistics("game rules", nb_game_rules, time_game_rules);
+		result += "nb_information_leaks = " + std::to_string(nb_information_leaks) + '\n';
+		result += select.toString();
+		result += evaluate.toString();
+		result += schedule.toString();
+		result += generate.toString();
+		result += expand.toString();
+		result += backup.toString();
+//		result += printStatistics("select    ", nb_select, time_select);
+//		result += printStatistics("expand    ", nb_expand, time_expand);
+//		result += printStatistics("vcf solver", nb_vcf_solver, time_vcf_solver);
+//		result += printStatistics("backup    ", nb_backup, time_backup);
+//		result += printStatistics("evaluate  ", nb_evaluate, time_evaluate);
+//		result += printStatistics("game rules", nb_game_rules, time_game_rules);
 		return result;
 	}
 	SearchStats& SearchStats::operator+=(const SearchStats &other) noexcept
 	{
-		this->nb_select += other.nb_select;
-		this->nb_expand += other.nb_expand;
-		this->nb_vcf_solver += other.nb_vcf_solver;
-		this->nb_backup += other.nb_backup;
-		this->nb_evaluate += other.nb_evaluate;
-		this->nb_game_rules += other.nb_game_rules;
-		this->nb_duplicate_nodes += other.nb_duplicate_nodes;
+		this->select += other.select;
+		this->evaluate += other.evaluate;
+		this->schedule += other.schedule;
+		this->generate += other.generate;
+		this->expand += other.expand;
+		this->backup += other.backup;
 
-		this->time_select += other.time_select;
-		this->time_expand += other.time_expand;
-		this->time_vcf_solver += other.time_vcf_solver;
-		this->time_backup += other.time_backup;
-		this->time_evaluate += other.time_evaluate;
-		this->time_game_rules += other.time_game_rules;
+		this->nb_duplicate_nodes += other.nb_duplicate_nodes;
+		this->nb_information_leaks += other.nb_information_leaks;
 		return *this;
 	}
 	SearchStats& SearchStats::operator/=(int i) noexcept
 	{
-		this->nb_select /= i;
-		this->nb_expand /= i;
-		this->nb_vcf_solver /= i;
-		this->nb_backup /= i;
-		this->nb_evaluate /= i;
-		this->nb_game_rules /= i;
-		this->nb_duplicate_nodes /= i;
+		this->select /= i;
+		this->evaluate /= i;
+		this->schedule /= i;
+		this->generate /= i;
+		this->expand /= i;
+		this->backup /= i;
 
-		this->time_select /= i;
-		this->time_expand /= i;
-		this->time_vcf_solver /= i;
-		this->time_backup /= i;
-		this->time_evaluate /= i;
-		this->time_game_rules /= i;
+		this->nb_duplicate_nodes /= i;
+		this->nb_information_leaks /= i;
 		return *this;
 	}
 
@@ -133,16 +131,22 @@ namespace ag
 					vcf_solver.solve(search_tasks[i]);
 		}
 	}
-	void Search::scheduleToNN(EvaluationQueue &queue)
+	void Search::scheduleToNN(NNEvaluator &evaluator)
 	{
 		TimerGuard timer(stats.schedule);
+		for (size_t i = 0; i < active_task_count; i++)
+			if (search_tasks[i].isReady() == false)
+				evaluator.addToQueue(search_tasks.at(i));
 	}
-	void Search::expand(Tree &tree, const EdgeGenerator &generator)
+	void Search::generateEdges(const EdgeGenerator &generator)
 	{
-		TimerGuard timer(stats.expand);
+		TimerGuard timer(stats.generate);
 		for (size_t i = 0; i < active_task_count; i++)
 			generator.generate(search_tasks[i]);
-
+	}
+	void Search::expand(Tree &tree)
+	{
+		TimerGuard timer(stats.expand);
 		for (size_t i = 0; i < active_task_count; i++)
 			tree.expand(search_tasks[i]);
 
@@ -205,6 +209,11 @@ namespace ag
 		TimerGuard timer(stats.backup);
 		for (size_t i = 0; i < active_task_count; i++)
 			tree.backup(search_tasks[i]);
+	}
+	void Search::cleanup(Tree &tree)
+	{
+		for (size_t i = 0; i < active_task_count; i++)
+			tree.cancelVirtualLoss(search_tasks[i]);
 	}
 	/*
 	 * private
@@ -371,8 +380,8 @@ namespace ag
 		tree.select(search_buffer.back().trajectory, search_config.exploration_constant); // select node to evaluate
 		search_buffer.back().position.setTrajectory(current_board, search_buffer.back().trajectory); // update board in evaluation request
 
-		stats.nb_select++; //statistics
-		stats.time_select += getTime() - start; //statistics
+//		stats.nb_select++; //statistics
+//		stats.time_select += getTime() - start; //statistics
 		return search_buffer.back();
 	}
 	GameOutcome Search_old::evaluateFromGameRules(EvaluationRequest &position)
@@ -386,8 +395,8 @@ namespace ag
 			if (search_config.use_endgame_solver)
 				position.setProvenValue(convertProvenValue(outcome, position.getSignToMove()));
 		}
-		stats.nb_game_rules++; // statistics
-		stats.time_game_rules += getTime() - start; //statistics
+//		stats.nb_game_rules++; // statistics
+//		stats.time_game_rules += getTime() - start; //statistics
 		return outcome;
 	}
 	void Search_old::evaluate(EvaluationRequest &position)
@@ -397,8 +406,8 @@ namespace ag
 		if (tree.isRootNode(position.getNode()))
 			addNoise(position.getBoard(), position.getPolicy(), search_config.noise_weight);
 
-		stats.nb_evaluate++; // statistics
-		stats.time_evaluate += getTime() - start; //statistics
+//		stats.nb_evaluate++; // statistics
+//		stats.time_evaluate += getTime() - start; //statistics
 	}
 	bool Search_old::expand(EvaluationRequest &position)
 	{
@@ -427,8 +436,8 @@ namespace ag
 				default:
 					break;
 			}
-			stats.nb_vcf_solver++; // statistics
-			stats.time_vcf_solver += getTime() - start; //statistics
+//			stats.nb_vcf_solver++; // statistics
+//			stats.time_vcf_solver += getTime() - start; //statistics
 		}
 
 		double start = getTime(); // statistics
@@ -462,16 +471,16 @@ namespace ag
 
 		bool result = tree.expand(*position.getNode(), moves_to_add);
 
-		stats.nb_expand++; // statistics
-		stats.time_expand += getTime() - start; //statistics
+//		stats.nb_expand++; // statistics
+//		stats.time_expand += getTime() - start; //statistics
 		return result;
 	}
 	void Search_old::backup(SearchRequest &request)
 	{
 		double start = getTime();
 		tree.backup(request.trajectory, request.position.getValue(), request.position.getProvenValue());
-		stats.nb_backup++; // statistics
-		stats.time_backup += getTime() - start; //statistics
+//		stats.nb_backup++; // statistics
+//		stats.time_backup += getTime() - start; //statistics
 	}
 	bool Search_old::isDuplicate(EvaluationRequest &position)
 	{
