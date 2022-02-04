@@ -8,7 +8,6 @@
 #include <alphagomoku/selfplay/GameGenerator.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
-#include <alphagomoku/mcts/EvaluationQueue.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 namespace ag

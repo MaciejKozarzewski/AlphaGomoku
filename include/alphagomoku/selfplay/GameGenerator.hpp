@@ -12,6 +12,8 @@
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/Search.hpp>
+#include <alphagomoku/mcts/EvaluationQueue.hpp>
+#include <alphagomoku/mcts/EvaluationRequest.hpp>
 
 class Json;
 namespace ag

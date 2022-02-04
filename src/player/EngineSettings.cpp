@@ -169,11 +169,16 @@ namespace ag
 					this->max_nodes = value;
 				return true;
 			}
+			if (option.name == "thread_num")
+			{
+				this->thread_num = std::stoll(option.value); // thread_num must not be negative
+				return true;
+			}
 			if (option.name == "max_memory")
 			{
 				int64_t value = std::stoll(option.value);
 				if (value <= 0)
-					this->max_memory = 0.8 * ml::Device::cpu().memory() * 1024 * 1024;
+					this->max_memory = 0.75 * ml::Device::cpu().memory() * 1024 * 1024;
 				else
 					this->max_memory = value;
 				return true;
@@ -259,7 +264,12 @@ namespace ag
 		std::lock_guard lock(mutex);
 		return max_nodes;
 	}
-	uint64_t EngineSettings::getMaxMemory() const noexcept
+	int EngineSettings::getThreadNum() const noexcept
+	{
+		std::lock_guard lock(mutex);
+		return thread_num;
+	}
+	int64_t EngineSettings::getMaxMemory() const noexcept
 	{
 		std::lock_guard lock(mutex);
 		return max_memory;
@@ -283,11 +293,6 @@ namespace ag
 	{
 		std::lock_guard lock(mutex);
 		return use_symmetries;
-	}
-	const std::vector<ml::Device>& EngineSettings::getDevices() const noexcept
-	{
-		std::lock_guard lock(mutex);
-		return devices;
 	}
 } /* namespace ag */
 

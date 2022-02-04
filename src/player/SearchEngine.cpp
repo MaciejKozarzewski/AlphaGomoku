@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/player/SearchEngine.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
@@ -20,65 +21,166 @@
 
 namespace ag
 {
-	SearchThread::SearchThread(GameConfig gameConfig, const Json &cfg, Tree_old &tree, Cache &cache, ml::Device device) :
-			eval_queue(),
-			search(gameConfig, SearchConfig(cfg["search_options"]), tree, cache, eval_queue)
+	NNEvaluatorPool::NNEvaluatorPool(const Json &config)
 	{
-		switch (gameConfig.rules)
+		for (int i = 0; i < config.size(); i++)
 		{
-			case GameRules::FREESTYLE:
-				eval_queue.loadGraph(cfg["networks"]["freestyle"], static_cast<int>(cfg["search_options"]["batch_size"]), device,
-						static_cast<bool>(cfg["use_symmetries"]));
-				break;
-			case GameRules::STANDARD:
-				eval_queue.loadGraph(cfg["networks"]["standard"], static_cast<int>(cfg["search_options"]["batch_size"]), device,
-						static_cast<bool>(cfg["use_symmetries"]));
-				break;
-			default:
-				break;
+			ml::Device device = ml::Device::fromString(config[i]["device"]);
+			int batch_size = static_cast<int>(config[i]["batch_size"]);
+
+			evaluators.push_back(std::make_unique<NNEvaluator>(device, batch_size));
+			evaluators.back()->useSymmetries(static_cast<bool>(config["use_symmetries"]));
+			free_evaluators.push_back(i);
 		}
 	}
-	void SearchThread::setup(const matrix<Sign> &board)
+	void NNEvaluatorPool::loadNetwork(const std::string &pathToNetwork)
+	{
+		std::lock_guard lock(eval_mutex);
+		for (size_t i = 0; i < evaluators.size(); i++)
+			evaluators[i]->loadGraph(pathToNetwork);
+	}
+	void NNEvaluatorPool::unloadNetwork()
+	{
+		std::lock_guard lock(eval_mutex);
+		for (size_t i = 0; i < evaluators.size(); i++)
+			evaluators[i]->unloadGraph();
+	}
+	NNEvaluator& NNEvaluatorPool::get() const
+	{
+		std::unique_lock lock(eval_mutex);
+		eval_cond.wait(lock, [this]() // @suppress("Invalid arguments")
+				{	return free_evaluators.size() > 0;});
+
+		int idx = free_evaluators.back();
+		free_evaluators.pop_back();
+		return *(evaluators.at(idx));
+	}
+	void NNEvaluatorPool::release(const NNEvaluator &queue) const
+	{
+		std::lock_guard lock(eval_mutex);
+		for (size_t i = 0; i < evaluators.size(); i++)
+			if (evaluators.at(i).get() == &queue)
+			{
+				free_evaluators.push_back(i);
+				eval_cond.notify_one();
+				return;
+			}
+		throw std::logic_error("NNEvaluator to be released is not a member of this pool");
+	}
+
+	SearchThread::SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators) :
+			settings(settings),
+			tree(tree),
+			evaluator_pool(evaluators),
+			search(settings.getGameConfig(), settings.getSearchConfig())
+	{
+	}
+	void SearchThread::setEdgeSelector(const EdgeSelector &selector)
+	{
+		edge_selector = std::unique_ptr<EdgeSelector>(selector.clone());
+	}
+	void SearchThread::setEdgeGenerator(const EdgeGenerator &generator)
+	{
+		edge_generator = std::unique_ptr<EdgeGenerator>(generator.clone());
+	}
+	void SearchThread::start()
 	{
 		if (isRunning())
-			throw std::logic_error("SearchThread::setup() called while search is running");
-		search.setBoard(board);
-		std::lock_guard lock(search_mutex);
-		is_running = true;
+			throw std::logic_error("the search thread is already running");
+
+		{ /* artificial scope for lock */
+			std::lock_guard lock(search_mutex);
+			is_running = true;
+		}
+		search_future = std::async(std::launch::async, [this]()
+		{	this->run();});
 	}
 	void SearchThread::stop() noexcept
 	{
-		std::lock_guard lock(search_mutex);
-		is_running = false;
+		{ /* artificial scope for lock */
+			std::lock_guard lock(search_mutex);
+			is_running = false;
+		}
+		if (search_future.valid())
+		{
+			std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
+			if (search_status == std::future_status::ready)
+				search_future.get();
+		}
 	}
 	bool SearchThread::isRunning() const noexcept
 	{
 		std::lock_guard lock(search_mutex);
-		return is_running;
+		if (search_future.valid())
+		{
+			std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
+			return (search_status == std::future_status::ready);
+		}
+		else
+			return false;
 	}
 	void SearchThread::run()
 	{
 		ml::Device::cpu().setNumberOfThreads(1);
 		search.clearStats();
-		while (isRunning())
+		while (true)
 		{
-			bool flag = search.simulate(16777216);
-			if (flag == false)
-				stop();
-			eval_queue.evaluateGraph();
-			search.handleEvaluation();
+			{ /* artificial scope for lock */
+				TreeLock lock(tree);
+				search.select(tree, *edge_selector);
+			}
+			search.evaluate(); // VCF solver is run here
+
+			NNEvaluator &evaluator = evaluator_pool.get();
+			search.scheduleToNN(evaluator);
+			evaluator.evaluateGraph();
+
+			search.generateEdges(*edge_generator);
+			{ /* artificial scope for lock */
+				TreeLock lock(tree);
+				search.expand(tree);
+				search.backup(tree);
+				if (isStopConditionFulfilled())
+					break;
+			}
+			std::lock_guard lock(search_mutex);
+			if (is_running == false)
+				break;
 		}
-		search.cleanup();
+		TreeLock lock(tree);
+		search.cleanup(tree);
 	}
 	SearchStats SearchThread::getSearchStats() const noexcept
 	{
 		return search.getStats();
 	}
-	QueueStats SearchThread::getQueueStats() const noexcept
+	/*
+	 * private
+	 */
+	bool SearchThread::isStopConditionFulfilled() const
 	{
-		return eval_queue.getStats();
+		// assuming tree is locked
+		if (tree.getSimulationCount() >= settings.getMaxNodes())
+			return true;
+		if (tree.getMaximumDepth() >= settings.getMaxDepth())
+			return true;
+		if (tree.isProven())
+			return true;
+		return false;
 	}
 
+	SearchEngine::SearchEngine(const Json &config, const EngineSettings &settings) :
+			settings(settings),
+			nn_evaluators(config["devices"])
+	{
+	}
+//	SearchEngine::SearchEngine(EngineSettings &es):
+//			settings(es),
+//			tree(std::make_unique<Tree>(es.getGameConfig(), es.getTreeConfig())),
+//
+//	{
+//
+//	}
 //	SearchEngine::SearchEngine(EngineSettings &s) :
 //			settings(s),
 //			thread_pool(s.getDevices().size()),
@@ -90,22 +192,52 @@ namespace ag
 //					std::make_unique<SearchThread>(rm.getGameConfig(), cfg, tree, cache, ml::Device::fromString(cfg["threads"][i]["device"])));
 //		Logger::write("Initialized in " + std::to_string(rm.getElapsedTime()) + " seconds");
 //	}
-	void SearchEngine::setPosition(const std::vector<Move> &listOfMoves)
+	void SearchEngine::setPosition(const matrix<Sign> &board, Sign signToMove)
 	{
-		if (listOfMoves.empty())
-			sign_to_move = Sign::CROSS;
-		else
-			sign_to_move = invertSign(listOfMoves.back().sign);
-		GameConfig cfg = settings.getGameConfig();
-		board = matrix<Sign>(cfg.rows, cfg.cols);
-		for (auto move = listOfMoves.begin(); move < listOfMoves.end(); move++)
-		{
-//			if (board.at(move->row, move->col) != Sign::NONE)
-//				return Message(MessageType::ERROR, "incorrect board");
-			board.at(move->row, move->col) = move->sign;
-		}
-//		return Message(); // empty message here means everything went fine
+		if (isSearchFinished() == false)
+			return; // cannot set position when the previous search is still running
+//		Sign sign_to_move;
+//		if (listOfMoves.empty())
+//			sign_to_move = Sign::CROSS;
+//		else
+//			sign_to_move = invertSign(listOfMoves.back().sign);
+//
+//		GameConfig cfg = settings.getGameConfig();
+//		matrix<Sign> board(cfg.rows, cfg.cols);
+//		for (size_t i = 0; i < listOfMoves.size(); i++)
+//			Board::putMove(board, listOfMoves[i]);
+
+		TreeLock lock(get_tree());
+		get_tree().setBoard(board, signToMove);
 	}
+	void SearchEngine::setEdgeSelector(const EdgeSelector &selector)
+	{
+		edge_selector = std::unique_ptr<EdgeSelector>(selector.clone());
+	}
+	void SearchEngine::setEdgeGenerator(const EdgeGenerator &generator)
+	{
+		edge_generator = std::unique_ptr<EdgeGenerator>(generator.clone());
+	}
+
+	void SearchEngine::startSearch()
+	{
+		setup_search_threads();
+		for (size_t i = 0; i < search_threads.size(); i++)
+			search_threads[i]->start();
+	}
+	void SearchEngine::stopSearch()
+	{
+		for (size_t i = 0; i < search_threads.size(); i++)
+			search_threads[i]->stop();
+	}
+	bool SearchEngine::isSearchFinished() const noexcept
+	{
+		for (size_t i = 0; i < search_threads.size(); i++)
+			if (search_threads[i]->isRunning())
+				return false;
+		return true;
+	}
+
 //	void SearchEngine::makeMove()
 //	{
 //		Message msg = make_forced_move();
@@ -169,17 +301,13 @@ namespace ag
 //		for (size_t i = 0; i < search_threads.size(); i++)
 //			search_threads[i]->stop();
 //	}
-	void SearchEngine::stopSearch()
-	{
+//	void SearchEngine::stopSearch()
+//	{
 //		for (size_t i = 0; i < search_threads.size(); i++)
 //			search_threads[i]->stop();
 //		thread_pool.waitForFinish();
 //		time_used_for_last_search = resource_manager.getElapsedTime();
-	}
-	int SearchEngine::getSimulationCount() const
-	{
-//		return tree.getRootNode().getVisits();
-	}
+//	}
 	Message SearchEngine::getSearchSummary()
 	{
 		log_search_info();
@@ -230,11 +358,34 @@ namespace ag
 //		}
 		return Message(MessageType::INFO_MESSAGE, result);
 	}
-	bool SearchEngine::isSearchFinished() const noexcept
+
+	/*
+	 * private
+	 */
+	Tree& SearchEngine::get_tree()
 	{
-//		return thread_pool.isReady();
+		if (tree == nullptr)
+			tree = std::make_unique<Tree>(settings.getGameConfig(), settings.getTreeConfig());
+		return *tree;
 	}
-// private
+	void SearchEngine::setup_search_threads()
+	{
+		if (settings.getThreadNum() > static_cast<int>(search_threads.size()))
+		{
+			int num_to_add = static_cast<int>(search_threads.size()) - settings.getThreadNum();
+			for (int i = 0; i < num_to_add; i++)
+				search_threads.push_back(std::make_unique<SearchThread>(settings, *tree, nn_evaluators));
+		}
+		if (settings.getThreadNum() < static_cast<int>(search_threads.size()))
+			search_threads.erase(search_threads.begin() + settings.getThreadNum(), search_threads.end());
+
+		for (size_t i = 0; i < search_threads.size(); i++)
+		{
+			search_threads[i]->setEdgeSelector(*edge_selector);
+			search_threads[i]->setEdgeGenerator(*edge_generator);
+		}
+	}
+
 	void SearchEngine::setup_search()
 	{
 //		cache.clearStats();
@@ -264,9 +415,9 @@ namespace ag
 
 		double best_value = std::numeric_limits<double>::lowest();
 		Move best_move;
-		for (int row = 0; row < board.rows(); row++)
-			for (int col = 0; col < board.cols(); col++)
-			{
+//		for (int row = 0; row < board.rows(); row++)
+//			for (int col = 0; col < board.cols(); col++)
+		{
 //				double value = playouts.at(row, col)
 //						+ (action_values.at(row, col).win + 0.5 * action_values.at(row, col).draw) * tree.getRootNode().getVisits()
 //						+ 0.001 * policy_priors.at(row, col)
@@ -276,7 +427,7 @@ namespace ag
 //					best_value = value;
 //					best_move = Move(row, col, sign_to_move);
 //				}
-			}
+		}
 		return best_move;
 	}
 	float SearchEngine::get_root_eval() const
@@ -286,43 +437,43 @@ namespace ag
 	Message SearchEngine::make_forced_move()
 	{
 		const GameRules rules = GameRules::FREESTYLE; //resource_manager.getGameConfig().rules;
-		assert(getOutcome(rules, board) == GameOutcome::UNKNOWN);
+//		assert(getOutcome(rules, board) == GameOutcome::UNKNOWN);
 
 		// check for empty board first move
-		if (isBoardEmpty(board) == true)
-			return Message(MessageType::BEST_MOVE, Move(board.rows() / 2, board.cols() / 2, sign_to_move));
+//		if (isBoardEmpty(board) == true)
+//			return Message(MessageType::BEST_MOVE, Move(board.rows() / 2, board.cols() / 2, sign_to_move));
 
-		matrix<Sign> board_copy(board);
+//		matrix<Sign> board_copy(board);
 		// check for own winning moves
-		for (int i = 0; i < board.rows(); i++)
-			for (int j = 0; j < board.cols(); j++)
-				if (board.at(i, j) == Sign::NONE)
-				{
-					board_copy.at(i, j) = sign_to_move;
-					GameOutcome winner = getOutcome(rules, board_copy, Move(i, j, sign_to_move));
-					board_copy.at(i, j) = Sign::NONE;
-					if ((sign_to_move == Sign::CROSS and winner == GameOutcome::CROSS_WIN)
-							or (sign_to_move == Sign::CIRCLE and winner == GameOutcome::CIRCLE_WIN))
-					{
-						//return Message(MessageType::MAKE_MOVE, Move(i, j, sign_to_move));
-						return Message(); // do not force winning move
-					}
-				}
+//		for (int i = 0; i < board.rows(); i++)
+//			for (int j = 0; j < board.cols(); j++)
+//				if (board.at(i, j) == Sign::NONE)
+//				{
+//					board_copy.at(i, j) = sign_to_move;
+//					GameOutcome winner = getOutcome(rules, board_copy, Move(i, j, sign_to_move));
+//					board_copy.at(i, j) = Sign::NONE;
+//					if ((sign_to_move == Sign::CROSS and winner == GameOutcome::CROSS_WIN)
+//							or (sign_to_move == Sign::CIRCLE and winner == GameOutcome::CIRCLE_WIN))
+//					{
+//						//return Message(MessageType::MAKE_MOVE, Move(i, j, sign_to_move));
+//						return Message(); // do not force winning move
+//					}
+//				}
 
 		// check for opp winning moves
-		for (int i = 0; i < board.rows(); i++)
-			for (int j = 0; j < board.cols(); j++)
-				if (board.at(i, j) == Sign::NONE)
-				{
-					board_copy.at(i, j) = invertSign(sign_to_move);
-					GameOutcome winner = getOutcome(rules, board_copy, Move(i, j, invertSign(sign_to_move)));
-					board_copy.at(i, j) = Sign::NONE;
-					if ((sign_to_move == Sign::CIRCLE and winner == GameOutcome::CROSS_WIN)
-							or (sign_to_move == Sign::CROSS and winner == GameOutcome::CIRCLE_WIN))
-					{
-						return Message(MessageType::BEST_MOVE, Move(i, j, sign_to_move));
-					}
-				}
+//		for (int i = 0; i < board.rows(); i++)
+//			for (int j = 0; j < board.cols(); j++)
+//				if (board.at(i, j) == Sign::NONE)
+//				{
+//					board_copy.at(i, j) = invertSign(sign_to_move);
+//					GameOutcome winner = getOutcome(rules, board_copy, Move(i, j, invertSign(sign_to_move)));
+//					board_copy.at(i, j) = Sign::NONE;
+//					if ((sign_to_move == Sign::CIRCLE and winner == GameOutcome::CROSS_WIN)
+//							or (sign_to_move == Sign::CROSS and winner == GameOutcome::CIRCLE_WIN))
+//					{
+//						return Message(MessageType::BEST_MOVE, Move(i, j, sign_to_move));
+//					}
+//				}
 		return Message();
 	}
 	Message SearchEngine::make_move_by_search()
@@ -370,8 +521,8 @@ namespace ag
 				return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
 			else
 			{
-				if (getSimulationCount() > 0)
-					log_search_info();
+//				if (getSimulationCount() > 0)
+//					log_search_info();
 
 				Logger::write("Balancing opening");
 //				tree.setBalancingDepth(2);
@@ -426,14 +577,14 @@ namespace ag
 		const int rows = 0; //resource_manager.getGameConfig().rows;
 		const int cols = 0; //resource_manager.getGameConfig().cols;
 
-		if (getSimulationCount() == 0)
-		{
-			Move move = make_forced_move().getMove();
-			matrix<float> policy(rows, cols);
-			policy.at(move.row, move.col) = 0.999f;
-			Logger::write(policyToString(board, policy));
-			return;
-		}
+//		if (getSimulationCount() == 0)
+//		{
+//			Move move = make_forced_move().getMove();
+//			matrix<float> policy(rows, cols);
+//			policy.at(move.row, move.col) = 0.999f;
+//			Logger::write(policyToString(board, policy));
+//			return;
+//		}
 //		int children = std::min(10, tree.getRootNode().numberOfChildren());
 //		tree.getRootNode().sortChildren();
 //		Logger::write("BEST");
@@ -450,53 +601,53 @@ namespace ag
 		normalize(policy);
 
 		std::string result;
-		for (int i = 0; i < board.rows(); i++)
-		{
-			for (int j = 0; j < board.cols(); j++)
-			{
-				if (board.at(i, j) == Sign::NONE)
-				{
-					switch (proven_values.at(i, j))
-					{
-						case ProvenValue::UNKNOWN:
-						{
-							int t = (int) (1000 * policy.at(i, j));
-							if (t == 0)
-								result += "  _ ";
-							else
-							{
-								if (t < 1000)
-									result += ' ';
-								if (t < 100)
-									result += ' ';
-								if (t < 10)
-									result += ' ';
-								result += std::to_string(t);
-							}
-							break;
-						}
-						case ProvenValue::LOSS:
-							result += " >L<";
-							break;
-						case ProvenValue::DRAW:
-							result += " >D<";
-							break;
-						case ProvenValue::WIN:
-							result += " >W<";
-							break;
-					}
-				}
-				else
-					result += (board.at(i, j) == Sign::CROSS) ? "  X " : "  O ";
-			}
-			result += '\n';
-		}
+//		for (int i = 0; i < board.rows(); i++)
+//		{
+//			for (int j = 0; j < board.cols(); j++)
+//			{
+//				if (board.at(i, j) == Sign::NONE)
+//				{
+//					switch (proven_values.at(i, j))
+//					{
+//						case ProvenValue::UNKNOWN:
+//						{
+//							int t = (int) (1000 * policy.at(i, j));
+//							if (t == 0)
+//								result += "  _ ";
+//							else
+//							{
+//								if (t < 1000)
+//									result += ' ';
+//								if (t < 100)
+//									result += ' ';
+//								if (t < 10)
+//									result += ' ';
+//								result += std::to_string(t);
+//							}
+//							break;
+//						}
+//						case ProvenValue::LOSS:
+//							result += " >L<";
+//							break;
+//						case ProvenValue::DRAW:
+//							result += " >D<";
+//							break;
+//						case ProvenValue::WIN:
+//							result += " >W<";
+//							break;
+//					}
+//				}
+//				else
+//					result += (board.at(i, j) == Sign::CROSS) ? "  X " : "  O ";
+//			}
+//			result += '\n';
+//		}
 		Logger::write(result);
 //		SearchTrajectory st = tree.getPrincipalVariation();
 //		for (int i = 0; i < st.length(); i++)
 //			Logger::write(st.getNode(i).toString());
 
-		QueueStats queue_stats;
+//		QueueStats queue_stats;
 		SearchStats search_stats;
 //		for (size_t i = 0; i < search_threads.size(); i++)
 //		{
@@ -506,7 +657,7 @@ namespace ag
 //		queue_stats /= search_threads.size();
 //		search_stats /= search_threads.size();
 
-		Logger::write(queue_stats.toString());
+//		Logger::write(queue_stats.toString());
 		Logger::write(search_stats.toString());
 //		Logger::write(tree.getStats().toString() + "memory = " + std::to_string(tree.getMemory() / 1048576) + "MB");
 //		Logger::write(cache.getStats().toString() + "memory = " + std::to_string(cache.getMemory() / 1048576) + "MB");

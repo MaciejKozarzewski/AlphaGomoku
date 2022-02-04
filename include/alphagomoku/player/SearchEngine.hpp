@@ -13,58 +13,92 @@
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/Search.hpp>
-#include <alphagomoku/mcts/EvaluationQueue.hpp>
+#include <alphagomoku/mcts/NNEvaluator.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <libml/utils/json.hpp>
 
 #include <iostream>
+#include <future>
 
 namespace ag
 {
-
-	class SearchThread: public Job
+	class NNEvaluatorPool
 	{
 		private:
-			EvaluationQueue eval_queue;
-			Search_old search;
+			mutable std::vector<std::unique_ptr<NNEvaluator>> evaluators;
+			mutable std::vector<int> free_evaluators;
+			mutable std::mutex eval_mutex;
+			mutable std::condition_variable eval_cond;
+		public:
+			NNEvaluatorPool(const Json &config);
+			void loadNetwork(const std::string &pathToNetwork);
+			void unloadNetwork();
+			NNEvaluator& get() const;
+			void release(const NNEvaluator &queue) const;
+	};
+
+	class SearchThread
+	{
+		private:
+			const EngineSettings &settings;
+			Tree &tree;
+			const NNEvaluatorPool &evaluator_pool;
+
+			std::unique_ptr<EdgeSelector> edge_selector;
+			std::unique_ptr<EdgeGenerator> edge_generator;
+
+			Search search;
+			std::future<void> search_future;
+
 			mutable std::mutex search_mutex;
 			bool is_running = false;
 		public:
-			SearchThread(GameConfig gameConfig, const Json &cfg, Tree_old &tree, Cache &cache, ml::Device device);
-			void setup(const matrix<Sign> &board);
+			SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators);
+			void setEdgeSelector(const EdgeSelector &selector);
+			void setEdgeGenerator(const EdgeGenerator &generator);
+			void start();
 			void stop() noexcept;
 			bool isRunning() const noexcept;
 			void run();
 
 			SearchStats getSearchStats() const noexcept;
-			QueueStats getQueueStats() const noexcept;
+		private:
+			bool isStopConditionFulfilled() const;
 	};
 
 	class SearchEngine
 	{
 		private:
-			EngineSettings settings;
+			const EngineSettings &settings;
+			NNEvaluatorPool nn_evaluators;
 
-			std::unique_ptr<Tree_old> tree;
-			std::unique_ptr<Cache> cache;
-			std::vector<std::unique_ptr<Search_old>> searchers;
-			std::vector<std::unique_ptr<EvaluationQueue>> evaluators;
+			std::vector<std::unique_ptr<SearchThread>> search_threads;
+			std::unique_ptr<Tree> tree;
+			std::unique_ptr<EdgeSelector> edge_selector;
+			std::unique_ptr<EdgeGenerator> edge_generator;
 
-			matrix<Sign> board;
-			Sign sign_to_move = Sign::NONE;
 		public:
+			SearchEngine(const Json &config, const EngineSettings &settings);
 			/**
-			 * Used to setup entire board in one step. Moves must be in correct order (alternating colors)
+			 * \brief Used to setup entire board in one step. Moves must be in the correct order (alternating colors)
 			 */
-			void setPosition(const std::vector<Move> &listOfMoves);
+			void setPosition(const matrix<Sign> &board, Sign signToMove);
+			void setEdgeSelector(const EdgeSelector &selector);
+			void setEdgeGenerator(const EdgeGenerator &generator);
+
 			void startSearch();
 			void stopSearch();
-
-			int getSimulationCount() const;
-			Message getSearchSummary();
 			bool isSearchFinished() const noexcept;
+
+			Message getSearchSummary();
+
 		private:
+			Tree& get_tree();
+			void setup_search_threads();
+
 			void setup_search();
 			Move get_best_move() const;
 			float get_root_eval() const;

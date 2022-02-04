@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/player/EngineManager.hpp>
+#include <alphagomoku/player/PlayerManager.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/version.hpp>

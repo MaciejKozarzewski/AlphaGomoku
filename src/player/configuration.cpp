@@ -5,9 +5,10 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/player/EngineManager.hpp>
+#include <alphagomoku/player/PlayerManager.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/version.hpp>
 
 #include <libml/hardware/Device.hpp>
 
@@ -19,6 +20,7 @@ namespace
 	Json create_base_config()
 	{
 		Json result;
+		result["version"] = ag::ProgramInfo::version();
 		result["protocol"] = "gomocup";
 		result["use_logging"] = false;
 		result["always_ponder"] = false;
@@ -30,7 +32,7 @@ namespace
 		result["threads"] = Json(JsonType::Array);
 		result["search_options"]["max_batch_size"] = 1;
 		result["search_options"]["exploration_constant"] = 1.25;
-		result["search_options"]["expansion_prior_treshold"] = 1.0e-4;
+		result["search_options"]["expansion_prior_threshold"] = 1.0e-4;
 		result["search_options"]["max_children"] = 30;
 		result["search_options"]["use_vcf_solver"] = true;
 		result["search_options"]["use_symmetries"] = true;

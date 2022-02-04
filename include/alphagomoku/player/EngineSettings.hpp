@@ -38,7 +38,6 @@ namespace ag
 			static constexpr int max_int_value = std::numeric_limits<int>::max();
 
 			mutable std::mutex mutex;
-			/* following settings can be changed by GUI */
 			GameConfig game_config;
 			TreeConfig tree_config;
 			CacheConfig cache_config;
@@ -52,15 +51,13 @@ namespace ag
 
 			int max_depth = max_int_value;
 			int max_nodes = max_int_value;
-			uint64_t max_memory = 256 * 1024 * 1024; /**< [bytes] initially set to 256MB */
+			int thread_num = 1;
+			int64_t max_memory = 256 * 1024 * 1024; /**< [bytes] initially set to 256MB */
 			EngineStyle style = EngineStyle::CLASSIC;
 
 			bool analysis_mode = false;
 			bool auto_pondering = false;
 			bool use_symmetries = true;
-
-			/* following settings cannot be changed after engine has initialized */
-			std::vector<ml::Device> devices;
 
 		public:
 			EngineSettings();
@@ -78,13 +75,12 @@ namespace ag
 			double getProtocolLag() const noexcept;
 			int getMaxDepth() const noexcept;
 			int getMaxNodes() const noexcept;
-			uint64_t getMaxMemory() const noexcept;
+			int getThreadNum() const noexcept;
+			int64_t getMaxMemory() const noexcept;
 			EngineStyle getStyle() const noexcept;
 			bool isInAnalysisMode() const noexcept;
 			bool isUsingAutoPondering() const noexcept;
-
 			bool isUsingSymmetries() const noexcept;
-			const std::vector<ml::Device>& getDevices() const noexcept;
 	};
 
 } /* namespace ag */
