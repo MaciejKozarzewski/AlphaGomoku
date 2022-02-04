@@ -46,6 +46,7 @@ namespace ag
 		public:
 			EdgeGenerator(GameRules rules, float policyThreshold, int maxEdges, ExclusionConfig cfg = ExclusionConfig());
 
+			EdgeGenerator* clone() const;
 			void generate(SearchTask &task) const;
 	};
 

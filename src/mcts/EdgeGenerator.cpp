@@ -49,6 +49,10 @@ namespace ag
 			max_edges(maxEdges)
 	{
 	}
+	EdgeGenerator* EdgeGenerator::clone() const
+	{
+		return new EdgeGenerator(game_rules, policy_threshold, max_edges);
+	}
 	void EdgeGenerator::generate(SearchTask &task) const
 	{
 		assert(task.isReady());
