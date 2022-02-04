@@ -69,17 +69,24 @@ namespace ag
 			ObjectPool<Edge> edge_pool;
 			Node *root_node = nullptr;
 
+			int max_depth = 0;
 		public:
 			Tree(GameConfig gameOptions, TreeConfig treeOptions);
 			~Tree();
 
 			void setBoard(const matrix<Sign> &newBoard, Sign signToMove);
 			int getSimulationCount() const noexcept;
+			int getMaximumDepth() const noexcept;
+			bool isProven() const noexcept;
+
 			SelectOutcome select(SearchTask &task, const EdgeSelector &selector);
 			ExpandOutcome expand(const SearchTask &task);
 			void backup(const SearchTask &task);
 			void cancelVirtualLoss(SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
+
+			const matrix<Sign>& getBoard() const noexcept;
+			Sign getSignToMove() const noexcept;
 
 		private:
 			/*

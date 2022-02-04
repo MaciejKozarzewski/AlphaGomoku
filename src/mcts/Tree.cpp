@@ -356,6 +356,7 @@ namespace ag
 		prune_subtree(root_node, tmp_board);
 
 		root_node = node_cache.seek(base_board, sign_to_move);
+		max_depth = 0;
 	}
 	int Tree::getSimulationCount() const noexcept
 	{
@@ -363,6 +364,17 @@ namespace ag
 			return 0;
 		else
 			return root_node->getVisits();
+	}
+	int Tree::getMaximumDepth() const noexcept
+	{
+		return max_depth;
+	}
+	bool Tree::isProven() const noexcept
+	{
+		if (root_node == nullptr)
+			return false;
+		else
+			return root_node->isProven();
 	}
 	SelectOutcome Tree::select(SearchTask &task, const EdgeSelector &selector)
 	{
@@ -385,6 +397,7 @@ namespace ag
 			if (is_information_leak(edge, node))
 				return SelectOutcome::INFORMATION_LEAK;
 		}
+		max_depth = std::max(max_depth, task.visitedPathLength());
 		return SelectOutcome::REACHED_LEAF;
 	}
 	ExpandOutcome Tree::expand(const SearchTask &task)
@@ -456,7 +469,18 @@ namespace ag
 		print_subtree(root_node, depth, sort, top_n, 0);
 	}
 
-// private
+	const matrix<Sign>& Tree::getBoard() const noexcept
+	{
+		return base_board;
+	}
+	Sign Tree::getSignToMove() const noexcept
+	{
+		return sign_to_move;
+	}
+
+	/*
+	 * private
+	 */
 	void Tree::prune_subtree(Node *node, matrix<Sign> &tmpBoard)
 	{
 		if (node == nullptr)
