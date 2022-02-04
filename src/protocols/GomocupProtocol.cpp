@@ -457,12 +457,11 @@ namespace ag
 		assert(tmp.size() == 2u);
 
 		int number_of_moves = list_of_moves.size();
-		Move last_move = list_of_moves.back();
-
 		if (number_of_moves == 0)
 			output_queue.push(Message(MessageType::ERROR, "the board is empty"));
 		else
 		{
+			Move last_move = list_of_moves.back();
 			Move m = moveFromString(tmp[1], last_move.sign);
 			if (last_move != m)
 				output_queue.push(Message(MessageType::ERROR, "can undo only last move which is " + moveToString(last_move)));
