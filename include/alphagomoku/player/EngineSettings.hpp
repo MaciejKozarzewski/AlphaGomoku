@@ -15,6 +15,7 @@
 #include <vector>
 #include <mutex>
 
+class Json;
 namespace ag
 {
 	struct Option;
@@ -61,6 +62,7 @@ namespace ag
 
 		public:
 			EngineSettings();
+			void loadConfig(const Json &config);
 			bool setOption(const Option &option) noexcept;
 
 			const GameConfig& getGameConfig() const noexcept;

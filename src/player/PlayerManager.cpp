@@ -60,19 +60,21 @@ namespace ag
 			configure();
 			return false;
 		}
+		bool successfully_loaded_config = load_config(argument_parser.getLaunchPath() + name_of_config_file);
 		if (run_benchmark)
 		{
 			benchmark();
 			return false;
 		}
-		bool successfully_loaded = load_config(argument_parser.getLaunchPath() + name_of_config_file);
-		return successfully_loaded;
+		return successfully_loaded_config;
 	}
 	void PlayerManager::run()
 	{
 		if (static_cast<bool>(config["use_logging"]))
 			setup_logging();
+
 		Logger::write("Using config : " + name_of_config_file);
+		engine_settings.loadConfig(config);
 
 		setup_protocol();
 		while (is_running)
@@ -103,7 +105,7 @@ namespace ag
 //							search_engine = std::make_unique<SearchEngine>(config, resource_manager);
 						time_manager.stopTimer();
 
-						search_engine->stopSearch();
+//						search_engine->stopSearch();
 						if (search_future.valid())
 							search_future.get(); // wait for search task to end
 //						search_engine->setPosition(input_message.getListOfMoves());
@@ -140,29 +142,29 @@ namespace ag
 						}
 						if (input_message.getString() == "swap2")
 						{
-							search_future = std::async(std::launch::async, [&]()
-							{
+//							search_future = std::async(std::launch::async, [&]()
+//							{
 //								Message msg = search_engine->swap2();
 //								output_queue.push(search_engine->getSearchSummary());
 //								output_queue.push(msg);
-								});
+//								});
 						}
 						if (input_message.getString() == "ponder")
 						{
 //							resource_manager.setSearchStartTime(getTime()); // pondering does not pay cost of initialization
-							search_future = std::async(std::launch::async, [&]()
-							{
+//							search_future = std::async(std::launch::async, [&]()
+//							{
 //								Message msg = search_engine->ponder();
 //								output_queue.push(search_engine->getSearchSummary());
 //								output_queue.push(msg);
-								});
+//								});
 						}
 						break;
 					}
 					case MessageType::STOP_SEARCH:
 					{
-						if (search_engine != nullptr)
-							search_engine->stopSearch();
+//						if (search_engine != nullptr)
+//							search_engine->stopSearch();
 						break;
 					}
 					case MessageType::EXIT_PROGRAM:

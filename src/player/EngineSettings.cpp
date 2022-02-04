@@ -8,9 +8,11 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 
 #include <libml/hardware/Device.hpp>
+#include <libml/utils/json.hpp>
 
 #include <algorithm>
 
@@ -44,6 +46,14 @@ namespace ag
 	EngineSettings::EngineSettings() :
 			game_config(GameRules::FREESTYLE, 0, 0)
 	{
+	}
+	void EngineSettings::loadConfig(const Json &config)
+	{
+		std::lock_guard lock(mutex);
+		tree_config = TreeConfig(config["tree_options"]);
+		cache_config = CacheConfig(config["cache_options"]);
+		search_config = SearchConfig(config["search_options"]);
+		auto_pondering = static_cast<bool>(config["always_ponder"]);
 	}
 //	void EngineSettings::setSearchStartTime(double t) noexcept
 //	{

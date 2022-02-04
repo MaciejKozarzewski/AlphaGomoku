@@ -56,6 +56,13 @@ namespace
 					speed.push_back(static_cast<double>(json["samples"][i]) / static_cast<double>(json["time"][i]));
 				}
 			}
+			void print() const
+			{
+				std::cout << device.toString() << " " << search_threads << ":" << omp_threads << '\n';
+				for (size_t i = 0; i < batch_size.size(); i++)
+					std::cout << "--" << batch_size[i] << " = " << speed[i] << " n/s\n";
+				std::cout << '\n';
+			}
 	};
 }
 
@@ -72,10 +79,12 @@ namespace ag
 		{
 		}
 
-//		std::vector<HardwareConfiguration> configs;
-//		for (int i = 0; i < benchmarkResults["tests"].size(); i++)
-//			configs.push_back(HardwareConfiguration(benchmarkResults["tests"][i]));
+		std::vector<HardwareConfiguration> configs;
+		for (int i = 0; i < benchmarkResults["tests"].size(); i++)
+			configs.push_back(HardwareConfiguration(benchmarkResults["tests"][i]));
 
+		for (size_t i = 0; i < configs.size(); i++)
+			configs[i].print();
 //		std::vector<std::pair<bool, ml::Device>> list_of_devices;
 //		list_of_devices.push_back( { false, ml::Device::cpu() });
 //		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
