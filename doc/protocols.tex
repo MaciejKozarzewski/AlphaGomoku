@@ -222,6 +222,8 @@ If \texttt{INFO analysis{\_}mode} is set to \texttt{1}, engine will answer \text
 
 \textbf{Note:} The engine should not hang after \texttt{SUGGEST} waiting infinitely for \texttt{PLAY} command.
 
+\textbf{Note:} Pondering is never started automatically after \texttt{SUGGEST} response.
+
 
 \subsection{PLAY [C],[R]}
 \label{cmd_play}
@@ -240,6 +242,8 @@ The original \texttt{INFO evaluate} command is extended to handle arbitrary numb
 \item{\texttt{INFO evaluate 3,4 5,6} is a request for evaluation info of the board state after making moves [3],[4] and [5],[6] from the current board state.}
 \end{itemize}
 If path specified in the command does not exist in the tree for any reason, the engine should send an empty \texttt{MESSAGE}.
+
+\textbf{Note:} Sending excessive amounts of \texttt{INFO evaluate} commands during the search is discouraged as it can degrade engine performance.
 
 \subsubsection{INFO analysis{\_}mode [x]}
 Controls how engine responds to the \texttt{BEGIN}, \texttt{BOARD} and \texttt{TURN} commands. The allowed values are:
@@ -280,8 +284,15 @@ Toggles the automatic pondering after each move. This command overrides the valu
 
 \textbf{Note:} This option does not start/stop the pondering by itself, only allows/forbids the engine to automatically start pondering.
 
+\textbf{Note:} Pondering is never started automatically if \texttt{INFO analysis{\_}mode} is set to 1.
+
 \subsubsection{INFO protocol{\_}lag [x]}
 Sets the estimated protocol overhead i.e. the time difference between sending the message by the engine and receiving it by the GUI (and in the opposite direction). Must not be negative.
+
+\subsubsection{INFO thread{\_}num [x]}
+Sets maximum nuber of threads an engine can use. Must not be negative.
+
+\textbf{Note:} If number of threads is changed during the search, AG would not adjust its number of threads until the search ends.
 
 \subsubsection{INFO }
 
@@ -295,6 +306,7 @@ Some parameters have default values so the engine works even if no \texttt{INFO}
 \item{\textbf{style} = 1 (classic)}
 \item{\textbf{auto{\_}pondering} = as loaded from configuration file}
 \item{\textbf{protocol{\_}lag} \text{$ \approx 400$} (varies from version to version)}
+\item{\textbf{thread{\_}num} = 1}
 \end{itemize}
 
 

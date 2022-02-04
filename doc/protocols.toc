@@ -35,9 +35,10 @@
 \contentsline {subsubsection}{\numberline {3.3.6}INFO style [x]}{9}{subsubsection.3.3.6}%
 \contentsline {subsubsection}{\numberline {3.3.7}INFO auto{\_}pondering [x]}{10}{subsubsection.3.3.7}%
 \contentsline {subsubsection}{\numberline {3.3.8}INFO protocol{\_}lag [x]}{10}{subsubsection.3.3.8}%
-\contentsline {subsubsection}{\numberline {3.3.9}INFO }{10}{subsubsection.3.3.9}%
-\contentsline {subsubsection}{\numberline {3.3.10}Default values}{10}{subsubsection.3.3.10}%
-\contentsline {subsection}{\numberline {3.4}PONDER [value]}{10}{subsection.3.4}%
+\contentsline {subsubsection}{\numberline {3.3.9}INFO thread{\_}num [x]}{10}{subsubsection.3.3.9}%
+\contentsline {subsubsection}{\numberline {3.3.10}INFO }{10}{subsubsection.3.3.10}%
+\contentsline {subsubsection}{\numberline {3.3.11}Default values}{10}{subsubsection.3.3.11}%
+\contentsline {subsection}{\numberline {3.4}PONDER [value]}{11}{subsection.3.4}%
 \contentsline {subsection}{\numberline {3.5}STOP}{11}{subsection.3.5}%
 \contentsline {subsection}{\numberline {3.6}SWAP2BOARD}{11}{subsection.3.6}%
 \contentsline {subsection}{\numberline {3.7}SWAPBOARD}{12}{subsection.3.7}%
