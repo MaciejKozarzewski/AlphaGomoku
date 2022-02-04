@@ -36,7 +36,10 @@ namespace ag
 		result += " : Q=" + getValue().toString();
 		result += " : Visits=" + std::to_string(getVisits());
 		result += " : Edges=" + std::to_string(numberOfEdges());
+#ifndef NDEBUG
 		result += isUsed() ? " : used" : " : unused";
+		result += " : now moving=" + ag::toString(sign_to_move);
+#endif
 		return result;
 	}
 	void Node::sortEdges() const
