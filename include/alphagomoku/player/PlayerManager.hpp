@@ -1,5 +1,5 @@
 /*
- * EngineManager.hpp
+ * PlayerManager.hpp
  *
  *  Created on: Aug 30, 2021
  *      Author: Maciej Kozarzewski
@@ -31,9 +31,9 @@ namespace ag
 	 * It parses and executes command line arguments (if any). Uses Protocol instance to translate runtime commands from user
 	 * into search commands, parses them and calls appropriate search engine methods.
 	 *
-	 * Implemented in "EngineManager.cpp"
+	 * Implemented in "PlayerManager.cpp"
 	 */
-	class EngineManager
+	class PlayerManager
 	{
 		private:
 			ArgumentParser argument_parser;
@@ -50,7 +50,7 @@ namespace ag
 			std::future<void> input_future;
 			std::future<void> search_future;
 			std::ofstream logfile;
-			std::string name_of_config = "config.json";
+			std::string name_of_config_file = "config.json";
 
 			Json config;
 
@@ -63,7 +63,7 @@ namespace ag
 			size_t game_counter = 0;
 
 		public:
-			EngineManager();
+			PlayerManager();
 
 			bool processArguments(int argc, char *argv[]);
 			void run();

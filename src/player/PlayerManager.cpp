@@ -1,10 +1,10 @@
 /*
- * EngineManager.cpp
+ * PlayerManager.cpp
  *
  *  Created on: Aug 30, 2021
  *      Author: Maciej Kozarzewski
  */
-#include <alphagomoku/player/EngineManager.hpp>
+#include <alphagomoku/player/PlayerManager.hpp>
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/version.hpp>
 #include <alphagomoku/utils/file_util.hpp>
@@ -25,7 +25,7 @@ namespace
 namespace ag
 {
 
-	EngineManager::EngineManager() :
+	PlayerManager::PlayerManager() :
 			argument_parser(""),
 			input_listener(std::cin),
 			output_sender(std::cout),
@@ -34,7 +34,7 @@ namespace ag
 		create_arguments();
 	}
 
-	bool EngineManager::processArguments(int argc, char *argv[])
+	bool PlayerManager::processArguments(int argc, char *argv[])
 	{
 		try
 		{
@@ -65,11 +65,15 @@ namespace ag
 			benchmark();
 			return false;
 		}
-		bool successfully_loaded = load_config(argument_parser.getLaunchPath() + name_of_config);
+		bool successfully_loaded = load_config(argument_parser.getLaunchPath() + name_of_config_file);
 		return successfully_loaded;
 	}
-	void EngineManager::run()
+	void PlayerManager::run()
 	{
+		if (static_cast<bool>(config["use_logging"]))
+			setup_logging();
+		Logger::write("Using config : " + name_of_config_file);
+
 		setup_protocol();
 		while (is_running)
 		{
@@ -82,9 +86,6 @@ namespace ag
 				{
 					case MessageType::START_PROGRAM:
 					{
-						if (static_cast<bool>(config["use_logging"]))
-							setup_logging(); // FIXME setting up logger in this way makes the initial 'START' command to disappear
-						Logger::write("Using config : " + name_of_config);
 						break;
 					}
 					case MessageType::SET_OPTION:
@@ -105,7 +106,7 @@ namespace ag
 						search_engine->stopSearch();
 						if (search_future.valid())
 							search_future.get(); // wait for search task to end
-						search_engine->setPosition(input_message.getListOfMoves());
+//						search_engine->setPosition(input_message.getListOfMoves());
 						break;
 					}
 					case MessageType::START_SEARCH:	// START_SEARCH must be preceded with SET_POSITION message
@@ -135,7 +136,7 @@ namespace ag
 //									output_queue.push(search_engine->ponder());
 //									output_queue.push(search_engine->getSearchSummary());
 //								}
-							});
+								});
 						}
 						if (input_message.getString() == "swap2")
 						{
@@ -144,7 +145,7 @@ namespace ag
 //								Message msg = search_engine->swap2();
 //								output_queue.push(search_engine->getSearchSummary());
 //								output_queue.push(msg);
-							});
+								});
 						}
 						if (input_message.getString() == "ponder")
 						{
@@ -154,7 +155,7 @@ namespace ag
 //								Message msg = search_engine->ponder();
 //								output_queue.push(search_engine->getSearchSummary());
 //								output_queue.push(msg);
-							});
+								});
 						}
 						break;
 					}
@@ -184,8 +185,10 @@ namespace ag
 			protocol->processOutput(output_sender);
 		}
 	}
-
-	void EngineManager::create_arguments()
+	/*
+	 * private
+	 */
+	void PlayerManager::create_arguments()
 	{
 		argument_parser.addArgument("--help", "-h").help("display this help text and exit").action([this]()
 		{	this->display_help = true;});
@@ -193,7 +196,7 @@ namespace ag
 		{	this->display_version = true;});
 		argument_parser.addArgument("--load-config").help("load configuration file named <value> with path relative to the executable. "
 				"If this option is not specified, program will load file \"config.json\".").action([this](const std::string &arg)
-		{	this ->name_of_config = arg;});
+		{	this ->name_of_config_file = arg;});
 		argument_parser.addArgument("--configure", "-c").help(
 				"run automatic configuration and exit. The result will be saved as \"config.json\". If this file exists it will be overwritten.").action(
 				[this]()
@@ -203,12 +206,12 @@ namespace ag
 				[this]()
 				{	this->run_benchmark = true;});
 	}
-	void EngineManager::help() const
+	void PlayerManager::help() const
 	{
 		std::string result = argument_parser.getHelpMessage();
 		output_sender.send(result);
 	}
-	void EngineManager::version() const
+	void PlayerManager::version() const
 	{
 		std::string result = argument_parser.getExecutablename() + " (" + ProgramInfo::name() + ") " + ProgramInfo::version() + '\n';
 		result += ProgramInfo::copyright() + '\n';
@@ -217,14 +220,14 @@ namespace ag
 		result += "For more information visit " + ProgramInfo::website() + '\n';
 		output_sender.send(result);
 	}
-	void EngineManager::benchmark() const
+	void PlayerManager::benchmark() const
 	{
 		Json benchmark_result = ag::run_benchmark(config["networks"]["standard"], output_sender);
 
 		FileSaver fs(argument_parser.getLaunchPath() + "benchmark.json");
 		fs.save(benchmark_result, SerializedObject(), 4, false);
 	}
-	void EngineManager::configure()
+	void PlayerManager::configure()
 	{
 		output_sender.send("Starting automatic configuration");
 		const std::string path_to_benchmark = argument_parser.getLaunchPath() + "benchmark.json";
@@ -250,12 +253,12 @@ namespace ag
 		{
 			output_sender.send(
 					"Existing benchmark file is for different version, create a new one by launching " + ProgramInfo::name()
-							+ " from command line with parameter '--configure'");
+							+ " from command line with parameter '--benchmark'");
 			exit(0);
 		}
 		createConfig(benchmark_results);
 	}
-	bool EngineManager::load_config(const std::string &path)
+	bool PlayerManager::load_config(const std::string &path)
 	{
 		if (std::filesystem::exists(path))
 		{
@@ -276,11 +279,11 @@ namespace ag
 			output_sender.send("Could not load configuration file.");
 			output_sender.send("You can generate new one by launching " + ProgramInfo::name() + " from command line with parameter '--configure'");
 			output_sender.send(
-					"If you are sure that configuration file exists, it means that the launch path might not have been parsed correctly due to some special characters in it.");
+					"If you are sure that configuration file exists, it means that the launch path was not parsed correctly due to some special characters in it.");
 			throw std::runtime_error("file " + path + " not found");
 		}
 	}
-	void EngineManager::prepare_config()
+	void PlayerManager::prepare_config()
 	{
 		std::string launch_path = argument_parser.getLaunchPath();
 		config["swap2_openings_file"] = launch_path + static_cast<std::string>(config["swap2_openings_file"]);
@@ -290,7 +293,7 @@ namespace ag
 
 	}
 
-	void EngineManager::setup_protocol()
+	void PlayerManager::setup_protocol()
 	{
 		if (not config.contains("protocol"))
 		{
@@ -308,7 +311,7 @@ namespace ag
 				break;
 		}
 	}
-	void EngineManager::process_input_from_user()
+	void PlayerManager::process_input_from_user()
 	{
 		if (input_future.valid())
 		{
@@ -322,7 +325,7 @@ namespace ag
 			{	protocol->processInput(input_listener);});
 		}
 	}
-	void EngineManager::setup_logging()
+	void PlayerManager::setup_logging()
 	{
 		logfile = std::ofstream(argument_parser.getLaunchPath() + "logs" + path_separator + currentDateTime() + ".log");
 		Logger::enable();
