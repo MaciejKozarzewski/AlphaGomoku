@@ -74,7 +74,6 @@ namespace ag
 			setup_logging();
 
 		Logger::write("Using config : " + name_of_config_file);
-		engine_settings.loadConfig(config);
 
 		setup_protocol();
 		while (is_running)
@@ -88,6 +87,9 @@ namespace ag
 				{
 					case MessageType::START_PROGRAM:
 					{
+						engine_settings.loadConfig(config);
+						if (search_engine == nullptr)
+							search_engine = std::make_unique<SearchEngine>(config, engine_settings);
 						break;
 					}
 					case MessageType::SET_OPTION:

@@ -23,10 +23,11 @@ namespace ag
 {
 	NNEvaluatorPool::NNEvaluatorPool(const Json &config)
 	{
-		for (int i = 0; i < config.size(); i++)
+		const Json &device_config = config["devices"];
+		for (int i = 0; i < device_config.size(); i++)
 		{
-			ml::Device device = ml::Device::fromString(config[i]["device"]);
-			int batch_size = static_cast<int>(config[i]["batch_size"]);
+			ml::Device device = ml::Device::fromString(device_config[i]["device"]);
+			int batch_size = static_cast<int>(device_config[i]["batch_size"]);
 
 			evaluators.push_back(std::make_unique<NNEvaluator>(device, batch_size));
 			evaluators.back()->useSymmetries(static_cast<bool>(config["use_symmetries"]));
@@ -171,7 +172,7 @@ namespace ag
 
 	SearchEngine::SearchEngine(const Json &config, const EngineSettings &settings) :
 			settings(settings),
-			nn_evaluators(config["devices"])
+			nn_evaluators(config)
 	{
 	}
 //	SearchEngine::SearchEngine(EngineSettings &es):
