@@ -18,7 +18,7 @@
 namespace ag
 {
 	template<typename T>
-	void augment(matrix<T> &input, int mode)
+	void augment(matrix<T> &input, int mode) noexcept
 	{
 		if (mode == 0)
 			return;
@@ -31,82 +31,156 @@ namespace ag
 		const int width = input.cols();
 		const int height1 = height - 1;
 
+		switch (mode)
+		{
+			case 1: // reflect x
+			case -1:
+			{
+				for (int i = 0; i < height / 2; i++)
+					std::swap_ranges(input.data(i), input.data(i) + width, input.data(height1 - i));
+				break;
+			}
+			case 2: // reflect y
+			case -2:
+			{
+				for (int i = 0; i < height; i++)
+					std::reverse(input.data(i), input.data(i) + width);
+				break;
+			}
+			case 3: // rotate 180 degrees
+			case -3:
+			{
+				std::reverse(input.begin(), input.end());
+				break;
+			}
+			case 4: // reflect diagonal
+			case -4:
+			{
+				for (int i = 0; i < height; i++)
+				{
+					T *ptr = input.data(i);
+					for (int j = i + 1; j < height; j++)
+						std::swap(ptr[j], input.at(j, i));
+				}
+				break;
+			}
+			case 5: // reflect antidiagonal
+			case -5:
+			{
+				for (int i = 0; i < height; i++)
+				{
+					T *ptr = input.data(i);
+					for (int j = 0; j < height1 - i; j++)
+						std::swap(ptr[j], input.at(height1 - j, height1 - i));
+				}
+				break;
+			}
+			case 6: // rotate 90 degrees
+			case -7:
+			{
+				for (int i = 0; i < height / 2; i++)
+					for (int j = i; j < height1 - i; j++)
+					{
+						T tmp = input.at(i, j);
+						input.at(i, j) = input.at(j, height1 - i);
+						input.at(j, height1 - i) = input.at(height1 - i, height1 - j);
+						input.at(height1 - i, height1 - j) = input.at(height1 - j, i);
+						input.at(height1 - j, i) = tmp;
+					}
+				break;
+			}
+			case 7: // rotate 270 degrees
+			case -6:
+			{
+				for (int i = 0; i < height / 2; i++)
+					for (int j = i; j < height1 - i; j++)
+					{
+						T tmp = input.at(i, j);
+						input.at(i, j) = input.at(height1 - j, i);
+						input.at(height1 - j, i) = input.at(height1 - i, height1 - j);
+						input.at(height1 - i, height1 - j) = input.at(j, height1 - i);
+						input.at(j, height1 - i) = tmp;
+					}
+				break;
+			}
+		}
+
 		// reflect x
-		if (mode == 1 || mode == -1)
-		{
-			for (int i = 0; i < height / 2; i++)
-				std::swap_ranges(input.data(i), input.data(i) + width, input.data(height1 - i));
-			return;
-		}
+//		if (mode == 1 || mode == -1)
+//		{
+//			for (int i = 0; i < height / 2; i++)
+//				std::swap_ranges(input.data(i), input.data(i) + width, input.data(height1 - i));
+//			return;
+//		}
 		// reflect y
-		if (mode == 2 || mode == -2)
-		{
-			for (int i = 0; i < height; i++)
-				std::reverse(input.data(i), input.data(i) + width);
-			return;
-		}
+//		if (mode == 2 || mode == -2)
+//		{
+//			for (int i = 0; i < height; i++)
+//				std::reverse(input.data(i), input.data(i) + width);
+//			return;
+//		}
 		// rotate 180
-		if (mode == 3 || mode == -3)
-		{
-			std::reverse(input.begin(), input.end());
-			return;
-		}
+//		if (mode == 3 || mode == -3)
+//		{
+//			std::reverse(input.begin(), input.end());
+//			return;
+//		}
 
 		// reflect diagonal
-		if (mode == 4 || mode == -4)
-		{
-			for (int i = 0; i < height; i++)
-			{
-				T *ptr = input.data(i);
-				for (int j = i + 1; j < height; j++)
-					std::swap(ptr[j], input.at(j, i));
-			}
-			return;
-		}
+//		if (mode == 4 || mode == -4)
+//		{
+//			for (int i = 0; i < height; i++)
+//			{
+//				T *ptr = input.data(i);
+//				for (int j = i + 1; j < height; j++)
+//					std::swap(ptr[j], input.at(j, i));
+//			}
+//			return;
+//		}
 		// reflect antidiagonal
-		if (mode == 5 || mode == -5)
-		{
-			for (int i = 0; i < height; i++)
-			{
-				T *ptr = input.data(i);
-				for (int j = 0; j < height1 - i; j++)
-					std::swap(ptr[j], input.at(height1 - j, height1 - i));
-			}
-			return;
-		}
+//		if (mode == 5 || mode == -5)
+//		{
+//			for (int i = 0; i < height; i++)
+//			{
+//				T *ptr = input.data(i);
+//				for (int j = 0; j < height1 - i; j++)
+//					std::swap(ptr[j], input.at(height1 - j, height1 - i));
+//			}
+//			return;
+//		}
 
 		// rotate 90 to the left
-		if (mode == 6 || mode == -7)
-		{
-			for (int i = 0; i < height / 2; i++)
-				for (int j = i; j < height1 - i; j++)
-				{
-					T tmp = input.at(i, j);
-					input.at(i, j) = input.at(j, height1 - i);
-					input.at(j, height1 - i) = input.at(height1 - i, height1 - j);
-					input.at(height1 - i, height1 - j) = input.at(height1 - j, i);
-					input.at(height1 - j, i) = tmp;
-				}
-			return;
-		}
+//		if (mode == 6 || mode == -7)
+//		{
+//			for (int i = 0; i < height / 2; i++)
+//				for (int j = i; j < height1 - i; j++)
+//				{
+//					T tmp = input.at(i, j);
+//					input.at(i, j) = input.at(j, height1 - i);
+//					input.at(j, height1 - i) = input.at(height1 - i, height1 - j);
+//					input.at(height1 - i, height1 - j) = input.at(height1 - j, i);
+//					input.at(height1 - j, i) = tmp;
+//				}
+//			return;
+//		}
 		// rotate 270 to the left
-		if (mode == 7 || mode == -6)
-		{
-			for (int i = 0; i < height / 2; i++)
-				for (int j = i; j < height1 - i; j++)
-				{
-					T tmp = input.at(i, j);
-					input.at(i, j) = input.at(height1 - j, i);
-					input.at(height1 - j, i) = input.at(height1 - i, height1 - j);
-					input.at(height1 - i, height1 - j) = input.at(j, height1 - i);
-					input.at(j, height1 - i) = tmp;
-				}
-			return;
-		}
+//		if (mode == 7 || mode == -6)
+//		{
+//			for (int i = 0; i < height / 2; i++)
+//				for (int j = i; j < height1 - i; j++)
+//				{
+//					T tmp = input.at(i, j);
+//					input.at(i, j) = input.at(height1 - j, i);
+//					input.at(height1 - j, i) = input.at(height1 - i, height1 - j);
+//					input.at(height1 - i, height1 - j) = input.at(j, height1 - i);
+//					input.at(j, height1 - i) = tmp;
+//				}
+//			return;
+//		}
 	}
 
 	template<typename T>
-	void augment(matrix<T> &dst, const matrix<T> &src, int mode)
+	void augment(matrix<T> &dst, const matrix<T> &src, int mode) noexcept
 	{
 		assert(&dst != &src); // will not work 'in-place'
 		assert(dst.rows() == src.rows() && dst.cols() == src.cols());
@@ -180,7 +254,7 @@ namespace ag
 		}
 	}
 
-	Move augment(const Move &move, int height, int width, int mode);
+	Move augment(Move move, int height, int width, int mode) noexcept;
 
 } /* namespace ag */
 
