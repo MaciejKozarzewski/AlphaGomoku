@@ -47,9 +47,6 @@ namespace ag
 			Tree &tree;
 			const NNEvaluatorPool &evaluator_pool;
 
-			std::unique_ptr<EdgeSelector> edge_selector;
-			std::unique_ptr<EdgeGenerator> edge_generator;
-
 			Search search;
 			std::future<void> search_future;
 
@@ -57,8 +54,6 @@ namespace ag
 			bool is_running = false;
 		public:
 			SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators);
-			void setEdgeSelector(const EdgeSelector &selector);
-			void setEdgeGenerator(const EdgeGenerator &generator);
 			void start();
 			void stop() noexcept;
 			bool isRunning() const noexcept;
@@ -77,8 +72,6 @@ namespace ag
 
 			std::vector<std::unique_ptr<SearchThread>> search_threads;
 			std::unique_ptr<Tree> tree;
-			std::unique_ptr<EdgeSelector> edge_selector;
-			std::unique_ptr<EdgeGenerator> edge_generator;
 
 		public:
 			SearchEngine(const Json &config, const EngineSettings &settings);

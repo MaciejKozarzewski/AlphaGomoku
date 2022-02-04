@@ -76,14 +76,6 @@ namespace ag
 			search(settings.getGameConfig(), settings.getSearchConfig())
 	{
 	}
-	void SearchThread::setEdgeSelector(const EdgeSelector &selector)
-	{
-		edge_selector = std::unique_ptr<EdgeSelector>(selector.clone());
-	}
-	void SearchThread::setEdgeGenerator(const EdgeGenerator &generator)
-	{
-		edge_generator = std::unique_ptr<EdgeGenerator>(generator.clone());
-	}
 	void SearchThread::start()
 	{
 		if (isRunning())
@@ -128,15 +120,15 @@ namespace ag
 		{
 			{ /* artificial scope for lock */
 				TreeLock lock(tree);
-				search.select(tree, *edge_selector);
+				search.select(tree);
 			}
-			search.evaluate(); // VCF solver is run here
+			search.tryToSolve();
 
 			NNEvaluator &evaluator = evaluator_pool.get();
 			search.scheduleToNN(evaluator);
 			evaluator.evaluateGraph();
 
-			search.generateEdges(*edge_generator);
+			search.generateEdges(tree); // this step doesn't require locking the tree
 			{ /* artificial scope for lock */
 				TreeLock lock(tree);
 				search.expand(tree);
@@ -213,11 +205,13 @@ namespace ag
 	}
 	void SearchEngine::setEdgeSelector(const EdgeSelector &selector)
 	{
-		edge_selector = std::unique_ptr<EdgeSelector>(selector.clone());
+		TreeLock lock(get_tree());
+		get_tree().setEdgeSelector(selector);
 	}
 	void SearchEngine::setEdgeGenerator(const EdgeGenerator &generator)
 	{
-		edge_generator = std::unique_ptr<EdgeGenerator>(generator.clone());
+		TreeLock lock(get_tree());
+		get_tree().setEdgeGenerator(generator);
 	}
 
 	void SearchEngine::startSearch()
@@ -379,12 +373,6 @@ namespace ag
 		}
 		if (settings.getThreadNum() < static_cast<int>(search_threads.size()))
 			search_threads.erase(search_threads.begin() + settings.getThreadNum(), search_threads.end());
-
-		for (size_t i = 0; i < search_threads.size(); i++)
-		{
-			search_threads[i]->setEdgeSelector(*edge_selector);
-			search_threads[i]->setEdgeGenerator(*edge_generator);
-		}
 	}
 
 	void SearchEngine::setup_search()

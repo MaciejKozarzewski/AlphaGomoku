@@ -74,7 +74,6 @@ namespace ag
 			const int balance_depth;
 			std::unique_ptr<EdgeSelector> base_selector;
 		public:
-
 			BalancedSelector(int balanceDepth, const EdgeSelector &baseSelector);
 			BalancedSelector* clone() const;
 			Edge* select(const Node *node) const noexcept;

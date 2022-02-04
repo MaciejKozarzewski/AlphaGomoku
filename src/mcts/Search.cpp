@@ -97,7 +97,7 @@ namespace ag
 		return search_config;
 	}
 
-	void Search::select(Tree &tree, const EdgeSelector &selector, int maxSimulations)
+	void Search::select(Tree &tree, int maxSimulations)
 	{
 		assert(maxSimulations > 0);
 
@@ -110,7 +110,7 @@ namespace ag
 		{
 			SearchTask &current_task = get_next_task();
 
-			SelectOutcome out = tree.select(current_task, selector);
+			SelectOutcome out = tree.select(current_task);
 			if (out == SelectOutcome::INFORMATION_LEAK)
 			{
 				stats.nb_information_leaks++;
@@ -120,7 +120,7 @@ namespace ag
 			}
 		}
 	}
-	void Search::evaluate()
+	void Search::tryToSolve()
 	{
 		TimerGuard timer(stats.evaluate);
 
@@ -138,11 +138,11 @@ namespace ag
 			if (search_tasks[i].isReady() == false)
 				evaluator.addToQueue(search_tasks.at(i));
 	}
-	void Search::generateEdges(const EdgeGenerator &generator)
+	void Search::generateEdges(const Tree &tree)
 	{
 		TimerGuard timer(stats.generate);
 		for (size_t i = 0; i < active_task_count; i++)
-			generator.generate(search_tasks[i]);
+			tree.generateEdges(search_tasks[i]);
 	}
 	void Search::expand(Tree &tree)
 	{

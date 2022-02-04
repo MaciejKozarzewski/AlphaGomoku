@@ -13,6 +13,7 @@
 #include <alphagomoku/mcts/NodeCache.hpp>
 #include <alphagomoku/utils/ObjectPool.hpp>
 #include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
@@ -62,12 +63,16 @@ namespace ag
 			friend class TreeLock;
 
 			mutable std::mutex tree_mutex;
-			matrix<Sign> base_board;
-			int base_depth = 0;
-			Sign sign_to_move = Sign::NONE;
+
 			NodeCache node_cache;
 			ObjectPool<Edge> edge_pool;
 			Node *root_node = nullptr;
+
+			std::unique_ptr<EdgeSelector> edge_selector;
+			std::unique_ptr<EdgeGenerator> edge_generator;
+			matrix<Sign> base_board;
+			int base_depth = 0;
+			Sign sign_to_move = Sign::NONE;
 
 			int max_depth = 0;
 		public:
@@ -75,11 +80,15 @@ namespace ag
 			~Tree();
 
 			void setBoard(const matrix<Sign> &newBoard, Sign signToMove);
+			void setEdgeSelector(const EdgeSelector &selector);
+			void setEdgeGenerator(const EdgeGenerator &generator);
+
 			int getSimulationCount() const noexcept;
 			int getMaximumDepth() const noexcept;
 			bool isProven() const noexcept;
 
-			SelectOutcome select(SearchTask &task, const EdgeSelector &selector);
+			SelectOutcome select(SearchTask &task);
+			void generateEdges(SearchTask &task) const;
 			ExpandOutcome expand(const SearchTask &task);
 			void backup(const SearchTask &task);
 			void cancelVirtualLoss(SearchTask &task) noexcept;

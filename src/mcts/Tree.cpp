@@ -335,7 +335,9 @@ namespace ag
 	}
 
 	Tree::Tree(GameConfig gameOptions, TreeConfig treeOptions) :
-			node_cache(gameOptions)
+			node_cache(gameOptions),
+			edge_selector(std::make_unique<PuctSelector>(1.25f)),
+			edge_generator(std::make_unique<EdgeGenerator>(gameOptions.rules, 0.0f, gameOptions.rows * gameOptions.cols))
 	{
 	}
 	Tree::~Tree()
@@ -358,6 +360,15 @@ namespace ag
 		root_node = node_cache.seek(base_board, sign_to_move);
 		max_depth = 0;
 	}
+	void Tree::setEdgeSelector(const EdgeSelector &selector)
+	{
+		edge_selector = std::unique_ptr<EdgeSelector>(selector.clone());
+	}
+	void Tree::setEdgeGenerator(const EdgeGenerator &generator)
+	{
+		edge_generator = std::unique_ptr<EdgeGenerator>(generator.clone());
+	}
+
 	int Tree::getSimulationCount() const noexcept
 	{
 		if (root_node == nullptr)
@@ -376,13 +387,13 @@ namespace ag
 		else
 			return root_node->isProven();
 	}
-	SelectOutcome Tree::select(SearchTask &task, const EdgeSelector &selector)
+	SelectOutcome Tree::select(SearchTask &task)
 	{
 		task.reset(base_board, sign_to_move);
 		Node *node = root_node;
 		while (node != nullptr)
 		{
-			Edge *edge = selector.select(node);
+			Edge *edge = edge_selector->select(node);
 			task.append(node, edge);
 			edge->increaseVirtualLoss();
 
@@ -399,6 +410,10 @@ namespace ag
 		}
 		max_depth = std::max(max_depth, task.visitedPathLength());
 		return SelectOutcome::REACHED_LEAF;
+	}
+	void Tree::generateEdges(SearchTask &task) const
+	{
+		edge_generator->generate(task);
 	}
 	ExpandOutcome Tree::expand(const SearchTask &task)
 	{

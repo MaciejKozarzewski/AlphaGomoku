@@ -72,10 +72,10 @@ namespace ag
 			SearchStats getStats() const noexcept;
 			SearchConfig getConfig() const noexcept;
 
-			void select(Tree &tree, const EdgeSelector &selector, int maxSimulations = std::numeric_limits<int>::max());
-			void evaluate();
+			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
+			void tryToSolve();
 			void scheduleToNN(NNEvaluator &evaluator);
-			void generateEdges(const EdgeGenerator &generator);
+			void generateEdges(const Tree &tree);
 			void expand(Tree &tree);
 			void backup(Tree &tree);
 			void cleanup(Tree &tree);
