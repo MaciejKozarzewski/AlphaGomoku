@@ -36,6 +36,7 @@ namespace ag
 			std::vector<Edge> proven_edges; /**< provably winning edges found by VCF solver */
 			std::vector<Edge> edges; /**< edges created by EdgeGenerator */
 
+			GameRules game_rules;
 			matrix<Sign> board; /**< board representation of a state at the end of visited_path */
 			Sign sign_to_move = Sign::NONE;
 
@@ -45,6 +46,7 @@ namespace ag
 
 			bool is_ready = false; /**< flag indicating whether the task has been evaluated and can be used for edge generation */
 		public:
+			SearchTask(GameRules rules);
 			void reset(const matrix<Sign> &base, Sign signToMove) noexcept;
 
 			int visitedPathLength() const noexcept;
@@ -58,6 +60,7 @@ namespace ag
 			const std::vector<Edge>& getEdges() const noexcept;
 			std::vector<Edge>& getEdges() noexcept;
 
+			GameRules getGameRules() const noexcept;
 			Sign getSignToMove() const noexcept;
 			Value getValue() const noexcept;
 			bool isReady() const noexcept;

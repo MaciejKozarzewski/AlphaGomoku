@@ -27,6 +27,9 @@ namespace
 	}
 	void exclude_weak_moves(std::vector<Edge> &edges, size_t max_edges) noexcept
 	{
+		if (edges.size() <= max_edges)
+			return;
+
 		std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), [](const Edge &lhs, const Edge &rhs)
 		{	return lhs.getPolicyPrior() > rhs.getPolicyPrior();});
 		edges.erase(edges.begin() + max_edges, edges.end());
@@ -34,26 +37,43 @@ namespace
 
 	bool contains_winning_edge(const std::vector<Edge> &edges) noexcept
 	{
-		for (size_t i = 0; i < edges.size(); i++)
-			if (edges[i].getProvenValue() == ProvenValue::WIN)
-				return true;
-		return false;
+		return std::any_of(edges.begin(), edges.end(), [](const Edge &edge)
+		{	return edge.getProvenValue() == ProvenValue::WIN;});
+	}
+	void check_terminal_conditions(SearchTask &task, Edge &edge)
+	{
+		if (not edge.isProven())
+		{
+			Move move = edge.getMove();
+
+			Board::putMove(task.getBoard(), move);
+			GameOutcome outcome = Board::getOutcome(task.getGameRules(), task.getBoard(), move);
+			Board::undoMove(task.getBoard(), move);
+
+			edge.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
+			edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
+			edge.setValue(task.getActionValues().at(move.row, move.col));
+		}
 	}
 }
 
 namespace ag
 {
-	EdgeGenerator::EdgeGenerator(GameRules rules, float policyThreshold, int maxEdges, ExclusionConfig config) :
-			game_rules(rules),
+	BaseGenerator::BaseGenerator() :
+			policy_threshold(0.0f),
+			max_edges(std::numeric_limits<int>::max())
+	{
+	}
+	BaseGenerator::BaseGenerator(float policyThreshold, int maxEdges) :
 			policy_threshold(policyThreshold),
 			max_edges(maxEdges)
 	{
 	}
-	EdgeGenerator* EdgeGenerator::clone() const
+	BaseGenerator* BaseGenerator::clone() const
 	{
-		return new EdgeGenerator(game_rules, policy_threshold, max_edges);
+		return new BaseGenerator(policy_threshold, max_edges);
 	}
-	void EdgeGenerator::generate(SearchTask &task) const
+	void BaseGenerator::generate(SearchTask &task) const
 	{
 		assert(task.isReady());
 
@@ -73,18 +93,7 @@ namespace ag
 
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 		{
-			if (not edge->isProven())
-			{
-				Move move = edge->getMove();
-
-				Board::putMove(task.getBoard(), move);
-				GameOutcome outcome = Board::getOutcome(game_rules, task.getBoard(), move);
-				Board::undoMove(task.getBoard(), move);
-
-				edge->setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
-				edge->setPolicyPrior(task.getPolicy().at(move.row, move.col));
-				edge->setValue(task.getActionValues().at(move.row, move.col));
-			}
+			check_terminal_conditions(task, *edge);
 			switch (edge->getProvenValue())
 			{
 				case ProvenValue::UNKNOWN:
@@ -109,8 +118,7 @@ namespace ag
 			}
 		}
 
-		if (static_cast<int>(task.getEdges().size()) > max_edges)
-			exclude_weak_moves(task.getEdges(), max_edges);
+		exclude_weak_moves(task.getEdges(), max_edges);
 
 		renormalize_edges(task.getEdges());
 		assert(task.getEdges().size() > 0);

@@ -23,30 +23,24 @@ namespace ag
 
 namespace ag
 {
-	enum class ExclusionMode
-	{
-		NONE,
-		SYMMETRIC,
-		INNER_SQUARE,
-		OUTSIDE_SQUARE
-	};
-
-	struct ExclusionConfig
-	{
-			ExclusionMode mode = ExclusionMode::NONE;
-			int param = 0;
-	};
 
 	class EdgeGenerator
 	{
+		public:
+			virtual ~EdgeGenerator() = default;
+			virtual EdgeGenerator* clone() const = 0;
+			virtual void generate(SearchTask &task) const = 0;
+	};
+
+	class BaseGenerator: public EdgeGenerator
+	{
 		private:
-			GameRules game_rules;
 			float policy_threshold;
 			int max_edges;
 		public:
-			EdgeGenerator(GameRules rules, float policyThreshold, int maxEdges, ExclusionConfig cfg = ExclusionConfig());
-
-			EdgeGenerator* clone() const;
+			BaseGenerator();
+			BaseGenerator(float policyThreshold, int maxEdges);
+			BaseGenerator* clone() const;
 			void generate(SearchTask &task) const;
 	};
 

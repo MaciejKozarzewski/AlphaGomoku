@@ -46,6 +46,7 @@ namespace ag
 
 			uint64_t nb_duplicate_nodes = 0;
 			uint64_t nb_information_leaks = 0;
+			uint64_t nb_wasted_expansions = 0;
 
 			std::string toString() const;
 			SearchStats& operator+=(const SearchStats &other) noexcept;
@@ -63,14 +64,12 @@ namespace ag
 			GameConfig game_config;
 			SearchConfig search_config;
 			SearchStats stats;
-
 		public:
 			Search(GameConfig gameOptions, SearchConfig searchOptions);
 
 			void clearStats() noexcept;
 			void printSolverStats() const;
 			SearchStats getStats() const noexcept;
-			SearchConfig getConfig() const noexcept;
 
 			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
 			void tryToSolve();

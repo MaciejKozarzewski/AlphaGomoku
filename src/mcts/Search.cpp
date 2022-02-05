@@ -32,20 +32,15 @@ namespace ag
 	std::string SearchStats::toString() const
 	{
 		std::string result = "----SearchStats----\n";
-		result += "nb_duplicate_nodes = " + std::to_string(nb_duplicate_nodes) + '\n';
+		result += "nb_duplicate_nodes   = " + std::to_string(nb_duplicate_nodes) + '\n';
 		result += "nb_information_leaks = " + std::to_string(nb_information_leaks) + '\n';
+		result += "nb_wasted_expansions = " + std::to_string(nb_wasted_expansions) + '\n';
 		result += select.toString();
 		result += evaluate.toString();
 		result += schedule.toString();
 		result += generate.toString();
 		result += expand.toString();
 		result += backup.toString();
-//		result += printStatistics("select    ", nb_select, time_select);
-//		result += printStatistics("expand    ", nb_expand, time_expand);
-//		result += printStatistics("vcf solver", nb_vcf_solver, time_vcf_solver);
-//		result += printStatistics("backup    ", nb_backup, time_backup);
-//		result += printStatistics("evaluate  ", nb_evaluate, time_evaluate);
-//		result += printStatistics("game rules", nb_game_rules, time_game_rules);
 		return result;
 	}
 	SearchStats& SearchStats::operator+=(const SearchStats &other) noexcept
@@ -59,6 +54,7 @@ namespace ag
 
 		this->nb_duplicate_nodes += other.nb_duplicate_nodes;
 		this->nb_information_leaks += other.nb_information_leaks;
+		this->nb_wasted_expansions += other.nb_wasted_expansions;
 		return *this;
 	}
 	SearchStats& SearchStats::operator/=(int i) noexcept
@@ -72,6 +68,7 @@ namespace ag
 
 		this->nb_duplicate_nodes /= i;
 		this->nb_information_leaks /= i;
+		this->nb_wasted_expansions /= i;
 		return *this;
 	}
 
@@ -91,10 +88,6 @@ namespace ag
 	SearchStats Search::getStats() const noexcept
 	{
 		return stats;
-	}
-	SearchConfig Search::getConfig() const noexcept
-	{
-		return search_config;
 	}
 
 	void Search::select(Tree &tree, int maxSimulations)
@@ -148,7 +141,10 @@ namespace ag
 	{
 		TimerGuard timer(stats.expand);
 		for (size_t i = 0; i < active_task_count; i++)
-			tree.expand(search_tasks[i]);
+		{
+			ExpandOutcome out = tree.expand(search_tasks[i]);
+			stats.nb_wasted_expansions += static_cast<uint64_t>(out == ExpandOutcome::ALREADY_EXPANDED);
+		}
 
 //		if (search_config.use_vcf_solver)
 //		{
@@ -229,7 +225,7 @@ namespace ag
 	{
 		active_task_count++;
 		if (active_task_count > search_tasks.size())
-			search_tasks.push_back(SearchTask());
+			search_tasks.push_back(SearchTask(game_config.rules));
 		return search_tasks[active_task_count - 1];
 	}
 	void Search::correct_information_leak(SearchTask &task) const

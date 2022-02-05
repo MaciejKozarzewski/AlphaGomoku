@@ -222,7 +222,7 @@ namespace
 	{
 		if (node == nullptr)
 			return;
-		std::cout << node << " " << node->toString() << '\n';
+		std::cout << node->toString() << '\n';
 		if (max_depth != -1 && current_depth >= max_depth)
 		{
 			for (int i = 0; i < 2 * current_depth; i++)

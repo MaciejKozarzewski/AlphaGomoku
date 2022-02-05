@@ -9,7 +9,10 @@
 
 namespace ag
 {
-
+	SearchTask::SearchTask(GameRules rules) :
+			game_rules(rules)
+	{
+	}
 	void SearchTask::reset(const matrix<Sign> &base, Sign signToMove) noexcept
 	{
 		visited_path.clear();
@@ -62,6 +65,10 @@ namespace ag
 		return edges;
 	}
 
+	GameRules SearchTask::getGameRules() const noexcept
+	{
+		return game_rules;
+	}
 	Sign SearchTask::getSignToMove() const noexcept
 	{
 		return sign_to_move;
