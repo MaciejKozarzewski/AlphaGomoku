@@ -235,6 +235,7 @@ namespace ag
 	Message MessageQueue::pop()
 	{
 		std::lock_guard lock(queue_mutex);
+		assert(message_queue.size() > 0u);
 		Message result = message_queue.front();
 		message_queue.pop();
 		return result;
@@ -242,6 +243,7 @@ namespace ag
 	Message MessageQueue::peek() const
 	{
 		std::lock_guard lock(queue_mutex);
+		assert(message_queue.size() > 0u);
 		return message_queue.front();
 	}
 
