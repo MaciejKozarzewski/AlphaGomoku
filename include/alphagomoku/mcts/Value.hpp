@@ -17,7 +17,8 @@
 
 namespace ag
 {
-	enum class GameOutcome;
+	enum class GameOutcome
+	;
 } /* namespace ag */
 
 namespace ag
@@ -42,6 +43,12 @@ namespace ag
 			Value() = default;
 			Value(float w) :
 					win(w)
+			{
+			}
+			Value(float w, float d) noexcept :
+					win(w),
+					draw(d),
+					loss(1.0f - (w + d))
 			{
 			}
 			Value(float w, float d, float l) noexcept :
