@@ -96,7 +96,7 @@ namespace ag
 	}
 
 	Cache::Cache(GameConfig gameOptions, CacheConfig cacheOptions) :
-			hashing(gameOptions),
+			hashing(gameOptions.rows, gameOptions.cols),
 			bins(cacheOptions.cache_size, nullptr),
 			game_config(gameOptions),
 			cache_config(cacheOptions)

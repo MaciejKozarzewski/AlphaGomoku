@@ -76,7 +76,7 @@ namespace ag
 
 			int max_depth = 0;
 		public:
-			Tree(GameConfig gameOptions, TreeConfig treeOptions);
+			Tree(TreeConfig treeOptions);
 			~Tree();
 
 			void setBoard(const matrix<Sign> &newBoard, Sign signToMove);

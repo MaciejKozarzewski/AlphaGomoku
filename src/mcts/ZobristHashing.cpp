@@ -15,12 +15,12 @@
 
 namespace ag
 {
-	ZobristHashing::ZobristHashing(GameConfig cfg) :
-			ZobristHashing(cfg, std::chrono::system_clock::now().time_since_epoch().count())
+	ZobristHashing::ZobristHashing(int boardHeight, int boardWidth) :
+			ZobristHashing(boardHeight, boardWidth, std::chrono::system_clock::now().time_since_epoch().count())
 	{
 	}
-	ZobristHashing::ZobristHashing(GameConfig cfg, uint64_t seed) :
-			keys(3 + 3 * cfg.rows * cfg.cols)
+	ZobristHashing::ZobristHashing(int boardHeight, int boardWidth, uint64_t seed) :
+			keys(3 + 3 * boardHeight * boardWidth)
 	{
 		std::mt19937_64 generator(seed);
 		for (size_t i = 0; i < keys.size(); i++)

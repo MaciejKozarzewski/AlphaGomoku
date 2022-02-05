@@ -26,8 +26,9 @@ namespace ag
 		private:
 			std::vector<uint64_t> keys;
 		public:
-			ZobristHashing(GameConfig cfg);
-			ZobristHashing(GameConfig cfg, uint64_t seed);
+			ZobristHashing() = default;
+			ZobristHashing(int boardHeight, int boardWidth);
+			ZobristHashing(int boardHeight, int boardWidth, uint64_t seed);
 			uint64_t getHash(const matrix<Sign> &board, Sign signToMove) const noexcept;
 	};
 } /* namespace ag */

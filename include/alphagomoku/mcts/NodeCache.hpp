@@ -52,17 +52,22 @@ namespace ag
 			std::vector<Entry*> bins; // non-owning
 			Entry *buffer = nullptr; // non-owning
 			ZobristHashing hashing;
-			uint64_t bin_index_mask;
+			uint64_t bin_index_mask = 0u;
 			int64_t allocated_entries = 0;
 			int64_t stored_entries = 0;
 			int64_t buffered_entries = 0;
 
 			mutable NodeCacheStats stats;
 		public:
+			NodeCache() = default;
 			/**
 			 * @brief Creates cache with 2^size initial bins.
 			 */
-			NodeCache(GameConfig gameConfig, size_t size = 10);
+			NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize = 10);
+			NodeCache(const NodeCache &other) = delete;
+			NodeCache(NodeCache &&other);
+			NodeCache& operator=(const NodeCache &other) = delete;
+			NodeCache& operator =(NodeCache &&other);
 			~NodeCache();
 
 			void clearStats() noexcept;
@@ -107,11 +112,6 @@ namespace ag
 			 * @brief Deallocates all buffered entries.
 			 */
 			void freeUnusedMemory() noexcept;
-
-			NodeCache(const NodeCache &other) = delete;
-			NodeCache& operator=(const NodeCache &other) = delete;
-			NodeCache(NodeCache &&other) = delete;
-			NodeCache& operator=(NodeCache &&other) = delete;
 
 		private:
 			void link(Entry *&prev, Entry *next) noexcept;

@@ -164,7 +164,8 @@ namespace ag
 
 	SearchEngine::SearchEngine(const Json &config, const EngineSettings &settings) :
 			settings(settings),
-			nn_evaluators(config)
+			nn_evaluators(config),
+			tree(settings.getTreeConfig())
 	{
 	}
 //	SearchEngine::SearchEngine(EngineSettings &es):
@@ -200,18 +201,18 @@ namespace ag
 //		for (size_t i = 0; i < listOfMoves.size(); i++)
 //			Board::putMove(board, listOfMoves[i]);
 
-		TreeLock lock(get_tree());
-		get_tree().setBoard(board, signToMove);
+		TreeLock lock(tree);
+		tree.setBoard(board, signToMove);
 	}
 	void SearchEngine::setEdgeSelector(const EdgeSelector &selector)
 	{
-		TreeLock lock(get_tree());
-		get_tree().setEdgeSelector(selector);
+		TreeLock lock(tree);
+		tree.setEdgeSelector(selector);
 	}
 	void SearchEngine::setEdgeGenerator(const EdgeGenerator &generator)
 	{
-		TreeLock lock(get_tree());
-		get_tree().setEdgeGenerator(generator);
+		TreeLock lock(tree);
+		tree.setEdgeGenerator(generator);
 	}
 
 	void SearchEngine::startSearch()
@@ -353,23 +354,22 @@ namespace ag
 //		}
 		return Message(MessageType::INFO_MESSAGE, result);
 	}
-
+	const matrix<Sign>& SearchEngine::getBoard() const noexcept
+	{
+	}
+	Sign SearchEngine::getSignToMove() const noexcept
+	{
+	}
 	/*
 	 * private
 	 */
-	Tree& SearchEngine::get_tree()
-	{
-		if (tree == nullptr)
-			tree = std::make_unique<Tree>(settings.getGameConfig(), settings.getTreeConfig());
-		return *tree;
-	}
 	void SearchEngine::setup_search_threads()
 	{
 		if (settings.getThreadNum() > static_cast<int>(search_threads.size()))
 		{
 			int num_to_add = static_cast<int>(search_threads.size()) - settings.getThreadNum();
 			for (int i = 0; i < num_to_add; i++)
-				search_threads.push_back(std::make_unique<SearchThread>(settings, *tree, nn_evaluators));
+				search_threads.push_back(std::make_unique<SearchThread>(settings, tree, nn_evaluators));
 		}
 		if (settings.getThreadNum() < static_cast<int>(search_threads.size()))
 			search_threads.erase(search_threads.begin() + settings.getThreadNum(), search_threads.end());

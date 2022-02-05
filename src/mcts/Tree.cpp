@@ -334,10 +334,7 @@ namespace ag
 		return *this;
 	}
 
-	Tree::Tree(GameConfig gameOptions, TreeConfig treeOptions) :
-			node_cache(gameOptions),
-			edge_selector(std::make_unique<PuctSelector>(1.25f)),
-			edge_generator(std::make_unique<EdgeGenerator>(gameOptions.rules, 0.0f, gameOptions.rows * gameOptions.cols))
+	Tree::Tree(TreeConfig treeOptions)
 	{
 	}
 	Tree::~Tree()
@@ -347,15 +344,20 @@ namespace ag
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove)
 	{
-		if (newBoard == base_board and signToMove == sign_to_move)
-			return;
-
 		matrix<Sign> tmp_board = base_board;
 		base_board = newBoard;
 		base_depth = Board::numberOfMoves(base_board);
 		sign_to_move = signToMove;
 
-		prune_subtree(root_node, tmp_board);
+		if (equalSize(tmp_board, newBoard))
+			prune_subtree(root_node, tmp_board);
+		else
+		{
+			delete_subtree(root_node, tmp_board);
+			node_cache = NodeCache(newBoard.rows(), newBoard.cols());
+			edge_selector = nullptr; // must clear selector in case it uses information about board size
+			edge_generator = nullptr; // must clear generator in case it uses information about board size
+		}
 
 		root_node = node_cache.seek(base_board, sign_to_move);
 		max_depth = 0;
@@ -393,6 +395,7 @@ namespace ag
 		Node *node = root_node;
 		while (node != nullptr)
 		{
+			assert(edge_selector != nullptr);
 			Edge *edge = edge_selector->select(node);
 			task.append(node, edge);
 			edge->increaseVirtualLoss();
@@ -413,6 +416,7 @@ namespace ag
 	}
 	void Tree::generateEdges(SearchTask &task) const
 	{
+		assert(edge_generator != nullptr);
 		edge_generator->generate(task);
 	}
 	ExpandOutcome Tree::expand(const SearchTask &task)

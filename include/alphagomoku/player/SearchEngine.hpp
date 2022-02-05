@@ -71,7 +71,7 @@ namespace ag
 			NNEvaluatorPool nn_evaluators;
 
 			std::vector<std::unique_ptr<SearchThread>> search_threads;
-			std::unique_ptr<Tree> tree;
+			Tree tree;
 
 		public:
 			SearchEngine(const Json &config, const EngineSettings &settings);
@@ -88,8 +88,10 @@ namespace ag
 
 			Message getSearchSummary();
 
+			const matrix<Sign>& getBoard() const noexcept;
+			Sign getSignToMove() const noexcept;
+
 		private:
-			Tree& get_tree();
 			void setup_search_threads();
 
 			void setup_search();

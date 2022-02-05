@@ -59,11 +59,36 @@ namespace ag
 		return *this;
 	}
 
-	NodeCache::NodeCache(GameConfig gameConfig, size_t size) :
-			bins(1 << size, nullptr),
-			hashing(gameConfig),
-			bin_index_mask(bins.size() - 1)
+	NodeCache::NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize) :
+			bins(1u << initialCacheSize, nullptr),
+			hashing(boardHeight, boardWidth),
+			bin_index_mask(bins.size() - 1u)
 	{
+	}
+	NodeCache::NodeCache(NodeCache &&other) :
+			bins(std::move(other.bins)),
+			buffer(std::move(other.buffer)),
+			hashing(std::move(other.hashing)),
+			bin_index_mask(std::move(other.bin_index_mask)),
+			allocated_entries(std::move(other.allocated_entries)),
+			stored_entries(std::move(other.stored_entries)),
+			buffered_entries(std::move(other.buffered_entries)),
+			stats(std::move(other.stats))
+	{
+		other.buffer = nullptr;
+		other.allocated_entries = other.stored_entries = other.buffered_entries = 0;
+	}
+	NodeCache& NodeCache::operator =(NodeCache &&other)
+	{
+		std::swap(this->bins, other.bins);
+		std::swap(this->buffer, other.buffer);
+		std::swap(this->hashing, other.hashing);
+		std::swap(this->bin_index_mask, other.bin_index_mask);
+		std::swap(this->allocated_entries, other.allocated_entries);
+		std::swap(this->stored_entries, other.stored_entries);
+		std::swap(this->buffered_entries, other.buffered_entries);
+		std::swap(this->stats, other.stats);
+		return *this;
 	}
 	NodeCache::~NodeCache()
 	{
