@@ -1,10 +1,10 @@
 /*
- * PlayerManager.cpp
+ * ProgramManager.cpp
  *
  *  Created on: Aug 30, 2021
  *      Author: Maciej Kozarzewski
  */
-#include <alphagomoku/player/PlayerManager.hpp>
+#include <alphagomoku/player/ProgramManager.hpp>
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/version.hpp>
 #include <alphagomoku/utils/file_util.hpp>
@@ -25,16 +25,15 @@ namespace
 namespace ag
 {
 
-	PlayerManager::PlayerManager() :
+	ProgramManager::ProgramManager() :
 			argument_parser(""),
 			input_listener(std::cin),
-			output_sender(std::cout),
-			time_manager(engine_settings)
+			output_sender(std::cout)
 	{
 		create_arguments();
 	}
 
-	bool PlayerManager::processArguments(int argc, char *argv[])
+	bool ProgramManager::processArguments(int argc, char *argv[])
 	{
 		try
 		{
@@ -68,13 +67,9 @@ namespace ag
 		}
 		return successfully_loaded_config;
 	}
-	void PlayerManager::run()
+	void ProgramManager::run()
 	{
-		if (static_cast<bool>(config["use_logging"]))
-			setup_logging();
-
-		Logger::write("Using config : " + name_of_config_file);
-
+		engine_settings = std::make_unique<EngineSettings>(config);
 		setup_protocol();
 		while (is_running)
 		{
@@ -87,86 +82,48 @@ namespace ag
 				{
 					case MessageType::START_PROGRAM:
 					{
-						engine_settings.loadConfig(config);
-						if (search_engine == nullptr)
-							search_engine = std::make_unique<SearchEngine>(config, engine_settings);
+						if (use_logging)
+							setup_logging();
+						Logger::write("Using config : " + name_of_config_file);
 						break;
 					}
 					case MessageType::SET_OPTION:
 					{
-						bool success = engine_settings.setOption(input_message.getOption());
-						if (success == false)
-							output_queue.push(Message(MessageType::ERROR, std::string("unknown option ") + input_message.getOption().name));
+						SetOptionOutcome outcome = engine_settings->setOption(input_message.getOption());
+						switch (outcome)
+						{
+							case SetOptionOutcome::SUCCESS:
+								break;
+							case SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE:
+								search_engine = nullptr;
+								break;
+							case SetOptionOutcome::FAILURE:
+								output_queue.push(Message(MessageType::ERROR, std::string("unknown option ") + input_message.getOption().name));
+								break;
+						}
 						break;
 					}
 					case MessageType::SET_POSITION:
 					{
-						time_manager.setup();
-						time_manager.startTimer();
-//						if (search_engine == nullptr) // search engine is only initialized here
-//							search_engine = std::make_unique<SearchEngine>(config, resource_manager);
-						time_manager.stopTimer();
-
-//						search_engine->stopSearch();
-						if (search_future.valid())
-							search_future.get(); // wait for search task to end
-//						search_engine->setPosition(input_message.getListOfMoves());
+						setPosition(input_message.getListOfMoves());
 						break;
 					}
-					case MessageType::START_SEARCH:	// START_SEARCH must be preceded with SET_POSITION message
+					case MessageType::START_SEARCH:
 					{
-						if (search_engine == nullptr)
-						{
-							output_queue.push(Message(MessageType::ERROR, "search engine was not initialized"));
-							break;
-						}
-						if (search_future.valid() == true)
+						time_manager.setup();
+						time_manager.startTimer();
+						if (getEngine().isSearchFinished() == false)
 						{
 							output_queue.push(Message(MessageType::ERROR, "search engine is already running"));
 							break;
 						}
-						if (input_message.getString() == "bestmove")
-						{
-							search_future = std::async(std::launch::async, [&]()
-							{
-//								Message msg = search_engine->makeMove();
-//								output_queue.push(search_engine->getSearchSummary());
-//								output_queue.push(msg);
-//								if (static_cast<bool>(config["always_ponder"]))
-//								{
-//									resource_manager.setSearchStartTime(getTime());
-//									resource_manager.setTimeForPondering(2147483647.0);
-//									search_engine->setPosition(msg.getMove());
-//									output_queue.push(search_engine->ponder());
-//									output_queue.push(search_engine->getSearchSummary());
-//								}
-								});
-						}
-						if (input_message.getString() == "swap2")
-						{
-//							search_future = std::async(std::launch::async, [&]()
-//							{
-//								Message msg = search_engine->swap2();
-//								output_queue.push(search_engine->getSearchSummary());
-//								output_queue.push(msg);
-//								});
-						}
-						if (input_message.getString() == "ponder")
-						{
-//							resource_manager.setSearchStartTime(getTime()); // pondering does not pay cost of initialization
-//							search_future = std::async(std::launch::async, [&]()
-//							{
-//								Message msg = search_engine->ponder();
-//								output_queue.push(search_engine->getSearchSummary());
-//								output_queue.push(msg);
-//								});
-						}
+						getEngine().setPosition(board, sign_to_move);
+
 						break;
 					}
 					case MessageType::STOP_SEARCH:
 					{
-//						if (search_engine != nullptr)
-//							search_engine->stopSearch();
+						getEngine().stopSearch();
 						break;
 					}
 					case MessageType::EXIT_PROGRAM:
@@ -192,7 +149,7 @@ namespace ag
 	/*
 	 * private
 	 */
-	void PlayerManager::create_arguments()
+	void ProgramManager::create_arguments()
 	{
 		argument_parser.addArgument("--help", "-h").help("display this help text and exit").action([this]()
 		{	this->display_help = true;});
@@ -210,12 +167,12 @@ namespace ag
 				[this]()
 				{	this->run_benchmark = true;});
 	}
-	void PlayerManager::help() const
+	void ProgramManager::help() const
 	{
 		std::string result = argument_parser.getHelpMessage();
 		output_sender.send(result);
 	}
-	void PlayerManager::version() const
+	void ProgramManager::version() const
 	{
 		std::string result = argument_parser.getExecutablename() + " (" + ProgramInfo::name() + ") " + ProgramInfo::version() + '\n';
 		result += ProgramInfo::copyright() + '\n';
@@ -224,14 +181,14 @@ namespace ag
 		result += "For more information visit " + ProgramInfo::website() + '\n';
 		output_sender.send(result);
 	}
-	void PlayerManager::benchmark() const
+	void ProgramManager::benchmark() const
 	{
 		Json benchmark_result = ag::run_benchmark(config["networks"]["standard"], output_sender);
 
 		FileSaver fs(argument_parser.getLaunchPath() + "benchmark.json");
 		fs.save(benchmark_result, SerializedObject(), 4, false);
 	}
-	void PlayerManager::configure()
+	void ProgramManager::configure()
 	{
 		output_sender.send("Starting automatic configuration");
 		const std::string path_to_benchmark = argument_parser.getLaunchPath() + "benchmark.json";
@@ -262,7 +219,7 @@ namespace ag
 		}
 		createConfig(benchmark_results);
 	}
-	bool PlayerManager::load_config(const std::string &path)
+	bool ProgramManager::load_config(const std::string &path)
 	{
 		if (std::filesystem::exists(path))
 		{
@@ -287,7 +244,7 @@ namespace ag
 			throw std::runtime_error("file " + path + " not found");
 		}
 	}
-	void PlayerManager::prepare_config()
+	void ProgramManager::prepare_config()
 	{
 		std::string launch_path = argument_parser.getLaunchPath();
 		config["swap2_openings_file"] = launch_path + static_cast<std::string>(config["swap2_openings_file"]);
@@ -297,7 +254,7 @@ namespace ag
 
 	}
 
-	void PlayerManager::setup_protocol()
+	void ProgramManager::setup_protocol()
 	{
 		if (not config.contains("protocol"))
 		{
@@ -315,7 +272,7 @@ namespace ag
 				break;
 		}
 	}
-	void PlayerManager::process_input_from_user()
+	void ProgramManager::process_input_from_user()
 	{
 		if (input_future.valid())
 		{
@@ -329,11 +286,30 @@ namespace ag
 			{	protocol->processInput(input_listener);});
 		}
 	}
-	void PlayerManager::setup_logging()
+	void ProgramManager::setup_logging()
 	{
 		logfile = std::ofstream(argument_parser.getLaunchPath() + "logs" + path_separator + currentDateTime() + ".log");
 		Logger::enable();
 		Logger::redirectTo(logfile);
 	}
+	SearchEngine& ProgramManager::getEngine()
+	{
+		if (search_engine == nullptr)
+			search_engine = std::make_unique<SearchEngine>(*engine_settings);
+		return *search_engine;
+	}
+	void ProgramManager::setPosition(const std::vector<Move> &listOfMoves)
+	{
+		if (listOfMoves.empty())
+			sign_to_move = Sign::CROSS;
+		else
+			sign_to_move = invertSign(listOfMoves.back().sign);
+
+		GameConfig cfg = engine_settings->getGameConfig();
+		board = matrix<Sign>(cfg.rows, cfg.cols);
+		for (size_t i = 0; i < listOfMoves.size(); i++)
+			Board::putMove(board, listOfMoves[i]);
+	}
+
 } /* namespace ag */
 

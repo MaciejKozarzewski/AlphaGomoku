@@ -101,7 +101,6 @@ namespace ag
 		STOP_SEARCH, /**< GUI -> Engine : send to immediately stop search */
 		EXIT_PROGRAM, /**< GUI -> Engine : send to exit the program */
 		ABOUT_ENGINE, /**< GUI -> Engine : request to send back information about the engine */
-		IS_READY, /**< GUI -> Engine : request to synchronize with the engine */
 		PLAIN_STRING, /**< GUI <- Engine message containing string with no specific structure */
 		UNKNOWN_COMMAND, /**< GUI <- Engine : used as a response after unknown message from user */
 		ERROR, /**< GUI <- Engine : used as a response after an error */

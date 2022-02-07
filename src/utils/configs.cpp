@@ -91,6 +91,17 @@ namespace ag
 				use_endgame_solver }, { "use_vcf_solver", use_vcf_solver } });
 	}
 
+	DeviceConfig::DeviceConfig(const Json &cfg) :
+			device(ml::Device::fromString(cfg["device"])),
+			batch_size(get_value<int>(cfg, "batch_size", Defaults::batch_size)),
+			omp_threads(get_value<int>(cfg, "omp_threads", Defaults::omp_threads))
+	{
+	}
+	Json DeviceConfig::toJson() const
+	{
+		return Json( { { "device", ml::Device::cpu().toString() }, { "batch_size", Defaults::batch_size }, { "omp_threads", Defaults::omp_threads } });
+	}
+
 	Json getDefaultTrainingConfig()
 	{
 		return Json::load("{"

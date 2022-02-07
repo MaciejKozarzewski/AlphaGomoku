@@ -9,7 +9,6 @@
 #define ALPHAGOMOKU_PLAYER_ENGINESETTINGS_HPP_
 
 #include <alphagomoku/utils/configs.hpp>
-#include <libml/hardware/Device.hpp>
 
 #include <inttypes.h>
 #include <vector>
@@ -31,6 +30,13 @@ namespace ag
 	};
 	std::string toString(EngineStyle es);
 	EngineStyle engineStyleFromString(const std::string &str);
+
+	enum class SetOptionOutcome
+	{
+		SUCCESS,
+		SUCCESS_BUT_REALLOCATE_ENGINE,
+		FAILURE
+	};
 
 	class EngineSettings
 	{
@@ -60,10 +66,12 @@ namespace ag
 			bool auto_pondering = false;
 			bool use_symmetries = true;
 
+			std::vector<DeviceConfig> device_configs;
+
 		public:
-			EngineSettings();
-			void loadConfig(const Json &config);
-			bool setOption(const Option &option) noexcept;
+			EngineSettings(const Json &config);
+
+			SetOptionOutcome setOption(const Option &option) noexcept;
 
 			const GameConfig& getGameConfig() const noexcept;
 			const TreeConfig& getTreeConfig() const noexcept;
@@ -83,6 +91,8 @@ namespace ag
 			bool isInAnalysisMode() const noexcept;
 			bool isUsingAutoPondering() const noexcept;
 			bool isUsingSymmetries() const noexcept;
+
+			const std::vector<DeviceConfig>& getDeviceConfigs() const noexcept;
 	};
 
 } /* namespace ag */

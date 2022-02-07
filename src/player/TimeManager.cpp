@@ -18,10 +18,6 @@ namespace
 namespace ag
 {
 
-	TimeManager::TimeManager(const EngineSettings &settings) :
-			engine_settings(settings)
-	{
-	}
 	void TimeManager::setup() noexcept
 	{
 		std::lock_guard lock(mutex);

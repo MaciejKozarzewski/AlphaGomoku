@@ -8,9 +8,9 @@
 #ifndef ALPHAGOMOKU_MCTS_NNEVALUATOR_HPP_
 #define ALPHAGOMOKU_MCTS_NNEVALUATOR_HPP_
 
-#include <alphagomoku/mcts/EvaluationRequest.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/utils/statistics.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 #include <string>
 #include <vector>
@@ -54,8 +54,9 @@ namespace ag
 			int available_symmetries = 1;
 			ml::Device device;
 			int batch_size;
+			int omp_threads;
 		public:
-			NNEvaluator(ml::Device device, int batchSize);
+			NNEvaluator(const DeviceConfig &cfg);
 
 			void clearStats() noexcept;
 			NNEvaluatorStats getStats() const noexcept;

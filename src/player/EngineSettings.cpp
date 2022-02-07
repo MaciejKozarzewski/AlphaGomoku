@@ -43,17 +43,16 @@ namespace ag
 		throw std::logic_error("unknown style '" + str + "'");
 	}
 
-	EngineSettings::EngineSettings() :
-			game_config(GameRules::FREESTYLE, 0, 0)
+	EngineSettings::EngineSettings(const Json &config) :
+			game_config(GameRules::FREESTYLE, 0, 0),
+			tree_config(config["tree_options"]),
+			cache_config(config["cache_options"]),
+			search_config(config["search_options"]),
+			auto_pondering(static_cast<bool>(config["always_ponder"]))
 	{
-	}
-	void EngineSettings::loadConfig(const Json &config)
-	{
-		std::lock_guard lock(mutex);
-		tree_config = TreeConfig(config["tree_options"]);
-		cache_config = CacheConfig(config["cache_options"]);
-		search_config = SearchConfig(config["search_options"]);
-		auto_pondering = static_cast<bool>(config["always_ponder"]);
+		const Json &device_configuration = config["devices"];
+		for (int i = 0; i < device_configuration.size(); i++)
+			device_configs.push_back(DeviceConfig(device_configuration[i]));
 	}
 //	void EngineSettings::setSearchStartTime(double t) noexcept
 //	{
@@ -104,7 +103,7 @@ namespace ag
 //		return time_for_pondering;
 //	}
 
-	bool EngineSettings::setOption(const Option &option) noexcept
+	SetOptionOutcome EngineSettings::setOption(const Option &option) noexcept
 	{
 		std::lock_guard lock(mutex);
 		try
@@ -112,17 +111,17 @@ namespace ag
 			if (option.name == "rows")
 			{
 				this->game_config.rows = std::stoi(option.value);
-				return true;
+				return SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE;
 			}
 			if (option.name == "columns")
 			{
 				this->game_config.cols = std::stoi(option.value);
-				return true;
+				return SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE;
 			}
 			if (option.name == "rules")
 			{
 				this->game_config.rules = rulesFromString(option.value);
-				return true;
+				return SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE;
 			}
 			if (option.name == "time_for_match")
 			{
@@ -131,16 +130,12 @@ namespace ag
 					this->time_for_match = max_double_value;
 				else
 					this->time_for_match = value / 1000.0;
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "time_left")
 			{
-				int64_t value = std::stoll(option.value);
-				if (value < 0)
-					this->time_left = max_double_value;
-				else
-					this->time_left = value / 1000.0;
-				return true;
+				this->time_left = std::stoll(option.value) / 1000.0;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "time_for_turn")
 			{
@@ -149,17 +144,17 @@ namespace ag
 					this->time_for_turn = max_double_value;
 				else
 					this->time_for_turn = value / 1000.0;
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "time_increment")
 			{
 				this->time_increment = std::max(0.0, std::stoll(option.value) / 1000.0); // time increment must not be negative
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "protocol_lag")
 			{
 				this->protocol_lag = std::max(0.0, std::stoll(option.value) / 1000.0); // protocol lag must not be negative
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "max_depth")
 			{
@@ -168,7 +163,7 @@ namespace ag
 					this->max_depth = max_int_value;
 				else
 					this->max_depth = value;
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "max_nodes")
 			{
@@ -177,12 +172,12 @@ namespace ag
 					this->max_nodes = max_int_value;
 				else
 					this->max_nodes = value;
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "thread_num")
 			{
 				this->thread_num = std::stoll(option.value); // thread_num must not be negative
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "max_memory")
 			{
@@ -191,32 +186,32 @@ namespace ag
 					this->max_memory = 0.75 * ml::Device::cpu().memory() * 1024 * 1024;
 				else
 					this->max_memory = value;
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "style")
 			{
 				this->style = engineStyleFromString(option.value);
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 
 			if (option.name == "analysis_mode")
 			{
 				this->analysis_mode = static_cast<bool>(std::stoi(option.value));
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "auto_pondering")
 			{
 				this->auto_pondering = static_cast<bool>(std::stoi(option.value));
-				return true;
+				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "folder")
-				return true; // engine does not make use of any storage for temporary data
+				return SetOptionOutcome::SUCCESS; // engine does not make use of any storage for temporary data
 
 		} catch (std::exception &e)
 		{
 			Logger::write(e.what());
 		}
-		return false;
+		return SetOptionOutcome::FAILURE;
 	}
 
 	const GameConfig& EngineSettings::getGameConfig() const noexcept
@@ -303,6 +298,11 @@ namespace ag
 	{
 		std::lock_guard lock(mutex);
 		return use_symmetries;
+	}
+
+	const std::vector<DeviceConfig>& EngineSettings::getDeviceConfigs() const noexcept
+	{
+		return device_configs;
 	}
 } /* namespace ag */
 

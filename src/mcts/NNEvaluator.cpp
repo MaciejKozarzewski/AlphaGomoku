@@ -53,9 +53,10 @@ namespace ag
 		return *this;
 	}
 
-	NNEvaluator::NNEvaluator(ml::Device device, int batchSize) :
-			device(device),
-			batch_size(batchSize)
+	NNEvaluator::NNEvaluator(const DeviceConfig &cfg) :
+			device(cfg.device),
+			batch_size(cfg.batch_size),
+			omp_threads(cfg.omp_threads)
 	{
 	}
 	void NNEvaluator::clearStats() noexcept

@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/player/PlayerManager.hpp>
+#include <alphagomoku/player/ProgramManager.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/version.hpp>
@@ -14,7 +14,7 @@ namespace
 {
 	using namespace ag;
 
-	struct DeviceConfig
+	struct HardwareTestConfig
 	{
 			ml::Device device;
 			int search_threads;
@@ -23,7 +23,7 @@ namespace
 
 	const std::vector<int> batch_size = { 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128 };
 
-	Json test_speed(double max_time, const std::string &path, DeviceConfig config)
+	Json test_speed(double max_time, const std::string &path, HardwareTestConfig config)
 	{
 		std::vector<std::thread> threads(config.search_threads);
 		std::vector<AGNetwork> networks(config.search_threads);
@@ -102,7 +102,7 @@ namespace ag
 //		for (int i = 0; i < ml::Device::numberOfOpenCLDevices(); i++) TODO in the future there will be OpenCL devices
 //			result["devices"][ml::Device::opencl(i).toString()] = ml::Device::opencl(i).info();
 
-		std::vector<DeviceConfig> configs_to_test;
+		std::vector<HardwareTestConfig> configs_to_test;
 
 		const int cpu_cores = ml::Device::cpu().cores();
 		/* create list of CPU configurations to test */

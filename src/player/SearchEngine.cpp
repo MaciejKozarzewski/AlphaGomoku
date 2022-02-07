@@ -21,16 +21,12 @@
 
 namespace ag
 {
-	NNEvaluatorPool::NNEvaluatorPool(const Json &config)
+	NNEvaluatorPool::NNEvaluatorPool(const EngineSettings &settings)
 	{
-		const Json &device_config = config["devices"];
-		for (int i = 0; i < device_config.size(); i++)
+		for (int i = 0; i < settings.getDeviceConfigs().size(); i++)
 		{
-			ml::Device device = ml::Device::fromString(device_config[i]["device"]);
-			int batch_size = static_cast<int>(device_config[i]["batch_size"]);
-
-			evaluators.push_back(std::make_unique<NNEvaluator>(device, batch_size));
-			evaluators.back()->useSymmetries(static_cast<bool>(config["use_symmetries"]));
+			evaluators.push_back(std::make_unique<NNEvaluator>(settings.getDeviceConfigs().at(i)));
+			evaluators.back()->useSymmetries(settings.isUsingSymmetries());
 			free_evaluators.push_back(i);
 		}
 	}
@@ -162,9 +158,9 @@ namespace ag
 		return false;
 	}
 
-	SearchEngine::SearchEngine(const Json &config, const EngineSettings &settings) :
+	SearchEngine::SearchEngine(const EngineSettings &settings) :
 			settings(settings),
-			nn_evaluators(config),
+			nn_evaluators(settings),
 			tree(settings.getTreeConfig())
 	{
 	}
@@ -188,35 +184,26 @@ namespace ag
 //	}
 	void SearchEngine::setPosition(const matrix<Sign> &board, Sign signToMove)
 	{
-		if (isSearchFinished() == false)
-			return; // cannot set position when the previous search is still running
-//		Sign sign_to_move;
-//		if (listOfMoves.empty())
-//			sign_to_move = Sign::CROSS;
-//		else
-//			sign_to_move = invertSign(listOfMoves.back().sign);
-//
-//		GameConfig cfg = settings.getGameConfig();
-//		matrix<Sign> board(cfg.rows, cfg.cols);
-//		for (size_t i = 0; i < listOfMoves.size(); i++)
-//			Board::putMove(board, listOfMoves[i]);
-
+		assert(isSearchFinished());
 		TreeLock lock(tree);
 		tree.setBoard(board, signToMove);
 	}
 	void SearchEngine::setEdgeSelector(const EdgeSelector &selector)
 	{
+		assert(isSearchFinished());
 		TreeLock lock(tree);
 		tree.setEdgeSelector(selector);
 	}
 	void SearchEngine::setEdgeGenerator(const EdgeGenerator &generator)
 	{
+		assert(isSearchFinished());
 		TreeLock lock(tree);
 		tree.setEdgeGenerator(generator);
 	}
 
 	void SearchEngine::startSearch()
 	{
+		assert(isSearchFinished());
 		setup_search_threads();
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->start();
@@ -356,9 +343,11 @@ namespace ag
 	}
 	const matrix<Sign>& SearchEngine::getBoard() const noexcept
 	{
+		return tree.getBoard();
 	}
 	Sign SearchEngine::getSignToMove() const noexcept
 	{
+		return tree.getSignToMove();
 	}
 	/*
 	 * private

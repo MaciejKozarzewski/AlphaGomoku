@@ -55,6 +55,31 @@ namespace
 			edge.setValue(task.getActionValues().at(move.row, move.col));
 		}
 	}
+	void correct_proven_edge(Edge &edge) noexcept
+	{
+		switch (edge.getProvenValue())
+		{
+			case ProvenValue::UNKNOWN:
+				break;
+			case ProvenValue::LOSS:
+			{
+				edge.setPolicyPrior(1.0e-6f); // setting zero would crash renormalization in case when all moves are provably losing as the policy sum would be 0
+				edge.setValue(Value(0.0f, 0.0f, 1.0f));
+				break;
+			}
+			case ProvenValue::DRAW:
+			{
+				edge.setValue(Value(0.0f, 1.0f, 0.0f));
+				break;
+			}
+			case ProvenValue::WIN:
+			{
+				edge.setPolicyPrior(1.0e3f);
+				edge.setValue(Value(1.0f, 0.0f, 0.0f));
+				break;
+			}
+		}
+	}
 }
 
 namespace ag
@@ -94,28 +119,7 @@ namespace ag
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 		{
 			check_terminal_conditions(task, *edge);
-			switch (edge->getProvenValue())
-			{
-				case ProvenValue::UNKNOWN:
-					break;
-				case ProvenValue::LOSS:
-				{
-					edge->setPolicyPrior(1.0e-6f); // setting zero would crash renormalization in case when all moves are provably losing as the policy sum would be 0
-					edge->setValue(Value(0.0f, 0.0f, 1.0f));
-					break;
-				}
-				case ProvenValue::DRAW:
-				{
-					edge->setValue(Value(0.0f, 1.0f, 0.0f));
-					break;
-				}
-				case ProvenValue::WIN:
-				{
-					edge->setPolicyPrior(1.0e3f);
-					edge->setValue(Value(1.0f, 0.0f, 0.0f));
-					break;
-				}
-			}
+			correct_proven_edge(*edge);
 		}
 
 		exclude_weak_moves(task.getEdges(), max_edges);

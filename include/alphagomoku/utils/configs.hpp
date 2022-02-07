@@ -10,6 +10,8 @@
 
 #include <alphagomoku/game/rules.hpp>
 
+#include <libml/hardware/Device.hpp>
+
 class Json;
 namespace ag
 {
@@ -87,6 +89,24 @@ namespace ag
 
 			SearchConfig() = default;
 			SearchConfig(const Json &cfg);
+			Json toJson() const;
+	};
+
+	struct DeviceConfig
+	{
+		private:
+			struct Defaults
+			{
+					static constexpr int batch_size = 1;
+					static constexpr int omp_threads = 1;
+			};
+		public:
+			ml::Device device = ml::Device::cpu();
+			int batch_size = Defaults::batch_size;
+			int omp_threads = Defaults::omp_threads;
+
+			DeviceConfig() = default;
+			DeviceConfig(const Json &cfg);
 			Json toJson() const;
 	};
 

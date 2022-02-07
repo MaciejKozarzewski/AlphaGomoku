@@ -170,9 +170,6 @@ namespace ag
 			case MessageType::ABOUT_ENGINE:
 				result += "ABOUT_ENGINE";
 				break;
-			case MessageType::IS_READY:
-				result += "IS_READY";
-				break;
 			case MessageType::PLAIN_STRING:
 				result += "PLAIN_STRING";
 				break;

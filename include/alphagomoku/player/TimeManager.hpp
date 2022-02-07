@@ -27,7 +27,6 @@ namespace ag
 		private:
 			static constexpr double TIME_FRACTION = 0.04; /**< fraction of the remaining time that is used every move */
 			static constexpr double SWAP2_FRACTION = 0.1;
-			const EngineSettings &engine_settings;
 
 			mutable std::mutex mutex;
 			double start_time = 0.0; /**< [seconds] */
@@ -37,8 +36,6 @@ namespace ag
 			bool is_search_running = false;
 
 		public:
-			TimeManager(const EngineSettings &settings);
-
 			/**
 			 * @brief Setup the time manager for general search.
 			 */

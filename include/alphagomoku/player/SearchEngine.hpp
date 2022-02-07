@@ -33,7 +33,7 @@ namespace ag
 			mutable std::mutex eval_mutex;
 			mutable std::condition_variable eval_cond;
 		public:
-			NNEvaluatorPool(const Json &config);
+			NNEvaluatorPool(const EngineSettings &settings);
 			void loadNetwork(const std::string &pathToNetwork);
 			void unloadNetwork();
 			NNEvaluator& get() const;
@@ -74,10 +74,7 @@ namespace ag
 			Tree tree;
 
 		public:
-			SearchEngine(const Json &config, const EngineSettings &settings);
-			/**
-			 * \brief Used to setup entire board in one step. Moves must be in the correct order (alternating colors)
-			 */
+			SearchEngine(const EngineSettings &settings);
 			void setPosition(const matrix<Sign> &board, Sign signToMove);
 			void setEdgeSelector(const EdgeSelector &selector);
 			void setEdgeGenerator(const EdgeGenerator &generator);
