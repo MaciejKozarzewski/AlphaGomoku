@@ -36,9 +36,12 @@ namespace ag
 	{
 			uint64_t allocated_nodes = 0;
 			uint64_t used_nodes = 0;
-			uint64_t proven_loss = 0;
-			uint64_t proven_draw = 0;
-			uint64_t proven_win = 0;
+			uint64_t node_proven_loss = 0;
+			uint64_t node_proven_draw = 0;
+			uint64_t node_proven_win = 0;
+			uint64_t edge_proven_loss = 0;
+			uint64_t edge_proven_draw = 0;
+			uint64_t edge_proven_win = 0;
 
 			std::string toString() const;
 			TreeStats& operator+=(const TreeStats &other) noexcept;
@@ -54,6 +57,15 @@ namespace ag
 	{
 		SUCCESS,
 		ALREADY_EXPANDED
+	};
+
+	struct NodeInfo
+	{
+		private:
+			std::vector<Edge> edges;
+		public:
+			Node node;
+			NodeInfo(const Node *n);
 	};
 
 	class TreeLock;
@@ -86,6 +98,7 @@ namespace ag
 			int getSimulationCount() const noexcept;
 			int getMaximumDepth() const noexcept;
 			bool isProven() const noexcept;
+			bool hasSingleNonLosingMove() const noexcept;
 
 			SelectOutcome select(SearchTask &task);
 			void generateEdges(SearchTask &task) const;
@@ -97,6 +110,9 @@ namespace ag
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
 
+			NodeInfo getInfo(const std::vector<Move> &moves) const;
+			TreeStats getTreeStats() const noexcept;
+			NodeCacheStats getNodeCacheStats() const noexcept;
 		private:
 			/*
 			 * \brief Recursively checks every node in the subtree and deletes those representing states that can no longer appear in the tree (given current state at root).

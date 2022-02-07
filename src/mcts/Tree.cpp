@@ -191,64 +191,59 @@ namespace
 		}
 	}
 
-	void print_subtree(const Node *node, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child = false);
-	void print_subtree(const Edge &edge, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child = false)
+	void print_node(const Node *node, const int max_depth, bool sort, int top_n, int prefix);
+	void print_edge(const Edge &edge, const int max_depth, bool sort, int top_n, bool is_last, int prefix)
 	{
-		if (current_depth > 0)
+		for (int i = 0; i < prefix; i++)
+			std::cout << "|     ";
+		if (is_last)
+			std::cout << "└──" << edge.toString() << '\n';
+		else
+			std::cout << "├──" << edge.toString() << '\n';
+
+		if (edge.getNode() != nullptr)
 		{
-			if (is_last_child)
-			{
-				for (int i = 0; i < current_depth - 1; i++)
-					std::cout << "   " << "   ";
-				std::cout << "└──";
-			}
-			else
-			{
-				for (int i = 0; i < current_depth - 1; i++)
-					std::cout << "│  " << "   ";
-				std::cout << "├──";
-			}
-		}
-		std::cout << edge.toString() << '\n';
-		if (edge.isLeaf() == false)
-		{
-			for (int i = 0; i < current_depth; i++)
-				std::cout << "│  ";
-			std::cout << "└──";
-			print_subtree(edge.getNode(), max_depth, sort, top_n, current_depth, is_last_child);
+			for (int i = 0; i < prefix; i++)
+				std::cout << "|     ";
+			std::cout << "|  └──";
+			print_node(edge.getNode(), max_depth, sort, top_n, prefix + 1);
 		}
 	}
-	void print_subtree(const Node *node, const int max_depth, bool sort, int top_n, int current_depth, bool is_last_child)
+	void print_node(const Node *node, const int max_depth, bool sort, int top_n, int prefix)
 	{
 		if (node == nullptr)
 			return;
 		std::cout << node->toString() << '\n';
-		if (max_depth != -1 && current_depth >= max_depth)
+		if (max_depth != -1 and node->getDepth() <= max_depth)
 		{
-			for (int i = 0; i < 2 * current_depth; i++)
-				std::cout << "│  ";
-			std::cout << "└──... (subtree skipped)\n";
-			for (int i = 0; i < 2 * current_depth; i++)
-				std::cout << "│  ";
-			std::cout << '\n';
-			return;
-		}
-		if (sort)
-			node->sortEdges();
-		if (top_n == -1 || 2 * top_n >= node->numberOfEdges())
-		{
-			for (int i = 0; i < node->numberOfEdges(); i++)
-				print_subtree(node->getEdge(i), max_depth, sort, top_n, current_depth + 1, i == node->numberOfEdges() - 1);
+			if (sort)
+				node->sortEdges();
+
+			if (top_n == -1 || 2 * top_n >= node->numberOfEdges())
+			{
+				for (int i = 0; i < node->numberOfEdges(); i++)
+					print_edge(node->getEdge(i), max_depth, sort, top_n, i == (node->numberOfEdges() - 1), prefix);
+			}
+			else
+			{
+				for (int i = 0; i < top_n; i++)
+					print_edge(node->getEdge(i), max_depth, sort, top_n, false, prefix);
+				for (int i = 0; i < prefix; i++)
+					std::cout << "|     ";
+				std::cout << "├──... (" << (node->numberOfEdges() - 2 * top_n) << " edges skipped)\n";
+				for (int i = node->numberOfEdges() - top_n; i < node->numberOfEdges(); i++)
+					print_edge(node->getEdge(i), max_depth, sort, top_n, i == (node->numberOfEdges() - 1), prefix);
+			}
 		}
 		else
 		{
-			for (int i = 0; i < top_n; i++)
-				print_subtree(node->getEdge(i).getNode(), max_depth, sort, top_n, current_depth + 1);
-			for (int i = 0; i < 2 * current_depth; i++)
-				std::cout << "│  ";
-			std::cout << "├──... (" << (node->numberOfEdges() - 2 * top_n) << " nodes skipped)\n";
-			for (int i = node->numberOfEdges() - top_n; i < node->numberOfEdges(); i++)
-				print_subtree(node->getEdge(i), max_depth, sort, top_n, current_depth + 1, i == node->numberOfEdges() - 1);
+			for (int i = 0; i < prefix; i++)
+				std::cout << "|     ";
+			std::cout << "└──... (subtree skipped)\n";
+			for (int i = 0; i < prefix; i++)
+				std::cout << "|     ";
+			std::cout << '\n';
+			return;
 		}
 	}
 
@@ -302,6 +297,43 @@ namespace
 			return false;
 		return true;
 	}
+	void calculate_proven_stats(const Node *node, TreeStats &stats) noexcept
+	{
+		if (node == nullptr)
+			return;
+		switch (node->getProvenValue())
+		{
+			case ProvenValue::UNKNOWN:
+				break;
+			case ProvenValue::LOSS:
+				stats.node_proven_loss++;
+				break;
+			case ProvenValue::DRAW:
+				stats.node_proven_draw++;
+				break;
+			case ProvenValue::WIN:
+				stats.node_proven_win++;
+				break;
+		}
+		for (Edge *edge = node->begin(); edge < node->end(); edge++)
+		{
+			switch (edge->getProvenValue())
+			{
+				case ProvenValue::UNKNOWN:
+					break;
+				case ProvenValue::LOSS:
+					stats.edge_proven_loss++;
+					break;
+				case ProvenValue::DRAW:
+					stats.edge_proven_draw++;
+					break;
+				case ProvenValue::WIN:
+					stats.edge_proven_win++;
+					break;
+			}
+			calculate_proven_stats(edge->getNode(), stats);
+		}
+	}
 }
 
 namespace ag
@@ -311,27 +343,47 @@ namespace ag
 		std::string result = "----TreeStats----\n";
 		result += "used nodes      = " + std::to_string(used_nodes) + '\n';
 		result += "allocated nodes = " + std::to_string(allocated_nodes) + '\n';
-		result += "proven nodes    = " + std::to_string(proven_win) + " : " + std::to_string(proven_draw) + " : " + std::to_string(proven_loss)
-				+ " (win:draw:loss)\n";
+		result += "proven nodes    = " + std::to_string(node_proven_win) + " : " + std::to_string(node_proven_draw) + " : "
+				+ std::to_string(node_proven_loss) + " (win:draw:loss)\n";
+		result += "proven edges    = " + std::to_string(edge_proven_win) + " : " + std::to_string(edge_proven_draw) + " : "
+				+ std::to_string(edge_proven_loss) + " (win:draw:loss)\n";
 		return result;
 	}
 	TreeStats& TreeStats::operator+=(const TreeStats &other) noexcept
 	{
 		this->allocated_nodes += other.allocated_nodes;
 		this->used_nodes += other.used_nodes;
-		this->proven_loss += other.proven_loss;
-		this->proven_draw += other.proven_draw;
-		this->proven_win += other.proven_win;
+		this->node_proven_loss += other.node_proven_loss;
+		this->node_proven_draw += other.node_proven_draw;
+		this->node_proven_win += other.node_proven_win;
+		this->edge_proven_loss += other.edge_proven_loss;
+		this->edge_proven_draw += other.edge_proven_draw;
+		this->edge_proven_win += other.edge_proven_win;
 		return *this;
 	}
 	TreeStats& TreeStats::operator/=(int i) noexcept
 	{
 		this->allocated_nodes /= i;
 		this->used_nodes /= i;
-		this->proven_loss /= i;
-		this->proven_draw /= i;
-		this->proven_win /= i;
+		this->node_proven_loss /= i;
+		this->node_proven_draw /= i;
+		this->node_proven_win /= i;
+		this->edge_proven_loss /= i;
+		this->edge_proven_draw /= i;
+		this->edge_proven_win /= i;
 		return *this;
+	}
+
+	NodeInfo::NodeInfo(const Node *n)
+	{
+		if (n != nullptr)
+		{
+			edges.reserve(n->numberOfEdges());
+			for (auto edge = n->begin(); edge < n->end(); edge++)
+				edges.push_back(edge->copyInfo());
+			node = n->copyInfo();
+			node.setEdges(edges.data(), edges.size());
+		}
 	}
 
 	Tree::Tree(TreeConfig treeOptions)
@@ -389,6 +441,18 @@ namespace ag
 		else
 			return root_node->isProven();
 	}
+	bool Tree::hasSingleNonLosingMove() const noexcept
+	{
+		if (root_node == nullptr)
+			return false;
+		else
+		{
+			int non_losing_edges = std::count_if(root_node->begin(), root_node->end(), [](const Edge &edge)
+			{	return edge.getProvenValue() == ProvenValue::LOSS;});
+			return non_losing_edges == 1;
+		}
+	}
+
 	SelectOutcome Tree::select(SearchTask &task)
 	{
 		task.reset(base_board, sign_to_move);
@@ -441,7 +505,7 @@ namespace ag
 
 		Node *node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove());
 		node_to_add->setEdges(new_edges, number_of_moves);
-		node_to_add->updateValue(task.getValue().getInverted());
+		node_to_add->updateValue(task.getValue());
 		update_proven_value(node_to_add);
 
 		if (task.visitedPathLength() > 0)
@@ -459,13 +523,13 @@ namespace ag
 			NodeEdgePair pair = task.getPair(i);
 			if (pair.edge->getMove().sign == task.getSignToMove())
 			{
-				pair.node->updateValue(value.getInverted());
-				pair.edge->updateValue(value);
+				pair.node->updateValue(value);
+				pair.edge->updateValue(value.getInverted());
 			}
 			else
 			{
-				pair.node->updateValue(value);
-				pair.edge->updateValue(value.getInverted());
+				pair.node->updateValue(value.getInverted());
+				pair.edge->updateValue(value);
 			}
 			pair.edge->decreaseVirtualLoss();
 		}
@@ -485,7 +549,8 @@ namespace ag
 	}
 	void Tree::printSubtree(int depth, bool sort, int top_n) const
 	{
-		print_subtree(root_node, depth, sort, top_n, 0);
+		int max_print_depth = depth + ((root_node == nullptr) ? 0 : root_node->getDepth());
+		print_node(root_node, max_print_depth, sort, top_n, 0);
 	}
 
 	const matrix<Sign>& Tree::getBoard() const noexcept
@@ -496,7 +561,34 @@ namespace ag
 	{
 		return sign_to_move;
 	}
-
+	NodeInfo Tree::getInfo(const std::vector<Move> &moves) const
+	{
+		size_t counter = 0;
+		Node *node = root_node;
+		while (node != nullptr and counter < moves.size())
+		{
+			Move seeked_move = moves[counter];
+			auto iter = std::find_if(node->begin(), node->end(), [seeked_move](const Edge &edge)
+			{	return edge.getMove() == seeked_move;});
+			if (iter == node->end())
+				return NodeInfo(nullptr); // no such edge within the tree
+			else
+				node = iter->getNode();
+		}
+		return NodeInfo(node);
+	}
+	TreeStats Tree::getTreeStats() const noexcept
+	{
+		TreeStats result;
+		result.allocated_nodes = node_cache.allocatedElements();
+		result.used_nodes = node_cache.storedElements();
+		calculate_proven_stats(root_node, result);
+		return result;
+	}
+	NodeCacheStats Tree::getNodeCacheStats() const noexcept
+	{
+		return node_cache.getStats();
+	}
 	/*
 	 * private
 	 */
@@ -577,13 +669,13 @@ namespace ag
 					case ProvenValue::UNKNOWN:
 						break;
 					case ProvenValue::LOSS:
-						result.proven_loss++;
+						result.node_proven_loss++;
 						break;
 					case ProvenValue::DRAW:
-						result.proven_draw++;
+						result.node_proven_draw++;
 						break;
 					case ProvenValue::WIN:
-						result.proven_win++;
+						result.node_proven_win++;
 						break;
 				}
 		return result;

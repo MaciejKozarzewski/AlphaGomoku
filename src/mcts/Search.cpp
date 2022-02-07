@@ -29,18 +29,27 @@ namespace
 
 namespace ag
 {
+	SearchStats::SearchStats() :
+			select("select  "),
+			evaluate("evaluate"),
+			schedule("schedule"),
+			generate("generate"),
+			expand("expand  "),
+			backup("backup  ")
+	{
+	}
 	std::string SearchStats::toString() const
 	{
 		std::string result = "----SearchStats----\n";
 		result += "nb_duplicate_nodes   = " + std::to_string(nb_duplicate_nodes) + '\n';
 		result += "nb_information_leaks = " + std::to_string(nb_information_leaks) + '\n';
 		result += "nb_wasted_expansions = " + std::to_string(nb_wasted_expansions) + '\n';
-		result += select.toString();
-		result += evaluate.toString();
-		result += schedule.toString();
-		result += generate.toString();
-		result += expand.toString();
-		result += backup.toString();
+		result += select.toString() + '\n';
+		result += evaluate.toString() + '\n';
+		result += schedule.toString() + '\n';
+		result += generate.toString() + '\n';
+		result += expand.toString() + '\n';
+		result += backup.toString() + '\n';
 		return result;
 	}
 	SearchStats& SearchStats::operator+=(const SearchStats &other) noexcept
@@ -104,8 +113,26 @@ namespace ag
 			SearchTask &current_task = get_next_task();
 
 			SelectOutcome out = tree.select(current_task);
+
+//			std::cout << "\nsimulation " << tree.getSimulationCount() << '\n' << current_task.toString() << '\n';
+
+			if (current_task.visitedPathLength() == 0)
+			{
+//				std::cout << "visited only root node\n";
+				break; // visited only root node
+			}
+			if (is_duplicate(current_task))
+			{
+//				std::cout << "duplicate node\n";
+				tree.cancelVirtualLoss(current_task);
+				active_task_count--;
+				stats.nb_duplicate_nodes++;
+				break;
+			}
+
 			if (out == SelectOutcome::INFORMATION_LEAK)
 			{
+//				std::cout << "information leak\n";
 				stats.nb_information_leaks++;
 				correct_information_leak(current_task);
 				tree.backup(current_task);
@@ -240,6 +267,13 @@ namespace ag
 		task.setValue((nodeQ - edgeQ) * edge->getVisits() + nodeQ);
 		task.getLastPair().edge->setProvenValue(node->getProvenValue());
 		task.setReady();
+	}
+	bool Search::is_duplicate(const SearchTask &task) const noexcept
+	{
+		for (int i = 0; i < active_task_count - 1; i++)
+			if (task.getLastPair().node == search_tasks[i].getLastPair().node)
+				return true;
+		return false;
 	}
 
 	Search_old::Search_old(GameConfig gameOptions, SearchConfig searchOptions, Tree_old &tree, Cache &cache, EvaluationQueue &queue) :

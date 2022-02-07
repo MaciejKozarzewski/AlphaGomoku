@@ -129,6 +129,7 @@ namespace ag
 				virtual_loss = 0;
 			}
 			std::string toString() const;
+			Edge copyInfo() const noexcept;
 	};
 
 } /* namespace ag */

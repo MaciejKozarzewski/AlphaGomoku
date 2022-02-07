@@ -23,7 +23,7 @@ namespace ag
 {
 	NNEvaluatorPool::NNEvaluatorPool(const EngineSettings &settings)
 	{
-		for (int i = 0; i < settings.getDeviceConfigs().size(); i++)
+		for (size_t i = 0; i < settings.getDeviceConfigs().size(); i++)
 		{
 			evaluators.push_back(std::make_unique<NNEvaluator>(settings.getDeviceConfigs().at(i)));
 			evaluators.back()->useSymmetries(settings.isUsingSymmetries());
@@ -110,8 +110,14 @@ namespace ag
 	}
 	void SearchThread::run()
 	{
-		ml::Device::cpu().setNumberOfThreads(1);
 		search.clearStats();
+
+		{ /* artificial scope for lock */
+			TreeLock lock(tree);
+			if (isStopConditionFulfilled())
+				return;
+		}
+
 		while (true)
 		{
 			{ /* artificial scope for lock */
@@ -154,6 +160,8 @@ namespace ag
 		if (tree.getMaximumDepth() >= settings.getMaxDepth())
 			return true;
 		if (tree.isProven())
+			return true;
+		if (tree.hasSingleNonLosingMove())
 			return true;
 		return false;
 	}

@@ -264,7 +264,7 @@ namespace ag
 		if (own_five.size() > 0) // can make a five
 		{
 			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
-				task.addProvenEdge(*iter, ProvenValue::WIN);
+				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN);
 			task.setReady();
 			return; // it is instant win
 		}
@@ -273,7 +273,7 @@ namespace ag
 		{
 			ProvenValue pv = (opponent_five.size() > 1) ? ProvenValue::LOSS : ProvenValue::UNKNOWN;
 			for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
-				task.addProvenEdge(*iter, pv);
+				task.addProvenEdge(Move(sign_to_move, *iter), pv);
 			if (opponent_five.size() > 1)
 				task.setReady(); // the state is provably losing, there is no need to further evaluate it
 			return;
@@ -283,7 +283,7 @@ namespace ag
 		if (own_open_four.size() > 0) // can make an open four, but it was already checked that opponent cannot make any five
 		{
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
-				task.addProvenEdge(*iter, ProvenValue::WIN); // it is win in 3 plys
+				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN); // it is win in 3 plys
 			task.setReady();
 			return;
 		}
@@ -294,16 +294,16 @@ namespace ag
 		if (opponent_open_four.size() > 0) // opponent can make an open four, but no fives. We also cannot make any five or open four
 		{
 			for (auto iter = opponent_open_four.begin(); iter < opponent_open_four.end(); iter++)
-				task.addProvenEdge(*iter, ProvenValue::UNKNOWN);
+				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
 			for (auto iter = opponent_half_open_four.begin(); iter < opponent_half_open_four.end(); iter++)
-				task.addProvenEdge(*iter, ProvenValue::UNKNOWN);
+				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
 
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++)
 			{
 				bool is_already_added = std::any_of(task.getProvenEdges().begin(), task.getProvenEdges().end(), [iter](const Edge &edge)
 				{	return edge.getMove() == *iter;}); // find if such move has been added in any of two loops above
 				if (not is_already_added) // move must not be added twice
-					task.addProvenEdge(*iter, ProvenValue::UNKNOWN);
+					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
 			}
 			return;
 		}
@@ -327,7 +327,7 @@ namespace ag
 		{
 			for (auto iter = nodes_buffer[0].children; iter < nodes_buffer[0].children + nodes_buffer[0].number_of_children; iter++)
 				if (iter->solved_value == SolvedValue::SOLVED_WIN)
-					task.addProvenEdge(iter->move, ProvenValue::WIN);
+					task.addProvenEdge(Move(sign_to_move, iter->move), ProvenValue::WIN);
 			task.setReady();
 		}
 	}

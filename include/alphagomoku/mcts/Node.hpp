@@ -155,6 +155,7 @@ namespace ag
 			}
 			std::string toString() const;
 			void sortEdges() const;
+			Node copyInfo() const noexcept;
 	};
 
 	class Node_old

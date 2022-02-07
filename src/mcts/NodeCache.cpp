@@ -30,8 +30,6 @@ namespace ag
 		result += insert.toString() + '\n';
 		result += remove.toString() + '\n';
 		result += resize.toString() + '\n';
-//		result += "entries = " + std::to_string(stored_entries) + " : " + std::to_string(buffered_entries) + " : " + std::to_string(allocated_entries)
-//				+ " (stored:buffered:allocated)\n";
 		return result;
 	}
 	NodeCacheStats& NodeCacheStats::operator+=(const NodeCacheStats &other) noexcept

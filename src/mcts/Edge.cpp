@@ -39,5 +39,11 @@ namespace ag
 		result += " : P=" + std::to_string(getPolicyPrior());
 		return result;
 	}
+	Edge Edge::copyInfo() const noexcept
+	{
+		Edge result(*this);
+		result.node = nullptr;
+		return result;
+	}
 } /* namespace ag */
 

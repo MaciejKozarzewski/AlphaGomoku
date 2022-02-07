@@ -31,9 +31,9 @@ namespace ag
 	{
 		std::string result = "----NNEvaluator----\n";
 		result += "avg batch size = " + std::to_string(static_cast<double>(batch_sizes) / eval.getTotalCount()) + '\n';
-		result += pack.toString();
-		result += eval.toString();
-		result += unpack.toString();
+		result += pack.toString() + '\n';
+		result += eval.toString() + '\n';
+		result += unpack.toString() + '\n';
 		return result;
 	}
 	NNEvaluatorStats& NNEvaluatorStats::operator+=(const NNEvaluatorStats &other) noexcept
@@ -105,6 +105,7 @@ namespace ag
 	}
 	void NNEvaluator::evaluateGraph()
 	{
+		ml::Device::cpu().setNumberOfThreads(omp_threads);
 		while (task_queue.size() > 0)
 		{
 			int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());

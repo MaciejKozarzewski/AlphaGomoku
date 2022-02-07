@@ -83,6 +83,7 @@ namespace ag
 			void setup_logging();
 			SearchEngine& getEngine();
 			void setPosition(const std::vector<Move> &listOfMoves);
+			void setup_controller(const std::string &type);
 	};
 
 } /* namespace ag */

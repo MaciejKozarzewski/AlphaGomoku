@@ -107,13 +107,15 @@ namespace ag
 			for (size_t i = 0; i < task.getProvenEdges().size(); i++)
 				task.addEdge(task.getProvenEdges()[i]);
 		}
-
-		if (not contains_winning_edge(task.getEdges()))
+		else
 		{
-			for (int row = 0; row < task.getBoard().rows(); row++)
-				for (int col = 0; col < task.getBoard().cols(); col++)
-					if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policy_threshold)
-						task.addEdge(Move(row, col, task.getSignToMove()));
+			if (not contains_winning_edge(task.getEdges()))
+			{
+				for (int row = 0; row < task.getBoard().rows(); row++)
+					for (int col = 0; col < task.getBoard().cols(); col++)
+						if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policy_threshold)
+							task.addEdge(Move(row, col, task.getSignToMove()));
+			}
 		}
 
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)

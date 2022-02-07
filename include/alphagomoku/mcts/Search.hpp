@@ -48,6 +48,7 @@ namespace ag
 			uint64_t nb_information_leaks = 0;
 			uint64_t nb_wasted_expansions = 0;
 
+			SearchStats();
 			std::string toString() const;
 			SearchStats& operator+=(const SearchStats &other) noexcept;
 			SearchStats& operator/=(int i) noexcept;
@@ -82,6 +83,7 @@ namespace ag
 			int get_batch_size(int simulation_count) const noexcept;
 			SearchTask& get_next_task();
 			void correct_information_leak(SearchTask &task) const;
+			bool is_duplicate(const SearchTask &task) const noexcept;
 	};
 
 	class Search_old

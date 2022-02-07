@@ -310,6 +310,17 @@ namespace ag
 		for (size_t i = 0; i < listOfMoves.size(); i++)
 			Board::putMove(board, listOfMoves[i]);
 	}
+	void ProgramManager::setup_controller(const std::string &type)
+	{
+		if(type == "bestmove")
+		{
+
+		}
+		if(type == "swap2")
+		{
+
+		}
+	}
 
 } /* namespace ag */
 
