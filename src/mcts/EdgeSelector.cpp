@@ -70,7 +70,7 @@ namespace ag
 		{
 			float Q = parent_value;
 			if (edge->getVisits() > 0)
-				Q = getQ(edge, style_factor) - getVloss(edge) - edge->isProven();
+				Q = getQ(edge, style_factor) - getVloss(edge) - 10.0f * edge->isProven();
 			float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
 
 			if (Q + U > bestValue)
@@ -105,7 +105,7 @@ namespace ag
 		{
 			float Q = parent_value;
 			if (edge->getVisits() > 0)
-				Q = getQ(edge, style_factor) - getVloss(edge) - edge->isProven();
+				Q = getQ(edge, style_factor) - getVloss(edge) - 10.0f * edge->isProven();
 			float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
 			float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
 
@@ -200,5 +200,34 @@ namespace ag
 		assert(selected != node->end()); // this must never happen
 		return selected;
 	}
+
+	BestEdgeSelector::BestEdgeSelector(float styleFactor) :
+			style_factor(styleFactor)
+	{
+	}
+	BestEdgeSelector* BestEdgeSelector::clone() const
+	{
+		return new BestEdgeSelector(style_factor);
+	}
+	Edge* BestEdgeSelector::select(const Node *node) const noexcept
+	{
+		assert(node != nullptr);
+		assert(node->isLeaf() == false);
+		Edge *selected = node->end();
+		double bestValue = std::numeric_limits<double>::lowest();
+		for (Edge *edge = node->begin(); edge < node->end(); edge++)
+		{
+			double value = edge->getVisits() + (edge->getValue().win + style_factor * edge->getValue().draw) * node->getVisits()
+					+ 0.001 * edge->getPolicyPrior() + getProvenQ(edge) * 1.0e9;
+			if (value > bestValue)
+			{
+				selected = edge;
+				bestValue = value;
+			}
+		}
+		assert(selected != node->end()); // this must never happen
+		return selected;
+	}
+
 } /* namespace ag */
 

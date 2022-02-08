@@ -81,14 +81,14 @@ namespace ag
 			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
 			noise_weight(get_value<float>(cfg, "noise_weight", Defaults::use_endgame_solver)),
 			use_endgame_solver(get_value<bool>(cfg, "use_endgame_solver", Defaults::use_endgame_solver)),
-			use_vcf_solver(get_value<bool>(cfg, "use_vcf_solver", Defaults::use_vcf_solver))
+			vcf_solver_level(get_value<bool>(cfg, "use_vcf_solver", Defaults::vcf_solver_level))
 	{
 	}
 	Json SearchConfig::toJson() const
 	{
 		return Json( { { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "expansion_prior_treshold",
 				expansion_prior_treshold }, { "max_children", max_children }, { "noise_weight", noise_weight }, { "use_endgame_solver",
-				use_endgame_solver }, { "use_vcf_solver", use_vcf_solver } });
+				use_endgame_solver }, { "vcf_solver_level", vcf_solver_level } });
 	}
 
 	DeviceConfig::DeviceConfig(const Json &cfg) :

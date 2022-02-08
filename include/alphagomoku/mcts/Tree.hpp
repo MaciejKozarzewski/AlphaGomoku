@@ -36,6 +36,7 @@ namespace ag
 	{
 			uint64_t allocated_nodes = 0;
 			uint64_t used_nodes = 0;
+			uint64_t max_depth = 0;
 			uint64_t node_proven_loss = 0;
 			uint64_t node_proven_draw = 0;
 			uint64_t node_proven_win = 0;

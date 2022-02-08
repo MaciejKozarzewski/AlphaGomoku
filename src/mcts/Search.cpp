@@ -16,17 +16,6 @@
 
 #include <numeric>
 
-namespace
-{
-	using namespace ag;
-	bool is_terminal(const SearchTask &task)
-	{
-		if (task.visitedPathLength() == 0)
-			return false;
-		return task.getLastPair().edge->isProven();
-	}
-}
-
 namespace ag
 {
 	SearchStats::SearchStats() :
@@ -105,7 +94,7 @@ namespace ag
 
 		TimerGuard timer(stats.select);
 
-		const size_t batch_size = get_batch_size(tree.getSimulationCount());
+		const int batch_size = get_batch_size(tree.getSimulationCount());
 
 		active_task_count = 0;
 		while (active_task_count < batch_size and tree.getSimulationCount() < maxSimulations)
@@ -119,7 +108,7 @@ namespace ag
 			if (current_task.visitedPathLength() == 0)
 			{
 //				std::cout << "visited only root node\n";
-				break; // visited only root node
+				break;// visited only root node
 			}
 			if (is_duplicate(current_task))
 			{
@@ -144,30 +133,26 @@ namespace ag
 	{
 		TimerGuard timer(stats.evaluate);
 
-		if (search_config.use_vcf_solver)
-		{
-			for (size_t i = 0; i < active_task_count; i++)
-				if (is_terminal(search_tasks[i]) == false)
-					vcf_solver.solve(search_tasks[i]);
-		}
+		for (int i = 0; i < active_task_count; i++)
+			vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level);
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
 	{
 		TimerGuard timer(stats.schedule);
-		for (size_t i = 0; i < active_task_count; i++)
+		for (int i = 0; i < active_task_count; i++)
 			if (search_tasks[i].isReady() == false)
 				evaluator.addToQueue(search_tasks.at(i));
 	}
 	void Search::generateEdges(const Tree &tree)
 	{
 		TimerGuard timer(stats.generate);
-		for (size_t i = 0; i < active_task_count; i++)
+		for (int i = 0; i < active_task_count; i++)
 			tree.generateEdges(search_tasks[i]);
 	}
 	void Search::expand(Tree &tree)
 	{
 		TimerGuard timer(stats.expand);
-		for (size_t i = 0; i < active_task_count; i++)
+		for (int i = 0; i < active_task_count; i++)
 		{
 			ExpandOutcome out = tree.expand(search_tasks[i]);
 			stats.nb_wasted_expansions += static_cast<uint64_t>(out == ExpandOutcome::ALREADY_EXPANDED);
@@ -230,12 +215,12 @@ namespace ag
 	void Search::backup(Tree &tree)
 	{
 		TimerGuard timer(stats.backup);
-		for (size_t i = 0; i < active_task_count; i++)
+		for (int i = 0; i < active_task_count; i++)
 			tree.backup(search_tasks[i]);
 	}
 	void Search::cleanup(Tree &tree)
 	{
-		for (size_t i = 0; i < active_task_count; i++)
+		for (int i = 0; i < active_task_count; i++)
 			tree.cancelVirtualLoss(search_tasks[i]);
 	}
 	/*
@@ -251,21 +236,23 @@ namespace ag
 	SearchTask& Search::get_next_task()
 	{
 		active_task_count++;
-		if (active_task_count > search_tasks.size())
+		if (active_task_count > static_cast<int>(search_tasks.size()))
 			search_tasks.push_back(SearchTask(game_config.rules));
 		return search_tasks[active_task_count - 1];
 	}
 	void Search::correct_information_leak(SearchTask &task) const
 	{
 		assert(task.visitedPathLength() > 0);
+
 		Edge *edge = task.getLastPair().edge;
 		Node *node = edge->getNode();
 		assert(node != nullptr);
 		Value edgeQ = edge->getValue();
-		Value nodeQ = node->getValue();
+		Value nodeQ = node->getValue().getInverted(); // edgeQ should be equal to 1 - nodeQ
 
-		task.setValue((nodeQ - edgeQ) * edge->getVisits() + nodeQ);
-		task.getLastPair().edge->setProvenValue(node->getProvenValue());
+		Value v = (nodeQ - edgeQ) * edge->getVisits() + nodeQ;
+		task.setValue(v.getInverted()); // the leak is between the current node and the edge that leads to it
+		task.getLastPair().edge->setProvenValue(invert(node->getProvenValue()));
 		task.setReady();
 	}
 	bool Search::is_duplicate(const SearchTask &task) const noexcept
@@ -445,7 +432,7 @@ namespace ag
 			return true; // do not expand proven nodes
 
 		moves_to_add.clear();
-		if (search_config.use_vcf_solver)
+		if (search_config.vcf_solver_level)
 		{
 			double start = getTime(); // statistics
 			vcf_solver.setBoard(position.getBoard(), position.getSignToMove());

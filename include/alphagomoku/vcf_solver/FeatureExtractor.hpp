@@ -126,7 +126,7 @@ namespace ag
 			FeatureExtractor(GameConfig gameConfig);
 
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
-			void solve(SearchTask &task);
+			void solve(SearchTask &task, int level = 0);
 			ProvenValue solve(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList);
 
 			uint32_t getFeatureAt(int row, int col, Direction dir) const noexcept;

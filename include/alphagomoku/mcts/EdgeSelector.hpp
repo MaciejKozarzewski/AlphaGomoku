@@ -87,7 +87,7 @@ namespace ag
 		private:
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
-			ValueSelector(float styleFactor);
+			ValueSelector(float styleFactor = 0.5f);
 			ValueSelector* clone() const;
 			Edge* select(const Node *node) const noexcept;
 	};
@@ -99,6 +99,19 @@ namespace ag
 	{
 		public:
 			VisitSelector* clone() const;
+			Edge* select(const Node *node) const noexcept;
+	};
+
+	/**
+	 * @brief Edge selector that chooses edge that is considered to be the best.
+	 */
+	class BestEdgeSelector: public EdgeSelector
+	{
+		private:
+			const float style_factor; /**< used to determine what to optimize during search */
+		public:
+			BestEdgeSelector(float styleFactor = 0.5f);
+			BestEdgeSelector* clone() const;
 			Edge* select(const Node *node) const noexcept;
 	};
 

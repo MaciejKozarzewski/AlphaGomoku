@@ -58,7 +58,7 @@ namespace ag
 	{
 		private:
 			std::vector<SearchTask> search_tasks;
-			size_t active_task_count = 0;
+			int active_task_count = 0;
 
 			FeatureExtractor vcf_solver;
 

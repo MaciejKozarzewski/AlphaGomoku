@@ -76,7 +76,7 @@ namespace ag
 					static constexpr int max_children = std::numeric_limits<int>::max();
 					static constexpr float noise_weight = 0.0f;
 					static constexpr bool use_endgame_solver = false;
-					static constexpr bool use_vcf_solver = false;
+					static constexpr int vcf_solver_level = 0;
 			};
 		public:
 			int max_batch_size = Defaults::max_batch_size;
@@ -85,7 +85,7 @@ namespace ag
 			int max_children = Defaults::max_children;
 			float noise_weight = Defaults::noise_weight;
 			bool use_endgame_solver = Defaults::use_endgame_solver;
-			bool use_vcf_solver = Defaults::use_vcf_solver;
+			int vcf_solver_level = Defaults::vcf_solver_level; /**< 0 - only terminal moves, 1 - static evaluation, 2 - recursive search */
 
 			SearchConfig() = default;
 			SearchConfig(const Json &cfg);

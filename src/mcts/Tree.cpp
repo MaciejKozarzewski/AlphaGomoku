@@ -247,6 +247,10 @@ namespace
 		}
 	}
 
+	bool is_terminal(const Edge *edge) noexcept
+	{
+		return edge->isProven() and edge->isLeaf();
+	}
 	bool is_information_leak(const Edge *edge, const Node *node) noexcept
 	{
 		constexpr float leak_threshold = 0.01f;
@@ -254,9 +258,9 @@ namespace
 		assert(edge->getNode() == node); // ensure that they are linked
 		if (node == nullptr)
 			return false; // the edge is a leaf so there is no information leak
-		if (edge->getProvenValue() != node->getProvenValue())
+		if (edge->getProvenValue() != invert(node->getProvenValue()))
 			return true;
-		if ((edge->getValue() - node->getValue()).abs() >= leak_threshold)
+		if ((edge->getValue() - node->getValue().getInverted()).abs() >= leak_threshold)
 			return true;
 		return false;
 	}
@@ -264,7 +268,7 @@ namespace
 	{
 		assert(edge != nullptr);
 		assert(edge->isLeaf() == false);
-		edge->setProvenValue(edge->getNode()->getProvenValue());
+		edge->setProvenValue(invert(edge->getNode()->getProvenValue()));
 	}
 	bool update_proven_value(Node *node) noexcept
 	{
@@ -280,7 +284,7 @@ namespace
 			unknown_count += static_cast<int>(edge->getProvenValue() == ProvenValue::UNKNOWN);
 			if (edge->getProvenValue() == ProvenValue::WIN)
 			{
-				node->setProvenValue(ProvenValue::LOSS);
+				node->setProvenValue(ProvenValue::WIN);
 				return true;
 			}
 			if (edge->getProvenValue() == ProvenValue::DRAW)
@@ -291,7 +295,7 @@ namespace
 			if (has_draw_child)
 				node->setProvenValue(ProvenValue::DRAW);
 			else
-				node->setProvenValue(ProvenValue::WIN);
+				node->setProvenValue(ProvenValue::LOSS);
 		}
 		else
 			return false;
@@ -343,6 +347,7 @@ namespace ag
 		std::string result = "----TreeStats----\n";
 		result += "used nodes      = " + std::to_string(used_nodes) + '\n';
 		result += "allocated nodes = " + std::to_string(allocated_nodes) + '\n';
+		result += "maximum depth   = " + std::to_string(max_depth) + '\n';
 		result += "proven nodes    = " + std::to_string(node_proven_win) + " : " + std::to_string(node_proven_draw) + " : "
 				+ std::to_string(node_proven_loss) + " (win:draw:loss)\n";
 		result += "proven edges    = " + std::to_string(edge_proven_win) + " : " + std::to_string(edge_proven_draw) + " : "
@@ -461,6 +466,7 @@ namespace ag
 		{
 			assert(edge_selector != nullptr);
 			Edge *edge = edge_selector->select(node);
+			assert(is_terminal(edge) == false);
 			task.append(node, edge);
 			edge->increaseVirtualLoss();
 
@@ -524,12 +530,12 @@ namespace ag
 			if (pair.edge->getMove().sign == task.getSignToMove())
 			{
 				pair.node->updateValue(value);
-				pair.edge->updateValue(value.getInverted());
+				pair.edge->updateValue(value);
 			}
 			else
 			{
 				pair.node->updateValue(value.getInverted());
-				pair.edge->updateValue(value);
+				pair.edge->updateValue(value.getInverted());
 			}
 			pair.edge->decreaseVirtualLoss();
 		}
@@ -549,7 +555,11 @@ namespace ag
 	}
 	void Tree::printSubtree(int depth, bool sort, int top_n) const
 	{
-		int max_print_depth = depth + ((root_node == nullptr) ? 0 : root_node->getDepth());
+		int max_print_depth;
+		if (depth < 0)
+			max_print_depth = std::numeric_limits<int>::max();
+		else
+			max_print_depth = depth + ((root_node == nullptr) ? 0 : root_node->getDepth());
 		print_node(root_node, max_print_depth, sort, top_n, 0);
 	}
 
@@ -582,6 +592,7 @@ namespace ag
 		TreeStats result;
 		result.allocated_nodes = node_cache.allocatedElements();
 		result.used_nodes = node_cache.storedElements();
+		result.max_depth = max_depth;
 		calculate_proven_stats(root_node, result);
 		return result;
 	}

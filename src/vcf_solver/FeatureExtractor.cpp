@@ -256,7 +256,7 @@ namespace ag
 		get_threat_lists();
 		root_depth = board.rows() * board.cols() - std::count(board.begin(), board.end(), Sign::NONE);
 	}
-	void FeatureExtractor::solve(SearchTask &task)
+	void FeatureExtractor::solve(SearchTask &task, int level)
 	{
 		setBoard(task.getBoard(), task.getSignToMove());
 
@@ -265,17 +265,40 @@ namespace ag
 		{
 			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
 				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN);
+			task.setValue(Value(1.0f, 0.0, 0.0f));
 			task.setReady();
-			return; // it is instant win
+			return; // it is a win in 1 ply
 		}
+		if (root_depth + 1 == game_config.rows * game_config.cols) // this is the last move before the board is full
+		{
+			Move m;
+			for (int row = 0; row < game_config.rows; row++)
+				for (int col = 0; col < game_config.cols; col++)
+					if (internal_board.at(pad + row, pad + col) == 0)
+						m = Move(sign_to_move, row, col);
+			task.addProvenEdge(m, ProvenValue::DRAW);
+			task.setValue(Value(0.0f, 1.0, 0.0f));
+			task.setReady();
+			return; // it is a draw
+		}
+		if (level <= 0)
+			return; // only winning or draw moves will be found
+
 		std::vector<Move> &opponent_five = (sign_to_move == Sign::CROSS) ? circle_five : cross_five;
 		if (opponent_five.size() > 0) // opponent can make a five
 		{
-			ProvenValue pv = (opponent_five.size() > 1) ? ProvenValue::LOSS : ProvenValue::UNKNOWN;
-			for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
-				task.addProvenEdge(Move(sign_to_move, *iter), pv);
 			if (opponent_five.size() > 1)
+			{
+				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
+					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::LOSS);
+				task.setValue(Value(0.0f, 0.0, 1.0f));
 				task.setReady(); // the state is provably losing, there is no need to further evaluate it
+			}
+			else
+			{
+				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
+					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
+			}
 			return;
 		}
 
@@ -283,7 +306,8 @@ namespace ag
 		if (own_open_four.size() > 0) // can make an open four, but it was already checked that opponent cannot make any five
 		{
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
-				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN); // it is win in 3 plys
+				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN); // it is a win in 3 plys
+			task.setValue(Value(1.0f, 0.0, 0.0f));
 			task.setReady();
 			return;
 		}
@@ -300,13 +324,17 @@ namespace ag
 
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++)
 			{
-				bool is_already_added = std::any_of(task.getProvenEdges().begin(), task.getProvenEdges().end(), [iter](const Edge &edge)
-				{	return edge.getMove() == *iter;}); // find if such move has been added in any of two loops above
+				Move move_to_be_added(sign_to_move, *iter);
+				bool is_already_added = std::any_of(task.getProvenEdges().begin(), task.getProvenEdges().end(), [move_to_be_added](const Edge &edge)
+				{	return edge.getMove() == move_to_be_added;}); // find if such move has been added in any of two loops above
 				if (not is_already_added) // move must not be added twice
-					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
+					task.addProvenEdge(move_to_be_added, ProvenValue::UNKNOWN);
 			}
 			return;
 		}
+
+		if (level <= 1)
+			return; // winning and forced moves will be found
 
 		if (own_open_four.size() + own_half_open_four.size() == 0)
 			return; // there are not threats that we can make
@@ -328,6 +356,7 @@ namespace ag
 			for (auto iter = nodes_buffer[0].children; iter < nodes_buffer[0].children + nodes_buffer[0].number_of_children; iter++)
 				if (iter->solved_value == SolvedValue::SOLVED_WIN)
 					task.addProvenEdge(Move(sign_to_move, iter->move), ProvenValue::WIN);
+			task.setValue(Value(1.0f, 0.0, 0.0f));
 			task.setReady();
 		}
 	}

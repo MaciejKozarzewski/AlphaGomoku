@@ -86,7 +86,8 @@ namespace ag
 	{
 		assert(index >= 0 && index < input_on_cpu->firstDim());
 		std::memcpy(policy.data(), policy_on_cpu->data<float>( { index, 0 }), policy.sizeInBytes());
-		return Value(value_on_cpu->get<float>( { index, 0 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 2 }));
+//		return Value(value_on_cpu->get<float>( { index, 0 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 2 }));
+		return Value(value_on_cpu->get<float>( { index, 2 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 0 }));
 	}
 
 	void AGNetwork::forward(int batch_size)
