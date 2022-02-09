@@ -36,7 +36,9 @@ namespace ag
 	{
 			uint64_t allocated_nodes = 0;
 			uint64_t used_nodes = 0;
-			uint64_t max_depth = 0;
+			uint64_t allocated_edges = 0;
+			uint64_t used_edges = 0;
+			int max_depth = 0;
 			uint64_t node_proven_loss = 0;
 			uint64_t node_proven_draw = 0;
 			uint64_t node_proven_win = 0;
@@ -87,7 +89,8 @@ namespace ag
 			int base_depth = 0;
 			Sign sign_to_move = Sign::NONE;
 
-			int max_depth = 0;
+			TreeConfig config;
+			TreeStats stats;
 		public:
 			Tree(TreeConfig treeOptions);
 			~Tree();
@@ -103,7 +106,7 @@ namespace ag
 
 			SelectOutcome select(SearchTask &task);
 			void generateEdges(SearchTask &task) const;
-			ExpandOutcome expand(const SearchTask &task);
+			ExpandOutcome expand(SearchTask &task);
 			void backup(const SearchTask &task);
 			void cancelVirtualLoss(SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
@@ -112,7 +115,9 @@ namespace ag
 			Sign getSignToMove() const noexcept;
 
 			NodeInfo getInfo(const std::vector<Move> &moves) const;
+			void clearTreeStats() noexcept;
 			TreeStats getTreeStats() const noexcept;
+			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
 		private:
 			/*
@@ -127,6 +132,10 @@ namespace ag
 			 * \brief Remove given node from the tree, freeing its edges and removing from cache.
 			 */
 			void remove_from_tree(Node *node, const matrix<Sign> &tmpBoard);
+			/*
+			 * \brief Calculates proper value if an information leak was found
+			 */
+			void correct_information_leak(SearchTask &task) const;
 	};
 
 	class TreeLock

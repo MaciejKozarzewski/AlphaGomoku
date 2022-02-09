@@ -20,6 +20,7 @@ namespace ag
 			uint64_t hits = 0;
 			uint64_t calls = 0;
 			uint64_t collisions = 0;
+			double load_factor = 0.0;
 
 			TimedStat seek;
 			TimedStat insert;

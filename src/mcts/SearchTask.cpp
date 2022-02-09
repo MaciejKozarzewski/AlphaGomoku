@@ -46,6 +46,13 @@ namespace ag
 		assert(visitedPathLength() > 0);
 		return visited_path.back();
 	}
+	Edge* SearchTask::getLastEdge() const noexcept
+	{
+		if (visited_path.size() == 0)
+			return nullptr;
+		else
+			return visited_path.back().edge;
+	}
 
 	const std::vector<Edge>& SearchTask::getProvenEdges() const noexcept
 	{

@@ -213,12 +213,12 @@ namespace
 	{
 		if (node == nullptr)
 			return;
-		std::cout << node->toString() << '\n';
 		if (max_depth != -1 and node->getDepth() <= max_depth)
 		{
 			if (sort)
 				node->sortEdges();
 
+			std::cout << node->toString() << '\n';
 			if (top_n == -1 || 2 * top_n >= node->numberOfEdges())
 			{
 				for (int i = 0; i < node->numberOfEdges(); i++)
@@ -237,9 +237,10 @@ namespace
 		}
 		else
 		{
-			for (int i = 0; i < prefix; i++)
-				std::cout << "|     ";
-			std::cout << "└──... (subtree skipped)\n";
+//			for (int i = 0; i < prefix; i++)
+//				std::cout << "|     ";
+//			std::cout << "└──... (subtree skipped)\n";
+			std::cout << "... (subtree skipped)\n";
 			for (int i = 0; i < prefix; i++)
 				std::cout << "|     ";
 			std::cout << '\n';
@@ -347,6 +348,8 @@ namespace ag
 		std::string result = "----TreeStats----\n";
 		result += "used nodes      = " + std::to_string(used_nodes) + '\n';
 		result += "allocated nodes = " + std::to_string(allocated_nodes) + '\n';
+		result += "used edge       = " + std::to_string(used_edges) + '\n';
+		result += "allocated edges = " + std::to_string(allocated_edges) + '\n';
 		result += "maximum depth   = " + std::to_string(max_depth) + '\n';
 		result += "proven nodes    = " + std::to_string(node_proven_win) + " : " + std::to_string(node_proven_draw) + " : "
 				+ std::to_string(node_proven_loss) + " (win:draw:loss)\n";
@@ -358,6 +361,8 @@ namespace ag
 	{
 		this->allocated_nodes += other.allocated_nodes;
 		this->used_nodes += other.used_nodes;
+		this->allocated_edges += other.allocated_edges;
+		this->used_edges += other.used_edges;
 		this->node_proven_loss += other.node_proven_loss;
 		this->node_proven_draw += other.node_proven_draw;
 		this->node_proven_win += other.node_proven_win;
@@ -370,6 +375,8 @@ namespace ag
 	{
 		this->allocated_nodes /= i;
 		this->used_nodes /= i;
+		this->allocated_edges /= i;
+		this->used_edges /= i;
 		this->node_proven_loss /= i;
 		this->node_proven_draw /= i;
 		this->node_proven_win /= i;
@@ -391,7 +398,8 @@ namespace ag
 		}
 	}
 
-	Tree::Tree(TreeConfig treeOptions)
+	Tree::Tree(TreeConfig treeOptions) :
+			config(treeOptions)
 	{
 	}
 	Tree::~Tree()
@@ -411,13 +419,13 @@ namespace ag
 		else
 		{
 			delete_subtree(root_node, tmp_board);
-			node_cache = NodeCache(newBoard.rows(), newBoard.cols());
+			node_cache = NodeCache(newBoard.rows(), newBoard.cols(), config.cache_size);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
 
 		root_node = node_cache.seek(base_board, sign_to_move);
-		max_depth = 0;
+		stats.max_depth = 0;
 	}
 	void Tree::setEdgeSelector(const EdgeSelector &selector)
 	{
@@ -437,7 +445,7 @@ namespace ag
 	}
 	int Tree::getMaximumDepth() const noexcept
 	{
-		return max_depth;
+		return stats.max_depth;
 	}
 	bool Tree::isProven() const noexcept
 	{
@@ -479,9 +487,12 @@ namespace ag
 			}
 
 			if (is_information_leak(edge, node))
+			{
+				correct_information_leak(task);
 				return SelectOutcome::INFORMATION_LEAK;
+			}
 		}
-		max_depth = std::max(max_depth, task.visitedPathLength());
+		stats.max_depth = std::max(stats.max_depth, task.visitedPathLength());
 		return SelectOutcome::REACHED_LEAF;
 	}
 	void Tree::generateEdges(SearchTask &task) const
@@ -489,36 +500,52 @@ namespace ag
 		assert(edge_generator != nullptr);
 		edge_generator->generate(task);
 	}
-	ExpandOutcome Tree::expand(const SearchTask &task)
+	ExpandOutcome Tree::expand(SearchTask &task)
 	{
 		assert(task.isReady());
-		if (task.visitedPathLength() > 0)
+//		if (task.visitedPathLength() > 0)
+//		{
+//			if (task.getLastEdge()->isLeaf() == false)
+//				return ExpandOutcome::ALREADY_EXPANDED; // can happen either because of multithreading or minibatch evaluation
+//		}
+//		else
+//		{
+//			if (task.getLastEdge() == nullptr)
+//				return ExpandOutcome::ALREADY_EXPANDED; // rare case if the tree has just been initialized but root node was already evaluated
+//		}
+
+		Node *node_to_add = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
+		if (node_to_add == nullptr) // if not found in the cache
 		{
-			if (task.getLastPair().edge->isLeaf() == false)
-				return ExpandOutcome::ALREADY_EXPANDED; // can happen either because of multithreading or minibatch evaluation
+			const size_t number_of_moves = task.getEdges().size();
+			assert(number_of_moves > 0);
+			Edge *new_edges = edge_pool.allocate(number_of_moves);
+			for (size_t i = 0; i < number_of_moves; i++)
+				new_edges[i] = task.getEdges()[i];
+
+			node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove());
+			node_to_add->setEdges(new_edges, number_of_moves);
+			node_to_add->updateValue(task.getValue());
+			update_proven_value(node_to_add);
+
+			if (task.visitedPathLength() > 0)
+				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
+			else
+				root_node = node_to_add; // if no pairs were visited, it means that the tree is empty
+
+			stats.used_nodes++;
+			stats.used_edges += number_of_moves;
+			return ExpandOutcome::SUCCESS;
 		}
 		else
 		{
-			if (root_node != nullptr)
-				return ExpandOutcome::ALREADY_EXPANDED; // rare case if the tree has just been initialized but root node was already evaluated
+			// this can happen if the same state was encountered from different paths within the same batch
+			assert(task.visitedPathLength() > 0); // it is not possible to re-encounter the same state if there is no root node
+			task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
+			if (is_information_leak(task.getLastEdge(), node_to_add))
+				correct_information_leak(task);
+			return ExpandOutcome::ALREADY_EXPANDED;
 		}
-
-		const size_t number_of_moves = task.getEdges().size();
-		assert(number_of_moves > 0);
-		Edge *new_edges = edge_pool.allocate(number_of_moves);
-		for (size_t i = 0; i < number_of_moves; i++)
-			new_edges[i] = task.getEdges()[i];
-
-		Node *node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove());
-		node_to_add->setEdges(new_edges, number_of_moves);
-		node_to_add->updateValue(task.getValue());
-		update_proven_value(node_to_add);
-
-		if (task.visitedPathLength() > 0)
-			task.getLastPair().edge->setNode(node_to_add); // make last visited edge point to the newly added node
-		else
-			root_node = node_to_add; // if no pairs were visited, it means that the tree is empty
-		return ExpandOutcome::SUCCESS;
 	}
 	void Tree::backup(const SearchTask &task)
 	{
@@ -587,14 +614,25 @@ namespace ag
 		}
 		return NodeInfo(node);
 	}
+//	TreeStats Tree::getTreeStats() const noexcept
+//	{
+//		TreeStats result;
+//		result.allocated_nodes = node_cache.allocatedElements();
+//		result.used_nodes = node_cache.storedElements();
+//		calculate_proven_stats(root_node, result);
+//		return result;
+//	}
+	void Tree::clearTreeStats() noexcept
+	{
+		stats = TreeStats();
+	}
 	TreeStats Tree::getTreeStats() const noexcept
 	{
-		TreeStats result;
-		result.allocated_nodes = node_cache.allocatedElements();
-		result.used_nodes = node_cache.storedElements();
-		result.max_depth = max_depth;
-		calculate_proven_stats(root_node, result);
-		return result;
+		return stats;
+	}
+	void Tree::clearNodeCacheStats() noexcept
+	{
+		node_cache.clearStats();
 	}
 	NodeCacheStats Tree::getNodeCacheStats() const noexcept
 	{
@@ -648,9 +686,26 @@ namespace ag
 	}
 	void Tree::remove_from_tree(Node *node, const matrix<Sign> &tmpBoard)
 	{
+		stats.used_nodes--;
+		stats.used_edges -= node->numberOfEdges();
 		node_cache.remove(tmpBoard, node->getSignToMove()); // cache operations optionally check validity of the board state using edges of the node
 		edge_pool.free(node->begin(), node->numberOfEdges()); // this is why freeing edges must occur after removal from cache
 		node->clear();
+	}
+	void Tree::correct_information_leak(SearchTask &task) const
+	{
+		assert(task.visitedPathLength() > 0);
+
+		Edge *edge = task.getLastEdge();
+		Node *node = edge->getNode();
+		assert(node != nullptr);
+		Value edgeQ = edge->getValue();
+		Value nodeQ = node->getValue().getInverted(); // edgeQ should be equal to 1 - nodeQ
+
+		Value v = (nodeQ - edgeQ) * edge->getVisits() + nodeQ;
+		task.setValue(v.getInverted()); // the leak is between the current node and the edge that leads to it
+		task.getLastEdge()->setProvenValue(invert(node->getProvenValue()));
+		task.setReady();
 	}
 
 	Tree_old::Tree_old(TreeConfig treeOptions) :

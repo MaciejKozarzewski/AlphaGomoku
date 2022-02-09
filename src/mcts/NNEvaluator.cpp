@@ -130,7 +130,6 @@ namespace ag
 	void NNEvaluator::pack_to_network(int batch_size)
 	{
 		TimerGuard timer(stats.pack);
-
 		matrix<Sign> board(network.getGraph().getInputShape()[1], network.getGraph().getInputShape()[2]);
 		for (int i = 0; i < batch_size; i++)
 		{
@@ -146,7 +145,6 @@ namespace ag
 	void NNEvaluator::unpack_from_network(int batch_size)
 	{
 		TimerGuard timer(stats.unpack);
-
 		matrix<float> policy(network.getGraph().getInputShape()[1], network.getGraph().getInputShape()[2]);
 		for (int i = 0; i < batch_size; i++)
 		{

@@ -26,6 +26,7 @@ namespace ag
 			result += "hit rate = N/A\n";
 		else
 			result += "hit rate = " + std::to_string(static_cast<int>(1000.0 * static_cast<double>(hits) / calls) / 10.0) + "%\n";
+		result += "load factor = " + std::to_string(static_cast<int>(1000.0 * load_factor) / 1000.0) + "\n";
 		result += seek.toString() + '\n';
 		result += insert.toString() + '\n';
 		result += remove.toString() + '\n';
@@ -104,7 +105,9 @@ namespace ag
 	}
 	NodeCacheStats NodeCache::getStats() const noexcept
 	{
-		return stats;
+		NodeCacheStats result = stats;
+		result.load_factor = this->loadFactor();
+		return result;
 	}
 
 	uint64_t NodeCache::getMemory() const noexcept

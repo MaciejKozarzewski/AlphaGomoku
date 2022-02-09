@@ -79,9 +79,11 @@ namespace ag
 
 	void Search::clearStats() noexcept
 	{
+		stats = SearchStats();
 	}
 	void Search::printSolverStats() const
 	{
+		vcf_solver.print_stats();
 	}
 	SearchStats Search::getStats() const noexcept
 	{
@@ -91,39 +93,28 @@ namespace ag
 	void Search::select(Tree &tree, int maxSimulations)
 	{
 		assert(maxSimulations > 0);
-
-		TimerGuard timer(stats.select);
-
 		const int batch_size = get_batch_size(tree.getSimulationCount());
 
 		active_task_count = 0;
 		while (active_task_count < batch_size and tree.getSimulationCount() < maxSimulations)
 		{
+			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_next_task();
 
 			SelectOutcome out = tree.select(current_task);
 
-//			std::cout << "\nsimulation " << tree.getSimulationCount() << '\n' << current_task.toString() << '\n';
-
 			if (current_task.visitedPathLength() == 0)
-			{
-//				std::cout << "visited only root node\n";
-				break;// visited only root node
-			}
+				break; // visited only root node
 			if (is_duplicate(current_task))
 			{
-//				std::cout << "duplicate node\n";
 				tree.cancelVirtualLoss(current_task);
 				active_task_count--;
 				stats.nb_duplicate_nodes++;
 				break;
 			}
-
 			if (out == SelectOutcome::INFORMATION_LEAK)
 			{
-//				std::cout << "information leak\n";
 				stats.nb_information_leaks++;
-				correct_information_leak(current_task);
 				tree.backup(current_task);
 				active_task_count--;
 			}
@@ -131,29 +122,37 @@ namespace ag
 	}
 	void Search::tryToSolve()
 	{
-		TimerGuard timer(stats.evaluate);
-
 		for (int i = 0; i < active_task_count; i++)
+		{
+			TimerGuard timer(stats.evaluate);
 			vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level);
+		}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
 	{
-		TimerGuard timer(stats.schedule);
 		for (int i = 0; i < active_task_count; i++)
+		{
+			TimerGuard timer(stats.schedule);
 			if (search_tasks[i].isReady() == false)
 				evaluator.addToQueue(search_tasks.at(i));
+		}
 	}
 	void Search::generateEdges(const Tree &tree)
 	{
-		TimerGuard timer(stats.generate);
 		for (int i = 0; i < active_task_count; i++)
+		{
+			TimerGuard timer(stats.generate);
 			tree.generateEdges(search_tasks[i]);
+		}
 	}
 	void Search::expand(Tree &tree)
 	{
-		TimerGuard timer(stats.expand);
+//		std::cout << "-----------------------------------------------------------------------------------\n";
 		for (int i = 0; i < active_task_count; i++)
 		{
+			TimerGuard timer(stats.expand);
+//			std::cout << search_tasks[i].getLastEdge() << '\n';
+//			std::cout << search_tasks[i].toString() << '\n' << std::endl;
 			ExpandOutcome out = tree.expand(search_tasks[i]);
 			stats.nb_wasted_expansions += static_cast<uint64_t>(out == ExpandOutcome::ALREADY_EXPANDED);
 		}
@@ -214,9 +213,11 @@ namespace ag
 	}
 	void Search::backup(Tree &tree)
 	{
-		TimerGuard timer(stats.backup);
 		for (int i = 0; i < active_task_count; i++)
+		{
+			TimerGuard timer(stats.backup);
 			tree.backup(search_tasks[i]);
+		}
 	}
 	void Search::cleanup(Tree &tree)
 	{
@@ -228,10 +229,12 @@ namespace ag
 	 */
 	int Search::get_batch_size(int simulation_count) const noexcept
 	{
-		int result = 2;
-		for (int i = 1; i < simulation_count; i *= 10)
-			result *= 2; // doubling batch size for every 10x increase of simulations count
-		return std::min(search_config.max_batch_size, result);
+//		int result = 2;
+		int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
+		return std::max(1, std::min(search_config.max_batch_size, tmp));
+//		for (int i = 1; i < simulation_count; i *= 10)
+//			result *= 2; // doubling batch size for every 10x increase of simulations count
+//		return std::min(search_config.max_batch_size, result);
 	}
 	SearchTask& Search::get_next_task()
 	{
@@ -239,21 +242,6 @@ namespace ag
 		if (active_task_count > static_cast<int>(search_tasks.size()))
 			search_tasks.push_back(SearchTask(game_config.rules));
 		return search_tasks[active_task_count - 1];
-	}
-	void Search::correct_information_leak(SearchTask &task) const
-	{
-		assert(task.visitedPathLength() > 0);
-
-		Edge *edge = task.getLastPair().edge;
-		Node *node = edge->getNode();
-		assert(node != nullptr);
-		Value edgeQ = edge->getValue();
-		Value nodeQ = node->getValue().getInverted(); // edgeQ should be equal to 1 - nodeQ
-
-		Value v = (nodeQ - edgeQ) * edge->getVisits() + nodeQ;
-		task.setValue(v.getInverted()); // the leak is between the current node and the edge that leads to it
-		task.getLastPair().edge->setProvenValue(invert(node->getProvenValue()));
-		task.setReady();
 	}
 	bool Search::is_duplicate(const SearchTask &task) const noexcept
 	{

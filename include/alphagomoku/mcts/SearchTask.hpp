@@ -53,6 +53,7 @@ namespace ag
 
 			NodeEdgePair getPair(int index) const noexcept;
 			NodeEdgePair getLastPair() const noexcept;
+			Edge* getLastEdge() const noexcept;
 
 			const std::vector<Edge>& getProvenEdges() const noexcept;
 			std::vector<Edge>& getProvenEdges() noexcept;

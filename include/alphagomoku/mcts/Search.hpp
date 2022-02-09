@@ -82,7 +82,6 @@ namespace ag
 		private:
 			int get_batch_size(int simulation_count) const noexcept;
 			SearchTask& get_next_task();
-			void correct_information_leak(SearchTask &task) const;
 			bool is_duplicate(const SearchTask &task) const noexcept;
 	};
 
