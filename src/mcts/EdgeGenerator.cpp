@@ -51,16 +51,21 @@ namespace
 			Board::undoMove(task.getBoard(), move);
 
 			edge.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
-			edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
-			edge.setValue(task.getActionValues().at(move.row, move.col));
+//			edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
+//			edge.setValue(task.getActionValues().at(move.row, move.col));
 		}
 	}
-	void correct_proven_edge(Edge &edge) noexcept
+	void assign_policy_and_Q(SearchTask &task, Edge &edge) noexcept
 	{
 		switch (edge.getProvenValue())
 		{
 			case ProvenValue::UNKNOWN:
+			{
+				Move move = edge.getMove();
+				edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
+				edge.setValue(task.getActionValues().at(move.row, move.col));
 				break;
+			}
 			case ProvenValue::LOSS:
 			{
 				edge.setPolicyPrior(1.0e-6f); // setting zero would crash renormalization in case when all moves are provably losing as the policy sum would be 0
@@ -121,8 +126,51 @@ namespace ag
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 		{
 			check_terminal_conditions(task, *edge);
-			correct_proven_edge(*edge);
+			assign_policy_and_Q(task, *edge);
 		}
+
+		exclude_weak_moves(task.getEdges(), max_edges);
+
+		renormalize_edges(task.getEdges());
+		assert(task.getEdges().size() > 0);
+	}
+
+	SolverGenerator::SolverGenerator() :
+			policy_threshold(0.0f),
+			max_edges(std::numeric_limits<int>::max())
+	{
+	}
+	SolverGenerator::SolverGenerator(float policyThreshold, int maxEdges) :
+			policy_threshold(policyThreshold),
+			max_edges(maxEdges)
+	{
+	}
+	SolverGenerator* SolverGenerator::clone() const
+	{
+		return new SolverGenerator(policy_threshold, max_edges);
+	}
+	void SolverGenerator::generate(SearchTask &task) const
+	{
+		assert(task.isReady());
+
+		if (task.getProvenEdges().size() > 0)
+		{
+			for (size_t i = 0; i < task.getProvenEdges().size(); i++)
+				task.addEdge(task.getProvenEdges()[i]);
+		}
+		else
+		{
+			if (not contains_winning_edge(task.getEdges()))
+			{
+				for (int row = 0; row < task.getBoard().rows(); row++)
+					for (int col = 0; col < task.getBoard().cols(); col++)
+						if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policy_threshold)
+							task.addEdge(Move(row, col, task.getSignToMove()));
+			}
+		}
+
+		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+			assign_policy_and_Q(task, *edge);
 
 		exclude_weak_moves(task.getEdges(), max_edges);
 

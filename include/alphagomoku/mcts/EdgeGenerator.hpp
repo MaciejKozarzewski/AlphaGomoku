@@ -44,6 +44,22 @@ namespace ag
 			void generate(SearchTask &task) const;
 	};
 
+	/**
+	 * \brief Generator that assumes that VCF solver was run on the given task.
+	 * It is because VCF solver has the ability to check for game end conditions, eliminating the need to do it again during edge generation.
+	 */
+	class SolverGenerator: public EdgeGenerator
+	{
+		private:
+			float policy_threshold;
+			int max_edges;
+		public:
+			SolverGenerator();
+			SolverGenerator(float policyThreshold, int maxEdges);
+			SolverGenerator* clone() const;
+			void generate(SearchTask &task) const;
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_EDGEGENERATOR_HPP_ */
