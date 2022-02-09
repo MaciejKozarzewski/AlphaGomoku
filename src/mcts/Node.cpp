@@ -56,12 +56,6 @@ namespace ag
 			return lhs_value > rhs_value;
 		});
 	}
-	Node Node::copyInfo() const noexcept
-	{
-		Node result(*this);
-		result.edges = nullptr;
-		return result;
-	}
 
 	std::string Node_old::toString() const
 	{

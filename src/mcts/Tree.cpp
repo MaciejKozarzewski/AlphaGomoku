@@ -386,26 +386,9 @@ namespace ag
 		return *this;
 	}
 
-	NodeInfo::NodeInfo(const Node *n)
-	{
-		if (n != nullptr)
-		{
-			edges.reserve(n->numberOfEdges());
-			for (auto edge = n->begin(); edge < n->end(); edge++)
-				edges.push_back(edge->copyInfo());
-			node = n->copyInfo();
-			node.setEdges(edges.data(), edges.size());
-		}
-	}
-
 	Tree::Tree(TreeConfig treeOptions) :
 			config(treeOptions)
 	{
-	}
-	Tree::~Tree()
-	{
-		matrix<Sign> tmp_board = base_board;
-		delete_subtree(root_node, tmp_board); // FIXME after implementing proper object pooling this action will not be required
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove)
 	{
@@ -503,28 +486,18 @@ namespace ag
 	ExpandOutcome Tree::expand(SearchTask &task)
 	{
 		assert(task.isReady());
-//		if (task.visitedPathLength() > 0)
-//		{
-//			if (task.getLastEdge()->isLeaf() == false)
-//				return ExpandOutcome::ALREADY_EXPANDED; // can happen either because of multithreading or minibatch evaluation
-//		}
-//		else
-//		{
-//			if (task.getLastEdge() == nullptr)
-//				return ExpandOutcome::ALREADY_EXPANDED; // rare case if the tree has just been initialized but root node was already evaluated
-//		}
 
 		Node *node_to_add = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
 		if (node_to_add == nullptr) // if not found in the cache
 		{
 			const size_t number_of_moves = task.getEdges().size();
 			assert(number_of_moves > 0);
-			Edge *new_edges = edge_pool.allocate(number_of_moves);
-			for (size_t i = 0; i < number_of_moves; i++)
-				new_edges[i] = task.getEdges()[i];
 
 			node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove());
-			node_to_add->setEdges(new_edges, number_of_moves);
+			stats.allocated_edges += number_of_moves - node_to_add->numberOfEdges();
+			node_to_add->setEdges(number_of_moves);
+			for (size_t i = 0; i < number_of_moves; i++)
+				node_to_add->getEdge(i) = task.getEdges()[i];
 			node_to_add->updateValue(task.getValue());
 			update_proven_value(node_to_add);
 
@@ -533,7 +506,6 @@ namespace ag
 			else
 				root_node = node_to_add; // if no pairs were visited, it means that the tree is empty
 
-			stats.used_nodes++;
 			stats.used_edges += number_of_moves;
 			return ExpandOutcome::SUCCESS;
 		}
@@ -598,7 +570,7 @@ namespace ag
 	{
 		return sign_to_move;
 	}
-	NodeInfo Tree::getInfo(const std::vector<Move> &moves) const
+	Node Tree::getInfo(const std::vector<Move> &moves) const
 	{
 		size_t counter = 0;
 		Node *node = root_node;
@@ -608,27 +580,26 @@ namespace ag
 			auto iter = std::find_if(node->begin(), node->end(), [seeked_move](const Edge &edge)
 			{	return edge.getMove() == seeked_move;});
 			if (iter == node->end())
-				return NodeInfo(nullptr); // no such edge within the tree
+				return Node(); // no such edge within the tree
 			else
 				node = iter->getNode();
 		}
-		return NodeInfo(node);
+		Node result(*node);
+		result.setEdges(node->numberOfEdges());
+		for (int i = 0; i < node->numberOfEdges(); i++)
+			result.getEdge(i) = node->getEdge(i).copyInfo();
+		return result;
 	}
-//	TreeStats Tree::getTreeStats() const noexcept
-//	{
-//		TreeStats result;
-//		result.allocated_nodes = node_cache.allocatedElements();
-//		result.used_nodes = node_cache.storedElements();
-//		calculate_proven_stats(root_node, result);
-//		return result;
-//	}
 	void Tree::clearTreeStats() noexcept
 	{
 		stats = TreeStats();
 	}
 	TreeStats Tree::getTreeStats() const noexcept
 	{
-		return stats;
+		TreeStats result = stats;
+		result.allocated_nodes = node_cache.allocatedElements();
+		result.used_nodes = node_cache.storedElements();
+		return result;
 	}
 	void Tree::clearNodeCacheStats() noexcept
 	{
@@ -655,13 +626,7 @@ namespace ag
 					if (edge->getNode() != nullptr and edge->getNode()->isUsed())
 					{
 						Board::putMove(tmpBoard, edge->getMove());
-						if (node->getDepth() > base_depth)
-						{
-							assert(Board::isTransitionPossible(base_board, tmpBoard) == false);
-							delete_subtree(edge->getNode(), tmpBoard);
-						}
-						else
-							prune_subtree(edge->getNode(), tmpBoard);
+						prune_subtree(edge->getNode(), tmpBoard);
 						Board::undoMove(tmpBoard, edge->getMove());
 					}
 			}
@@ -686,10 +651,8 @@ namespace ag
 	}
 	void Tree::remove_from_tree(Node *node, const matrix<Sign> &tmpBoard)
 	{
-		stats.used_nodes--;
 		stats.used_edges -= node->numberOfEdges();
 		node_cache.remove(tmpBoard, node->getSignToMove()); // cache operations optionally check validity of the board state using edges of the node
-		edge_pool.free(node->begin(), node->numberOfEdges()); // this is why freeing edges must occur after removal from cache
 		node->clear();
 	}
 	void Tree::correct_information_leak(SearchTask &task) const

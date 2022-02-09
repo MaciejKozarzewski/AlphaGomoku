@@ -12,6 +12,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Value.hpp>
 #include <string>
+#include <memory>
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -22,7 +23,7 @@ namespace ag
 	class Node
 	{
 		private:
-			Edge *edges = nullptr; // non-owning
+			std::unique_ptr<Edge[]> edges;
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
 			int32_t visits = 0;
@@ -32,13 +33,38 @@ namespace ag
 			Sign sign_to_move = Sign::NONE;
 			bool is_used = false;
 		public:
+			Node() = default;
+			Node(const Node &other) :
+					win_rate(other.win_rate),
+					draw_rate(other.draw_rate),
+					visits(other.visits),
+					proven_value(other.proven_value),
+					number_of_edges(0),
+					depth(other.depth),
+					sign_to_move(other.sign_to_move),
+					is_used(other.is_used)
+			{
+			}
+			Node(Node &&other) = default;
+			Node& operator=(const Node &other)
+			{
+				win_rate = other.win_rate;
+				draw_rate = other.draw_rate;
+				visits = other.visits;
+				proven_value = other.proven_value;
+				depth = other.depth;
+				sign_to_move = other.sign_to_move;
+				is_used = other.is_used;
+				return *this;
+			}
+			Node& operator=(Node &&other) = default;
+
 			void clear() noexcept
 			{
-				edges = nullptr;
 				win_rate = draw_rate = 0.0f;
 				visits = 0;
 				proven_value = ProvenValue::UNKNOWN;
-				number_of_edges = depth = 0;
+				depth = 0;
 				sign_to_move = Sign::NONE;
 				is_used = false;
 			}
@@ -63,12 +89,12 @@ namespace ag
 			Edge* begin() const noexcept
 			{
 				assert(edges != nullptr);
-				return edges;
+				return edges.get();
 			}
 			Edge* end() const noexcept
 			{
 				assert(edges != nullptr);
-				return edges + number_of_edges;
+				return edges.get() + number_of_edges;
 			}
 			float getWinRate() const noexcept
 			{
@@ -111,12 +137,14 @@ namespace ag
 				return is_used;
 			}
 
-			void setEdges(Edge *ptr, int number) noexcept
+			void setEdges(int number) noexcept
 			{
-				assert(ptr != nullptr);
 				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
-				edges = ptr;
-				number_of_edges = static_cast<int16_t>(number);
+				if (number != number_of_edges)
+				{
+					edges = std::make_unique<Edge[]>(number);
+					number_of_edges = static_cast<int16_t>(number);
+				}
 			}
 			void setValue(Value value) noexcept
 			{
@@ -155,7 +183,6 @@ namespace ag
 			}
 			std::string toString() const;
 			void sortEdges() const;
-			Node copyInfo() const noexcept;
 	};
 
 	class Node_old

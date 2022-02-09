@@ -34,17 +34,17 @@ namespace ag
 {
 	struct TreeStats
 	{
-			uint64_t allocated_nodes = 0;
-			uint64_t used_nodes = 0;
-			uint64_t allocated_edges = 0;
-			uint64_t used_edges = 0;
+			int64_t allocated_nodes = 0;
+			int64_t used_nodes = 0;
+			int64_t allocated_edges = 0;
+			int64_t used_edges = 0;
 			int max_depth = 0;
-			uint64_t node_proven_loss = 0;
-			uint64_t node_proven_draw = 0;
-			uint64_t node_proven_win = 0;
-			uint64_t edge_proven_loss = 0;
-			uint64_t edge_proven_draw = 0;
-			uint64_t edge_proven_win = 0;
+			int64_t node_proven_loss = 0;
+			int64_t node_proven_draw = 0;
+			int64_t node_proven_win = 0;
+			int64_t edge_proven_loss = 0;
+			int64_t edge_proven_draw = 0;
+			int64_t edge_proven_win = 0;
 
 			std::string toString() const;
 			TreeStats& operator+=(const TreeStats &other) noexcept;
@@ -62,15 +62,6 @@ namespace ag
 		ALREADY_EXPANDED
 	};
 
-	struct NodeInfo
-	{
-		private:
-			std::vector<Edge> edges;
-		public:
-			Node node;
-			NodeInfo(const Node *n);
-	};
-
 	class TreeLock;
 	class Tree
 	{
@@ -80,7 +71,6 @@ namespace ag
 			mutable std::mutex tree_mutex;
 
 			NodeCache node_cache;
-			ObjectPool<Edge> edge_pool;
 			Node *root_node = nullptr;
 
 			std::unique_ptr<EdgeSelector> edge_selector;
@@ -93,7 +83,6 @@ namespace ag
 			TreeStats stats;
 		public:
 			Tree(TreeConfig treeOptions);
-			~Tree();
 
 			void setBoard(const matrix<Sign> &newBoard, Sign signToMove);
 			void setEdgeSelector(const EdgeSelector &selector);
@@ -114,7 +103,7 @@ namespace ag
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
 
-			NodeInfo getInfo(const std::vector<Move> &moves) const;
+			Node getInfo(const std::vector<Move> &moves) const;
 			void clearTreeStats() noexcept;
 			TreeStats getTreeStats() const noexcept;
 			void clearNodeCacheStats() noexcept;
