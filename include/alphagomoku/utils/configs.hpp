@@ -41,7 +41,7 @@ namespace ag
 			struct Defaults
 			{
 					static constexpr int bucket_size = 1000000;
-					static constexpr int cache_size = 10;
+					static constexpr int cache_size = 131072; // 2^17
 			};
 		public:
 			int bucket_size = Defaults::bucket_size;

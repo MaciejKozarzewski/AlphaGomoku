@@ -10,6 +10,17 @@
 
 #include <iostream>
 
+namespace
+{
+	size_t round_to_power_of_2(size_t x)
+	{
+		size_t result = 1;
+		while (result <= x)
+			result *= 2;
+		return result / 2;
+	}
+}
+
 namespace ag
 {
 	NodeCacheStats::NodeCacheStats() :
@@ -59,7 +70,7 @@ namespace ag
 	}
 
 	NodeCache::NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize) :
-			bins(1u << initialCacheSize, nullptr),
+			bins(round_to_power_of_2(initialCacheSize), nullptr),
 			hashing(boardHeight, boardWidth),
 			bin_index_mask(bins.size() - 1u)
 	{
@@ -177,6 +188,9 @@ namespace ag
 	Node* NodeCache::insert(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
 		assert(seek(board, signToMove) == nullptr);
+		if (loadFactor() >= 1.0)
+			resize(2 * numberOfBins());
+
 		TimerGuard timer(stats.insert);
 		const uint64_t hash = hashing.getHash(board, signToMove);
 
@@ -215,11 +229,9 @@ namespace ag
 	}
 	void NodeCache::resize(size_t newSize)
 	{
-		assert(newSize < 64ull);
-
 		TimerGuard timer(stats.resize);
 
-		newSize = 1ull << newSize;
+		newSize = round_to_power_of_2(newSize);
 		bin_index_mask = newSize - 1ull;
 		if (bins.size() == newSize)
 			return;
