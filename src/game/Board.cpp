@@ -61,6 +61,30 @@ namespace
 	{
 		return to_string(v.win + 0.5f * v.draw);
 	}
+
+	std::string pretty_print_top_row(int columns, int spacingLeft = 1, int spacingRight = 0)
+	{
+		std::string result = "/*         ";
+		std::string spaces_left(spacingLeft, ' ');
+		std::string spaces_right(spacingRight, ' ');
+		for (int i = 0; i < columns; i++)
+		{
+			if (i > 0)
+				result += spaces_left;
+			result += static_cast<char>(static_cast<int>('a') + i);
+			if (i < columns - 1)
+				result += spaces_right;
+		}
+		return result + "        */";
+	}
+	std::string pretty_print_side_info(int row)
+	{
+		std::string result = "/* ";
+		if (row < 10)
+			result += ' ';
+		return result + std::to_string(row) + " */";
+	}
+
 	template<class T>
 	std::string board_to_string(const matrix<Sign> &board, const T &other)
 	{
@@ -68,14 +92,17 @@ namespace
 		for (int i = 0; i < board.rows(); i++)
 		{
 			for (int j = 0; j < board.cols(); j++)
+			{
 				if (board.at(i, j) == Sign::NONE)
 					result += " " + to_string(other.at(i, j));
 				else
 					result += "  " + to_string(board.at(i, j)) + " ";
+			}
 			result += '\n';
 		}
 		return result;
 	}
+
 }
 
 namespace ag
@@ -167,15 +194,23 @@ namespace ag
 		}
 	}
 
-	std::string Board::toString(const matrix<Sign> &board)
+	std::string Board::toString(const matrix<Sign> &board, bool prettyPrint)
 	{
 		std::string result;
+		if (prettyPrint)
+			result += pretty_print_top_row(board.cols(), 1) + '\n';
 		for (int i = 0; i < board.rows(); i++)
 		{
+			if (prettyPrint)
+				result += pretty_print_side_info(i) + " \"";
 			for (int j = 0; j < board.cols(); j++)
 				result += to_string(board.at(i, j));
+			if (prettyPrint)
+				result += "\" " + pretty_print_side_info(i);
 			result += '\n';
 		}
+		if (prettyPrint)
+			result += pretty_print_top_row(board.cols(), 1) + '\n';
 		return result;
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<ProvenValue> &pv)

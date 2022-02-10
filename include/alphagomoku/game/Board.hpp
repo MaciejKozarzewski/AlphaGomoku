@@ -47,7 +47,7 @@ namespace ag
 			/**
 			 * @brief Generates string representation of board state that can be loaded by fromString() method.
 			 */
-			static std::string toString(const matrix<Sign> &board);
+			static std::string toString(const matrix<Sign> &board, bool prettyPrint = false);
 			/**
 			 * @brief Generates string representation of board state together with information about proven values.
 			 */
