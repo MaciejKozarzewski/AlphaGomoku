@@ -390,6 +390,10 @@ namespace ag
 			config(treeOptions)
 	{
 	}
+	int64_t Tree::getMemory() const noexcept
+	{
+		return node_cache.getMemory() + sizeof(Node) * stats.used_nodes + sizeof(Edge) * stats.used_edges;
+	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove)
 	{
 		matrix<Sign> tmp_board = base_board;

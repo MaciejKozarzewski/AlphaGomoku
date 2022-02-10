@@ -83,6 +83,7 @@ namespace ag
 			TreeStats stats;
 		public:
 			Tree(TreeConfig treeOptions);
+			int64_t getMemory() const noexcept;
 
 			void setBoard(const matrix<Sign> &newBoard, Sign signToMove);
 			void setEdgeSelector(const EdgeSelector &selector);
