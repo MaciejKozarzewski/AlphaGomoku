@@ -13,20 +13,9 @@
 
 namespace
 {
-	/**
-	 * @brief Calculates contribution to Q from virtual loss
-	 * 1 / (visits + vloss) is approximated by:
-	 * 1 / visits - vloss / visits^2	if vloss < visits
-	 * 1 / visits - visits / vloss^2	if vloss >= visits
-	 */
 	float getVloss(const ag::Edge *edge) noexcept
 	{
-//		return edge->getVirtualLoss() / (1.0e-6f + edge->getVisits() * (edge->getVisits() + edge->getVirtualLoss()));
-		return edge->getVisits() / (edge->getVisits() + edge->getVirtualLoss());
-//		if (edge->getVirtualLoss() < edge->getVisits())
-//			return edge->getVirtualLoss() / ag::square(static_cast<float>(edge->getVisits()));
-//		else
-//			return edge->getVisits() / ag::square(static_cast<float>(edge->getVirtualLoss()));
+		return static_cast<float>(edge->getVisits()) / static_cast<float>(edge->getVisits() + edge->getVirtualLoss());
 	}
 	template<typename T>
 	float getQ(const T *n, float sf) noexcept
