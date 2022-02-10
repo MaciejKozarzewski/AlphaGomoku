@@ -21,10 +21,12 @@ namespace
 	 */
 	float getVloss(const ag::Edge *edge) noexcept
 	{
-		if (edge->getVirtualLoss() < edge->getVisits())
-			return edge->getVirtualLoss() / ag::square(static_cast<float>(edge->getVisits()));
-		else
-			return edge->getVisits() / ag::square(static_cast<float>(edge->getVirtualLoss()));
+//		return edge->getVirtualLoss() / (1.0e-6f + edge->getVisits() * (edge->getVisits() + edge->getVirtualLoss()));
+		return edge->getVisits() / (edge->getVisits() + edge->getVirtualLoss());
+//		if (edge->getVirtualLoss() < edge->getVisits())
+//			return edge->getVirtualLoss() / ag::square(static_cast<float>(edge->getVisits()));
+//		else
+//			return edge->getVisits() / ag::square(static_cast<float>(edge->getVirtualLoss()));
 	}
 	template<typename T>
 	float getQ(const T *n, float sf) noexcept
@@ -33,16 +35,16 @@ namespace
 		return n->getWinRate() + sf * n->getDrawRate();
 	}
 	template<typename T>
-	float getProvenQ(const T *n) noexcept
+	float getProvenQ(const T *node) noexcept
 	{
-		assert(n != nullptr);
-		return static_cast<int>(n->getProvenValue() == ag::ProvenValue::WIN) - static_cast<int>(n->getProvenValue() == ag::ProvenValue::LOSS);
+		assert(node != nullptr);
+		return static_cast<int>(node->getProvenValue() == ag::ProvenValue::WIN) - static_cast<int>(node->getProvenValue() == ag::ProvenValue::LOSS);
 	}
 	template<typename T>
-	float getBalance(const T *n) noexcept
+	float getBalance(const T *node) noexcept
 	{
-		assert(n != nullptr);
-		return -fabsf(n->getWinRate() - (1.0f - n->getWinRate() - n->getDrawRate()));
+		assert(node != nullptr);
+		return 1.0f - fabsf(node->getWinRate() - node->getLossRate());
 	}
 }
 
@@ -70,7 +72,7 @@ namespace ag
 		{
 			float Q = parent_value;
 			if (edge->getVisits() > 0)
-				Q = getQ(edge, style_factor) - getVloss(edge) - 10.0f * edge->isProven();
+				Q = getQ(edge, style_factor) * getVloss(edge) - 10.0f * edge->isProven();
 			float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
 
 			if (Q + U > bestValue)
@@ -105,7 +107,7 @@ namespace ag
 		{
 			float Q = parent_value;
 			if (edge->getVisits() > 0)
-				Q = getQ(edge, style_factor) - getVloss(edge) - 10.0f * edge->isProven();
+				Q = getQ(edge, style_factor) * getVloss(edge) - 10.0f * edge->isProven();
 			float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
 			float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
 
@@ -138,7 +140,7 @@ namespace ag
 			float bestValue = std::numeric_limits<float>::lowest();
 			for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			{
-				float Q = getBalance(edge) - getVloss(edge);
+				float Q = getBalance(edge) * getVloss(edge);
 				if (Q > bestValue)
 				{
 					selected = edge;

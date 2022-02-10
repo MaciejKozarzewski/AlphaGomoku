@@ -104,9 +104,13 @@ namespace ag
 			{
 				return draw_rate;
 			}
+			float getLossRate() const noexcept
+			{
+				return 1.0f - win_rate - draw_rate;
+			}
 			Value getValue() const noexcept
 			{
-				return Value(win_rate, draw_rate, 1.0f - win_rate - draw_rate);
+				return Value(win_rate, draw_rate, getLossRate());
 			}
 			int getVisits() const noexcept
 			{
