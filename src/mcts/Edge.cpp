@@ -35,7 +35,9 @@ namespace ag
 		}
 		result += " : Q=" + getValue().toString();
 		result += " : Visits=" + std::to_string(getVisits());
+#ifndef NDEBUG
 		result += " (" + std::to_string(getVirtualLoss()) + ")";
+#endif
 		result += " : P=" + std::to_string(getPolicyPrior());
 		return result;
 	}
