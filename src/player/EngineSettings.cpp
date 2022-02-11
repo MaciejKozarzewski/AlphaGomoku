@@ -49,6 +49,7 @@ namespace ag
 			tree_config(config["tree_options"]),
 			cache_config(config["cache_options"]),
 			search_config(config["search_options"]),
+			thread_num(static_cast<int>(config["search_threads"])),
 			auto_pondering(static_cast<bool>(config["always_ponder"]))
 	{
 		const Json &device_configuration = config["devices"];

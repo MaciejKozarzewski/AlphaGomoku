@@ -516,10 +516,12 @@ namespace ag
 		else
 		{
 			// this can happen if the same state was encountered from different paths within the same batch
-			assert(task.visitedPathLength() > 0); // it is not possible to re-encounter the same state if there is no root node
-			task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
-			if (is_information_leak(task.getLastEdge(), node_to_add))
-				correct_information_leak(task);
+			if (task.visitedPathLength() > 0) // in a rare case root node was expanded by some other thread
+			{
+				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
+				if (is_information_leak(task.getLastEdge(), node_to_add))
+					correct_information_leak(task);
+			}
 			return ExpandOutcome::ALREADY_EXPANDED;
 		}
 	}
