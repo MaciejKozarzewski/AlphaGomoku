@@ -218,6 +218,7 @@ namespace ag
 			TimerGuard timer(stats.backup);
 			tree.backup(search_tasks[i]);
 		}
+		active_task_count = 0; // those task should not be used again
 	}
 	void Search::cleanup(Tree &tree)
 	{

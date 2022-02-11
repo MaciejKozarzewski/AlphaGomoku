@@ -11,6 +11,9 @@
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 
+#include <alphagomoku/player/controllers/MatchController.hpp>
+#include <alphagomoku/player/controllers/Swap2Controller.hpp>
+
 #include <filesystem>
 
 namespace
@@ -69,8 +72,12 @@ namespace ag
 	}
 	void ProgramManager::run()
 	{
+		setup_logging();
+		Logger::write("Using config : " + name_of_config_file);
+
 		engine_settings = std::make_unique<EngineSettings>(config);
 		setup_protocol();
+
 		while (is_running)
 		{
 			process_input_from_user();
@@ -82,9 +89,11 @@ namespace ag
 				{
 					case MessageType::START_PROGRAM:
 					{
-						if (use_logging)
+						if (game_counter > 0)
+						{
 							setup_logging();
-						Logger::write("Using config : " + name_of_config_file);
+							game_counter++;
+						}
 						break;
 					}
 					case MessageType::SET_OPTION:
@@ -95,7 +104,13 @@ namespace ag
 							case SetOptionOutcome::SUCCESS:
 								break;
 							case SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE:
-								search_engine = nullptr;
+								if (search_engine != nullptr)
+								{
+									if (search_engine->isSearchFinished())
+										search_engine.reset();
+									else
+										output_queue.push(Message(MessageType::ERROR, "cannot set this option while the search is running"));
+								}
 								break;
 							case SetOptionOutcome::FAILURE:
 								output_queue.push(Message(MessageType::ERROR, std::string("unknown option ") + input_message.getOption().name));
@@ -110,20 +125,24 @@ namespace ag
 					}
 					case MessageType::START_SEARCH:
 					{
-						time_manager.setup();
-						time_manager.startTimer();
-						if (getEngine().isSearchFinished() == false)
+						if (search_engine == nullptr)
+							setup_engine(); // this may fail and not create engine
+						if (search_engine != nullptr)
 						{
-							output_queue.push(Message(MessageType::ERROR, "search engine is already running"));
-							break;
+							if (search_engine->isSearchFinished() == false)
+							{
+								output_queue.push(Message(MessageType::ERROR, "search engine is already running"));
+								break;
+							}
+							search_engine->setPosition(board, sign_to_move);
+							setup_controller(input_message.getString());
 						}
-						getEngine().setPosition(board, sign_to_move);
-
 						break;
 					}
 					case MessageType::STOP_SEARCH:
 					{
-						getEngine().stopSearch();
+						if (search_engine != nullptr)
+							search_engine->stopSearch();
 						break;
 					}
 					case MessageType::EXIT_PROGRAM:
@@ -136,12 +155,14 @@ namespace ag
 				}
 			}
 
-			if (search_future.valid())
-			{
-				std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
-				if (search_status == std::future_status::ready)
-					search_future.get();
-			}
+			if (engine_controller != nullptr)
+				engine_controller->control(output_queue);
+//			if (search_future.valid())
+//			{
+//				std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
+//				if (search_status == std::future_status::ready)
+//					search_future.get();
+//			}
 
 			protocol->processOutput(output_sender);
 		}
@@ -288,15 +309,29 @@ namespace ag
 	}
 	void ProgramManager::setup_logging()
 	{
-		logfile = std::ofstream(argument_parser.getLaunchPath() + "logs" + path_separator + currentDateTime() + ".log");
-		Logger::enable();
-		Logger::redirectTo(logfile);
+		if (static_cast<bool>(config["use_logging"]))
+		{
+			logfile = std::ofstream(argument_parser.getLaunchPath() + "logs" + path_separator + currentDateTime() + ".log");
+			Logger::enable();
+			Logger::redirectTo(logfile);
+		}
 	}
-	SearchEngine& ProgramManager::getEngine()
+	void ProgramManager::setup_engine()
 	{
-		if (search_engine == nullptr)
+		assert(search_engine == nullptr);
+		if (is_game_config_correct())
+		{
+			time_manager.startTimer(); // the time of initialization of the search engine should be included in the time of the first move
 			search_engine = std::make_unique<SearchEngine>(*engine_settings);
-		return *search_engine;
+			time_manager.stopTimer();
+		}
+		else
+		{
+			GameConfig cfg = engine_settings->getGameConfig();
+			std::string str = toString(cfg.rules) + " rule is not supported on " + std::to_string(cfg.rows) + "x" + std::to_string(cfg.cols)
+					+ " board";
+			output_queue.push(Message(MessageType::ERROR, str));
+		}
 	}
 	void ProgramManager::setPosition(const std::vector<Move> &listOfMoves)
 	{
@@ -312,13 +347,37 @@ namespace ag
 	}
 	void ProgramManager::setup_controller(const std::string &type)
 	{
-		if(type == "bestmove")
-		{
+		std::vector<std::string> tmp = split(type, ' ');
+		assert(tmp.size() >= 1);
+		assert(search_engine != nullptr);
 
+		if (tmp[0] == "bestmove")
+		{
+			engine_controller = std::make_unique<MatchController>(*engine_settings, time_manager, *search_engine);
+			return;
 		}
-		if(type == "swap2")
+		if (tmp[0] == "swap2")
 		{
+			engine_controller = std::make_unique<Swap2Controller>(*engine_settings, time_manager, *search_engine);
+			return;
+		}
 
+		output_queue.push(Message(MessageType::ERROR, "unsupported controller type '" + type + "'"));
+		engine_controller = nullptr;
+	}
+	bool ProgramManager::is_game_config_correct() const
+	{
+		GameConfig cfg = engine_settings->getGameConfig();
+		switch (cfg.rules)
+		{
+			case GameRules::FREESTYLE:
+				return cfg.rows == 20 and cfg.cols == 20;
+			case GameRules::STANDARD:
+				return cfg.rows == 15 and cfg.cols == 15;
+			case GameRules::RENJU:
+			case GameRules::CARO:
+			default:
+				return false;
 		}
 	}
 

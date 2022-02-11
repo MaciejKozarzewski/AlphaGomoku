@@ -12,6 +12,7 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
+#include <alphagomoku/player/EngineController.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <iostream>
 #include <fstream>
@@ -45,6 +46,7 @@ namespace ag
 			std::unique_ptr<Protocol> protocol;
 			std::unique_ptr<SearchEngine> search_engine;
 			std::unique_ptr<EngineSettings> engine_settings;
+			std::unique_ptr<EngineController> engine_controller;
 			TimeManager time_manager;
 
 			std::future<void> input_future;
@@ -60,7 +62,7 @@ namespace ag
 			bool run_configuration = false;
 			bool is_running = true;
 
-			bool use_logging = false;
+			int game_counter = 0;
 
 			matrix<Sign> board;
 			Sign sign_to_move = Sign::NONE;
@@ -81,9 +83,10 @@ namespace ag
 			void setup_protocol();
 			void process_input_from_user();
 			void setup_logging();
-			SearchEngine& getEngine();
+			void setup_engine();
 			void setPosition(const std::vector<Move> &listOfMoves);
 			void setup_controller(const std::string &type);
+			bool is_game_config_correct() const;
 	};
 
 } /* namespace ag */

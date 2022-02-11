@@ -71,7 +71,6 @@ namespace ag
 
 			bool isLeaf() const noexcept
 			{
-				assert(edges != nullptr && number_of_edges > 0);
 				return edges == nullptr;
 			}
 			const Edge& getEdge(int index) const noexcept

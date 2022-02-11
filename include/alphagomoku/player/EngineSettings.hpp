@@ -12,12 +12,14 @@
 
 #include <inttypes.h>
 #include <vector>
+#include <map>
 #include <mutex>
 
 class Json;
 namespace ag
 {
 	struct Option;
+	enum class GameRules;
 } /* namespace ag */
 
 namespace ag
@@ -45,6 +47,8 @@ namespace ag
 			static constexpr int max_int_value = std::numeric_limits<int>::max();
 
 			mutable std::mutex mutex;
+			std::map<GameRules, std::string> path_to_networks;
+
 			GameConfig game_config;
 			TreeConfig tree_config;
 			CacheConfig cache_config;
@@ -60,7 +64,6 @@ namespace ag
 			int max_nodes = max_int_value;
 			int thread_num = 1;
 			int64_t max_memory = 256 * 1024 * 1024; /**< [bytes] initially set to 256MB */
-			EngineStyle style = EngineStyle::CLASSIC;
 
 			bool analysis_mode = false;
 			bool auto_pondering = false;
@@ -73,6 +76,7 @@ namespace ag
 
 			SetOptionOutcome setOption(const Option &option) noexcept;
 
+			std::string getPathToNetwork() const;
 			const GameConfig& getGameConfig() const noexcept;
 			const TreeConfig& getTreeConfig() const noexcept;
 			const CacheConfig& getCacheConfig() const noexcept;
@@ -87,7 +91,7 @@ namespace ag
 			int getMaxNodes() const noexcept;
 			int getThreadNum() const noexcept;
 			int64_t getMaxMemory() const noexcept;
-			EngineStyle getStyle() const noexcept;
+			float getStyleFactor() const noexcept;
 			bool isInAnalysisMode() const noexcept;
 			bool isUsingAutoPondering() const noexcept;
 			bool isUsingSymmetries() const noexcept;

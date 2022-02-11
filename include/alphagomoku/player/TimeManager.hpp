@@ -33,21 +33,13 @@ namespace ag
 			double stop_time = 0.0; /**< [seconds] */
 			double used_time = 0.0; /**< [seconds] */
 
-			bool is_search_running = false;
-
+			double time_of_last_search = 0.0; /**< [seconds] */
+			bool is_running = false;
 		public:
 			/**
 			 * @brief Setup the time manager for general search.
 			 */
-			void setup() noexcept;
-			/**
-			 * @brief Setup the time manager for fixed time search.
-			 */
-			void setup(double time) noexcept;
-			/**
-			 * @brief Setup the time manager for specific phase of an opening.
-			 */
-			void setup(OpeningType opening, int phase) noexcept;
+			void resetTimer() noexcept;
 			/**
 			 * @brief Starts measuring elapsed time.
 			 */
@@ -58,14 +50,12 @@ namespace ag
 			 */
 			void stopTimer() noexcept;
 			/**
-			 * @brief Decides whether the search should be continued.
-			 */
-			bool shouldTheSearchContinue() const noexcept;
-			/**
-			 * @brief Returns time spent on the search.
-			 * If the search is not running at the point of calling this method, the time of the last completed search is returned.
+			 * @brief Returns time spent on the current search.
 			 */
 			double getElapsedTime() const noexcept;
+
+			double getLastSearchTime() const noexcept;
+
 	};
 
 } /* namespace ag */

@@ -24,21 +24,21 @@ namespace ag
 
 	class EngineController
 	{
-		private:
+		protected:
 			const EngineSettings &engine_settings;
-			const TimeManager &time_manager;
+			TimeManager &time_manager;
 			SearchEngine &search_engine;
 
 		public:
-			EngineController(const EngineSettings &settings, const TimeManager &manager, SearchEngine &engine) :
-					engine_settings(settings),
-					time_manager(manager),
-					search_engine(engine)
-			{
-			}
-			virtual ~EngineController() = 0;
-			virtual void setPosition(const matrix<Sign> &board, Sign signToMove);
-			virtual bool run(MessageQueue &output_queue) = 0;
+			EngineController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine);
+			EngineController(const EngineController &other) = delete;
+			EngineController(EngineController &&other) = delete;
+			EngineController& operator=(const EngineController &other) = delete;
+			EngineController& operator=(EngineController &&other) = delete;
+			virtual ~EngineController();
+
+			virtual void setup(const std::string &args);
+			virtual void control(MessageQueue &outputQueue) = 0;
 	};
 
 } /* namespace ag */

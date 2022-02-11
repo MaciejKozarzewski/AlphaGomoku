@@ -27,20 +27,9 @@ namespace ag
 		{
 			evaluators.push_back(std::make_unique<NNEvaluator>(settings.getDeviceConfigs().at(i)));
 			evaluators.back()->useSymmetries(settings.isUsingSymmetries());
+			evaluators.back()->loadGraph(settings.getPathToNetwork());
 			free_evaluators.push_back(i);
 		}
-	}
-	void NNEvaluatorPool::loadNetwork(const std::string &pathToNetwork)
-	{
-		std::lock_guard lock(eval_mutex);
-		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->loadGraph(pathToNetwork);
-	}
-	void NNEvaluatorPool::unloadNetwork()
-	{
-		std::lock_guard lock(eval_mutex);
-		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->unloadGraph();
 	}
 	NNEvaluator& NNEvaluatorPool::get() const
 	{
@@ -91,11 +80,7 @@ namespace ag
 			is_running = false;
 		}
 		if (search_future.valid())
-		{
-			std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
-			if (search_status == std::future_status::ready)
-				search_future.get();
-		}
+			search_future.wait();
 	}
 	bool SearchThread::isRunning() const noexcept
 	{
@@ -129,6 +114,7 @@ namespace ag
 			NNEvaluator &evaluator = evaluator_pool.get();
 			search.scheduleToNN(evaluator);
 			evaluator.evaluateGraph();
+			evaluator_pool.release(evaluator);
 
 			search.generateEdges(tree); // this step doesn't require locking the tree
 			{ /* artificial scope for lock */
@@ -228,6 +214,11 @@ namespace ag
 				return false;
 		return true;
 	}
+	Node SearchEngine::getInfo(const std::vector<Move> &listOfMoves) const
+	{
+		TreeLock lock(tree);
+		return tree.getInfo(listOfMoves);
+	}
 
 //	void SearchEngine::makeMove()
 //	{
@@ -299,11 +290,11 @@ namespace ag
 //		thread_pool.waitForFinish();
 //		time_used_for_last_search = resource_manager.getElapsedTime();
 //	}
-	Message SearchEngine::getSearchSummary()
-	{
-		log_search_info();
-
-		std::string result;
+//	Message SearchEngine::getSearchSummary()
+//	{
+//		log_search_info();
+//
+//		std::string result;
 //		SearchTrajectory pv = tree.getPrincipalVariation();
 //		result += "depth 1-" + std::to_string(pv.length());
 //		switch (tree.getRootNode().getProvenValue())
@@ -347,8 +338,8 @@ namespace ag
 //			else
 //			result += (char) (97 + m.row) + std::to_string((int) m.col);
 //		}
-		return Message(MessageType::INFO_MESSAGE, result);
-	}
+//		return Message(MessageType::INFO_MESSAGE, result);
+//	}
 	const matrix<Sign>& SearchEngine::getBoard() const noexcept
 	{
 		return tree.getBoard();
@@ -357,6 +348,10 @@ namespace ag
 	{
 		return tree.getSignToMove();
 	}
+	int64_t SearchEngine::getMemory() const noexcept
+	{
+		return tree.getMemory();
+	}
 	/*
 	 * private
 	 */
@@ -364,7 +359,7 @@ namespace ag
 	{
 		if (settings.getThreadNum() > static_cast<int>(search_threads.size()))
 		{
-			int num_to_add = static_cast<int>(search_threads.size()) - settings.getThreadNum();
+			int num_to_add = settings.getThreadNum() - static_cast<int>(search_threads.size());
 			for (int i = 0; i < num_to_add; i++)
 				search_threads.push_back(std::make_unique<SearchThread>(settings, tree, nn_evaluators));
 		}

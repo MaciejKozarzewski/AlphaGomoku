@@ -34,8 +34,6 @@ namespace ag
 			mutable std::condition_variable eval_cond;
 		public:
 			NNEvaluatorPool(const EngineSettings &settings);
-			void loadNetwork(const std::string &pathToNetwork);
-			void unloadNetwork();
 			NNEvaluator& get() const;
 			void release(const NNEvaluator &queue) const;
 	};
@@ -83,11 +81,11 @@ namespace ag
 			void stopSearch();
 			bool isSearchFinished() const noexcept;
 
-			Message getSearchSummary();
+			Node getInfo(const std::vector<Move> &listOfMoves) const;
 
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
-
+			int64_t getMemory() const noexcept;
 		private:
 			void setup_search_threads();
 

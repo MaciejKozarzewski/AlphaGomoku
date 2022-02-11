@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/player/EngineSettings.hpp>
+#include <alphagomoku/game/rules.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/configs.hpp>
@@ -53,6 +54,11 @@ namespace ag
 		const Json &device_configuration = config["devices"];
 		for (int i = 0; i < device_configuration.size(); i++)
 			device_configs.push_back(DeviceConfig(device_configuration[i]));
+
+		path_to_networks.insert( { GameRules::FREESTYLE, static_cast<std::string>(config["networks"]["freestyle"]) });
+		path_to_networks.insert( { GameRules::STANDARD, static_cast<std::string>(config["networks"]["standard"]) });
+		path_to_networks.insert( { GameRules::RENJU, static_cast<std::string>(config["networks"]["renju"]) });
+		path_to_networks.insert( { GameRules::CARO, static_cast<std::string>(config["networks"]["caro"]) });
 	}
 //	void EngineSettings::setSearchStartTime(double t) noexcept
 //	{
@@ -190,7 +196,7 @@ namespace ag
 			}
 			if (option.name == "style")
 			{
-				this->style = engineStyleFromString(option.value);
+				search_config.style_factor = static_cast<int>(engineStyleFromString(option.value));
 				return SetOptionOutcome::SUCCESS;
 			}
 
@@ -214,6 +220,10 @@ namespace ag
 		return SetOptionOutcome::FAILURE;
 	}
 
+	std::string EngineSettings::getPathToNetwork() const
+	{
+		return path_to_networks.find(game_config.rules)->second;
+	}
 	const GameConfig& EngineSettings::getGameConfig() const noexcept
 	{
 		std::lock_guard lock(mutex);
@@ -279,10 +289,10 @@ namespace ag
 		std::lock_guard lock(mutex);
 		return max_memory;
 	}
-	EngineStyle EngineSettings::getStyle() const noexcept
+	float EngineSettings::getStyleFactor() const noexcept
 	{
 		std::lock_guard lock(mutex);
-		return style;
+		return 0.5f * static_cast<int>(search_config.style_factor);
 	}
 	bool EngineSettings::isInAnalysisMode() const noexcept
 	{

@@ -588,11 +588,16 @@ namespace ag
 			else
 				node = iter->getNode();
 		}
-		Node result(*node);
-		result.setEdges(node->numberOfEdges());
-		for (int i = 0; i < node->numberOfEdges(); i++)
-			result.getEdge(i) = node->getEdge(i).copyInfo();
-		return result;
+		if (node == nullptr)
+			return Node(); // not even a single node was found
+		else
+		{
+			Node result(*node);
+			result.setEdges(node->numberOfEdges());
+			for (int i = 0; i < node->numberOfEdges(); i++)
+				result.getEdge(i) = node->getEdge(i).copyInfo();
+			return result;
+		}
 	}
 	void Tree::clearTreeStats() noexcept
 	{

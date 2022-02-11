@@ -18,45 +18,37 @@ namespace
 namespace ag
 {
 
-	void TimeManager::setup() noexcept
+	void TimeManager::resetTimer() noexcept
 	{
 		std::lock_guard lock(mutex);
-		used_time = 0.0;
-	}
-	void TimeManager::setup(double time) noexcept
-	{
-		std::lock_guard lock(mutex);
-		used_time = 0.0;
-	}
-	void TimeManager::setup(OpeningType opening, int phase) noexcept
-	{
-		std::lock_guard lock(mutex);
+		is_running = false;
+		time_of_last_search = used_time;
 		used_time = 0.0;
 	}
 	void TimeManager::startTimer() noexcept
 	{
 		std::lock_guard lock(mutex);
+		is_running = true;
 		start_time = get_current_time();
-		is_search_running = true;
 	}
 	void TimeManager::stopTimer() noexcept
 	{
 		std::lock_guard lock(mutex);
 		used_time += get_current_time() - start_time;
-		is_search_running = false;
-	}
-	bool TimeManager::shouldTheSearchContinue() const noexcept
-	{
-		std::lock_guard lock(mutex);
-		return true;
+		is_running = false;
 	}
 	double TimeManager::getElapsedTime() const noexcept
 	{
 		std::lock_guard lock(mutex);
-		if (is_search_running)
-			return get_current_time() - start_time;
+		if (is_running)
+			return used_time + get_current_time() - start_time;
 		else
 			return used_time;
+	}
+	double TimeManager::getLastSearchTime() const noexcept
+	{
+		std::lock_guard lock(mutex);
+		return time_of_last_search;
 	}
 } /* namespace ag */
 
