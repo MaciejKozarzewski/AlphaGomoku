@@ -452,7 +452,7 @@ namespace ag
 		else
 		{
 			int non_losing_edges = std::count_if(root_node->begin(), root_node->end(), [](const Edge &edge)
-			{	return edge.getProvenValue() == ProvenValue::LOSS;});
+			{	return edge.getProvenValue() != ProvenValue::LOSS;});
 			return non_losing_edges == 1;
 		}
 	}
