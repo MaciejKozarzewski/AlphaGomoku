@@ -592,6 +592,7 @@ namespace ag
 				return Node(); // no such edge within the tree
 			else
 				node = iter->getNode();
+			counter++;
 		}
 		if (node == nullptr)
 			return Node(); // not even a single node was found
