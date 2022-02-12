@@ -277,12 +277,8 @@ namespace ag
 					output_queue.push(Message(MessageType::ERROR, "continuous game is not supported"));
 					return;
 				case 4:
-					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) }));
+//					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) })); TODO uncomment this once this rule is supported
 					output_queue.push(Message(MessageType::ERROR, "renju rule is not supported"));
-					return;
-				case 8:
-					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) }));
-					output_queue.push(Message(MessageType::ERROR, "caro rule is not supported"));
 					return;
 				default:
 					input_queue.push(Message());
@@ -292,8 +288,8 @@ namespace ag
 		}
 		if (tmp[1] == "evaluate")
 		{
-			[[maybe_unused]] Move m = moveFromString(tmp[2], get_sign_to_move());
-			input_queue.push(Message());
+			Move m = moveFromString(tmp[2], get_sign_to_move());
+			input_queue.push(Message(MessageType::INFO_MESSAGE, std::vector<Move>( { m })));
 			return;
 		}
 		if (tmp[1] == "folder")

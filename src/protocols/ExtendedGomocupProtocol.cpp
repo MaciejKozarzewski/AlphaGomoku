@@ -261,10 +261,21 @@ namespace ag
 		}
 		if (tmp[1] == "rule")
 		{
-			if (tmp[2] == "4")
-				is_renju_rule = true;
-			else
-				is_renju_rule = false;
+			switch (std::stoi(tmp[2]))
+			{
+				case 4:
+					is_renju_rule = true;
+					return;
+				case 8:
+					is_renju_rule = false;
+//					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) })); TODO uncomment this one this rule is supported
+					output_queue.push(Message(MessageType::ERROR, "caro rule is not supported"));
+					listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
+					return;
+				default:
+					is_renju_rule = false;
+					return;
+			}
 		}
 	}
 
@@ -275,7 +286,10 @@ namespace ag
 		assert(tmp.size() == 2u);
 		Move new_move = moveFromString(tmp[1], get_sign_to_move());
 		if (std::find(list_of_moves.begin(), list_of_moves.end(), new_move) == list_of_moves.end()) // new move must not be in the list
+		{
 			list_of_moves.push_back(new_move);
+			output_queue.push(Message(MessageType::BEST_MOVE, new_move));
+		}
 		else
 			output_queue.push(Message(MessageType::ERROR, "Invalid move '" + tmp[1] + "'"));
 	}
