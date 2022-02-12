@@ -16,6 +16,11 @@ namespace ag
 			input_stream(&inputStream)
 	{
 	}
+	bool InputListener::isEmpty() const noexcept
+	{
+		std::lock_guard lock(listener_mutex);
+		return input_queue.empty();
+	}
 	std::string InputListener::getLine()
 	{
 		return wait_for_line(true);
@@ -36,7 +41,7 @@ namespace ag
 	}
 	void InputListener::pushLine(const std::string &line)
 	{
-		std::unique_lock lock(listener_mutex);
+		std::lock_guard lock(listener_mutex);
 		input_queue.push(line);
 		listener_cond.notify_all();
 	}

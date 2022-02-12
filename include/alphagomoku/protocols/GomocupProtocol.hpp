@@ -15,19 +15,21 @@ namespace ag
 
 	class GomocupProtocol: public Protocol
 	{
-		private:
-			mutable std::mutex protocol_mutex;
+		protected:
+			mutable std::recursive_mutex protocol_mutex;
 			std::vector<Move> list_of_moves;
 
 		public:
 			GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT);
 
-			ProtocolType getType() const noexcept;
-			void processInput(InputListener &listener);
-			void processOutput(OutputSender &sender);
+			virtual void reset();
+			virtual ProtocolType getType() const noexcept;
+			virtual void processInput(InputListener &listener);
+			virtual void processOutput(OutputSender &sender);
 
-		private:
+		protected:
 			Sign get_sign_to_move() const noexcept;
+			std::vector<Move> parseListOfMoves(InputListener &listener, const std::string &ending) const;
 
 			void INFO(InputListener &listener);
 
@@ -36,17 +38,17 @@ namespace ag
 			void RESTART(InputListener &listener);
 
 			// opening rules
-			void PROBOARD(InputListener &listener);
-			void LONGPROBOARD(InputListener &listener);
-			void SWAPBOARD(InputListener &listener);
-			void SWAP2BOARD(InputListener &listener);
+//			void PROBOARD(InputListener &listener);
+//			void LONGPROBOARD(InputListener &listener);
+//			void SWAPBOARD(InputListener &listener);
+//			void SWAP2BOARD(InputListener &listener);
 
 			void BEGIN(InputListener &listener);
 			void BOARD(InputListener &listener);
 			void TURN(InputListener &listener);
 			void TAKEBACK(InputListener &listener);
-			void PONDER(InputListener &listener);
-			void STOP(InputListener &listener);
+//			void PONDER(InputListener &listener);
+//			void STOP(InputListener &listener);
 			void END(InputListener &listener);
 
 			void ABOUT(InputListener &listener);

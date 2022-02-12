@@ -38,28 +38,32 @@ namespace ag
 			InputListener& operator=(InputListener &&other) = default;
 			~InputListener() = default;
 
-			/** @brief Returns next line read by the listener.
+			/** \brief Returns true if there are no elements in the input queue.
+			 */
+			bool isEmpty() const noexcept;
+
+			/** \brief Returns next line read by the listener.
 			 *	Waits until a new line is available, then returns it and removes it from the listener queue.
 			 */
 			std::string getLine();
 
-			/** @brief Peeks into the next line read by the listener.
+			/** \brief Peeks into the next line read by the listener.
 			 *	Waits until a new line is available, then returns it but does not remove from the listener queue.
 			 *  @see getLine()
 			 */
 			std::string peekLine();
 
-			/** @brief Removes next line read by the listener queue.
+			/** \brief Removes next line read by the listener queue.
 			 *	Waits until new line is available, then removes it from the listener queue without returning it.
 			 */
 			void consumeLine();
 
-			/** @brief Removes next line read by the listener queue.
+			/** \brief Removes next line read by the listener queue.
 			 *	Waits until new line is available, then removes it from the listener queue without returning, but checks if the consumed line is the same as specified in the parameter.
 			 */
 			void consumeLine(const std::string &line);
 
-			/** @brief Adds a line to the listener queue.
+			/** \brief Adds a line to the listener queue.
 			 *	Can be used to add specific input to the listener queue, bypassing the input stream.
 			 */
 			void pushLine(const std::string &line);
@@ -184,6 +188,7 @@ namespace ag
 			Protocol& operator=(Protocol &&other) = delete;
 			virtual ~Protocol() = default;
 
+			virtual void reset() = 0;
 			virtual ProtocolType getType() const noexcept = 0;
 			virtual void processInput(InputListener &listener) = 0;
 			virtual void processOutput(OutputSender &sender) = 0;
