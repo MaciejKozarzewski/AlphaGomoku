@@ -11,6 +11,12 @@
 
 namespace ag
 {
+	bool Logger::isEnabled() noexcept
+	{
+		std::lock_guard lock(get_instance().logger_mutex);
+		return get_instance().is_enabled;
+	}
+
 	void Logger::enable() noexcept
 	{
 		std::lock_guard lock(get_instance().logger_mutex);
