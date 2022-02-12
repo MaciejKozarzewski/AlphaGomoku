@@ -36,6 +36,7 @@ namespace ag
 			NNEvaluatorPool(const EngineSettings &settings);
 			NNEvaluator& get() const;
 			void release(const NNEvaluator &queue) const;
+			NNEvaluatorStats getStats() const noexcept;
 	};
 
 	class SearchThread
@@ -82,11 +83,11 @@ namespace ag
 			void stopSearch();
 			bool isSearchFinished() const noexcept;
 
-			Node getInfo(const std::vector<Move> &listOfMoves) const;
+			Node getInfo(const std::vector<Move> &listOfMoves = { }) const;
 
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
-			int64_t getMemory() const noexcept;
+			void logSearchInfo();
 		private:
 			void setup_search_threads();
 
@@ -100,7 +101,7 @@ namespace ag
 			Message swap2_3stones();
 			Message swap2_5stones();
 			bool search_continues(double timeout);
-			void log_search_info();
+
 	};
 
 } /* namespace ag */

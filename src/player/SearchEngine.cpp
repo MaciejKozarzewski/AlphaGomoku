@@ -53,6 +53,15 @@ namespace ag
 			}
 		throw std::logic_error("NNEvaluator to be released is not a member of this pool");
 	}
+	NNEvaluatorStats NNEvaluatorPool::getStats() const noexcept
+	{
+		std::lock_guard lock(eval_mutex);
+		NNEvaluatorStats result;
+		for (size_t i = 0; i < evaluators.size(); i++)
+			result += evaluators[i]->getStats();
+		result /= evaluators.size();
+		return result;
+	}
 
 	SearchThread::SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators) :
 			settings(settings),
@@ -141,8 +150,8 @@ namespace ag
 	 */
 	bool SearchThread::isStopConditionFulfilled() const
 	{
-		std::cout << tree.getNodeCount() << "/" << settings.getMaxNodes() << " " << tree.getMemory() << "/" << settings.getMaxMemory() << " "
-				<< tree.getMaximumDepth() << "/" << settings.getMaxDepth() << " " << tree.isProven() << " " << tree.hasSingleNonLosingMove() << '\n';
+//		std::cout << tree.getNodeCount() << "/" << settings.getMaxNodes() << " " << tree.getMemory() << "/" << settings.getMaxMemory() << " "
+//				<< tree.getMaximumDepth() << "/" << settings.getMaxDepth() << " " << tree.isProven() << " " << tree.hasSingleNonLosingMove() << '\n';
 		// assuming tree is locked
 		if (tree.getNodeCount() == 0)
 			return false; // there must be at least one node (root node) in the tree
@@ -336,7 +345,7 @@ namespace ag
 //			result += " n/s 0";
 //		result += " tm " + std::to_string((int) (1000 * time_used_for_last_search));
 //		result += " pv";
-
+//
 //		for (int i = 1; i < pv.length(); i++)
 //		{
 //			Node &current = pv.getNode(i);
@@ -357,9 +366,110 @@ namespace ag
 	{
 		return tree.getSignToMove();
 	}
-	int64_t SearchEngine::getMemory() const noexcept
+	void SearchEngine::logSearchInfo()
 	{
-		return tree.getMemory();
+		if (Logger::isEnabled() == false)
+			return;
+		matrix<Sign> board = getBoard();
+		matrix<float> policy(board.rows(), board.cols());
+		matrix<ProvenValue> proven_values(board.rows(), board.cols());
+
+		Node root_node = getInfo( { });
+		for (int i = 0; i < root_node.numberOfEdges(); i++)
+		{
+			Move m = root_node.getEdge(i).getMove();
+			policy.at(m.row, m.col) = (root_node.getVisits() > 1) ? root_node.getEdge(i).getVisits() : root_node.getEdge(i).getPolicyPrior();
+			proven_values.at(m.row, m.col) = root_node.getEdge(i).getProvenValue();
+		}
+		normalize(policy);
+
+		root_node.sortEdges();
+		Logger::write("BEST");
+		int children = std::min(10, root_node.numberOfEdges());
+		for (int i = 0; i < children; i++)
+			Logger::write(root_node.getEdge(i).toString());
+
+		std::string result = "  ";
+		for (int i = 0; i < board.cols(); i++)
+			result += std::string("  ") + static_cast<char>(static_cast<int>('a') + i) + " ";
+		result += '\n';
+		for (int i = 0; i < board.rows(); i++)
+		{
+			if (i < 10)
+				result += " ";
+			result += std::to_string(i);
+			for (int j = 0; j < board.cols(); j++)
+			{
+				if (board.at(i, j) == Sign::NONE)
+				{
+					switch (proven_values.at(i, j))
+					{
+						case ProvenValue::UNKNOWN:
+						{
+							int t = (int) (1000 * policy.at(i, j));
+							if (t == 0)
+								result += "  _ ";
+							else
+							{
+								if (t < 1000)
+									result += ' ';
+								if (t < 100)
+									result += ' ';
+								if (t < 10)
+									result += ' ';
+								result += std::to_string(t);
+							}
+							break;
+						}
+						case ProvenValue::LOSS:
+							result += " >L<";
+							break;
+						case ProvenValue::DRAW:
+							result += " >D<";
+							break;
+						case ProvenValue::WIN:
+							result += " >W<";
+							break;
+					}
+				}
+				else
+					result += (board.at(i, j) == Sign::CROSS) ? "  X " : "  O ";
+			}
+			if (i < 10)
+				result += " ";
+			result += " " + std::to_string(i) + '\n';
+		}
+		result += "  ";
+		for (int i = 0; i < board.cols(); i++)
+			result += std::string("  ") + static_cast<char>(static_cast<int>('a') + i) + " ";
+		result += '\n';
+		Logger::write(result);
+
+		BestEdgeSelector selector;
+		std::vector<Move> principal_variation;
+		while (true)
+		{
+			Node node = getInfo(principal_variation);
+			if (node.isLeaf())
+				break;
+			Edge *edge = selector.select(&node);
+			Move m = edge->getMove();
+			principal_variation.push_back(m);
+			Logger::write(node.toString() + "\n   " + edge->toString());
+		}
+
+		NNEvaluatorStats evaluator_stats = nn_evaluators.getStats();
+		SearchStats search_stats;
+		for (size_t i = 0; i < search_threads.size(); i++)
+			search_stats += search_threads[i]->getSearchStats();
+		search_stats /= search_threads.size();
+
+		Logger::write(evaluator_stats.toString());
+		Logger::write(search_stats.toString());
+		Logger::write(tree.getTreeStats().toString());
+		Logger::write(tree.getNodeCacheStats().toString());
+		Logger::write("memory usage = " + std::to_string(tree.getMemory() / 1048576) + "MB");
+		Logger::write("");
 	}
 	/*
 	 * private
@@ -561,97 +671,6 @@ namespace ag
 //				return resource_manager.getElapsedTime() < timeout
 //						and (tree.getMemory() + cache.getMemory()) < 0.95 * (resource_manager.getMaxMemory() - 300 * 1024 * 1024);
 //		}
-	}
-	void SearchEngine::log_search_info()
-	{
-		const int rows = 0; //resource_manager.getGameConfig().rows;
-		const int cols = 0; //resource_manager.getGameConfig().cols;
-
-//		if (getSimulationCount() == 0)
-//		{
-//			Move move = make_forced_move().getMove();
-//			matrix<float> policy(rows, cols);
-//			policy.at(move.row, move.col) = 0.999f;
-//			Logger::write(policyToString(board, policy));
-//			return;
-//		}
-//		int children = std::min(10, tree.getRootNode().numberOfChildren());
-//		tree.getRootNode().sortChildren();
-//		Logger::write("BEST");
-//		for (int i = 0; i < children; i++)
-//			Logger::write(tree.getRootNode().getChild(i).toString());
-
-		matrix<float> policy(rows, cols);
-		matrix<ProvenValue> proven_values(rows, cols);
-//		if (tree.getRootNode().getVisits() > 1)
-//			tree.getPlayoutDistribution(tree.getRootNode(), policy);
-//		else
-//			tree.getPolicyPriors(tree.getRootNode(), policy);
-//		tree.getProvenValues(tree.getRootNode(), proven_values);
-		normalize(policy);
-
-		std::string result;
-//		for (int i = 0; i < board.rows(); i++)
-//		{
-//			for (int j = 0; j < board.cols(); j++)
-//			{
-//				if (board.at(i, j) == Sign::NONE)
-//				{
-//					switch (proven_values.at(i, j))
-//					{
-//						case ProvenValue::UNKNOWN:
-//						{
-//							int t = (int) (1000 * policy.at(i, j));
-//							if (t == 0)
-//								result += "  _ ";
-//							else
-//							{
-//								if (t < 1000)
-//									result += ' ';
-//								if (t < 100)
-//									result += ' ';
-//								if (t < 10)
-//									result += ' ';
-//								result += std::to_string(t);
-//							}
-//							break;
-//						}
-//						case ProvenValue::LOSS:
-//							result += " >L<";
-//							break;
-//						case ProvenValue::DRAW:
-//							result += " >D<";
-//							break;
-//						case ProvenValue::WIN:
-//							result += " >W<";
-//							break;
-//					}
-//				}
-//				else
-//					result += (board.at(i, j) == Sign::CROSS) ? "  X " : "  O ";
-//			}
-//			result += '\n';
-//		}
-		Logger::write(result);
-//		SearchTrajectory st = tree.getPrincipalVariation();
-//		for (int i = 0; i < st.length(); i++)
-//			Logger::write(st.getNode(i).toString());
-
-//		QueueStats queue_stats;
-		SearchStats search_stats;
-//		for (size_t i = 0; i < search_threads.size(); i++)
-//		{
-//			queue_stats += search_threads[i]->getQueueStats();
-//			search_stats += search_threads[i]->getSearchStats();
-//		}
-//		queue_stats /= search_threads.size();
-//		search_stats /= search_threads.size();
-
-//		Logger::write(queue_stats.toString());
-		Logger::write(search_stats.toString());
-//		Logger::write(tree.getStats().toString() + "memory = " + std::to_string(tree.getMemory() / 1048576) + "MB");
-//		Logger::write(cache.getStats().toString() + "memory = " + std::to_string(cache.getMemory() / 1048576) + "MB");
-		Logger::write("");
 	}
 
 } /* namespace ag */

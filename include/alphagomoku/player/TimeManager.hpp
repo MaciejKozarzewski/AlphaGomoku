@@ -13,6 +13,7 @@
 namespace ag
 {
 	class EngineSettings;
+	struct Value;
 } /* namespace ag */
 
 namespace ag
@@ -29,6 +30,7 @@ namespace ag
 			static constexpr double SWAP2_FRACTION = 0.1;
 
 			mutable std::mutex mutex;
+
 			double start_time = 0.0; /**< [seconds] */
 			double stop_time = 0.0; /**< [seconds] */
 			double used_time = 0.0; /**< [seconds] */
@@ -36,26 +38,13 @@ namespace ag
 			double time_of_last_search = 0.0; /**< [seconds] */
 			bool is_running = false;
 		public:
-			/**
-			 * @brief Setup the time manager for general search.
-			 */
 			void resetTimer() noexcept;
-			/**
-			 * @brief Starts measuring elapsed time.
-			 */
 			void startTimer() noexcept;
-			/**
-			 * @brief Stops the timer.
-			 * Is needed to be able to get elapsed time after the search ended.
-			 */
 			void stopTimer() noexcept;
-			/**
-			 * @brief Returns time spent on the current search.
-			 */
 			double getElapsedTime() const noexcept;
-
 			double getLastSearchTime() const noexcept;
 
+			double getTimeForTurn(const EngineSettings &settings, int moveNumber, Value eval);
 	};
 
 } /* namespace ag */

@@ -6,6 +6,8 @@
  */
 
 #include <alphagomoku/player/TimeManager.hpp>
+#include <alphagomoku/player/EngineSettings.hpp>
+#include <alphagomoku/mcts/Value.hpp>
 
 namespace
 {
@@ -49,6 +51,12 @@ namespace ag
 	{
 		std::lock_guard lock(mutex);
 		return time_of_last_search;
+	}
+
+	double TimeManager::getTimeForTurn(const EngineSettings &settings, int moveNumber, Value eval)
+	{
+		std::lock_guard lock(mutex);
+		return std::min(settings.getTimeForTurn(), (TIME_FRACTION * settings.getTimeLeft())) - settings.getProtocolLag();
 	}
 } /* namespace ag */
 

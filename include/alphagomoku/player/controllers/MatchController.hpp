@@ -24,9 +24,14 @@ namespace ag
 				PONDERING
 			};
 			ControllerState state = ControllerState::SETUP;
+			int64_t initial_node_count = 0;
 		public:
 			MatchController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine);
 			void control(MessageQueue &outputQueue);
+		private:
+			void start_search();
+			Move get_best_move() const;
+			std::string prepare_summary() const;
 	};
 } /* namespace ag */
 

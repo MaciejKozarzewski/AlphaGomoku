@@ -22,6 +22,8 @@ namespace ag
 			std::ostream *output_stream = &(std::clog);
 			bool is_enabled = false;
 		public:
+			static bool isEnabled() noexcept;
+
 			static void enable() noexcept;
 			static void disable() noexcept;
 
