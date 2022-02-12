@@ -115,8 +115,8 @@ namespace ag
 			void freeUnusedMemory() noexcept;
 
 		private:
-			void link(Entry *&prev, Entry *next) noexcept;
-			NodeCache::Entry* unlink(Entry *&prev) noexcept;
+			void link(Entry **prev, Entry *next) noexcept;
+			NodeCache::Entry* unlink(Entry **prev) noexcept;
 			NodeCache::Entry* get_new_entry();
 			void move_to_buffer(NodeCache::Entry *entry) noexcept;
 			bool is_hash_collision(const Entry *entry, const matrix<Sign> &board, Sign signToMove) const noexcept;

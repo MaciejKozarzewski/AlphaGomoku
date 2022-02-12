@@ -159,7 +159,7 @@ namespace ag
 		{
 			while (bins[i] != nullptr)
 			{
-				Entry *tmp = unlink(bins[i]);
+				Entry *tmp = unlink(&(bins[i]));
 				move_to_buffer(tmp);
 			}
 			assert(bins[i] == nullptr);
@@ -187,7 +187,7 @@ namespace ag
 	}
 	Node* NodeCache::insert(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
-		assert(seek(board, signToMove) == nullptr);
+		assert(seek(board, signToMove) == nullptr); // the board state must not be in the cache
 		if (loadFactor() >= 1.0)
 			resize(2 * numberOfBins());
 
@@ -197,7 +197,7 @@ namespace ag
 		Entry *new_entry = get_new_entry();
 		new_entry->hash = hash;
 
-		link(bins[hash & bin_index_mask], new_entry);
+		link(&(bins[hash & bin_index_mask]), new_entry);
 		stored_entries++;
 		assert(stored_entries + buffered_entries == allocated_entries);
 
@@ -208,22 +208,25 @@ namespace ag
 	}
 	void NodeCache::remove(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
+		assert(seek(board, signToMove) != nullptr); // the board state must be in the cache
+
 		TimerGuard timer(stats.remove);
 		const uint64_t hash = hashing.getHash(board, signToMove);
 
 		size_t bin_index = hash & bin_index_mask;
-		Entry *&current = bins[bin_index];
-		while (current != nullptr)
+		Entry **current = &(bins[bin_index]);
+
+		while ((*current) != nullptr)
 		{
-			if (current->hash == hash)
+			if ((*current)->hash == hash)
 			{
-				assert(is_hash_collision(current, board, signToMove) == false);
+				assert(is_hash_collision(*current, board, signToMove) == false);
 				Entry *tmp = unlink(current);
 				move_to_buffer(tmp);
 				break;
 			}
 			else
-				current = current->next_entry;
+				current = &((*current)->next_entry);
 		}
 		assert(stored_entries + buffered_entries == allocated_entries);
 	}
@@ -246,8 +249,8 @@ namespace ag
 		{
 			while (bins[i] != nullptr)
 			{
-				Entry *tmp = unlink(bins[i]);
-				link(storage, tmp);
+				Entry *tmp = unlink(&(bins[i]));
+				link(&storage, tmp);
 			}
 		}
 
@@ -255,8 +258,8 @@ namespace ag
 
 		while (storage != nullptr)
 		{
-			Entry *tmp = unlink(storage);
-			link(bins[tmp->hash & bin_index_mask], tmp);
+			Entry *tmp = unlink(&storage);
+			link(&(bins[tmp->hash & bin_index_mask]), tmp);
 		}
 		assert(stored_entries + buffered_entries == allocated_entries);
 	}
@@ -264,7 +267,7 @@ namespace ag
 	{
 		while (buffer != nullptr)
 		{
-			Entry *tmp = unlink(buffer);
+			Entry *tmp = unlink(&buffer);
 			assert(tmp->node.isUsed() == false);
 			delete tmp;
 		}
@@ -273,19 +276,19 @@ namespace ag
 	/*
 	 * private
 	 */
-	void NodeCache::link(Entry *&prev, Entry *next) noexcept
+	void NodeCache::link(Entry **prev, Entry *next) noexcept
 	{
 		// changes : prev = &entry1{...}
 		// into    : prev = &next{next_entry = &entry1{...}}
-		next->next_entry = prev;
-		prev = next;
+		next->next_entry = *prev;
+		*prev = next;
 	}
-	NodeCache::Entry* NodeCache::unlink(Entry *&prev) noexcept
+	NodeCache::Entry* NodeCache::unlink(Entry **prev) noexcept
 	{
 		// changes : prev = &entry1{next_entry = &entry2{...}}
 		// into    : prev = &entry2{...} and returns pointer to entry1{next_entry = nullptr}
-		Entry *result = prev;
-		prev = result->next_entry;
+		Entry *result = *prev;
+		*prev = result->next_entry;
 		result->next_entry = nullptr;
 		return result;
 	}
@@ -301,13 +304,13 @@ namespace ag
 		{
 			assert(buffered_entries > 0);
 			buffered_entries--;
-			return unlink(buffer);
+			return unlink(&buffer);
 		}
 	}
 	void NodeCache::move_to_buffer(NodeCache::Entry *entry) noexcept
 	{
 		entry->node.markAsUnused();
-		link(buffer, entry);
+		link(&buffer, entry);
 		assert(stored_entries > 0);
 		stored_entries--;
 		buffered_entries++;
