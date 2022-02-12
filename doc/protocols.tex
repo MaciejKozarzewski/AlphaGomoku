@@ -63,13 +63,17 @@ This command is implemented exactly like in the protocol description.
 
 \subsection{INFO [key] [value]}
 \label{cmd_info}
-In theory AG can react to the change of any parameters even during search (except \texttt{rule} which must be specified before any search starts), but no guarantees are made if some contradictory values are sent. If anything goes wrong the error description might be found in the logfile. The key can be:\\
+In theory AG can react to the change of any parameters even during search (except \texttt{rule} which must be specified before any search starts), but no guarantees are made if some contradictory values are sent. If anything goes wrong the error description might be found in the logfile.
+
+\textbf{Note:} Official protocol description states that \textit{"The manager does not read messages from the brain when sending INFO command."} \cite{newprotocol}. This is why it was suggested that engine should wait with reponse to the \texttt{INFO} command until actual match is started. However AG responses immediately if an invalid \texttt{INFO} command was sent, assuming that this output is buffered and will eventually reach the manager when it will switch to reading messages.
 
 \subsubsection{INFO timeout{\_}turn [x]}
 \label{cmd_info_timeout_turn}
 Sets the time limit for each move in milliseconds. If \text{$[x] < 0$} the time for move is unlimited.
 
 \textbf{Note:} AG will end the search when it runs out of memory.
+
+\textbf{Note:} AG parses [x] as 64 bit integer.
 
 \textbf{Note:} If \text{$[x]=0$} is set, it may take some more time than exactly 0 ms for AG to respond.
 
@@ -79,13 +83,15 @@ Sets the time limit for each move in milliseconds. If \text{$[x] < 0$} the time 
 \label{cmd_timeout_match}
 Sets the time limit of a whole match in milliseconds.
 
+\textbf{Note:} AG parses [x] as 64 bit integer.
+
 \textbf{Note:} If \text{$[x] \leq 0$} the time for match is unlimited.
 
 \subsubsection{INFO time{\_}left [x]}
 \label{cmd_info_time_left}
 Specifies how much time remains for the match in milliseconds.
 
-\textbf{Note:} If \text{$[x] < 0$} the remaining time is unlimited.
+\textbf{Note:} AG parses [x] as 64 bit integer.
 
 \textbf{Note:} AG will end the search when it runs out of memory.
 
@@ -130,9 +136,9 @@ A request to evaluate move with coordinates [C],[R]. AG will answer with a \text
 Some parameters have default values so AG works even if no \texttt{INFO} was sent:
 \begin{itemize}
 \item{\textbf{timeout{\_}turn } = 5000 (5 seconds)}
-\item{\textbf{timeout{\_}match} = -1 (no limit)}
+\item{\textbf{timeout{\_}match} = $2^{53}$ ($\approx 285616$ years - effectively no limit)}
 \item{\textbf{max{\_}memory} = 268435456 (256MB)}
-\item{\textbf{time{\_}left} = -1 (no limit)}
+\item{\textbf{time{\_}left} = $2^{53}$ ($\approx 285616$ years - effectively no limit)}
 \item{\textbf{rule} = 0 (freestyle rule)}
 \end{itemize}
 
@@ -220,7 +226,7 @@ The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [
 \label{cmd_suggest}
 If \texttt{INFO analysis{\_}mode} is set to \texttt{1}, engine will answer \texttt{BEGIN}, \texttt{BOARD} and \texttt{TURN} commands with \texttt{SUGGEST} [C],[R] instead of [C],[R] and will not change its internal state.
 
-\textbf{Note:} The engine should not hang after \texttt{SUGGEST} waiting infinitely for \texttt{PLAY} command.
+\textbf{Note:} AG do not explicitly wait for the manager to send \texttt{PLAY} command in response.
 
 \textbf{Note:} Pondering is never started automatically after \texttt{SUGGEST} response.
 
@@ -258,7 +264,7 @@ Sets maximum search depth. If \text{$[x]<0$} the search depth is unlimited.
 \textbf{Note:} Since AG evaluates multiple nodes in parallel, it will stop as soon as the limit is reached but may exceed it by small amount.
 
 \subsubsection{INFO max{\_}node [x]}
-Sets maximum number of nodes. If \text{$[x]<0$} the number of nodes is unlimited.
+Sets maximum number of nodes. If \text{$[x]<=0$} the number of nodes is unlimited.
 
 \textbf{Note:} Since AG evaluates multiple nodes in parallel, it will stop as soon as the limit is reached but may exceed it by small amount.
 
@@ -290,34 +296,32 @@ Toggles the automatic pondering after each move. This command overrides the valu
 Sets the estimated protocol overhead i.e. the time difference between sending the message by the engine and receiving it by the GUI (and in the opposite direction). Must not be negative.
 
 \subsubsection{INFO thread{\_}num [x]}
-Sets maximum nuber of threads an engine can use. Must not be negative.
+Sets maximum nuber of threads an engine can use. This command overrides the value of "thread{\_}num" loaded from the configuration file. Must be greater than 0. 
 
 \textbf{Note:} If number of threads is changed during the search, AG would not adjust its number of threads until the search ends.
-
-\subsubsection{INFO }
 
 \subsubsection{Default values}
 Some parameters have default values so the engine works even if no \texttt{INFO} was sent:
 \begin{itemize}
 \item{\textbf{analysis{\_}mode} = 0 (disabled)}
-\item{\textbf{max{\_}depth } = -1 (no limit)}
-\item{\textbf{max{\_}nodes} = -1 (no limit)}
+\item{\textbf{max{\_}depth } = 2147483647 (effectively no limit)}
+\item{\textbf{max{\_}nodes} = 2147483647 (effectively no limit)}
 \item{\textbf{time{\_}increment} = 0 ("sudden death" \cite{suddendeath} type time controls)}
 \item{\textbf{style} = 1 (classic)}
 \item{\textbf{auto{\_}pondering} = as loaded from configuration file}
-\item{\textbf{protocol{\_}lag} \text{$ \approx 400$} (varies from version to version)}
-\item{\textbf{thread{\_}num} = 1}
+\item{\textbf{protocol{\_}lag} \text{$ \approx 400$} (0.4s - varies from version to version)}
+\item{\textbf{thread{\_}num} = as loaded from configuration file}
 \end{itemize}
 
 
 \subsection{PONDER [value]}
 \label{cmd_ponder}
-This command starts the search in pondering mode for [value] milliseconds. The pondering search mode differs from the regular search mode at one point - it will not output any best move at the end. If [value] is not specified or is negative, engine starts infinite pondering. In any case the pondering can be stopped using \texttt{STOP} command. Pondering mode must exit automatically if any new position is set, either by \texttt{BEGIN}, \texttt{BOARD} or \texttt{TURN} command.
+This command starts the search in pondering mode for [value] milliseconds. The pondering search mode differs from the regular search mode at one point - it will not output any best move at the end. If [value] is not specified or is negative, engine starts infinite pondering. In any case the pondering can be stopped using \texttt{STOP} command. Pondering mode exits automatically if any new position is set, either by \texttt{BEGIN}, \texttt{BOARD} or \texttt{TURN} command.
 
 
 \subsection{STOP}
 \label{cmd_stop}
-This command stops the current search. If it was regular search, either the best move will be returned or \texttt{SUGGEST} message will be sent, depending on the \texttt{INFO analysis{\_}mode} settings. Such interrupted pondering can be launched again by another \texttt{PONDER} command.
+This command stops the current search. If it was regular search, either the best move will be returned or \texttt{SUGGEST} message will be sent, depending on the \texttt{INFO analysis{\_}mode} settings. If it was pondering search it is simply stopped. Such interrupted pondering can be launched again by another \texttt{PONDER} command.
 
 
 \subsection{SWAP2BOARD}
@@ -407,7 +411,7 @@ If the rule is not renju or there are no forbidden moves on board, engine should
 
 \subsection{BALANCE [n]}
 \label{cmd_balance}
-This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it searches for [n] moves that create the most balanced position (balanced position is such where both players have the same probability of winning). For example\\
+This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it searches for [n] moves that create the most balanced position (balanced position is such where neither player has an advantage). For example\\
 \texttt{BALANCE 2} \\
 \texttt{[C1],[R1],2} \\
 \texttt{[C2],[R2],1} \\
@@ -420,9 +424,16 @@ will order the engine to find two moves that balance this 3-stone position. Valu
 
 \subsection{CLEARHASH}
 \label{cmd_clearhash}
-Upon receiving this command the engine should clear its internal memory, so that the next search would start "fresh", without any data collected in previous searches. For example in $\alpha$-$\beta$ engines, this command probably will mean clearing the hashtable.
+Upon receiving this command the engine should clear its internal memory, so that the next search would start "fresh", without any data collected in previous searches. For example in $\alpha$-$\beta$ engines, this command probably will mean clearing the hashtable. This command must not be sent during the search and the engine is allowed to completely "forget" current board state after receving this command.
 
 \textbf{Note:} AG does not have such kind of hashtable like in $\alpha$-$\beta$ engines, but still there is some cache that will be cleared upon receiving this command.
+
+
+\subsection{PROTOCOLVERSION}
+\label{cmd_protocol_version}
+The engine should answer to this command with the version number of implemented protocol.\\
+\texttt{PROTOCOLVERSION} \\
+\texttt{[major],[minor]} \\
 
 
 \begin{thebibliography}{99}
