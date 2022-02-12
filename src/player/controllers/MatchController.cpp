@@ -46,20 +46,6 @@ namespace ag
 		{
 			search_engine.logSearchInfo();
 			outputQueue.push(Message(MessageType::PLAIN_STRING, prepare_summary()));
-//			Node node = search_engine.getInfo(std::vector<Move>());
-//			if (node.isLeaf())
-//			{ // rare case if there was not enough time to evaluate even a single node in the tree
-//				outputQueue.push(Message(MessageType::BEST_MOVE, Move(0, 0)));
-//				state = ControllerState::IDLE;
-//				return;
-//			}
-//			node.sortEdges();
-//			std::cout << node.toString() << '\n';
-//			for (int i = 0; i < node.numberOfEdges(); i++)
-//				std::cout << node.getEdge(i).toString() << '\n';
-//
-//			BestEdgeSelector selector;
-//			Move move = selector.select(&node)->getMove();
 			Move best_move = get_best_move();
 			outputQueue.push(Message(MessageType::BEST_MOVE, best_move));
 

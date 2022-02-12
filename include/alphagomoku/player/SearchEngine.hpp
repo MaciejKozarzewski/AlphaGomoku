@@ -73,6 +73,8 @@ namespace ag
 			std::vector<std::unique_ptr<SearchThread>> search_threads;
 			Tree tree;
 
+			int64_t initial_node_count = 0;
+
 		public:
 			SearchEngine(const EngineSettings &settings);
 			void setPosition(const matrix<Sign> &board, Sign signToMove);
@@ -87,7 +89,8 @@ namespace ag
 
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
-			void logSearchInfo();
+			void logSearchInfo() const;
+			std::string getSummary() const;
 		private:
 			void setup_search_threads();
 

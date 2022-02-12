@@ -155,6 +155,11 @@ namespace ag
 						is_running = false;
 						break;
 					}
+					case MessageType::INFO_MESSAGE:
+					{
+						// TODO
+						break;
+					}
 					default:
 						break;
 				}
@@ -299,7 +304,7 @@ namespace ag
 				break;
 		}
 		assert(protocol != nullptr);
-		Logger::write("Created " + toString(protocol->getType()) + " protocol instance");
+		Logger::write("Using " + toString(protocol->getType()) + " protocol");
 	}
 	void ProgramManager::process_input_from_user()
 	{
