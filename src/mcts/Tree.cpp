@@ -423,6 +423,10 @@ namespace ag
 		edge_generator = std::unique_ptr<EdgeGenerator>(generator.clone());
 	}
 
+	int Tree::getNodeCount() const noexcept
+	{
+		return node_cache.storedElements();
+	}
 	int Tree::getSimulationCount() const noexcept
 	{
 		if (root_node == nullptr)
@@ -461,7 +465,6 @@ namespace ag
 		{
 			assert(edge_selector != nullptr);
 			Edge *edge = edge_selector->select(node);
-			assert(is_terminal(edge) == false);
 			task.append(node, edge);
 			edge->increaseVirtualLoss();
 
@@ -634,7 +637,7 @@ namespace ag
 			if (node->isLeaf() == false)
 			{
 				for (auto edge = node->begin(); edge < node->end(); edge++)
-					if (edge->getNode() != nullptr and edge->getNode()->isUsed())
+					if (edge->isLeaf() == false and edge->getNode()->isUsed())
 					{
 						Board::putMove(tmpBoard, edge->getMove());
 						prune_subtree(edge->getNode(), tmpBoard);

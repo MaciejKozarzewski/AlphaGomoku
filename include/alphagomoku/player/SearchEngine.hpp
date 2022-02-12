@@ -54,6 +54,7 @@ namespace ag
 			SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators);
 			void start();
 			void stop() noexcept;
+			void join() const;
 			bool isRunning() const noexcept;
 			void run();
 

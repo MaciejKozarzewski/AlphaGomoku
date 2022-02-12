@@ -14,7 +14,6 @@ namespace ag
 	MatchController::MatchController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine) :
 			EngineController(settings, manager, engine)
 	{
-		state = ControllerState::SETUP;
 	}
 	void MatchController::control(MessageQueue &outputQueue)
 	{
@@ -33,13 +32,15 @@ namespace ag
 
 		if (state == ControllerState::SEARCH)
 		{
-			if (time_manager.getElapsedTime() > 10.0 or search_engine.getMemory() > engine_settings.getMaxMemory())
+			if (time_manager.getElapsedTime() > 10.0 or search_engine.isSearchFinished())
 			{
 				search_engine.stopSearch();
 				time_manager.stopTimer();
 				time_manager.resetTimer();
 				state = ControllerState::GET_BEST_ACTION;
 			}
+			else
+				return;
 		}
 
 		if (state == ControllerState::GET_BEST_ACTION)
@@ -59,7 +60,7 @@ namespace ag
 			BestEdgeSelector selector;
 			Move move = selector.select(&node)->getMove();
 			outputQueue.push(Message(MessageType::BEST_MOVE, move));
-			if (engine_settings.isUsingAutoPondering())
+			if (engine_settings.isUsingAutoPondering() and not engine_settings.isInAnalysisMode())
 			{
 				matrix<Sign> board = search_engine.getBoard();
 				Board::putMove(board, move);
@@ -73,11 +74,8 @@ namespace ag
 
 		if (state == ControllerState::PONDERING)
 		{
-			if (search_engine.getMemory() > engine_settings.getMaxMemory())
-			{
-				search_engine.stopSearch();
+			if (search_engine.isSearchFinished())
 				state = ControllerState::IDLE;
-			}
 		}
 	}
 } /* namespace ag */

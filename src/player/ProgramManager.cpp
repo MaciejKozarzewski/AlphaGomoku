@@ -5,13 +5,16 @@
  *      Author: Maciej Kozarzewski
  */
 #include <alphagomoku/player/ProgramManager.hpp>
-#include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/version.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 
+#include <alphagomoku/protocols/GomocupProtocol.hpp>
+#include <alphagomoku/protocols/ExtendedGomocupProtocol.hpp>
+
 #include <alphagomoku/player/controllers/MatchController.hpp>
+#include <alphagomoku/player/controllers/PonderingController.hpp>
 #include <alphagomoku/player/controllers/Swap2Controller.hpp>
 
 #include <filesystem>
@@ -120,7 +123,7 @@ namespace ag
 					}
 					case MessageType::SET_POSITION:
 					{
-						setPosition(input_message.getListOfMoves());
+						set_position(input_message.getListOfMoves());
 						break;
 					}
 					case MessageType::START_SEARCH:
@@ -137,6 +140,8 @@ namespace ag
 							search_engine->setPosition(board, sign_to_move);
 							setup_controller(input_message.getString());
 						}
+						else
+							protocol->reset(); // the protocol does not know about the failure of engine creation, so we must reset its state from here
 						break;
 					}
 					case MessageType::STOP_SEARCH:
@@ -288,10 +293,13 @@ namespace ag
 				protocol = std::make_unique<GomocupProtocol>(input_queue, output_queue);
 				break;
 			case ProtocolType::EXTENDED_GOMOCUP:
+				protocol = std::make_unique<ExtendedGomocupProtocol>(input_queue, output_queue);
 				break;
 			case ProtocolType::YIXINBOARD:
 				break;
 		}
+		assert(protocol != nullptr);
+		Logger::write("Created " + toString(protocol->getType()) + " protocol instance");
 	}
 	void ProgramManager::process_input_from_user()
 	{
@@ -333,7 +341,7 @@ namespace ag
 			output_queue.push(Message(MessageType::ERROR, str));
 		}
 	}
-	void ProgramManager::setPosition(const std::vector<Move> &listOfMoves)
+	void ProgramManager::set_position(const std::vector<Move> &listOfMoves)
 	{
 		if (listOfMoves.empty())
 			sign_to_move = Sign::CROSS;
@@ -351,9 +359,17 @@ namespace ag
 		assert(tmp.size() >= 1);
 		assert(search_engine != nullptr);
 
+		if (tmp[0] == "clearhash") //it just pretends to be a controller but causes hash clear
+			return;
+
 		if (tmp[0] == "bestmove")
 		{
 			engine_controller = std::make_unique<MatchController>(*engine_settings, time_manager, *search_engine);
+			return;
+		}
+		if (tmp[0] == "ponder")
+		{
+			engine_controller = std::make_unique<PonderingController>(*engine_settings, time_manager, *search_engine);
 			return;
 		}
 		if (tmp[0] == "swap2")

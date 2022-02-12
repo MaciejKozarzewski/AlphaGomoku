@@ -23,7 +23,7 @@ namespace ag
 				GET_BEST_ACTION,
 				PONDERING
 			};
-			ControllerState state = ControllerState::IDLE;
+			ControllerState state = ControllerState::SETUP;
 		public:
 			MatchController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine);
 			void control(MessageQueue &outputQueue);

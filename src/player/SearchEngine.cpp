@@ -75,10 +75,11 @@ namespace ag
 	}
 	void SearchThread::stop() noexcept
 	{
-		{ /* artificial scope for lock */
-			std::lock_guard lock(search_mutex);
-			is_running = false;
-		}
+		std::lock_guard lock(search_mutex);
+		is_running = false;
+	}
+	void SearchThread::join() const
+	{
 		if (search_future.valid())
 			search_future.wait();
 	}
@@ -88,7 +89,7 @@ namespace ag
 		if (search_future.valid())
 		{
 			std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
-			return (search_status == std::future_status::ready);
+			return search_status != std::future_status::ready;
 		}
 		else
 			return false;
@@ -140,8 +141,14 @@ namespace ag
 	 */
 	bool SearchThread::isStopConditionFulfilled() const
 	{
+		std::cout << tree.getNodeCount() << "/" << settings.getMaxNodes() << " " << tree.getMemory() << "/" << settings.getMaxMemory() << " "
+				<< tree.getMaximumDepth() << "/" << settings.getMaxDepth() << " " << tree.isProven() << " " << tree.hasSingleNonLosingMove() << '\n';
 		// assuming tree is locked
-		if (tree.getSimulationCount() >= settings.getMaxNodes())
+		if (tree.getNodeCount() == 0)
+			return false; // there must be at least one node (root node) in the tree
+		if (tree.getMemory() >= settings.getMaxMemory())
+			return true;
+		if (tree.getNodeCount() >= settings.getMaxNodes())
 			return true;
 		if (tree.getMaximumDepth() >= settings.getMaxDepth())
 			return true;
@@ -206,6 +213,8 @@ namespace ag
 	{
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->stop();
+		for (size_t i = 0; i < search_threads.size(); i++)
+			search_threads[i]->join();
 	}
 	bool SearchEngine::isSearchFinished() const noexcept
 	{

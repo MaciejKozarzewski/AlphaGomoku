@@ -166,7 +166,7 @@ namespace ag
 			if (option.name == "max_depth")
 			{
 				int64_t value = std::stoll(option.value);
-				if (value <= 0)
+				if (value < 0)
 					this->max_depth = max_int_value;
 				else
 					this->max_depth = value;
@@ -209,6 +209,15 @@ namespace ag
 			if (option.name == "auto_pondering")
 			{
 				this->auto_pondering = static_cast<bool>(std::stoi(option.value));
+				return SetOptionOutcome::SUCCESS;
+			}
+			if (option.name == "time_for_pondering")
+			{
+				int64_t value = std::stoll(option.value);
+				if (value <= 0)
+					this->time_for_pondering = max_double_value;
+				else
+					this->time_for_pondering = value / 1000.0;
 				return SetOptionOutcome::SUCCESS;
 			}
 			if (option.name == "folder")
@@ -269,6 +278,11 @@ namespace ag
 	{
 		std::lock_guard lock(mutex);
 		return protocol_lag;
+	}
+	double EngineSettings::getTimeForPondering() const noexcept
+	{
+		std::lock_guard lock(mutex);
+		return time_for_pondering;
 	}
 	int EngineSettings::getMaxDepth() const noexcept
 	{

@@ -84,7 +84,7 @@ namespace ag
 			void process_input_from_user();
 			void setup_logging();
 			void setup_engine();
-			void setPosition(const std::vector<Move> &listOfMoves);
+			void set_position(const std::vector<Move> &listOfMoves);
 			void setup_controller(const std::string &type);
 			bool is_game_config_correct() const;
 	};

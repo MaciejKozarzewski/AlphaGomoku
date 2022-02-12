@@ -89,6 +89,7 @@ namespace ag
 			void setEdgeSelector(const EdgeSelector &selector);
 			void setEdgeGenerator(const EdgeGenerator &generator);
 
+			int getNodeCount() const noexcept;
 			int getSimulationCount() const noexcept;
 			int getMaximumDepth() const noexcept;
 			bool isProven() const noexcept;
