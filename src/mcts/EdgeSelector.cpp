@@ -10,12 +10,13 @@
 #include <alphagomoku/utils/misc.hpp>
 
 #include <cassert>
+#include <iostream>
 
 namespace
 {
 	float getVloss(const ag::Edge *edge) noexcept
 	{
-		return static_cast<float>(edge->getVisits()) / static_cast<float>(edge->getVisits() + edge->getVirtualLoss());
+		return static_cast<float>(edge->getVisits()) / (1.0e-6f + edge->getVisits() + edge->getVirtualLoss());
 	}
 	template<typename T>
 	float getQ(const T *n, float sf) noexcept
@@ -52,24 +53,30 @@ namespace ag
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		const float parent_value = 1.0f - getQ(node, style_factor);
+//		const float parent_value = getQ(node, style_factor);
 		const float sqrt_visit = exploration_constant * sqrtf(node->getVisits());
 
+//		std::cout << node->toString() << '\n';
 		Edge *selected = node->end();
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-		{
-			float Q = parent_value;
-			if (edge->getVisits() > 0)
-				Q = getQ(edge, style_factor) * getVloss(edge) - 10.0f * edge->isProven();
-			float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
-
-			if (Q + U > bestValue)
+			if (edge->isProven() == false)
 			{
-				selected = edge;
-				bestValue = Q + U;
+//				float Q = parent_value;
+//				if (edge->getVisits() > 0)
+//					Q = getQ(edge, style_factor) * getVloss(edge);
+
+				float Q = getQ(edge, style_factor) * getVloss(edge);
+				float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
+
+//				std::cout << edge->toString() << " " << Q << " " << U << '\n';
+				if (Q + U > bestValue)
+				{
+					selected = edge;
+					bestValue = Q + U;
+				}
 			}
-		}
+//		std::cout << '\n';
 		assert(selected != node->end()); // this must never happen
 		return selected;
 	}
@@ -87,25 +94,26 @@ namespace ag
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		const float parent_value = 1.0f - getQ(node, style_factor);
+		const float parent_value = getQ(node, style_factor);
 		const float log_visit = logf(node->getVisits());
 
 		Edge *selected = node->end();
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-		{
-			float Q = parent_value;
-			if (edge->getVisits() > 0)
-				Q = getQ(edge, style_factor) * getVloss(edge) - 10.0f * edge->isProven();
-			float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
-			float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
-
-			if (Q + U + P > bestValue)
+			if (edge->isProven() == false)
 			{
-				selected = edge;
-				bestValue = Q + U + P;
+				float Q = parent_value;
+				if (edge->getVisits() > 0)
+					Q = getQ(edge, style_factor) * getVloss(edge);
+				float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
+				float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
+
+				if (Q + U + P > bestValue)
+				{
+					selected = edge;
+					bestValue = Q + U + P;
+				}
 			}
-		}
 		assert(selected != node->end()); // this must never happen
 		return selected;
 	}
