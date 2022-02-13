@@ -163,7 +163,11 @@ namespace ag
 					}
 					case MessageType::INFO_MESSAGE:
 					{
-						// TODO
+						if (search_engine != nullptr)
+						{
+							SearchSummary summary = search_engine->getSummary(input_message.getListOfMoves(), false);
+							output_queue.push(Message(MessageType::INFO_MESSAGE, summary));
+						}
 						break;
 					}
 					default:

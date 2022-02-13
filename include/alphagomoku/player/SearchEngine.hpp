@@ -85,16 +85,13 @@ namespace ag
 			void stopSearch();
 			bool isSearchFinished() const noexcept;
 
-			Node getInfo(const std::vector<Move> &listOfMoves = { }) const;
-
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
 			void logSearchInfo() const;
-			std::string getSummary() const;
+			SearchSummary getSummary(const std::vector<Move> &listOfMoves, bool getPV) const;
 		private:
 			void setup_search_threads();
 
-			void setup_search();
 			Move get_best_move() const;
 			float get_root_eval() const;
 			Message make_forced_move();

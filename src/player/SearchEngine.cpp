@@ -189,24 +189,6 @@ namespace ag
 			tree(settings.getTreeConfig())
 	{
 	}
-//	SearchEngine::SearchEngine(EngineSettings &es):
-//			settings(es),
-//			tree(std::make_unique<Tree>(es.getGameConfig(), es.getTreeConfig())),
-//
-//	{
-//
-//	}
-//	SearchEngine::SearchEngine(EngineSettings &s) :
-//			settings(s),
-//			thread_pool(s.getDevices().size()),
-//			tree(s.getTreeConfig()),
-//			cache(s.getGameConfig(), s.getCacheConfig())
-//	{
-//		for (int i = 0; i < thread_pool.size(); i++)
-//			search_threads.push_back(
-//					std::make_unique<SearchThread>(rm.getGameConfig(), cfg, tree, cache, ml::Device::fromString(cfg["threads"][i]["device"])));
-//		Logger::write("Initialized in " + std::to_string(rm.getElapsedTime()) + " seconds");
-//	}
 	void SearchEngine::setPosition(const matrix<Sign> &board, Sign signToMove)
 	{
 		assert(isSearchFinished());
@@ -229,6 +211,7 @@ namespace ag
 	void SearchEngine::startSearch()
 	{
 		assert(isSearchFinished());
+		initial_node_count = tree.getNodeCount(); // do not need locking as the search must not be running at this point
 		setup_search_threads();
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->start();
@@ -247,12 +230,6 @@ namespace ag
 				return false;
 		return true;
 	}
-	Node SearchEngine::getInfo(const std::vector<Move> &listOfMoves) const
-	{
-		TreeLock lock(tree);
-		return tree.getInfo(listOfMoves);
-	}
-
 //	void SearchEngine::makeMove()
 //	{
 //		Message msg = make_forced_move();
@@ -385,11 +362,13 @@ namespace ag
 	{
 		if (Logger::isEnabled() == false)
 			return;
+
+		TreeLock lock(tree);
 		matrix<Sign> board = getBoard();
 		matrix<float> policy(board.rows(), board.cols());
 		matrix<ProvenValue> proven_values(board.rows(), board.cols());
 
-		Node root_node = getInfo( { });
+		Node root_node = tree.getInfo( { });
 		for (int i = 0; i < root_node.numberOfEdges(); i++)
 		{
 			Move m = root_node.getEdge(i).getMove();
@@ -464,7 +443,7 @@ namespace ag
 		std::vector<Move> principal_variation;
 		while (true)
 		{
-			Node node = getInfo(principal_variation);
+			Node node = tree.getInfo(principal_variation);
 			if (node.isLeaf())
 				break;
 			Edge *edge = selector.select(&node);
@@ -486,57 +465,27 @@ namespace ag
 		Logger::write("memory usage = " + std::to_string(tree.getMemory() / 1048576) + "MB");
 		Logger::write("");
 	}
-	std::string SearchEngine::getSummary() const
+	SearchSummary SearchEngine::getSummary(const std::vector<Move> &listOfMoves, bool getPV) const
 	{
-		BestEdgeSelector selector;
-		std::vector<Move> principal_variation;
-		while (true)
-		{
-			Node node = getInfo(principal_variation);
-			if (node.isLeaf())
-				break;
-			Move m = selector.select(&node)->getMove();
-			principal_variation.push_back(m);
-		}
+		TreeLock lock(tree);
+		SearchSummary result;
+		result.node = tree.getInfo(listOfMoves);
 
-		Node root_node = getInfo();
-
-		std::string result;
-		result += "depth 1-" + std::to_string(principal_variation.size());
-		switch (root_node.getProvenValue())
+		if (getPV)
 		{
-			case ProvenValue::UNKNOWN:
+			result.principal_variation = listOfMoves;
+			BestEdgeSelector selector;
+			while (true)
 			{
-				if (root_node.getVisits() > 0)
-				{
-					int tmp = static_cast<int>(1000 * (root_node.getWinRate() + 0.5f * root_node.getDrawRate()));
-					result += " ev " + std::to_string(tmp / 10) + '.' + std::to_string(tmp % 10);
-				}
-				else
-					result += " ev U"; // this should never happen, but just in case...
-				break;
+				Node node = tree.getInfo(result.principal_variation);
+				if (node.isLeaf())
+					break;
+				Move m = selector.select(&node)->getMove();
+				result.principal_variation.push_back(m);
 			}
-			case ProvenValue::LOSS:
-				result += " ev L";
-				break;
-			case ProvenValue::DRAW:
-				result += " ev D";
-				break;
-			case ProvenValue::WIN:
-				result += " ev W";
-				break;
+			result.principal_variation.erase(result.principal_variation.begin(), result.principal_variation.begin() + listOfMoves.size());
 		}
-//		int64_t evaluated_nodes = root_node.getVisits() - initial_node_count;
-//		result += " n " + std::to_string(evaluated_nodes);
-//		if (evaluated_nodes > 0)
-//			result += " n/s " + std::to_string((int) (evaluated_nodes / time_manager.getLastSearchTime()));
-//		else
-//			result += " n/s 0";
-//		result += " tm " + std::to_string((int) (1000 * time_manager.getLastSearchTime()));
-//		result += " pv";
-//
-//		for (size_t i = 0; i < principal_variation.size(); i++)
-//			result += " " + principal_variation[i].text();
+		result.number_of_nodes = result.node.getVisits() - initial_node_count;
 		return result;
 	}
 	/*
@@ -554,20 +503,6 @@ namespace ag
 			search_threads.erase(search_threads.begin() + settings.getThreadNum(), search_threads.end());
 	}
 
-	void SearchEngine::setup_search()
-	{
-//		cache.clearStats();
-//		tree.clearStats();
-
-//		cache.cleanup(board);
-//		tree.clear();
-
-//		tree.getRootNode().setMove( { 0, 0, invertSign(sign_to_move) });
-//		for (size_t i = 0; i < search_threads.size(); i++)
-//			search_threads[i]->setup(board);
-//		for (size_t i = 0; i < search_threads.size(); i++)
-//			thread_pool.addJob(search_threads[i].get());
-	}
 	Move SearchEngine::get_best_move() const
 	{
 		const int rows = 0; //resource_manager.getGameConfig().rows;
@@ -647,10 +582,10 @@ namespace ag
 	Message SearchEngine::make_move_by_search()
 	{
 //		tree.setBalancingDepth(-1);
-		setup_search();
+//		setup_search();
 //		while (search_continues(resource_manager.getTimeForTurn()))
 //			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		stopSearch();
+//		stopSearch();
 		return Message(MessageType::BEST_MOVE, get_best_move());
 	}
 	Message SearchEngine::swap2_0stones()
@@ -676,10 +611,10 @@ namespace ag
 
 		Logger::write("Evaluating opening");
 //		tree.setBalancingDepth(-1);
-		setup_search();
+//		setup_search();
 //		while (search_continues(resource_manager.getTimeForSwap2(3) * balancing_split))
 //			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		stopSearch();
+//		stopSearch();
 
 		if (get_root_eval() < 1.0f - swap2_evaluation_treshold)
 			return Message(MessageType::BEST_MOVE, "swap");
@@ -694,10 +629,10 @@ namespace ag
 
 				Logger::write("Balancing opening");
 //				tree.setBalancingDepth(2);
-				setup_search();
+//				setup_search();
 //				while (search_continues(resource_manager.getTimeForSwap2(3) * (1.0 - balancing_split)))
 //					std::this_thread::sleep_for(std::chrono::milliseconds(10));
-				stopSearch();
+//				stopSearch();
 
 //				SearchTrajectory st;
 //				tree.select(st, 0.0f);
@@ -717,10 +652,10 @@ namespace ag
 	{
 		Logger::write("Evaluating opening");
 //		tree.setBalancingDepth(-1);
-		setup_search();
+//		setup_search();
 //		while (search_continues(resource_manager.getTimeForSwap2(5)))
 //			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		stopSearch();
+//		stopSearch();
 
 		if (get_root_eval() < 0.5f)
 			return Message(MessageType::BEST_MOVE, "swap");

@@ -587,7 +587,7 @@ namespace ag
 		{
 			Move seeked_move = moves[counter];
 			auto iter = std::find_if(node->begin(), node->end(), [seeked_move](const Edge &edge)
-			{	return edge.getMove() == seeked_move;});
+			{	return edge.getMove().row == seeked_move.row and edge.getMove().col == seeked_move.col;});
 			if (iter == node->end())
 				return Node(); // no such edge within the tree
 			else

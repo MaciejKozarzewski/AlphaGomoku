@@ -29,7 +29,8 @@ namespace ag
 
 		protected:
 			Sign get_sign_to_move() const noexcept;
-			std::vector<Move> parseListOfMoves(InputListener &listener, const std::string &ending) const;
+			std::string parse_search_summary(const SearchSummary &summary) const;
+			std::vector<Move> parse_list_of_moves(InputListener &listener, const std::string &ending) const;
 
 			void INFO(InputListener &listener);
 
@@ -37,18 +38,10 @@ namespace ag
 			void RECTSTART(InputListener &listener);
 			void RESTART(InputListener &listener);
 
-			// opening rules
-//			void PROBOARD(InputListener &listener);
-//			void LONGPROBOARD(InputListener &listener);
-//			void SWAPBOARD(InputListener &listener);
-//			void SWAP2BOARD(InputListener &listener);
-
 			void BEGIN(InputListener &listener);
 			void BOARD(InputListener &listener);
 			void TURN(InputListener &listener);
 			void TAKEBACK(InputListener &listener);
-//			void PONDER(InputListener &listener);
-//			void STOP(InputListener &listener);
 			void END(InputListener &listener);
 
 			void ABOUT(InputListener &listener);

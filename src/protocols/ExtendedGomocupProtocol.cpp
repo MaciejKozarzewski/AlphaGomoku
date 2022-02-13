@@ -157,8 +157,13 @@ namespace ag
 					sender.send("ERROR " + msg.getString());
 					break;
 				case MessageType::INFO_MESSAGE:
-					sender.send("MESSAGE " + msg.getString());
+				{
+					if (msg.holdsString())
+						sender.send("MESSAGE " + msg.getString());
+					if (msg.holdsSearchSummary())
+						sender.send("MESSAGE " + parse_search_summary(msg.getSearchSummary()));
 					break;
+				}
 				case MessageType::ABOUT_ENGINE:
 					sender.send(msg.getString());
 					break;
@@ -167,7 +172,6 @@ namespace ag
 			}
 		}
 	}
-
 	/*
 	 * private
 	 */
@@ -202,11 +206,7 @@ namespace ag
 		{
 			std::vector<Move> path;
 			for (size_t i = 2; i < tmp.size(); i++)
-			{
-				auto tmp2 = split(tmp[i], ',');
-				assert(tmp2.size() == 2u);
-				path.push_back(Move(std::stoi(tmp2[1]), std::stoi(tmp2[0])));
-			}
+				path.push_back(moveFromString(tmp[i], Sign::NONE));
 			input_queue.push(Message(MessageType::INFO_MESSAGE, path));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
@@ -312,7 +312,7 @@ namespace ag
 	void ExtendedGomocupProtocol::SHOWFORBID(InputListener &listener)
 	{
 		listener.consumeLine("SHOWFORBID");
-		std::vector<Move> moves = parseListOfMoves(listener, "DONE");
+		std::vector<Move> moves = parse_list_of_moves(listener, "DONE");
 		if (is_renju_rule)
 		{
 			// TODO add detecting of forbidden moves for renju
@@ -325,7 +325,7 @@ namespace ag
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
-		list_of_moves = parseListOfMoves(listener, "DONE");
+		list_of_moves = parse_list_of_moves(listener, "DONE");
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "balance " + tmp[1]));
 	}
