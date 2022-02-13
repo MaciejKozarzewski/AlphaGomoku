@@ -96,7 +96,7 @@ namespace ag
 		const int batch_size = get_batch_size(tree.getSimulationCount());
 
 		active_task_count = 0;
-		while (active_task_count < batch_size and tree.getSimulationCount() < maxSimulations)
+		while (active_task_count < batch_size and tree.getSimulationCount() < maxSimulations and not tree.isProven())
 		{
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_next_task();

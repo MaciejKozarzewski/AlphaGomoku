@@ -45,7 +45,7 @@ namespace ag
 		if (state == ControllerState::GET_BEST_ACTION)
 		{
 			search_engine.logSearchInfo();
-			outputQueue.push(Message(MessageType::PLAIN_STRING, prepare_summary()));
+			outputQueue.push(Message(MessageType::INFO_MESSAGE, prepare_summary()));
 			Move best_move = get_best_move();
 			outputQueue.push(Message(MessageType::BEST_MOVE, best_move));
 

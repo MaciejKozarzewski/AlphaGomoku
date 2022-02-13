@@ -29,13 +29,11 @@ namespace
 		result["networks"]["standard"] = "standard_10x128.bin";
 		result["networks"]["renju"] = "";
 		result["networks"]["caro"] = "";
-		result["threads"] = Json(JsonType::Array);
-		result["search_options"]["max_batch_size"] = 1;
-		result["search_options"]["exploration_constant"] = 1.25;
-		result["search_options"]["expansion_prior_threshold"] = 1.0e-4;
-		result["search_options"]["max_children"] = 30;
-		result["search_options"]["use_vcf_solver"] = true;
-		result["search_options"]["use_symmetries"] = true;
+		result["use_symmetries"] = true;
+		result["search_threads"] = 1;
+		result["devices"][0] = ag::DeviceConfig().toJson();
+		result["search_options"] = ag::SearchConfig().toJson();
+		result["tree_options"] = ag::TreeConfig().toJson();
 		return result;
 	}
 	struct HardwareConfiguration
@@ -68,6 +66,11 @@ namespace
 
 namespace ag
 {
+	Json createDefaultConfig()
+	{
+		return create_base_config();
+	}
+
 	void createConfig(const Json &benchmarkResults)
 	{
 		Json result = create_base_config();

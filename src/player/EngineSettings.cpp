@@ -47,7 +47,6 @@ namespace ag
 	EngineSettings::EngineSettings(const Json &config) :
 			game_config(GameRules::FREESTYLE, 0, 0),
 			tree_config(config["tree_options"]),
-			cache_config(config["cache_options"]),
 			search_config(config["search_options"]),
 			thread_num(static_cast<int>(config["search_threads"])),
 			auto_pondering(static_cast<bool>(config["always_ponder"]))

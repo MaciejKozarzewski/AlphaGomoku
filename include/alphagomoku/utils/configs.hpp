@@ -41,7 +41,7 @@ namespace ag
 			struct Defaults
 			{
 					static constexpr int bucket_size = 1000000;
-					static constexpr int cache_size = 131072; // 2^17
+					static constexpr int cache_size = 65536;
 			};
 		public:
 			int bucket_size = Defaults::bucket_size;
@@ -72,7 +72,7 @@ namespace ag
 		private:
 			struct Defaults
 			{
-					static constexpr int max_batch_size = 256;
+					static constexpr int max_batch_size = 1;
 					static constexpr float exploration_constant = 1.25f;
 					static constexpr float expansion_prior_treshold = 0.0f;
 					static constexpr int max_children = std::numeric_limits<int>::max();

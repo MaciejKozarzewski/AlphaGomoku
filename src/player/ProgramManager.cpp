@@ -65,13 +65,19 @@ namespace ag
 			configure();
 			return false;
 		}
-		bool successfully_loaded_config = load_config(argument_parser.getLaunchPath() + name_of_config_file);
+		bool success = load_config(argument_parser.getLaunchPath() + name_of_config_file);
+		if (success == false)
+		{
+			output_sender.send(ProgramInfo::name() + " will now use a default configuration.");
+			config = createDefaultConfig();
+		}
+		setup_paths_in_config();
 		if (run_benchmark)
 		{
 			benchmark();
 			return false;
 		}
-		return successfully_loaded_config;
+		return success;
 	}
 	void ProgramManager::run()
 	{
@@ -258,12 +264,10 @@ namespace ag
 			{
 				FileLoader fl(path);
 				config = fl.getJson();
-				prepare_config();
 				return true;
 			} catch (std::exception &e)
 			{
 				output_sender.send("The configuration file is invalid for some reason. Try deleting it and creating a new one.");
-				throw;
 			}
 		}
 		else
@@ -272,17 +276,16 @@ namespace ag
 			output_sender.send("You can generate new one by launching " + ProgramInfo::name() + " from command line with parameter '--configure'");
 			output_sender.send(
 					"If you are sure that configuration file exists, it means that the launch path was not parsed correctly due to some special characters in it.");
-			throw std::runtime_error("file " + path + " not found");
 		}
+		return false;
 	}
-	void ProgramManager::prepare_config()
+	void ProgramManager::setup_paths_in_config()
 	{
 		std::string launch_path = argument_parser.getLaunchPath();
 		config["swap2_openings_file"] = launch_path + static_cast<std::string>(config["swap2_openings_file"]);
 		launch_path += "networks" + path_separator;
 		config["networks"]["freestyle"] = launch_path + static_cast<std::string>(config["networks"]["freestyle"]);
 		config["networks"]["standard"] = launch_path + static_cast<std::string>(config["networks"]["standard"]);
-
 	}
 
 	void ProgramManager::setup_protocol()

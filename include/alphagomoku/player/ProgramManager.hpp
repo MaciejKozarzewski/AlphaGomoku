@@ -21,6 +21,7 @@
 namespace ag
 {
 	/* implemented in "configuration.cpp" */
+	Json createDefaultConfig();
 	void createConfig(const Json &benchmarkResults);
 
 	/* implemented in "benchmark.cpp" */
@@ -78,7 +79,7 @@ namespace ag
 			void benchmark() const;
 			void configure();
 			bool load_config(const std::string &path);
-			void prepare_config();
+			void setup_paths_in_config();
 
 			void setup_protocol();
 			void process_input_from_user();
