@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_PROTOCOLS_PROTOCOL_HPP_
 
 #include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <variant>
@@ -91,6 +92,11 @@ namespace ag
 			std::string name;
 			std::string value;
 	};
+	struct SearchSummary
+	{
+			Node node;
+			std::vector<Move> principal_variation;
+	};
 
 	/**
 	 * Enumeration used to tell what to do with data received from user or engine.
@@ -115,7 +121,7 @@ namespace ag
 	{
 		private:
 			MessageType type;
-			std::variant<NoData, GameConfig, std::vector<Move>, Option, Move, std::string> data;
+			std::variant<NoData, GameConfig, std::vector<Move>, Option, Move, std::string, SearchSummary> data;
 		public:
 			Message(MessageType mt = MessageType::EMPTY_MESSAGE) :
 					type(mt)
@@ -134,6 +140,7 @@ namespace ag
 			bool holdsOption() const noexcept;
 			bool holdsMove() const noexcept;
 			bool holdsString() const noexcept;
+			bool holdsSearchSummary() const noexcept;
 
 			MessageType getType() const noexcept;
 			GameConfig getGameConfig() const;
@@ -141,6 +148,7 @@ namespace ag
 			Option getOption() const;
 			Move getMove() const;
 			std::string getString() const;
+			SearchSummary getSearchSummary() const;
 
 			std::string info() const;
 	};

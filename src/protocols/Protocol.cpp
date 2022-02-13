@@ -120,6 +120,10 @@ namespace ag
 	{
 		return std::holds_alternative<std::string>(data);
 	}
+	bool Message::holdsSearchSummary() const noexcept
+	{
+		return std::holds_alternative<SearchSummary>(data);
+	}
 
 	MessageType Message::getType() const noexcept
 	{
@@ -144,6 +148,10 @@ namespace ag
 	std::string Message::getString() const
 	{
 		return std::get<std::string>(data);
+	}
+	SearchSummary Message::getSearchSummary() const
+	{
+		return std::get<SearchSummary>(data);
 	}
 
 	std::string Message::info() const
@@ -210,6 +218,8 @@ namespace ag
 			result += "[Option] = " + getOption().name + "=" + getOption().value;
 		if (holdsString())
 			result += "[String] = " + getString();
+		if (holdsSearchSummary())
+			result += "[SearchSummary] = ???"; // TODO maybe add printing debug info about search summary
 		return result;
 	}
 
