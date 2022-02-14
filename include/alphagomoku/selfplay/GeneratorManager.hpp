@@ -2,7 +2,7 @@
  * GeneratorManager.hpp
  *
  *  Created on: Mar 22, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef SELFPLAY_GENERATORMANAGER_HPP_
@@ -11,13 +11,9 @@
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/GameGenerator.hpp>
-#include <alphagomoku/utils/ThreadPool.hpp>
 #include <inttypes.h>
 #include <string>
-#include <mutex>
-#include <condition_variable>
-#include <thread>
-#include <atomic>
+#include <future>
 
 namespace ag
 {
@@ -49,30 +45,31 @@ namespace ag
 			}
 	};
 
-	class GeneratorThread: public Job
+	class GeneratorThread
 	{
 		private:
+			std::future<void> generator_future;
+
 			GeneratorManager &manager;
-			EvaluationQueue queue;
+			NNEvaluator nn_evaluator;
 			std::vector<std::unique_ptr<GameGenerator>> generators;
-			ml::Device device;
-			int batch_size;
-			bool use_symmetries;
 		public:
-			GeneratorThread(GeneratorManager &manager, const Json &options, ml::Device device);
-			void run();
+			GeneratorThread(GeneratorManager &manager, const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index);
+			void start();
+			bool isFinished() const noexcept;
 			void clearStats() noexcept;
 			void resetGames();
-			QueueStats getQueueStats() const noexcept;
+			NNEvaluatorStats getEvaluatorStats() const noexcept;
 			TreeStats getTreeStats() const noexcept;
-			CacheStats getCacheStats() const noexcept;
+			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
+		private:
+			void run();
 	};
 
 	class GeneratorManager
 	{
 		private:
-			ThreadPool thread_pool;
 			std::vector<std::unique_ptr<GeneratorThread>> generators;
 			GameBuffer game_buffer;
 
@@ -80,7 +77,7 @@ namespace ag
 			std::string path_to_network;
 
 		public:
-			GeneratorManager(const Json &options);
+			GeneratorManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions);
 
 			const GameBuffer& getGameBuffer() const noexcept;
 			GameBuffer& getGameBuffer() noexcept;

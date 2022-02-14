@@ -17,10 +17,9 @@
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 
-class Json;
 namespace ag
 {
-	class EvaluationQueue;
+	class NNEvaluator;
 } /* namespace ag */
 
 namespace ag
@@ -29,23 +28,24 @@ namespace ag
 	class Player
 	{
 		private:
-			EvaluationQueue &queue;
+			NNEvaluator &nn_evaluator;
 			GameConfig game_config;
-			Tree_old tree;
-			Cache cache;
-			Search_old search;
+			Tree tree;
+			Search search;
 
 			std::string name;
 			Sign sign = Sign::NONE;
 			int simulations = 0;
 		public:
-			Player(GameConfig gameOptions, const Json &options, EvaluationQueue &queue, const std::string &name);
+			Player(const GameConfig &gameOptions, const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
 			void setSign(Sign s) noexcept;
 			Sign getSign() const noexcept;
 			std::string getName() const;
-			void prepareSearch(const matrix<Sign> &board, Move lastMove);
-			bool performSearch();
-			void scheduleSingleRequest(EvaluationRequest &request);
+			void setBoard(const matrix<Sign> &board, Sign signToMove);
+			void selectSolveEvaluate();
+			void expandBackup();
+			bool isSearchOver();
+			void scheduleSingleTask(SearchTask &task);
 			Move getMove() const noexcept;
 	};
 
@@ -56,12 +56,13 @@ namespace ag
 			{
 				GAME_NOT_STARTED,
 				PREPARE_OPENING,
-				GAMEPLAY,
+				GAMEPLAY_SELECT_SOLVE_EVALUATE,
+				GAMEPLAY_EXPAND_AND_BACKUP,
 				SEND_RESULTS
 			};
 			GameBuffer &game_buffer;
 			Game game;
-			EvaluationRequest request;
+			SearchTask request;
 			bool is_request_scheduled = false;
 
 			GameState state = GAME_NOT_STARTED;
@@ -76,8 +77,8 @@ namespace ag
 		public:
 			EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening);
 			void clear();
-			void setFirstPlayer(const Json &options, EvaluationQueue &queue, const std::string &name);
-			void setSecondPlayer(const Json &options, EvaluationQueue &queue, const std::string &name);
+			void setFirstPlayer(const SelfplayConfig &options, NNEvaluator &queue, const std::string &name);
+			void setSecondPlayer(const SelfplayConfig &options, NNEvaluator &queue, const std::string &name);
 			bool prepareOpening();
 			void generate();
 		private:

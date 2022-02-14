@@ -2,7 +2,7 @@
  * TrainingManager.cpp
  *
  *  Created on: Mar 27, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/selfplay/GameBuffer.hpp>
@@ -29,13 +29,11 @@ namespace ag
 	TrainingManager::TrainingManager(const std::string &workingDirectory) :
 			config(FileLoader(workingDirectory + "/config.json").getJson()),
 			metadata( { { "last_checkpoint", 0 }, { "best_checkpoint", 0 }, { "learning_steps", 0 } }),
-			working_dir(workingDirectory),
-			generator(config),
-			evaluator(config),
-			supervised_learning(config)
+			working_dir(workingDirectory + '/'),
+			generator_manager(config.game_config, config.generation_config),
+			evaluator_manager(config.game_config, config.evaluation_config.selfplay_options),
+			supervised_learning_manager(config.training_config)
 	{
-		config["working_directory"] = workingDirectory + '/';
-		supervised_learning = SupervisedLearning(config);
 		if (loadMetadata())
 			std::cout << "Loading existing training run\n" << metadata.dump(2) << '\n';
 		else
@@ -44,7 +42,7 @@ namespace ag
 			saveMetadata();
 			initFolderTree();
 			initModel();
-			supervised_learning.saveTrainingHistory();
+			supervised_learning_manager.saveTrainingHistory(working_dir);
 		}
 	}
 
@@ -54,7 +52,7 @@ namespace ag
 
 		train();
 		validate();
-		supervised_learning.saveTrainingHistory();
+		supervised_learning_manager.saveTrainingHistory(working_dir);
 
 		evaluate();
 		metadata["last_checkpoint"] = get_last_checkpoint() + 1;
@@ -92,7 +90,7 @@ namespace ag
 	}
 	void TrainingManager::initModel()
 	{
-		AGNetwork model(config);
+		AGNetwork model(config.game_config, config.training_config);
 		model.saveToFile(working_dir + "/checkpoint/network_0.bin");
 		model.optimize();
 		model.saveToFile(working_dir + "/checkpoint/network_0_opt.bin");
@@ -107,17 +105,17 @@ namespace ag
 
 		std::string path_to_best_network = working_dir + "/checkpoint/network_" + std::to_string(get_best_checkpoint()) + "_opt.bin";
 		std::cout << "Loading " << path_to_best_network << '\n';
-		int training_games = std::min(1000 * (1 + get_last_checkpoint()), static_cast<int>(config["selfplay_options"]["games_per_iteration"]));
-		int validation_games = training_games * static_cast<int>(config["training_options"]["validation_percent"]) / 100;
+		int training_games = std::min(1000 * (1 + get_last_checkpoint()), config.generation_config.games_per_iteration);
+		int validation_games = training_games * config.training_config.validation_percent;
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
-		generator.getGameBuffer().clear();
-		generator.generate(path_to_best_network, training_games + validation_games);
-		if (generator.getGameBuffer().isCorrect() == false)
+		generator_manager.getGameBuffer().clear();
+		generator_manager.generate(path_to_best_network, training_games + validation_games);
+		if (generator_manager.getGameBuffer().isCorrect() == false)
 			throw std::runtime_error("generated buffer is invalid");
 		std::cout << "Finished generating games\n";
 
-		splitBuffer(generator.getGameBuffer(), training_games, validation_games);
+		splitBuffer(generator_manager.getGameBuffer(), training_games, validation_games);
 	}
 
 	void TrainingManager::train()
@@ -127,13 +125,13 @@ namespace ag
 
 		AGNetwork model;
 		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint()) + ".bin");
-		model.setBatchSize(static_cast<int>(config["training_options"]["batch_size"]));
-		model.getGraph().moveTo(ml::Device::fromString(config["training_options"]["device"]));
+		model.setBatchSize(config.training_config.device_config.batch_size);
+		model.getGraph().moveTo(config.training_config.device_config.device);
 		model.changeLearningRate(get_learning_rate());
 
-		supervised_learning.loadProgress(metadata);
-		supervised_learning.train(model, buffer, static_cast<int>(config["training_options"]["steps_per_iteration"]));
-		metadata["learning_steps"] = supervised_learning.saveProgress()["learning_steps"];
+		supervised_learning_manager.loadProgress(metadata);
+		supervised_learning_manager.train(model, buffer, config.training_config.steps_per_iteration);
+		metadata["learning_steps"] = supervised_learning_manager.saveProgress()["learning_steps"];
 
 		model.saveToFile(working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint() + 1) + ".bin");
 		model.getGraph().moveTo(ml::Device::cpu());
@@ -148,48 +146,50 @@ namespace ag
 
 		AGNetwork model;
 		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint() + 1) + ".bin");
-		model.setBatchSize(static_cast<int>(config["training_options"]["batch_size"]));
-		model.getGraph().moveTo(ml::Device::fromString(config["training_options"]["device"]));
+		model.setBatchSize(config.training_config.device_config.batch_size);
+		model.getGraph().moveTo(config.training_config.device_config.device);
 
-		supervised_learning.validate(model, buffer);
+		supervised_learning_manager.validate(model, buffer);
 		std::cout << "Validation finished\n";
 	}
 	void TrainingManager::evaluate()
 	{
-		if (static_cast<bool>(config["evaluation_options"]["use_evaluation"]) == false)
+		if (config.evaluation_config.use_evaluation == false)
 		{
 			metadata["best_network"] = get_last_checkpoint() + 1;
 			return;
 		}
 		std::string path_to_networks = working_dir + "/checkpoint/network_";
 
-		evaluator.setFirstPlayer(config["evaluation_options"], path_to_networks + std::to_string(get_last_checkpoint() + 1) + "_opt.bin",
-				get_name(get_last_checkpoint() + 1));
+		std::string first_network = path_to_networks + std::to_string(get_last_checkpoint() + 1) + "_opt.bin";
+		std::string first_name = get_name(get_last_checkpoint() + 1);
+		evaluator_manager.setFirstPlayer(config.evaluation_config.selfplay_options, first_network, first_name);
 
 		std::cout << "Evaluating network " << get_last_checkpoint() + 1 << " vs";
-		for (int i = 0; i < evaluator.numberOfThreads(); i++)
+		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
 		{
-			evaluator.setSecondPlayer(i, config["evaluation_options"],
-					path_to_networks + std::to_string(std::max(0, get_best_checkpoint() - i)) + "_opt.bin",
-					get_name(std::max(0, get_best_checkpoint() - i)));
+			std::string second_network = path_to_networks + std::to_string(std::max(0, get_best_checkpoint() - i)) + "_opt.bin";
+			std::string second_name = get_name(std::max(0, get_best_checkpoint() - i));
+
+			evaluator_manager.setSecondPlayer(i, config.evaluation_config.selfplay_options, second_network, second_name);
 			std::cout << ((i == 0) ? " " : ", ") << std::to_string(std::max(0, get_best_checkpoint() - i));
 		}
 		std::cout << '\n';
 
-		evaluator.generate(static_cast<int>(config["evaluation_options"]["games_per_iteration"]));
+		evaluator_manager.generate(config.evaluation_config.selfplay_options.games_per_iteration);
 		std::string to_save;
-		for (int i = 0; i < evaluator.numberOfThreads(); i++)
-			to_save += evaluator.getGameBuffer(i).generatePGN();
+		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
+			to_save += evaluator_manager.getGameBuffer(i).generatePGN();
 		std::ofstream file(working_dir + "/rating.pgn", std::fstream::app);
 		file << to_save;
 		file.close();
 
-		if (config["evaluation_options"]["gating"]["use_gating"])
+		if (config.evaluation_config.use_gating)
 		{
 			GameBufferStats stats;
-			for (int i = 0; i < evaluator.numberOfThreads(); i++)
-				stats += evaluator.getGameBuffer(i).getStats();
-			if (stats.cross_win + 0.5 * stats.draws >= static_cast<float>(config["evaluation_options"]["gating"]["treshold"]))
+			for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
+				stats += evaluator_manager.getGameBuffer(i).getStats();
+			if (stats.cross_win + 0.5 * stats.draws >= config.evaluation_config.gating_threshold)
 				metadata["best_network"] = get_last_checkpoint() + 1;
 		}
 		else
@@ -232,10 +232,9 @@ namespace ag
 	float TrainingManager::get_learning_rate() const
 	{
 		float result = 0.0f;
-		Json schedule = config["training_options"]["learning_rate_schedule"];
-		for (int i = 0; i < schedule.size(); i++)
-			if (get_last_checkpoint() >= static_cast<float>(schedule[i]["from_epoch"]))
-				result = schedule[i]["value"];
+		for (auto iter = config.training_config.learning_rate_schedule.begin(); iter < config.training_config.learning_rate_schedule.end(); iter++)
+			if (get_last_checkpoint() >= iter->first)
+				result = iter->second;
 		std::cout << "using learning rate = " << result << '\n';
 		return result;
 	}

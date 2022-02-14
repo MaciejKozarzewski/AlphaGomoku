@@ -2,17 +2,19 @@
  * SupervisedLearning.hpp
  *
  *  Created on: Mar 8, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_SELFPLAY_SUPERVISEDLEARNING_HPP_
 #define ALPHAGOMOKU_SELFPLAY_SUPERVISEDLEARNING_HPP_
 
-#include <libml/utils/json.hpp>
+#include <alphagomoku/utils/configs.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
 
+class Json;
 namespace ag
 {
 	class GameBuffer;
@@ -29,15 +31,14 @@ namespace ag
 			std::vector<float> validation_loss;
 			std::vector<float> validation_accuracy;
 
-			Json config;
+			TrainingConfig config;
 		public:
-
-			SupervisedLearning(const Json &config);
+			SupervisedLearning(const TrainingConfig &config);
 			void updateTrainingStats(float pl, float vl, std::vector<float> &acc);
 			void updateValidationStats(float pl, float vl, std::vector<float> &acc);
 			void train(AGNetwork &model, GameBuffer &buffer, int steps);
 			void validate(AGNetwork &model, GameBuffer &buffer);
-			void saveTrainingHistory();
+			void saveTrainingHistory(const std::string &workingDirectory);
 
 			Json saveProgress() const;
 			void loadProgress(const Json &json);

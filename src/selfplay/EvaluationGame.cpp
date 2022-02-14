@@ -2,11 +2,11 @@
  * EvaluationGame.cpp
  *
  *  Created on: Mar 23, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/evaluation/EvaluationGame.hpp>
-#include <alphagomoku/mcts/EvaluationQueue.hpp>
+#include <alphagomoku/selfplay/EvaluationGame.hpp>
+#include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <libml/utils/json.hpp>
@@ -14,15 +14,16 @@
 namespace ag
 {
 
-	Player::Player(GameConfig gameOptions, const Json &options, EvaluationQueue &queue, const std::string &name) :
-			queue(queue),
+	Player::Player(const GameConfig &gameOptions, const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name) :
+			nn_evaluator(evaluator),
 			game_config(gameOptions),
-			tree(TreeConfig(options["tree_options"])),
-			cache(gameOptions, CacheConfig(options["cache_options"])),
-			search(gameOptions, SearchConfig(options["search_options"]), tree, cache, queue),
+			tree(options.tree_config),
+			search(gameOptions, options.search_config),
 			name(name),
-			simulations(options["simulations"])
+			simulations(options.simulations)
 	{
+		tree.setEdgeSelector(PuctSelector(options.search_config.exploration_constant, 0.5f));
+		tree.setEdgeGenerator(SolverGenerator(options.search_config.expansion_prior_treshold, options.search_config.max_children));
 	}
 	void Player::setSign(Sign s) noexcept
 	{
@@ -36,45 +37,49 @@ namespace ag
 	{
 		return name;
 	}
-	void Player::prepareSearch(const matrix<Sign> &board, Move lastMove)
+	void Player::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
-		cache.cleanup(board);
-		cache.remove(board, invertSign(lastMove.sign)); // remove current game state from cache to force neural network evaluation
-		tree.clear();
-		tree.getRootNode().setMove(lastMove);
-		search.cleanup();
-		search.setBoard(board);
+		search.cleanup(tree);
+		tree.setBoard(board, signToMove);
 	}
-	bool Player::performSearch()
+	void Player::selectSolveEvaluate()
 	{
-		search.handleEvaluation(); //first handle scheduled requests
-		if (search.getSimulationCount() >= simulations or tree.isProven())
-			return false;
-		else
+		search.select(tree);
+		search.tryToSolve();
+		search.scheduleToNN(nn_evaluator);
+	}
+	void Player::expandBackup()
+	{
+		search.generateEdges(tree);
+		search.expand(tree);
+		search.backup(tree);
+	}
+	bool Player::isSearchOver()
+	{
+		if (tree.getSimulationCount() >= simulations or tree.isProven())
 		{
-			search.simulate(simulations); //then perform search and schedule more requests
+			search.cleanup(tree);
 			return true;
 		}
+		else
+			return false;
 	}
-	void Player::scheduleSingleRequest(EvaluationRequest &request)
+	void Player::scheduleSingleTask(SearchTask &task)
 	{
-		queue.addToQueue(request);
+		nn_evaluator.addToQueue(task);
 	}
 	Move Player::getMove() const noexcept
 	{
-		matrix<float> policy(game_config.rows, game_config.cols);
-		tree.getPlayoutDistribution(tree.getRootNode(), policy);
-		normalize(policy);
-
-		Move move = pickMove(policy);
-		move.sign = invertSign(Move::getSign(tree.getRootNode().getMove()));
-		return move;
+		BestEdgeSelector selector;
+		Node root_node = tree.getInfo( { });
+		Edge *edge = selector.select(&root_node);
+		return edge->getMove();
 	}
 
 	EvaluationGame::EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening) :
 			game_buffer(gameBuffer),
 			game(gameConfig),
-			request(game.rows(), game.cols()),
+			request(gameConfig.rules),
 			use_opening(useOpening)
 	{
 	}
@@ -87,11 +92,11 @@ namespace ag
 		opening_trials = 0;
 		has_stored_opening = false;
 	}
-	void EvaluationGame::setFirstPlayer(const Json &options, EvaluationQueue &queue, const std::string &name)
+	void EvaluationGame::setFirstPlayer(const SelfplayConfig &options, NNEvaluator &queue, const std::string &name)
 	{
 		first_player = std::make_unique<Player>(game.getConfig(), options, queue, name);
 	}
-	void EvaluationGame::setSecondPlayer(const Json &options, EvaluationQueue &queue, const std::string &name)
+	void EvaluationGame::setSecondPlayer(const SelfplayConfig &options, NNEvaluator &queue, const std::string &name)
 	{
 		second_player = std::make_unique<Player>(game.getConfig(), options, queue, name);
 	}
@@ -113,10 +118,10 @@ namespace ag
 
 			if (is_request_scheduled == true)
 			{
-				if (request.is_ready == false)
+				if (request.isReady() == false)
 					return false;
 				is_request_scheduled = false;
-				if (fabsf((request.getValue().win + 0.5f * request.getValue().draw) - 0.5f) < (0.05f + opening_trials * 0.01f))
+				if (fabsf(request.getValue().win - request.getValue().loss) < (0.05f + opening_trials * 0.01f))
 				{
 					opening_trials = 0;
 					has_stored_opening = true;
@@ -131,10 +136,8 @@ namespace ag
 
 			opening = ag::prepareOpening(game.getConfig(), 2);
 			game.loadOpening(opening);
-			request.clear();
-			request.setBoard(game.getBoard());
-			request.setLastMove(game.getLastMove());
-			first_player->scheduleSingleRequest(request);
+			request.reset(game.getBoard(), game.getSignToMove());
+			first_player->scheduleSingleTask(request);
 			is_request_scheduled = true;
 			return false;
 		}
@@ -173,25 +176,32 @@ namespace ag
 				return;
 			else
 			{
-				state = GAMEPLAY;
-				get_player().prepareSearch(game.getBoard(), game.getLastMove());
+				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
+				get_player().setBoard(game.getBoard(), game.getSignToMove());
 			}
 		}
 
-		if (state == GAMEPLAY)
+		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE)
 		{
-			while (game.isOver() == false)
+			get_player().selectSolveEvaluate();
+			state = GAMEPLAY_EXPAND_AND_BACKUP;
+			return;
+		}
+
+		if (state == GAMEPLAY_EXPAND_AND_BACKUP)
+		{
+			get_player().expandBackup();
+			if (get_player().isSearchOver())
 			{
-				bool searchInProgress = get_player().performSearch();
-				if (searchInProgress == true)
-					return;
+				game.makeMove(get_player().getMove());
+				if (game.isOver())
+					state = SEND_RESULTS;
 				else
 				{
-					game.makeMove(get_player().getMove());
-					get_player().prepareSearch(game.getBoard(), game.getLastMove());
+					get_player().setBoard(game.getBoard(), game.getSignToMove());
+					state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
 				}
 			}
-			state = SEND_RESULTS;
 		}
 
 		if (state == SEND_RESULTS)
@@ -201,7 +211,9 @@ namespace ag
 			state = GAME_NOT_STARTED;
 		}
 	}
-	// private
+	/*
+	 * private
+	 */
 	Player& EvaluationGame::get_player() const noexcept
 	{
 		assert(first_player != nullptr && first_player->getSign() != Sign::NONE);

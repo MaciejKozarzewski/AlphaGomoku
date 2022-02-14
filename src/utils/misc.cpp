@@ -365,6 +365,31 @@ namespace ag
 				k++;
 			}
 	}
+	matrix<float> getNoiseMatrix(const matrix<Sign> &board)
+	{
+		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
+		const float range = 1.0f / generator.max();
+
+		std::vector<float> noise;
+		noise.reserve(board.size());
+		float sum = 0.0f;
+		for (int i = 0; i < board.size(); i++)
+			if (board.data()[i] == Sign::NONE)
+			{
+				noise.push_back(pow(generator() * range, 4) * (1.0f - sum));
+				sum += noise.back();
+			}
+		std::random_shuffle(noise.begin(), noise.end());
+
+		matrix<float> result(board.rows(), board.cols());
+		for (int i = 0, k = 0; i < board.size(); i++)
+			if (board.data()[i] == Sign::NONE)
+			{
+				result.data()[i] = noise[k];
+				k++;
+			}
+		return result;
+	}
 
 	void scaleArray(matrix<float> &array, float scale)
 	{

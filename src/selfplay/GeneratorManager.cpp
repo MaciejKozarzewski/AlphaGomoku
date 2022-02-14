@@ -2,7 +2,7 @@
  * GeneratorManager.cpp
  *
  *  Created on: Mar 22, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/mcts/EvaluationQueue.hpp>
@@ -20,27 +20,29 @@
 
 namespace ag
 {
-	GeneratorThread::GeneratorThread(GeneratorManager &manager, const Json &options, ml::Device device) :
+	GeneratorThread::GeneratorThread(GeneratorManager &manager, const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index) :
 			manager(manager),
-			generators(static_cast<int>(options["selfplay_options"]["games_per_thread"])),
-			device(device),
-			batch_size(generators.size() * static_cast<int>(options["selfplay_options"]["search_options"]["batch_size"])),
-			use_symmetries(static_cast<bool>(options["selfplay_options"]["use_symmetries"]))
+			nn_evaluator(selfplayOptions.device_config[index]),
+			generators(selfplayOptions.games_per_thread)
 	{
+		nn_evaluator.useSymmetries(selfplayOptions.use_symmetries);
 		for (size_t i = 0; i < generators.size(); i++)
-			generators[i] = std::make_unique<GameGenerator>(options, manager.getGameBuffer(), queue);
+			generators[i] = std::make_unique<GameGenerator>(gameOptions, selfplayOptions, manager.getGameBuffer(), nn_evaluator);
 	}
-	void GeneratorThread::run()
+	void GeneratorThread::start()
 	{
-		ml::Device::cpu().setNumberOfThreads(1);
-		queue.loadGraph(manager.getPathToNetwork(), batch_size, device, use_symmetries);
-		while (not manager.hasEnoughGames())
+		generator_future = std::async(std::launch::async, [this]()
+		{	this->run();});
+	}
+	bool GeneratorThread::isFinished() const noexcept
+	{
+		if (generator_future.valid())
 		{
-			for (size_t i = 0; i < generators.size(); i++)
-				generators[i]->generate();
-			queue.evaluateGraph();
+			std::future_status search_status = generator_future.wait_for(std::chrono::milliseconds(0));
+			return search_status != std::future_status::ready;
 		}
-		queue.unloadGraph();
+		else
+			return false;
 	}
 	void GeneratorThread::resetGames()
 	{
@@ -49,13 +51,13 @@ namespace ag
 	}
 	void GeneratorThread::clearStats() noexcept
 	{
-		queue.clearStats();
+		nn_evaluator.clearStats();
 		for (size_t i = 0; i < generators.size(); i++)
 			generators[i]->clearStats();
 	}
-	QueueStats GeneratorThread::getQueueStats() const noexcept
+	NNEvaluatorStats GeneratorThread::getEvaluatorStats() const noexcept
 	{
-		return queue.getStats();
+		return nn_evaluator.getStats();
 	}
 	TreeStats GeneratorThread::getTreeStats() const noexcept
 	{
@@ -65,9 +67,9 @@ namespace ag
 		result /= static_cast<int>(generators.size());
 		return result;
 	}
-	CacheStats GeneratorThread::getCacheStats() const noexcept
+	NodeCacheStats GeneratorThread::getCacheStats() const noexcept
 	{
-		CacheStats result;
+		NodeCacheStats result;
 		for (size_t i = 0; i < generators.size(); i++)
 			result += generators[i]->getCacheStats();
 		result /= static_cast<int>(generators.size());
@@ -81,14 +83,26 @@ namespace ag
 		result /= static_cast<int>(generators.size());
 		return result;
 	}
+	/*
+	 * private
+	 */
+	void GeneratorThread::run()
+	{
+		nn_evaluator.loadGraph(manager.getPathToNetwork());
+		while (not manager.hasEnoughGames())
+		{
+			for (size_t i = 0; i < generators.size(); i++)
+				generators[i]->generate();
+			nn_evaluator.evaluateGraph();
+		}
+		nn_evaluator.unloadGraph();
+	}
 
-	GeneratorManager::GeneratorManager(const Json &options) :
-			thread_pool(options["selfplay_options"]["threads"].size()),
-			generators(options["selfplay_options"]["threads"].size())
+	GeneratorManager::GeneratorManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions) :
+			generators(selfplayOptions.device_config.size())
 	{
 		for (size_t i = 0; i < generators.size(); i++)
-			generators[i] = std::make_unique<GeneratorThread>(*this, options,
-					ml::Device::fromString(options["selfplay_options"]["threads"][i]["device"]));
+			generators[i] = std::make_unique<GeneratorThread>(*this, gameOptions, selfplayOptions, i);
 	}
 
 	const GameBuffer& GeneratorManager::getGameBuffer() const noexcept
@@ -120,11 +134,11 @@ namespace ag
 		for (size_t i = 0; i < generators.size(); i++)
 		{
 			generators[i]->clearStats();
-			thread_pool.addJob(generators[i].get());
+			generators[i]->start();
 		}
 
 		int counter = 0;
-		while (not thread_pool.isReady())
+		while (true)
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 			counter++;
@@ -133,6 +147,11 @@ namespace ag
 				printStats();
 				counter = 0;
 			}
+			bool is_ready = true;
+			for (size_t i = 0; i < generators.size(); i++)
+				is_ready &= generators[i]->isFinished();
+			if (is_ready)
+				break;
 		}
 	}
 	void GeneratorManager::printStats()
@@ -140,22 +159,22 @@ namespace ag
 		std::cout << "Played games = " << game_buffer.size() << "/" << games_to_generate << '\n';
 		std::cout << game_buffer.getStats().toString() << '\n';
 
-		QueueStats queue_stats;
+		NNEvaluatorStats evaluator_stats;
 		SearchStats search_stats;
 		TreeStats tree_stats;
-		CacheStats cache_stats;
+		NodeCacheStats cache_stats;
 		for (size_t i = 0; i < generators.size(); i++)
 		{
-			queue_stats += generators[i]->getQueueStats();
+			evaluator_stats += generators[i]->getEvaluatorStats();
 			search_stats += generators[i]->getSearchStats();
 			tree_stats += generators[i]->getTreeStats();
 			cache_stats += generators[i]->getCacheStats();
 		}
-		queue_stats /= static_cast<int>(generators.size());
+		evaluator_stats /= static_cast<int>(generators.size());
 		search_stats /= static_cast<int>(generators.size());
 		tree_stats /= static_cast<int>(generators.size());
 		cache_stats /= static_cast<int>(generators.size());
-		std::cout << queue_stats.toString();
+		std::cout << evaluator_stats.toString();
 		std::cout << search_stats.toString();
 		std::cout << tree_stats.toString();
 		std::cout << cache_stats.toString() << '\n';

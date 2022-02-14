@@ -2,7 +2,7 @@
  * GameGenerator.hpp
  *
  *  Created on: Mar 21, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_SELFPLAY_GAMEGENERATOR_HPP_
@@ -12,8 +12,8 @@
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/Search.hpp>
-#include <alphagomoku/mcts/EvaluationQueue.hpp>
-#include <alphagomoku/mcts/EvaluationRequest.hpp>
+#include <alphagomoku/mcts/NNEvaluator.hpp>
+#include <alphagomoku/mcts/SearchTask.hpp>
 
 class Json;
 namespace ag
@@ -29,17 +29,20 @@ namespace ag
 		private:
 			enum GameState
 			{
-				GAME_NOT_STARTED, PREPARE_OPENING, GAMEPLAY, SEND_RESULTS
+				GAME_NOT_STARTED,
+				PREPARE_OPENING,
+				GAMEPLAY_SELECT_SOLVE_EVALUATE,
+				GAMEPLAY_EXPAND_AND_BACKUP,
+				SEND_RESULTS
 			};
 			GameBuffer &game_buffer;
-			EvaluationQueue &queue;
+			NNEvaluator &nn_evaluator;
 			Game game;
-			EvaluationRequest request;
+			SearchTask request;
 			bool is_request_scheduled = false;
 
-			Tree_old tree;
-			Cache cache;
-			Search_old search;
+			Tree tree;
+			Search search;
 
 			GameState state = GAME_NOT_STARTED;
 			int opening_trials = 0;
@@ -47,21 +50,23 @@ namespace ag
 			int simulations = 0;
 			float temperature = 0.0f;
 			bool use_opening = false;
+			SearchConfig search_config;
 		public:
-			GameGenerator(const Json &options, GameBuffer &gameBuffer, EvaluationQueue &queue);
+			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator);
 
 			void clearStats();
 			TreeStats getTreeStats() const noexcept;
-			CacheStats getCacheStats() const noexcept;
+			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
 
 			void reset();
 			bool prepareOpening();
 			void makeMove();
-			bool performSearch();
+			void selectSolveEvaluate();
+			void expandAndBackup();
 			void generate();
 		private:
-			void prepare_search(const matrix<Sign> &board, Move lastMove);
+			void prepare_search(const matrix<Sign> &board, Sign signToMove);
 	};
 
 } /* namespace ag */

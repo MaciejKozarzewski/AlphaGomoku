@@ -394,7 +394,7 @@ namespace ag
 	{
 		return node_cache.getMemory() + sizeof(Node) * stats.used_nodes + sizeof(Edge) * stats.used_edges;
 	}
-	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove)
+	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove, bool forceRemoveRootNode)
 	{
 		matrix<Sign> tmp_board = base_board;
 		base_board = newBoard;
@@ -412,6 +412,11 @@ namespace ag
 		}
 
 		root_node = node_cache.seek(base_board, sign_to_move);
+		if (forceRemoveRootNode and root_node != nullptr)
+		{
+			node_cache.remove(base_board, sign_to_move);
+			root_node = nullptr;
+		}
 		stats.max_depth = 0;
 	}
 	void Tree::setEdgeSelector(const EdgeSelector &selector)

@@ -12,6 +12,8 @@
 
 #include <libml/hardware/Device.hpp>
 
+#include <vector>
+
 class Json;
 namespace ag
 {
@@ -117,6 +119,65 @@ namespace ag
 	Json getDefaultSelfplayConfig();
 	Json getDefaultTrainingConfig();
 	Json getDefaultEvaluationConfig();
+
+	struct TrainingConfig
+	{
+			bool augment_training_data = true;
+			DeviceConfig device_config;
+			int steps_per_iteration = 1000;
+			int blocks = 2;
+			int filters = 32;
+			double l2_regularization = 1.0e-4;
+			double validation_percent = 0.05;
+			std::vector<std::pair<int, double>> learning_rate_schedule = { std::pair<int, double>(0, 1.0e-3) };
+			std::vector<std::pair<int, int>> buffer_size = { std::pair<int, int>(0, 10) };
+
+			TrainingConfig() = default;
+			TrainingConfig(const Json &options);
+			Json toJson() const;
+	};
+
+	struct SelfplayConfig
+	{
+			bool use_opening = true;
+			bool use_symmetries = true;
+			int games_per_iteration = 100;
+			int games_per_thread = 8;
+			int simulations = 800;
+			double temperature = 0.0;
+			std::vector<DeviceConfig> device_config = { DeviceConfig() };
+			SearchConfig search_config;
+			TreeConfig tree_config;
+
+			SelfplayConfig() = default;
+			SelfplayConfig(const Json &options);
+			Json toJson() const;
+	};
+
+	struct EvaluationConfig
+	{
+			bool use_evaluation = true;
+			bool use_gating = false;
+			double gating_threshold = 0.55;
+			SelfplayConfig selfplay_options;
+
+			EvaluationConfig() = default;
+			EvaluationConfig(const Json &options);
+			Json toJson() const;
+	};
+
+	struct MasterLearningConfig
+	{
+			std::string description;
+			GameConfig game_config;
+			TrainingConfig training_config;
+			SelfplayConfig generation_config;
+			EvaluationConfig evaluation_config;
+
+			MasterLearningConfig() = default;
+			MasterLearningConfig(const Json &options);
+			Json toJson() const;
+	};
 }
 
 #endif /* ALPHAGOMOKU_CONFIGS_HPP_ */

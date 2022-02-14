@@ -60,6 +60,21 @@ namespace ag
 			void generate(SearchTask &task) const;
 	};
 
+	/**
+	 * \brief Generator that adds all edges and applies some noise to the policy.
+	 */
+	class NoisyGenerator: public EdgeGenerator
+	{
+		private:
+			matrix<float> noise_matrix;
+			float noise_weight;
+			std::unique_ptr<EdgeGenerator> base_generator;
+		public:
+			NoisyGenerator(const matrix<float> &noiseMatrix, float noiseWeight, const EdgeGenerator &baseGenerator);
+			NoisyGenerator* clone() const;
+			void generate(SearchTask &task) const;
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_EDGEGENERATOR_HPP_ */

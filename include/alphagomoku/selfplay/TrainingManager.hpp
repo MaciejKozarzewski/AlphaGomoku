@@ -2,13 +2,13 @@
  * TrainingManager.hpp
  *
  *  Created on: Mar 24, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef SELFPLAY_TRAININGMANAGER_HPP_
 #define SELFPLAY_TRAININGMANAGER_HPP_
 
-#include <alphagomoku/evaluation/EvaluationManager.hpp>
+#include <alphagomoku/selfplay/EvaluationManager.hpp>
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 
@@ -18,13 +18,13 @@ namespace ag
 	class TrainingManager
 	{
 		private:
-			Json config;
+			MasterLearningConfig config;
 			Json metadata;
 			std::string working_dir;
 
-			GeneratorManager generator;
-			EvaluationManager evaluator;
-			SupervisedLearning supervised_learning;
+			GeneratorManager generator_manager;
+			EvaluationManager evaluator_manager;
+			SupervisedLearning supervised_learning_manager;
 
 		public:
 			TrainingManager(const std::string &workingDirectory);

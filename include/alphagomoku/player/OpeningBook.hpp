@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_PLAYER_OPENINGBOOK_HPP_
 
 #include <alphagomoku/mcts/Value.hpp>
-#include <alphagomoku/mcts/Move.hpp>
+#include <alphagomoku/game/Move.hpp>
 #include <inttypes.h>
 #include <vector>
 

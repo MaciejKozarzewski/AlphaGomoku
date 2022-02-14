@@ -27,7 +27,9 @@ namespace ag
 {
 	enum class GameOutcome;
 	struct Value;
-}
+	struct GameConfig;
+	struct TrainingConfig;
+} /* namespace ag */
 
 namespace ag
 {
@@ -49,7 +51,7 @@ namespace ag
 
 		public:
 			AGNetwork() = default;
-			AGNetwork(const Json &config);
+			AGNetwork(const GameConfig &gameOptions, const TrainingConfig &trainingOptions);
 
 			std::vector<float> getAccuracy(int batchSize, int top_k = 4) const;
 
@@ -76,7 +78,7 @@ namespace ag
 			void setBatchSize(int batchSize);
 
 		private:
-			void create_network(const Json &cfg);
+			void create_network(const TrainingConfig &trainingOptions);
 			void allocate_tensors();
 	};
 }

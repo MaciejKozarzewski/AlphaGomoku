@@ -27,7 +27,7 @@
 
 namespace ag
 {
-	SupervisedLearning::SupervisedLearning(const Json &config) :
+	SupervisedLearning::SupervisedLearning(const TrainingConfig &config) :
 			training_loss(3),
 			training_accuracy(5),
 			validation_loss(3),
@@ -78,7 +78,7 @@ namespace ag
 
 				sample.getBoard(board);
 				sample.getPolicy(policy);
-				if (config["training_options"]["augment_training_data"])
+				if (config.augment_training_data)
 				{
 					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
 					augment(board, r);
@@ -114,7 +114,7 @@ namespace ag
 
 				sample.getBoard(board);
 				sample.getPolicy(policy);
-				if (config["training_options"]["augment_training_data"])
+				if (config.augment_training_data)
 				{
 					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
 					augment(board, r);
@@ -132,22 +132,22 @@ namespace ag
 			updateValidationStats(loss.at(0).get<float>(), loss.at(1).get<float>(), accuracy);
 		}
 	}
-	void SupervisedLearning::saveTrainingHistory()
+	void SupervisedLearning::saveTrainingHistory(const std::string &workingDirectory)
 	{
-		std::string path = static_cast<std::string>(config["working_directory"]) + "/training_history.txt";
-		std::ofstream dataPlik;
-		dataPlik.open(path.data(), std::ios::app);
-		dataPlik << std::setprecision(9);
+		std::string path = workingDirectory + "/training_history.txt";
+		std::ofstream history_file;
+		history_file.open(path.data(), std::ios::app);
+		history_file << std::setprecision(9);
 		if (learning_steps == 0)
 		{
-			dataPlik << "#step";
-			dataPlik << " train_p_loss train_v_loss";
-			dataPlik << " val_p_loss val_v_loss";
+			history_file << "#step";
+			history_file << " train_p_loss train_v_loss";
+			history_file << " val_p_loss val_v_loss";
 			for (size_t i = 0; i < (training_accuracy.size() - 1); i++)
-				dataPlik << " train_top" << (i + 1) << "_acc";
+				history_file << " train_top" << (i + 1) << "_acc";
 			for (size_t i = 0; i < (validation_accuracy.size() - 1); i++)
-				dataPlik << " val_top" << (i + 1) << "_acc";
-			dataPlik << '\n';
+				history_file << " val_top" << (i + 1) << "_acc";
+			history_file << '\n';
 		}
 		else
 		{
@@ -156,16 +156,16 @@ namespace ag
 			averageStats(validation_loss);
 			averageStats(validation_accuracy);
 
-			dataPlik << std::setprecision(6);
-			dataPlik << learning_steps;
-			dataPlik << " " << training_loss.at(1) << " " << training_loss.at(2);
-			dataPlik << " " << validation_loss.at(1) << " " << validation_loss.at(2);
+			history_file << std::setprecision(6);
+			history_file << learning_steps;
+			history_file << " " << training_loss.at(1) << " " << training_loss.at(2);
+			history_file << " " << validation_loss.at(1) << " " << validation_loss.at(2);
 			for (size_t i = 1; i < training_accuracy.size(); i++)
-				dataPlik << " " << 100 * training_accuracy.at(i);
+				history_file << " " << 100 * training_accuracy.at(i);
 			for (size_t i = 1; i < validation_accuracy.size(); i++)
-				dataPlik << " " << 100 * validation_accuracy.at(i);
-			dataPlik << '\n';
-			dataPlik.close();
+				history_file << " " << 100 * validation_accuracy.at(i);
+			history_file << '\n';
+			history_file.close();
 			std::fill(training_loss.begin(), training_loss.end(), 0.0f);
 			std::fill(training_accuracy.begin(), training_accuracy.end(), 0.0f);
 			std::fill(validation_loss.begin(), validation_loss.end(), 0.0f);

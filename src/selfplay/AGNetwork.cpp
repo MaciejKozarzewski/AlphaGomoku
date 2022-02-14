@@ -34,11 +34,11 @@
 
 namespace ag
 {
-	AGNetwork::AGNetwork(const Json &config) :
-			rows(config["game_options"]["rows"]),
-			cols(config["game_options"]["cols"])
+	AGNetwork::AGNetwork(const GameConfig &gameOptions, const TrainingConfig &trainingOptions) :
+			rows(gameOptions.rows),
+			cols(gameOptions.cols)
 	{
-		create_network(config["training_options"]);
+		create_network(trainingOptions);
 		allocate_tensors();
 	}
 
@@ -170,11 +170,11 @@ namespace ag
 		allocate_tensors();
 	}
 
-	void AGNetwork::create_network(const Json &cfg)
+	void AGNetwork::create_network(const TrainingConfig &trainingOptions)
 	{
-		int batch_size = cfg["batch_size"];
-		int blocks = cfg["blocks"];
-		int filters = cfg["filters"];
+		int batch_size = trainingOptions.device_config.batch_size;
+		int blocks = trainingOptions.blocks;
+		int filters = trainingOptions.filters;
 
 		auto x = graph.addInput( { batch_size, rows, cols, 4 });
 
@@ -213,9 +213,9 @@ namespace ag
 
 		graph.init();
 		graph.setOptimizer(ml::ADAM());
-		if (static_cast<double>(cfg["l2_regularization"]) != 0.0)
-			graph.setRegularizer(ml::RegularizerL2(static_cast<double>(cfg["l2_regularization"])));
-		graph.moveTo(ml::Device::fromString(cfg["device"]));
+		if (trainingOptions.l2_regularization != 0.0)
+			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
+		graph.moveTo(trainingOptions.device_config.device);
 	}
 	void AGNetwork::allocate_tensors()
 	{

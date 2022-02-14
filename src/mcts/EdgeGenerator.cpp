@@ -51,8 +51,6 @@ namespace
 			Board::undoMove(task.getBoard(), move);
 
 			edge.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
-//			edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
-//			edge.setValue(task.getActionValues().at(move.row, move.col));
 		}
 	}
 	void assign_policy_and_Q(SearchTask &task, Edge &edge) noexcept
@@ -176,6 +174,40 @@ namespace ag
 
 		renormalize_edges(task.getEdges());
 		assert(task.getEdges().size() > 0);
+	}
+
+	NoisyGenerator::NoisyGenerator(const matrix<float> &noiseMatrix, float noiseWeight, const EdgeGenerator &baseGenerator) :
+			noise_matrix(noiseMatrix),
+			noise_weight(noiseWeight),
+			base_generator(std::unique_ptr<EdgeGenerator>(baseGenerator.clone()))
+	{
+	}
+	NoisyGenerator* NoisyGenerator::clone() const
+	{
+		return new NoisyGenerator(noise_matrix, noise_weight, *base_generator);
+	}
+	void NoisyGenerator::generate(SearchTask &task) const
+	{
+		assert(task.isReady());
+
+		if (task.visitedPathLength() == 0)
+		{
+			for (int row = 0; row < task.getBoard().rows(); row++)
+				for (int col = 0; col < task.getBoard().cols(); col++)
+					if (task.getBoard().at(row, col) == Sign::NONE)
+						task.addEdge(Move(row, col, task.getSignToMove()));
+
+			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+			{
+				check_terminal_conditions(task, *edge);
+				assign_policy_and_Q(task, *edge);
+				Move m = edge->getMove();
+				edge->setPolicyPrior((1.0f - noise_weight) * edge->getPolicyPrior() + noise_weight * noise_matrix.at(m.row, m.col));
+			}
+			assert(task.getEdges().size() > 0);
+		}
+		else
+			base_generator->generate(task);
 	}
 
 } /* namespace ag */

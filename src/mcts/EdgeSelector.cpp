@@ -8,6 +8,7 @@
 #include <alphagomoku/mcts/EdgeSelector.hpp>
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/Logger.hpp>
 
 #include <cassert>
 #include <iostream>
@@ -19,7 +20,7 @@ namespace
 		return static_cast<float>(edge->getVisits()) / (1.0e-6f + edge->getVisits() + edge->getVirtualLoss());
 	}
 	template<typename T>
-	float getQ(const T *n, float sf) noexcept
+	float getQ(const T *n, float sf = 0.5f) noexcept
 	{
 		assert(n != nullptr);
 		return n->getWinRate() + sf * n->getDrawRate();
@@ -53,30 +54,25 @@ namespace ag
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-//		const float parent_value = getQ(node, style_factor);
+		const float parent_value = getQ(node, style_factor);
 		const float sqrt_visit = exploration_constant * sqrtf(node->getVisits());
 
-//		std::cout << node->toString() << '\n';
 		Edge *selected = node->end();
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			if (edge->isProven() == false)
 			{
-//				float Q = parent_value;
-//				if (edge->getVisits() > 0)
-//					Q = getQ(edge, style_factor) * getVloss(edge);
+				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVloss(edge) : parent_value;
 
-				float Q = getQ(edge, style_factor) * getVloss(edge);
-				float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
+//				const float Q = getQ(edge, style_factor) * getVloss(edge);
+				const float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
 
-//				std::cout << edge->toString() << " " << Q << " " << U << '\n';
 				if (Q + U > bestValue)
 				{
 					selected = edge;
 					bestValue = Q + U;
 				}
 			}
-//		std::cout << '\n';
 		assert(selected != node->end()); // this must never happen
 		return selected;
 	}

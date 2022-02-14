@@ -81,6 +81,7 @@ namespace ag
 
 	void maskIllegalMoves(const matrix<Sign> &board, matrix<float> &policy);
 	void addNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight);
+	matrix<float> getNoiseMatrix(const matrix<Sign> &board);
 
 	void scaleArray(matrix<float> &array, float scale);
 	void averageStats(std::vector<float> &stats);

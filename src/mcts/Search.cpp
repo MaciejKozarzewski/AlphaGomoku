@@ -147,69 +147,12 @@ namespace ag
 	}
 	void Search::expand(Tree &tree)
 	{
-//		std::cout << "-----------------------------------------------------------------------------------\n";
 		for (int i = 0; i < active_task_count; i++)
 		{
 			TimerGuard timer(stats.expand);
-//			std::cout << search_tasks[i].getLastEdge() << '\n';
-//			std::cout << search_tasks[i].toString() << '\n' << std::endl;
 			ExpandOutcome out = tree.expand(search_tasks[i]);
 			stats.nb_wasted_expansions += static_cast<uint64_t>(out == ExpandOutcome::ALREADY_EXPANDED);
 		}
-
-//		if (search_config.use_vcf_solver)
-//		{
-//			double start = getTime(); // statistics
-//			vcf_solver.setBoard(position.getBoard(), position.getSignToMove());
-//			ProvenValue pv = vcf_solver.solve(position.getPolicy(), moves_to_add);
-//			if (pv != ProvenValue::UNKNOWN and search_config.use_endgame_solver)
-//				position.setProvenValue(pv);
-//			switch (pv)
-//			{
-//				case ProvenValue::LOSS:
-//					position.setValue( { 0.0f, 0.0f, 1.0f });
-//					break;
-//				case ProvenValue::DRAW:
-//					position.setValue( { 0.0f, 1.0f, 0.0f });
-//					break;
-//				case ProvenValue::WIN:
-//					position.setValue( { 1.0f, 0.0f, 0.0f });
-//					break;
-//				default:
-//					break;
-//			}
-//			stats.nb_vcf_solver++; // statistics
-//			stats.time_vcf_solver += getTime() - start; //statistics
-//		}
-//
-//		double start = getTime(); // statistics
-//		const int cols = position.getBoard().cols();
-//		if (moves_to_add.size() == 0) // if there are no immediate threats from VCF solver
-//		{
-//			for (int i = 0; i < position.getBoard().size(); i++)
-//				if (position.getBoard().data()[i] == Sign::NONE and position.getPolicy().data()[i] >= search_config.expansion_prior_treshold)
-//					moves_to_add.push_back( { Move::move_to_short(i / cols, i % cols, position.getSignToMove()), position.getPolicy().data()[i] });
-//
-//			if (static_cast<int>(moves_to_add.size()) > search_config.max_children)
-//			{
-//				std::partial_sort(moves_to_add.begin(), moves_to_add.begin() + search_config.max_children, moves_to_add.end(),
-//						[](const std::pair<uint16_t, float> &lhs, const std::pair<uint16_t, float> &rhs)
-//						{	return lhs.second > rhs.second;});
-//				moves_to_add.erase(moves_to_add.begin() + search_config.max_children, moves_to_add.end());
-//			}
-//		}
-//
-//		if (static_cast<int>(moves_to_add.size()) < position.getBoard().size()) // renormalization of policy priors
-//		{
-//			float sum_priors = std::accumulate(moves_to_add.begin(), moves_to_add.end(), 0.0f, [](float acc, const std::pair<uint16_t, float> &p)
-//			{	return acc + p.second;});
-//			if (sum_priors > 0.0f)
-//			{
-//				sum_priors = 1.0f / sum_priors;
-//				std::for_each(moves_to_add.begin(), moves_to_add.end(), [sum_priors](std::pair<uint16_t, float> &p)
-//				{	p.second *= sum_priors;});
-//			}
-//		}
 	}
 	void Search::backup(Tree &tree)
 	{
