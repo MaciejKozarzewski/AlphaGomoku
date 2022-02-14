@@ -12,6 +12,15 @@
 
 #include <libml/hardware/Device.hpp>
 
+namespace
+{
+	std::string format_percents(double x)
+	{
+		int tmp = static_cast<int>(1000 * x);
+		return std::to_string(tmp / 10) + '.' + std::to_string(tmp % 10);
+	}
+}
+
 namespace ag
 {
 
@@ -145,21 +154,16 @@ namespace ag
 	}
 	std::string GomocupProtocol::parse_search_summary(const SearchSummary &summary) const
 	{
+		if (summary.node.getVisits() == 0)
+			return "";
 		std::string result;
-		result += "depth 1-" + std::to_string(summary.principal_variation.size());
+		if (summary.principal_variation.size() > 0)
+			result += "depth 1-" + std::to_string(summary.principal_variation.size());
 		switch (summary.node.getProvenValue())
 		{
 			case ProvenValue::UNKNOWN:
-			{
-				if (summary.node.getVisits() > 0)
-				{
-					int tmp = static_cast<int>(1000 * (summary.node.getWinRate() + 0.5f * summary.node.getDrawRate()));
-					result += " ev " + std::to_string(tmp / 10) + '.' + std::to_string(tmp % 10);
-				}
-				else
-					result += " ev U"; // this should never happen, but just in case...
+				result += " ev " + format_percents(summary.node.getWinRate() + 0.5f * summary.node.getDrawRate());
 				break;
-			}
 			case ProvenValue::LOSS:
 				result += " ev L";
 				break;
@@ -170,12 +174,18 @@ namespace ag
 				result += " ev W";
 				break;
 		}
-		result += " n " + std::to_string(summary.number_of_nodes);
-		if (summary.time_used > 0.0)
-			result += " n/s " + std::to_string((int) (summary.number_of_nodes / summary.time_used));
-		else
-			result += " n/s 0";
-		result += " tm " + std::to_string((int) (1000 * summary.time_used));
+		result += " winrate " + format_percents(summary.node.getWinRate());
+		result += " drawrate " + format_percents(summary.node.getDrawRate());
+
+		if (summary.number_of_nodes > 0)
+		{
+			result += " n " + std::to_string(summary.number_of_nodes);
+			if (summary.time_used > 0.0)
+				result += " n/s " + std::to_string((int) (summary.number_of_nodes / summary.time_used));
+			else
+				result += " n/s 0";
+			result += " tm " + std::to_string((int) (1000 * summary.time_used));
+		}
 		if (summary.principal_variation.size() > 0)
 		{
 			result += " pv";
