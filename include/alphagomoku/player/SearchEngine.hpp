@@ -91,17 +91,6 @@ namespace ag
 			SearchSummary getSummary(const std::vector<Move> &listOfMoves, bool getPV) const;
 		private:
 			void setup_search_threads();
-
-			Move get_best_move() const;
-			float get_root_eval() const;
-			Message make_forced_move();
-			Message make_move_by_search();
-			Message make_move_by_network();
-			Message swap2_0stones();
-			Message swap2_3stones();
-			Message swap2_5stones();
-			bool search_continues(double timeout);
-
 	};
 
 } /* namespace ag */

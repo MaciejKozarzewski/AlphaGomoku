@@ -150,8 +150,6 @@ namespace ag
 	 */
 	bool SearchThread::isStopConditionFulfilled() const
 	{
-//		std::cout << tree.getNodeCount() << "/" << settings.getMaxNodes() << " " << tree.getMemory() << "/" << settings.getMaxMemory() << " "
-//				<< tree.getMaximumDepth() << "/" << settings.getMaxDepth() << " " << tree.isProven() << " " << tree.hasSingleNonLosingMove() << '\n';
 		// assuming tree is locked
 		if (tree.getNodeCount() == 0)
 			return false; // there must be at least one node (root node) in the tree
@@ -230,126 +228,6 @@ namespace ag
 				return false;
 		return true;
 	}
-//	void SearchEngine::makeMove()
-//	{
-//		Message msg = make_forced_move();
-//		if (msg.isEmpty())
-//		{
-////			if (resource_manager.getTimeForTurn() == 0.0)
-////				return make_move_by_network();
-////			else
-//			return make_move_by_search();
-//		}
-//		else
-//		{
-////			tree.clear();
-////			time_used_for_last_search = resource_manager.getElapsedTime();
-//			return msg;
-//		}
-//	}
-//	void SearchEngine::ponder()
-//	{
-//		setup_search();
-////		tree.setBalancingDepth(-1);
-////		while (search_continues(resource_manager.getTimeForPondering()))
-////			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//		stopSearch();
-//		return Message();
-//	}
-//	void SearchEngine::swap2()
-//	{
-//		int placed_stones = std::count_if(board.begin(), board.end(), [](Sign s)
-//		{	return s != Sign::NONE;});
-//
-//		switch (placed_stones)
-//		{
-//			case 0:
-//				return swap2_0stones();
-//			case 3:
-//				return swap2_3stones();
-//			case 5:
-//				return swap2_5stones();
-//			default:
-//				return Message(MessageType::ERROR, "incorrect number of stones for swap2");
-//		}
-//	}
-//	void SearchEngine::swap()
-//	{
-//		int placed_stones = std::count_if(board.begin(), board.end(), [](Sign s)
-//		{	return s != Sign::NONE;});
-//
-//		switch (placed_stones)
-//		{
-//			case 0:
-//				return swap2_0stones();
-//			case 3:
-//				return swap2_5stones();
-//			default:
-//				return Message(MessageType::ERROR, "incorrect number of stones for swap2");
-//		}
-//	}
-//	void SearchEngine::exit()
-//	{
-//		for (size_t i = 0; i < search_threads.size(); i++)
-//			search_threads[i]->stop();
-//	}
-//	void SearchEngine::stopSearch()
-//	{
-//		for (size_t i = 0; i < search_threads.size(); i++)
-//			search_threads[i]->stop();
-//		thread_pool.waitForFinish();
-//		time_used_for_last_search = resource_manager.getElapsedTime();
-//	}
-//	Message SearchEngine::getSearchSummary()
-//	{
-//		log_search_info();
-//
-//		std::string result;
-//		SearchTrajectory pv = tree.getPrincipalVariation();
-//		result += "depth 1-" + std::to_string(pv.length());
-//		switch (tree.getRootNode().getProvenValue())
-//		{
-//			case ProvenValue::UNKNOWN:
-//			{
-//				if (getSimulationCount() > 0)
-//				{
-//					int tmp = static_cast<int>(1000 * get_root_eval());
-//					result += " ev " + std::to_string(tmp / 10) + '.' + std::to_string(tmp % 10);
-//				}
-//				else
-//					result += " ev U"; // forced move was played, there is no root node evaluation to show
-//				break;
-//			}
-//			case ProvenValue::LOSS:
-//				result += " ev W"; // root node value is for the other player, needs to be inverted
-//				break;
-//			case ProvenValue::DRAW:
-//				result += " ev D";
-//				break;
-//			case ProvenValue::WIN:
-//				result += " ev L"; // root node value is for the other player, needs to be inverted
-//				break;
-//		}
-//		result += " n " + std::to_string(getSimulationCount());
-//		if (getSimulationCount() > 0)
-//			result += " n/s " + std::to_string((int) (getSimulationCount() / time_used_for_last_search));
-//		else
-//			result += " n/s 0";
-//		result += " tm " + std::to_string((int) (1000 * time_used_for_last_search));
-//		result += " pv";
-//
-//		for (int i = 1; i < pv.length(); i++)
-//		{
-//			Node &current = pv.getNode(i);
-//			Move m(current.getMove());
-//			result += std::string(" ") + ((m.sign == Sign::CROSS) ? "X" : "O");
-//			if (player->config.is_using_yixin_board == true)
-//				result += (char) (97 + m.row) + std::to_string((board.cols() - 1 - m.col));
-//			else
-//			result += (char) (97 + m.row) + std::to_string((int) m.col);
-//		}
-//		return Message(MessageType::INFO_MESSAGE, result);
-//	}
 	const matrix<Sign>& SearchEngine::getBoard() const noexcept
 	{
 		return tree.getBoard();
@@ -503,24 +381,24 @@ namespace ag
 			search_threads.erase(search_threads.begin() + settings.getThreadNum(), search_threads.end());
 	}
 
-	Move SearchEngine::get_best_move() const
-	{
-		const int rows = 0; //resource_manager.getGameConfig().rows;
-		const int cols = 0; //resource_manager.getGameConfig().cols;
-		matrix<float> playouts(rows, cols);
-		matrix<float> policy_priors(rows, cols);
-		matrix<ProvenValue> proven_values(rows, cols);
-		matrix<Value> action_values(rows, cols);
+//	Move SearchEngine::get_best_move() const
+//	{
+//		const int rows = 0; //resource_manager.getGameConfig().rows;
+//		const int cols = 0; //resource_manager.getGameConfig().cols;
+//		matrix<float> playouts(rows, cols);
+//		matrix<float> policy_priors(rows, cols);
+//		matrix<ProvenValue> proven_values(rows, cols);
+//		matrix<Value> action_values(rows, cols);
 //		tree.getPlayoutDistribution(tree.getRootNode(), playouts);
 //		tree.getPolicyPriors(tree.getRootNode(), policy_priors);
 //		tree.getProvenValues(tree.getRootNode(), proven_values);
 //		tree.getActionValues(tree.getRootNode(), action_values);
-
-		double best_value = std::numeric_limits<double>::lowest();
-		Move best_move;
+//
+//		double best_value = std::numeric_limits<double>::lowest();
+//		Move best_move;
 //		for (int row = 0; row < board.rows(); row++)
 //			for (int col = 0; col < board.cols(); col++)
-		{
+//		{
 //				double value = playouts.at(row, col)
 //						+ (action_values.at(row, col).win + 0.5 * action_values.at(row, col).draw) * tree.getRootNode().getVisits()
 //						+ 0.001 * policy_priors.at(row, col)
@@ -530,22 +408,22 @@ namespace ag
 //					best_value = value;
 //					best_move = Move(row, col, sign_to_move);
 //				}
-		}
-		return best_move;
-	}
-	float SearchEngine::get_root_eval() const
-	{
+//		}
+//		return best_move;
+//	}
+//	float SearchEngine::get_root_eval() const
+//	{
 //		return 1.0f - MaxExpectation()(&(tree.getRootNode()));
-	}
-	Message SearchEngine::make_forced_move()
-	{
-		const GameRules rules = GameRules::FREESTYLE; //resource_manager.getGameConfig().rules;
+//	}
+//	Message SearchEngine::make_forced_move()
+//	{
+//		const GameRules rules = GameRules::FREESTYLE; //resource_manager.getGameConfig().rules;
 //		assert(getOutcome(rules, board) == GameOutcome::UNKNOWN);
-
+//
 		// check for empty board first move
 //		if (isBoardEmpty(board) == true)
 //			return Message(MessageType::BEST_MOVE, Move(board.rows() / 2, board.cols() / 2, sign_to_move));
-
+//
 //		matrix<Sign> board_copy(board);
 		// check for own winning moves
 //		for (int i = 0; i < board.rows(); i++)
@@ -562,7 +440,7 @@ namespace ag
 //						return Message(); // do not force winning move
 //					}
 //				}
-
+//
 		// check for opp winning moves
 //		for (int i = 0; i < board.rows(); i++)
 //			for (int j = 0; j < board.cols(); j++)
@@ -577,57 +455,57 @@ namespace ag
 //						return Message(MessageType::BEST_MOVE, Move(i, j, sign_to_move));
 //					}
 //				}
-		return Message();
-	}
-	Message SearchEngine::make_move_by_search()
-	{
+//		return Message();
+//	}
+//	Message SearchEngine::make_move_by_search()
+//	{
 //		tree.setBalancingDepth(-1);
 //		setup_search();
 //		while (search_continues(resource_manager.getTimeForTurn()))
 //			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 //		stopSearch();
-		return Message(MessageType::BEST_MOVE, get_best_move());
-	}
-	Message SearchEngine::swap2_0stones()
-	{
-		Logger::write("Placing 3 initial stones");
+//		return Message(MessageType::BEST_MOVE, get_best_move());
+//	}
+//	Message SearchEngine::swap2_0stones()
+//	{
+//		Logger::write("Placing 3 initial stones");
 //		if (std::filesystem::exists(static_cast<std::string>(config["swap2_openings_file"])) == false)
 //			return Message(MessageType::ERROR, "No swap2 opening book found");
 //		else
-		{
+//		{
 //			FileLoader fl(static_cast<std::string>(config["swap2_openings_file"])); FIXME later switch to using text format - "Xa0"
 //			Json json = fl.getJson();
 //			int r = randInt(json.size());
-			std::vector<Move> moves;
+//			std::vector<Move> moves;
 //			for (int i = 0; i < json[r].size(); i++)
 //				moves.push_back(Move(json[r][i]));
-			return Message(MessageType::BEST_MOVE, moves);
-		}
-	}
-	Message SearchEngine::swap2_3stones()
-	{
-		const double balancing_split = 0.25;
-		const float swap2_evaluation_treshold = 0.6f;
-
-		Logger::write("Evaluating opening");
+//			return Message(MessageType::BEST_MOVE, moves);
+//		}
+//	}
+//	Message SearchEngine::swap2_3stones()
+//	{
+//		const double balancing_split = 0.25;
+//		const float swap2_evaluation_treshold = 0.6f;
+//
+//		Logger::write("Evaluating opening");
 //		tree.setBalancingDepth(-1);
 //		setup_search();
 //		while (search_continues(resource_manager.getTimeForSwap2(3) * balancing_split))
 //			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 //		stopSearch();
-
-		if (get_root_eval() < 1.0f - swap2_evaluation_treshold)
-			return Message(MessageType::BEST_MOVE, "swap");
-		else
-		{
-			if (get_root_eval() > swap2_evaluation_treshold)
-				return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
-			else
-			{
+//
+//		if (get_root_eval() < 1.0f - swap2_evaluation_treshold)
+//			return Message(MessageType::BEST_MOVE, "swap");
+//		else
+//		{
+//			if (get_root_eval() > swap2_evaluation_treshold)
+//				return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
+//			else
+//			{
 //				if (getSimulationCount() > 0)
 //					log_search_info();
-
-				Logger::write("Balancing opening");
+//
+//				Logger::write("Balancing opening");
 //				tree.setBalancingDepth(2);
 //				setup_search();
 //				while (search_continues(resource_manager.getTimeForSwap2(3) * (1.0 - balancing_split)))
@@ -645,25 +523,25 @@ namespace ag
 //				}
 //				else
 //					return Message(MessageType::BEST_MOVE, std::vector<Move>( { st.getMove(1), st.getMove(2) }));
-			}
-		}
-	}
-	Message SearchEngine::swap2_5stones()
-	{
-		Logger::write("Evaluating opening");
+//			}
+//		}
+//	}
+//	Message SearchEngine::swap2_5stones()
+//	{
+//		Logger::write("Evaluating opening");
 //		tree.setBalancingDepth(-1);
 //		setup_search();
 //		while (search_continues(resource_manager.getTimeForSwap2(5)))
 //			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 //		stopSearch();
-
-		if (get_root_eval() < 0.5f)
-			return Message(MessageType::BEST_MOVE, "swap");
-		else
-			return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
-	}
-	bool SearchEngine::search_continues(double timeout)
-	{
+//
+//		if (get_root_eval() < 0.5f)
+//			return Message(MessageType::BEST_MOVE, "swap");
+//		else
+//			return Message(MessageType::BEST_MOVE, std::vector<Move>( { get_best_move() }));
+//	}
+//	bool SearchEngine::search_continues(double timeout)
+//	{
 //		if (isSearchFinished())
 //			return false;
 //		else
@@ -674,7 +552,7 @@ namespace ag
 //				return resource_manager.getElapsedTime() < timeout
 //						and (tree.getMemory() + cache.getMemory()) < 0.95 * (resource_manager.getMaxMemory() - 300 * 1024 * 1024);
 //		}
-	}
+//	}
 
 } /* namespace ag */
 
