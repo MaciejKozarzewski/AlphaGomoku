@@ -96,15 +96,15 @@ namespace ag
 	}
 	TimedStat& TimedStat::operator+=(const TimedStat &other) noexcept
 	{
-		assert(this->isMeasuring() == false && this->isPaused() == false);
-		assert(other.isMeasuring() == false && other.isMeasuring() == false);
+//		assert(this->isMeasuring() == false && this->isPaused() == false);
+//		assert(other.isMeasuring() == false && other.isPaused() == false);
 		this->m_total_time += other.m_total_time;
 		this->m_total_count += other.m_total_count;
 		return *this;
 	}
 	TimedStat& TimedStat::operator/=(int i) noexcept
 	{
-		assert(this->isMeasuring() == false && this->isPaused() == false);
+//		assert(this->isMeasuring() == false && this->isPaused() == false);
 		this->m_total_time /= i;
 		this->m_total_count /= i;
 		return *this;

@@ -201,6 +201,7 @@ namespace ag
 		stored_entries++;
 		assert(stored_entries + buffered_entries == allocated_entries);
 
+		new_entry->node.clear();
 		new_entry->node.setDepth(Board::numberOfMoves(board));
 		new_entry->node.setSignToMove(signToMove);
 		new_entry->node.markAsUsed();

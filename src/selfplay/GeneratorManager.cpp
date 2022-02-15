@@ -39,10 +39,10 @@ namespace ag
 		if (generator_future.valid())
 		{
 			std::future_status search_status = generator_future.wait_for(std::chrono::milliseconds(0));
-			return search_status != std::future_status::ready;
+			return search_status == std::future_status::ready;
 		}
 		else
-			return false;
+			return true;
 	}
 	void GeneratorThread::resetGames()
 	{

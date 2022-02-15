@@ -27,10 +27,11 @@ namespace ag
 					static constexpr int cols = 0;
 			};
 		public:
-			GameRules rules;
-			int rows;
-			int cols;
+			GameRules rules = Defaults::rules;
+			int rows = Defaults::rows;
+			int cols = Defaults::cols;
 
+			GameConfig() = default;
 			GameConfig(GameRules rules, int rows, int cols);
 			GameConfig(GameRules rules, int size);
 			GameConfig(const Json &cfg);
@@ -42,30 +43,13 @@ namespace ag
 		private:
 			struct Defaults
 			{
-					static constexpr int bucket_size = 1000000;
-					static constexpr int cache_size = 65536;
+					static constexpr int initial_cache_size = 65536;
 			};
 		public:
-			int bucket_size = Defaults::bucket_size;
-			int cache_size = Defaults::cache_size;
+			int initial_cache_size = Defaults::initial_cache_size;
 
 			TreeConfig() = default;
 			TreeConfig(const Json &cfg);
-			Json toJson() const;
-	};
-
-	struct CacheConfig
-	{
-		private:
-			struct Defaults
-			{
-					static constexpr int cache_size = 1048576;
-			};
-		public:
-			int cache_size = Defaults::cache_size;
-
-			CacheConfig() = default;
-			CacheConfig(const Json &cfg);
 			Json toJson() const;
 	};
 
@@ -79,7 +63,6 @@ namespace ag
 					static constexpr float expansion_prior_treshold = 0.0f;
 					static constexpr int max_children = std::numeric_limits<int>::max();
 					static constexpr float noise_weight = 0.0f;
-					static constexpr bool use_endgame_solver = false;
 					static constexpr int vcf_solver_level = 0;
 					static constexpr int style_factor = 1;
 			};
@@ -89,7 +72,6 @@ namespace ag
 			float expansion_prior_treshold = Defaults::expansion_prior_treshold;
 			int max_children = Defaults::max_children;
 			float noise_weight = Defaults::noise_weight;
-			bool use_endgame_solver = Defaults::use_endgame_solver;
 			int vcf_solver_level = Defaults::vcf_solver_level; /**< 0 - only terminal moves, 1 - static evaluation, 2 - recursive search */
 			int style_factor = Defaults::style_factor; /**< 0 - win + draw, 1 - win + 0.5 * draw, 2 - win */
 
@@ -115,10 +97,6 @@ namespace ag
 			DeviceConfig(const Json &cfg);
 			Json toJson() const;
 	};
-
-	Json getDefaultSelfplayConfig();
-	Json getDefaultTrainingConfig();
-	Json getDefaultEvaluationConfig();
 
 	struct TrainingConfig
 	{

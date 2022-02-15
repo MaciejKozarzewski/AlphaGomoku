@@ -32,8 +32,7 @@ namespace ag
 				GAME_NOT_STARTED,
 				PREPARE_OPENING,
 				GAMEPLAY_SELECT_SOLVE_EVALUATE,
-				GAMEPLAY_EXPAND_AND_BACKUP,
-				SEND_RESULTS
+				GAMEPLAY_EXPAND_AND_BACKUP
 			};
 			GameBuffer &game_buffer;
 			NNEvaluator &nn_evaluator;

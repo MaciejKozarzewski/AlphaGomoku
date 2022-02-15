@@ -8,16 +8,13 @@
 #ifndef ALPHAGOMOKU_MCTS_SEARCH_HPP_
 #define ALPHAGOMOKU_MCTS_SEARCH_HPP_
 
-#include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
-#include <alphagomoku/mcts/SearchTrajectory.hpp>
-#include <alphagomoku/mcts/EvaluationRequest.hpp>
-#include <alphagomoku/mcts/EvaluationQueue.hpp>
-#include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
+#include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
+#include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 
 #include <inttypes.h>
 #include <string>
@@ -28,9 +25,7 @@ namespace ag
 	class EdgeSelector;
 	class EdgeGenerator;
 	class NNEvaluator;
-	class Cache;
 	class Tree;
-	class Tree_old;
 } /* namespace ag */
 
 namespace ag
@@ -85,60 +80,61 @@ namespace ag
 			bool is_duplicate(const SearchTask &task) const noexcept;
 	};
 
-	class Search_old
-	{
-		private:
-			struct SearchRequest
-			{
-					SearchTrajectory_old trajectory;
-					EvaluationRequest position;
-					SearchRequest(int rows, int cols) :
-							position(rows, cols)
-					{
-					}
-			};
+//	class Search_old
+//	{
+//		private:
+//			struct SearchRequest
+//			{
+//					SearchTrajectory_old trajectory;
+//					EvaluationRequest position;
+//					SearchRequest(int rows, int cols) :
+//							position(rows, cols)
+//					{
+//					}
+//			};
+//
+//			std::vector<SearchRequest> search_buffer;
+//			std::vector<std::pair<uint16_t, float>> moves_to_add;
+//
+//			Cache &cache;
+//			Tree_old &tree;
+//			EvaluationQueue &eval_queue;
+//
+//			FeatureExtractor vcf_solver;
+//			matrix<Sign> current_board;
+//			Sign sign_to_move;
+//			int simulation_count = 0;
+//
+//			GameConfig game_config;
+//			SearchConfig search_config;
+//			SearchStats stats;
+//
+//		public:
+//			Search_old(GameConfig gameOptions, SearchConfig searchOptions, Tree_old &tree, Cache &cache, EvaluationQueue &queue);
+//
+//			void clearStats() noexcept;
+//			void printSolverStats() const;
+//			SearchStats getStats() const noexcept;
+//			SearchConfig getConfig() const noexcept;
+//			int getSimulationCount() const noexcept;
+//
+//			void setBoard(const matrix<Sign> &board);
+//			matrix<Sign> getBoard() const noexcept;
+//
+//			void handleEvaluation();
+//			bool simulate(int maxSimulations);
+//			void cleanup();
+//
+//		private:
+//			int get_batch_size() const noexcept;
+//			SearchRequest& select();
+//			GameOutcome evaluateFromGameRules(EvaluationRequest &position);
+//			void evaluate(EvaluationRequest &position);
+//			bool expand(EvaluationRequest &position);
+//			void backup(SearchRequest &request);
+//			bool isDuplicate(EvaluationRequest &request);
+//	};
 
-			std::vector<SearchRequest> search_buffer;
-			std::vector<std::pair<uint16_t, float>> moves_to_add;
-
-			Cache &cache;
-			Tree_old &tree;
-			EvaluationQueue &eval_queue;
-
-			FeatureExtractor vcf_solver;
-			matrix<Sign> current_board;
-			Sign sign_to_move;
-			int simulation_count = 0;
-
-			GameConfig game_config;
-			SearchConfig search_config;
-			SearchStats stats;
-
-		public:
-			Search_old(GameConfig gameOptions, SearchConfig searchOptions, Tree_old &tree, Cache &cache, EvaluationQueue &queue);
-
-			void clearStats() noexcept;
-			void printSolverStats() const;
-			SearchStats getStats() const noexcept;
-			SearchConfig getConfig() const noexcept;
-			int getSimulationCount() const noexcept;
-
-			void setBoard(const matrix<Sign> &board);
-			matrix<Sign> getBoard() const noexcept;
-
-			void handleEvaluation();
-			bool simulate(int maxSimulations);
-			void cleanup();
-
-		private:
-			int get_batch_size() const noexcept;
-			SearchRequest& select();
-			GameOutcome evaluateFromGameRules(EvaluationRequest &position);
-			void evaluate(EvaluationRequest &position);
-			bool expand(EvaluationRequest &position);
-			void backup(SearchRequest &request);
-			bool isDuplicate(EvaluationRequest &request);
-	};
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_SEARCH_HPP_ */

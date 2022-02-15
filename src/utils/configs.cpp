@@ -57,22 +57,12 @@ namespace ag
 	}
 
 	TreeConfig::TreeConfig(const Json &cfg) :
-			bucket_size(get_value<int>(cfg, "bucket_size", Defaults::bucket_size)),
-			cache_size(get_value<int>(cfg, "cache_size", Defaults::cache_size))
+			initial_cache_size(get_value<int>(cfg, "cache_size", Defaults::initial_cache_size))
 	{
 	}
 	Json TreeConfig::toJson() const
 	{
-		return Json( { { "bucket_size", bucket_size }, { "cache_size", cache_size } });
-	}
-
-	CacheConfig::CacheConfig(const Json &cfg) :
-			cache_size(get_value<int>(cfg, "cache_size", Defaults::cache_size))
-	{
-	}
-	Json CacheConfig::toJson() const
-	{
-		return Json( { { "cache_size", cache_size } });
+		return Json( { { "cache_size", initial_cache_size } });
 	}
 
 	SearchConfig::SearchConfig(const Json &cfg) :
@@ -80,8 +70,7 @@ namespace ag
 			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
 			expansion_prior_treshold(get_value<float>(cfg, "expansion_prior_treshold", Defaults::expansion_prior_treshold)),
 			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
-			noise_weight(get_value<float>(cfg, "noise_weight", Defaults::use_endgame_solver)),
-			use_endgame_solver(get_value<bool>(cfg, "use_endgame_solver", Defaults::use_endgame_solver)),
+			noise_weight(get_value<float>(cfg, "noise_weight", Defaults::noise_weight)),
 			vcf_solver_level(get_value<int>(cfg, "vcf_solver_level", Defaults::vcf_solver_level)),
 			style_factor(get_value<int>(cfg, "style_factor", Defaults::style_factor))
 	{
@@ -89,8 +78,8 @@ namespace ag
 	Json SearchConfig::toJson() const
 	{
 		return Json( { { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "expansion_prior_treshold",
-				expansion_prior_treshold }, { "max_children", max_children }, { "noise_weight", noise_weight }, { "use_endgame_solver",
-				use_endgame_solver }, { "vcf_solver_level", vcf_solver_level }, { "style_factor", style_factor } });
+				expansion_prior_treshold }, { "max_children", max_children }, { "noise_weight", noise_weight },
+				{ "vcf_solver_level", vcf_solver_level }, { "style_factor", style_factor } });
 	}
 
 	DeviceConfig::DeviceConfig(const Json &cfg) :
@@ -102,53 +91,6 @@ namespace ag
 	Json DeviceConfig::toJson() const
 	{
 		return Json( { { "device", device.toString() }, { "batch_size", batch_size }, { "omp_threads", omp_threads } });
-	}
-
-	Json getDefaultTrainingConfig()
-	{
-		return Json::load("{"
-				"\"device\": \"CPU\","
-				"\"batch_size\": 128,"
-				"\"blocks\": 5,"
-				"\"filters\": 64,"
-				"\"l2_regularization\": 1.0e-4,"
-				"\"learning_rate_schedule\": [{\"from_epoch\": 0, \"value\": 1.0e-3}],"
-				"\"augment_training_data\": true,"
-				"\"validation_percent\": 5,"
-				"\"steps_per_interation\": 1000,"
-				"\"buffer_size\": 20}");
-	}
-	Json getDefaultSelfplayConfig()
-	{
-		Json result = Json::load("{"
-				"\"games_per_iteration\": 1000,"
-				"\"games_per_thread\": 1,"
-				"\"simulations\": 100,"
-				"\"use_opening\": true,"
-				"\"temperature\": 0.0,"
-				"\"use_symmetries\": \"false\""
-				"\"threads\": [{\"device\": \"CPU\"}]}");
-		result["search_options"] = SearchConfig().toJson();
-		result["search_options"]["noise_weight"] = 0.25;
-		result["tree_options"] = TreeConfig().toJson();
-		result["cache_options"] = CacheConfig().toJson();
-		return result;
-	}
-	Json getDefaultEvaluationConfig()
-	{
-		Json result = Json::load("{"
-				"\"use_evaluation\": false,"
-				"\"games_per_iteration\": 240,"
-				"\"games_per_thread\": 1,"
-				"\"simulations\": 100,"
-				"\"use_opening\": true,"
-				"\"temperature\": 0.0,"
-				"\"use_symmetries\": \"false\""
-				"\"threads\": [{\"device\": \"CPU\"}]}");
-		result["search_options"] = SearchConfig().toJson();
-		result["tree_options"] = TreeConfig().toJson();
-		result["cache_options"] = CacheConfig().toJson();
-		return result;
 	}
 
 	TrainingConfig::TrainingConfig(const Json &options) :
@@ -198,11 +140,11 @@ namespace ag
 			games_per_thread(get_value<int>(options, "games_per_thread")),
 			simulations(get_value<int>(options, "simulations")),
 			temperature(get_value<double>(options, "temperature")),
-			search_config(options["search_options"]),
-			tree_config(options["tree_options"])
+			search_config(options["search_config"]),
+			tree_config(options["tree_config"])
 	{
-		for (int i = 0; i < options["device_configs"].size(); i++)
-			device_config.push_back(DeviceConfig(options["device_configs"][i]));
+		for (int i = 0; i < options["device_config"].size(); i++)
+			device_config.push_back(DeviceConfig(options["device_config"][i]));
 	}
 	Json SelfplayConfig::toJson() const
 	{

@@ -49,6 +49,8 @@ namespace ag
 	void TrainingManager::runIterationRL()
 	{
 		generateGames();
+		std::cout << "first run\n";
+		return;
 
 		train();
 		validate();

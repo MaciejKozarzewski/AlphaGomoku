@@ -243,11 +243,6 @@ namespace ag
 		std::lock_guard lock(mutex);
 		return tree_config;
 	}
-	const CacheConfig& EngineSettings::getCacheConfig() const noexcept
-	{
-		std::lock_guard lock(mutex);
-		return cache_config;
-	}
 	const SearchConfig& EngineSettings::getSearchConfig() const noexcept
 	{
 		std::lock_guard lock(mutex);

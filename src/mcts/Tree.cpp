@@ -406,7 +406,7 @@ namespace ag
 		else
 		{
 			delete_subtree(root_node, tmp_board);
-			node_cache = NodeCache(newBoard.rows(), newBoard.cols(), config.cache_size);
+			node_cache = NodeCache(newBoard.rows(), newBoard.cols(), config.initial_cache_size);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
@@ -691,219 +691,219 @@ namespace ag
 		task.setReady();
 	}
 
-	Tree_old::Tree_old(TreeConfig treeOptions) :
-			config(treeOptions)
-	{
-	}
-
-	uint64_t Tree_old::getMemory() const noexcept
-	{
-		return sizeof(Node_old) * usedNodes();
-//		return sizeof(Node_old) * allocatedNodes();
-	}
-	void Tree_old::clearStats() noexcept
-	{
-	}
-	TreeStats Tree_old::getStats() const noexcept
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		TreeStats result;
-		result.allocated_nodes = allocatedNodes();
-		result.used_nodes = usedNodes();
-		for (size_t i = 0; i < nodes.size(); i++)
-			for (int j = 0; j < config.bucket_size; j++)
-				switch (nodes[i][j].getProvenValue())
-				{
-					default:
-					case ProvenValue::UNKNOWN:
-						break;
-					case ProvenValue::LOSS:
-						result.node_proven_loss++;
-						break;
-					case ProvenValue::DRAW:
-						result.node_proven_draw++;
-						break;
-					case ProvenValue::WIN:
-						result.node_proven_win++;
-						break;
-				}
-		return result;
-	}
-	void Tree_old::clear() noexcept
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		current_index = { 0, 0 };
-		root_node.clear();
-	}
-	int Tree_old::allocatedNodes() const noexcept
-	{
-		return static_cast<int>(nodes.size()) * config.bucket_size;
-	}
-	int Tree_old::usedNodes() const noexcept
-	{
-		return current_index.first * config.bucket_size + current_index.second;
-	}
-	bool Tree_old::isProven() const noexcept
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		return root_node.isProven();
-	}
-	const Node_old& Tree_old::getRootNode() const noexcept
-	{
-		return root_node;
-	}
-	Node_old& Tree_old::getRootNode() noexcept
-	{
-		return root_node;
-	}
-	void Tree_old::setBalancingDepth(int depth) noexcept
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		balancing_depth = depth;
-	}
-	bool Tree_old::isRootNode(const Node_old *node) const noexcept
-	{
-		return node == &root_node;
-	}
-	void Tree_old::select(SearchTrajectory_old &trajectory, float explorationConstant)
-	{
-		trajectory.clear();
-		std::lock_guard<std::mutex> lock(tree_mutex);
-
-		Node_old *current = &getRootNode();
-		current->applyVirtualLoss();
-		trajectory.append(current, Move::move_from_short(current->getMove()));
-		while (not current->isLeaf())
-		{
-			if (trajectory.length() <= balancing_depth)
-				current = select_balanced(current);
-			else
-				current = select_puct(current, explorationConstant, MaxExpectation());
-			current->applyVirtualLoss();
-			trajectory.append(current, Move::move_from_short(current->getMove()));
-		}
-	}
-	bool Tree_old::expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
-	{
-		assert(Move::getSign(parent.getMove()) != Sign::NONE);
-		assert(movesToAdd.size() > 0);
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		if (parent.isLeaf() == false)
-			return false; // node has already been expanded
-
-		Node_old *children = reserve_nodes(movesToAdd.size());
-		if (children == nullptr) // there are no nodes left in the tree
-			return true; // don't expand if there is no memory
-
-		parent.createChildren(children, movesToAdd.size());
-		for (int i = 0; i < parent.numberOfChildren(); i++)
-		{
-			assert(Move::getSign(movesToAdd[i].first) == invertSign(Move::getSign(parent.getMove())));
-			parent.getChild(i).clear();
-			parent.getChild(i).setMove(movesToAdd[i].first);
-			parent.getChild(i).setPolicyPrior(movesToAdd[i].second);
-		}
-		return true;
-	}
-	void Tree_old::backup(SearchTrajectory_old &trajectory, Value value, ProvenValue provenValue)
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-
-		if (trajectory.getMove(0).sign != trajectory.getLastMove().sign)
-			value.invert();
-		for (int i = 0; i < trajectory.length(); i++)
-		{
-			trajectory.getNode(i).updateValue(value);
-			trajectory.getNode(i).cancelVirtualLoss();
-			value.invert();
-		}
-		trajectory.getLeafNode().setProvenValue(provenValue);
-		for (int i = trajectory.length() - 1; i >= 0; i--)
-		{
-			bool continue_updating = update_proven_value(trajectory.getNode(i));
-			if (continue_updating == false)
-				break;
-		}
-	}
-	void Tree_old::cancelVirtualLoss(SearchTrajectory_old &trajectory)
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		for (int i = 0; i < trajectory.length(); i++)
-			trajectory.getNode(i).cancelVirtualLoss();
-	}
-	void Tree_old::getPolicyPriors(const Node_old &node, matrix<float> &result) const
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		result.fill(0.0f);
-		for (auto iter = node.begin(); iter < node.end(); iter++)
-		{
-			Move move = Move::move_from_short(iter->getMove());
-			result.at(move.row, move.col) = iter->getPolicyPrior();
-		}
-	}
-	void Tree_old::getPlayoutDistribution(const Node_old &node, matrix<float> &result) const
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		result.fill(0.0f);
-		for (auto iter = node.begin(); iter < node.end(); iter++)
-		{
-			Move move = Move::move_from_short(iter->getMove());
-			result.at(move.row, move.col) = iter->getVisits();
-		}
-	}
-	void Tree_old::getProvenValues(const Node_old &node, matrix<ProvenValue> &result) const
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		result.fill(ProvenValue::UNKNOWN);
-		for (auto iter = node.begin(); iter < node.end(); iter++)
-		{
-			Move move = Move::move_from_short(iter->getMove());
-			result.at(move.row, move.col) = iter->getProvenValue();
-		}
-	}
-	void Tree_old::getActionValues(const Node_old &node, matrix<Value> &result) const
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		result.fill(Value());
-		for (auto iter = node.begin(); iter < node.end(); iter++)
-		{
-			Move move = Move::move_from_short(iter->getMove());
-			result.at(move.row, move.col) = iter->getValue();
-		}
-	}
-	SearchTrajectory_old Tree_old::getPrincipalVariation()
-	{
-		SearchTrajectory_old result;
-		std::lock_guard<std::mutex> lock(tree_mutex);
-
-		Node_old *current = &getRootNode();
-		result.append(current, Move::move_from_short(current->getMove()));
-		while (not current->isLeaf())
-		{
-			current = select_by_visit(current);
-			result.append(current, Move::move_from_short(current->getMove()));
-		}
-		return result;
-	}
-	void Tree_old::printSubtree(const Node_old &node, int depth, bool sort, int top_n) const
-	{
-		std::lock_guard<std::mutex> lock(tree_mutex);
-		print_subtree(node, depth, sort, top_n, 0);
-	}
-
-	Node_old* Tree_old::reserve_nodes(int number)
-	{
-		if (usedNodes() + number > allocatedNodes()) // allocate new bucket
-			nodes.push_back(std::make_unique<Node_old[]>(config.bucket_size));
-
-		if (current_index.second + number > config.bucket_size)
-		{
-			current_index.first++; // switch to next bucket
-			current_index.second = 0;
-		}
-		Node_old *result = nodes.at(current_index.first).get() + current_index.second;
-		current_index.second += number;
-		return result;
-	}
-}
+//	Tree_old::Tree_old(TreeConfig treeOptions) :
+//			config(treeOptions)
+//	{
+//	}
+//
+//	uint64_t Tree_old::getMemory() const noexcept
+//	{
+//		return sizeof(Node_old) * usedNodes();
+////		return sizeof(Node_old) * allocatedNodes();
+//	}
+//	void Tree_old::clearStats() noexcept
+//	{
+//	}
+//	TreeStats Tree_old::getStats() const noexcept
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		TreeStats result;
+//		result.allocated_nodes = allocatedNodes();
+//		result.used_nodes = usedNodes();
+//		for (size_t i = 0; i < nodes.size(); i++)
+//			for (int j = 0; j < config.bucket_size; j++)
+//				switch (nodes[i][j].getProvenValue())
+//				{
+//					default:
+//					case ProvenValue::UNKNOWN:
+//						break;
+//					case ProvenValue::LOSS:
+//						result.node_proven_loss++;
+//						break;
+//					case ProvenValue::DRAW:
+//						result.node_proven_draw++;
+//						break;
+//					case ProvenValue::WIN:
+//						result.node_proven_win++;
+//						break;
+//				}
+//		return result;
+//	}
+//	void Tree_old::clear() noexcept
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		current_index = { 0, 0 };
+//		root_node.clear();
+//	}
+//	int Tree_old::allocatedNodes() const noexcept
+//	{
+//		return static_cast<int>(nodes.size()) * config.bucket_size;
+//	}
+//	int Tree_old::usedNodes() const noexcept
+//	{
+//		return current_index.first * config.bucket_size + current_index.second;
+//	}
+//	bool Tree_old::isProven() const noexcept
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		return root_node.isProven();
+//	}
+//	const Node_old& Tree_old::getRootNode() const noexcept
+//	{
+//		return root_node;
+//	}
+//	Node_old& Tree_old::getRootNode() noexcept
+//	{
+//		return root_node;
+//	}
+//	void Tree_old::setBalancingDepth(int depth) noexcept
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		balancing_depth = depth;
+//	}
+//	bool Tree_old::isRootNode(const Node_old *node) const noexcept
+//	{
+//		return node == &root_node;
+//	}
+//	void Tree_old::select(SearchTrajectory_old &trajectory, float explorationConstant)
+//	{
+//		trajectory.clear();
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//
+//		Node_old *current = &getRootNode();
+//		current->applyVirtualLoss();
+//		trajectory.append(current, Move::move_from_short(current->getMove()));
+//		while (not current->isLeaf())
+//		{
+//			if (trajectory.length() <= balancing_depth)
+//				current = select_balanced(current);
+//			else
+//				current = select_puct(current, explorationConstant, MaxExpectation());
+//			current->applyVirtualLoss();
+//			trajectory.append(current, Move::move_from_short(current->getMove()));
+//		}
+//	}
+//	bool Tree_old::expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd)
+//	{
+//		assert(Move::getSign(parent.getMove()) != Sign::NONE);
+//		assert(movesToAdd.size() > 0);
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		if (parent.isLeaf() == false)
+//			return false; // node has already been expanded
+//
+//		Node_old *children = reserve_nodes(movesToAdd.size());
+//		if (children == nullptr) // there are no nodes left in the tree
+//			return true; // don't expand if there is no memory
+//
+//		parent.createChildren(children, movesToAdd.size());
+//		for (int i = 0; i < parent.numberOfChildren(); i++)
+//		{
+//			assert(Move::getSign(movesToAdd[i].first) == invertSign(Move::getSign(parent.getMove())));
+//			parent.getChild(i).clear();
+//			parent.getChild(i).setMove(movesToAdd[i].first);
+//			parent.getChild(i).setPolicyPrior(movesToAdd[i].second);
+//		}
+//		return true;
+//	}
+//	void Tree_old::backup(SearchTrajectory_old &trajectory, Value value, ProvenValue provenValue)
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//
+//		if (trajectory.getMove(0).sign != trajectory.getLastMove().sign)
+//			value.invert();
+//		for (int i = 0; i < trajectory.length(); i++)
+//		{
+//			trajectory.getNode(i).updateValue(value);
+//			trajectory.getNode(i).cancelVirtualLoss();
+//			value.invert();
+//		}
+//		trajectory.getLeafNode().setProvenValue(provenValue);
+//		for (int i = trajectory.length() - 1; i >= 0; i--)
+//		{
+//			bool continue_updating = update_proven_value(trajectory.getNode(i));
+//			if (continue_updating == false)
+//				break;
+//		}
+//	}
+//	void Tree_old::cancelVirtualLoss(SearchTrajectory_old &trajectory)
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		for (int i = 0; i < trajectory.length(); i++)
+//			trajectory.getNode(i).cancelVirtualLoss();
+//	}
+//	void Tree_old::getPolicyPriors(const Node_old &node, matrix<float> &result) const
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		result.fill(0.0f);
+//		for (auto iter = node.begin(); iter < node.end(); iter++)
+//		{
+//			Move move = Move::move_from_short(iter->getMove());
+//			result.at(move.row, move.col) = iter->getPolicyPrior();
+//		}
+//	}
+//	void Tree_old::getPlayoutDistribution(const Node_old &node, matrix<float> &result) const
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		result.fill(0.0f);
+//		for (auto iter = node.begin(); iter < node.end(); iter++)
+//		{
+//			Move move = Move::move_from_short(iter->getMove());
+//			result.at(move.row, move.col) = iter->getVisits();
+//		}
+//	}
+//	void Tree_old::getProvenValues(const Node_old &node, matrix<ProvenValue> &result) const
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		result.fill(ProvenValue::UNKNOWN);
+//		for (auto iter = node.begin(); iter < node.end(); iter++)
+//		{
+//			Move move = Move::move_from_short(iter->getMove());
+//			result.at(move.row, move.col) = iter->getProvenValue();
+//		}
+//	}
+//	void Tree_old::getActionValues(const Node_old &node, matrix<Value> &result) const
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		result.fill(Value());
+//		for (auto iter = node.begin(); iter < node.end(); iter++)
+//		{
+//			Move move = Move::move_from_short(iter->getMove());
+//			result.at(move.row, move.col) = iter->getValue();
+//		}
+//	}
+//	SearchTrajectory_old Tree_old::getPrincipalVariation()
+//	{
+//		SearchTrajectory_old result;
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//
+//		Node_old *current = &getRootNode();
+//		result.append(current, Move::move_from_short(current->getMove()));
+//		while (not current->isLeaf())
+//		{
+//			current = select_by_visit(current);
+//			result.append(current, Move::move_from_short(current->getMove()));
+//		}
+//		return result;
+//	}
+//	void Tree_old::printSubtree(const Node_old &node, int depth, bool sort, int top_n) const
+//	{
+//		std::lock_guard<std::mutex> lock(tree_mutex);
+//		print_subtree(node, depth, sort, top_n, 0);
+//	}
+//
+//	Node_old* Tree_old::reserve_nodes(int number)
+//	{
+//		if (usedNodes() + number > allocatedNodes()) // allocate new bucket
+//			nodes.push_back(std::make_unique<Node_old[]>(config.bucket_size));
+//
+//		if (current_index.second + number > config.bucket_size)
+//		{
+//			current_index.first++; // switch to next bucket
+//			current_index.second = 0;
+//		}
+//		Node_old *result = nodes.at(current_index.first).get() + current_index.second;
+//		current_index.second += number;
+//		return result;
+//	}
+} /* namespace ag */
 

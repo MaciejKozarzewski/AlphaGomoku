@@ -73,10 +73,12 @@ namespace ag
 	}
 	int32_t randInt(int r)
 	{
+		assert(r != 0);
 		return get_random_int32() % r;
 	}
 	int32_t randInt(int r0, int r1)
 	{
+		assert(r0 != r1);
 		return r0 + get_random_int32() % (r1 - r0);
 	}
 	uint64_t randLong()

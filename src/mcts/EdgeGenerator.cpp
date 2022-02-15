@@ -8,6 +8,8 @@
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
 
+#include <iostream>
+
 namespace
 {
 	using namespace ag;
@@ -19,10 +21,18 @@ namespace
 			sum_priors += edges[i].getPolicyPrior();
 		if (fabsf(sum_priors - 1.0f) > 0.01f) // do not renormalize if the sum is close to 1
 		{
-			assert(sum_priors > 0.0f);
-			sum_priors = 1.0f / sum_priors;
-			for (size_t i = 0; i < edges.size(); i++)
-				edges[i].setPolicyPrior(edges[i].getPolicyPrior() * sum_priors);
+			if (sum_priors == 0.0f)
+			{
+				sum_priors = 1.0f / edges.size();
+				for (size_t i = 0; i < edges.size(); i++)
+					edges[i].setPolicyPrior(sum_priors);
+			}
+			else
+			{
+				sum_priors = 1.0f / sum_priors;
+				for (size_t i = 0; i < edges.size(); i++)
+					edges[i].setPolicyPrior(edges[i].getPolicyPrior() * sum_priors);
+			}
 		}
 	}
 	void exclude_weak_moves(std::vector<Edge> &edges, size_t max_edges) noexcept
@@ -72,6 +82,8 @@ namespace
 			}
 			case ProvenValue::DRAW:
 			{
+				Move move = edge.getMove();
+				edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
 				edge.setValue(Value(0.0f, 1.0f, 0.0f));
 				break;
 			}
@@ -204,6 +216,7 @@ namespace ag
 				Move m = edge->getMove();
 				edge->setPolicyPrior((1.0f - noise_weight) * edge->getPolicyPrior() + noise_weight * noise_matrix.at(m.row, m.col));
 			}
+			renormalize_edges(task.getEdges());
 			assert(task.getEdges().size() > 0);
 		}
 		else

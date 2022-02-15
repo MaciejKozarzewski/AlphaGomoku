@@ -74,6 +74,9 @@ namespace ag
 	void GameGenerator::makeMove()
 	{
 		Node root_node = tree.getInfo( { });
+//		std::cout << root_node.toString() << '\n';
+//		for (int i = 0; i < root_node.numberOfEdges(); i++)
+//			std::cout << "  " << root_node.getEdge(i).toString() << '\n';
 
 		matrix<float> policy(game.rows(), game.cols());
 		matrix<ProvenValue> proven_values(game.rows(), game.cols());
@@ -89,10 +92,17 @@ namespace ag
 
 		Move move;
 		if (temperature == 0.0f)
-			move = pickMove(policy);
+		{
+			BestEdgeSelector selector;
+			Edge *edge = selector.select(&root_node);
+			move = edge->getMove();
+//			move = pickMove(policy);
+		}
 		else
+		{
 			move = randomizeMove(policy, temperature);
-		move.sign = root_node.getSignToMove();
+			move.sign = root_node.getSignToMove();
+		}
 
 		SearchData state(policy.rows(), policy.cols());
 		state.setBoard(game.getBoard());
@@ -102,6 +112,8 @@ namespace ag
 		state.setMinimaxValue(root_node.getValue());
 		state.setProvenValue(root_node.getProvenValue());
 		state.setMove(move);
+
+//		state.print();
 
 		game.makeMove(move);
 		game.addSearchData(state);
@@ -154,20 +166,17 @@ namespace ag
 			{
 				makeMove();
 				if (game.isOver())
-					state = SEND_RESULTS;
-				else
 				{
-					prepare_search(game.getBoard(), game.getSignToMove());
-					state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
+					game.resolveOutcome();
+					game_buffer.addToBuffer(game);
+					state = GAME_NOT_STARTED;
+					return;
 				}
+				else
+					prepare_search(game.getBoard(), game.getSignToMove());
 			}
-		}
-
-		if (state == SEND_RESULTS)
-		{
-			game.resolveOutcome();
-			game_buffer.addToBuffer(game);
-			state = GAME_NOT_STARTED;
+			state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
+			return;
 		}
 	}
 	/*
