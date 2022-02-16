@@ -90,6 +90,28 @@ namespace ag
 		return Value(value_on_cpu->get<float>( { index, 2 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 0 }));
 	}
 
+	void AGNetwork::packInputData(int index, const matrix<Sign> &board, Sign signToMove)
+	{
+		assert(index >= 0 && index < input_on_cpu->firstDim());
+		encodeInputTensor(input_on_cpu->data<float>( { index, 0, 0, 0 }), board, signToMove);
+	}
+	void AGNetwork::packTargetData(int index, const matrix<float> &policy, matrix<Value> &actionValues, Value value)
+	{
+		assert(index >= 0 && index < input_on_cpu->firstDim());
+		std::memcpy(policy_target->data<float>( { index, 0 }), policy.data(), policy.sizeInBytes());
+		// TODO add processing of action values
+		value_target->set(value.win, { index, 0 });
+		value_target->set(value.draw, { index, 1 });
+		value_target->set(value.loss, { index, 2 });
+	}
+	void AGNetwork::unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const
+	{
+		assert(index >= 0 && index < input_on_cpu->firstDim());
+		std::memcpy(policy.data(), policy_on_cpu->data<float>( { index, 0 }), policy.sizeInBytes());
+		// TODO add processing of action values
+		value = Value(value_on_cpu->get<float>( { index, 2 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 0 }));
+	}
+
 	void AGNetwork::forward(int batch_size)
 	{
 		graph.getInput().copyFrom(graph.context(), *input_on_cpu);

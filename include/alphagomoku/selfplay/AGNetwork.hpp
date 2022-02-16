@@ -25,7 +25,8 @@ namespace ml
 
 namespace ag
 {
-	enum class GameOutcome;
+	enum class GameOutcome
+	;
 	struct Value;
 	struct GameConfig;
 	struct TrainingConfig;
@@ -58,6 +59,10 @@ namespace ag
 			void packData(int index, const matrix<Sign> &board, Sign signToMove);
 			void packData(int index, const matrix<Sign> &board, const matrix<float> &policy, GameOutcome outcome, Sign signToMove);
 			Value unpackOutput(int index, matrix<float> &policy) const;
+
+			void packInputData(int index, const matrix<Sign> &board, Sign signToMove);
+			void packTargetData(int index, const matrix<float> &policy, matrix<Value> &actionValues, Value value);
+			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const;
 
 			void forward(int batch_size);
 			void backward(int batch_size);
