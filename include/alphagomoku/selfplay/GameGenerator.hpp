@@ -49,12 +49,10 @@ namespace ag
 			int simulations = 0;
 			float temperature = 0.0f;
 			bool use_opening = false;
-			SearchConfig search_config;
 		public:
 			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator);
 
 			void clearStats();
-			TreeStats getTreeStats() const noexcept;
 			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
 
@@ -66,6 +64,7 @@ namespace ag
 			void generate();
 		private:
 			void prepare_search(const matrix<Sign> &board, Sign signToMove);
+			void clear_node_cache();
 	};
 
 } /* namespace ag */

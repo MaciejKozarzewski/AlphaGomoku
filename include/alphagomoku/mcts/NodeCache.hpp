@@ -22,20 +22,27 @@ namespace ag
 			uint64_t collisions = 0;
 			double load_factor = 0.0;
 
+			int64_t allocated_nodes = 0;
+			int64_t stored_nodes = 0;
+
+			int64_t allocated_edges = 0;
+			int64_t stored_edges = 0;
+
 			TimedStat seek;
 			TimedStat insert;
 			TimedStat remove;
 			TimedStat resize;
+			TimedStat cleanup;
 
 			NodeCacheStats();
 
 			std::string toString() const;
 			/**
-			 * @brief Used to sum statistics over several instances of this class.
+			 * \brief Used to sum statistics over several instances of this class.
 			 */
 			NodeCacheStats& operator+=(const NodeCacheStats &other) noexcept;
 			/**
-			 * @brief Used to average statistics over several instances of this class.
+			 * \brief Used to average statistics over several instances of this class.
 			 */
 			NodeCacheStats& operator/=(int i) noexcept;
 	};
@@ -48,21 +55,26 @@ namespace ag
 					Node node;
 					uint64_t hash = 0;
 					Entry *next_entry = nullptr; // non-owning
+					matrix<Sign> board;
+					int sizeInBytes() const noexcept
+					{
+						return sizeof(Entry) + board.sizeInBytes();
+					}
 			};
 
 			std::vector<Entry*> bins; // non-owning
 			Entry *buffer = nullptr; // non-owning
 			ZobristHashing hashing;
 			uint64_t bin_index_mask = 0u;
-			int64_t allocated_entries = 0;
-			int64_t stored_entries = 0;
-			int64_t buffered_entries = 0;
+
+			int64_t entry_size_in_bytes = 0;
+			int64_t buffered_nodes = 0;
 
 			mutable NodeCacheStats stats;
 		public:
 			NodeCache() = default;
 			/**
-			 * @brief Creates cache with 2^size initial bins.
+			 * \brief Creates cache with 2^size initial bins.
 			 */
 			NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize = 10);
 			NodeCache(const NodeCache &other) = delete;
@@ -75,48 +87,55 @@ namespace ag
 			NodeCacheStats getStats() const noexcept;
 
 			uint64_t getMemory() const noexcept;
-			int allocatedElements() const noexcept;
-			int storedElements() const noexcept;
-			int bufferedElements() const noexcept;
+			int allocatedEdges() const noexcept;
+			int storedEdges() const noexcept;
+			int allocatedNodes() const noexcept;
+			int storedNodes() const noexcept;
+			int bufferedNodes() const noexcept;
 			int numberOfBins() const noexcept;
 			double loadFactor() const noexcept;
 
+//			/**
+//			 * \brief Ensures that at least n entries are allocated and ready to use.
+//			 */
+//			void reserve(size_t n);
 			/**
-			 * @brief Ensures that at least n entries are allocated and ready to use.
-			 */
-			void reserve(size_t n);
-			/**
-			 * @brief Clears the cache.
+			 * \brief Clears the cache.
 			 * All entries are moved to the temporary buffer to be used again.
 			 */
 			void clear() noexcept;
 			/**
-			 * @brief If given board is in the cache, returns pointer to node.
+			 * \brief Removes entries taht can no longer apper given the current board state.
+			 * All entries are moved to the temporary buffer to be used again.
+			 */
+			void cleanup(const matrix<Sign> &newBoard, Sign signToMove) noexcept;
+			/**
+			 * \brief If given board is in the cache, returns pointer to node.
 			 * If board is not in cache a null pointer is returned.
 			 */
 			Node* seek(const matrix<Sign> &board, Sign signToMove) const noexcept;
 			/**
-			 * @brief Inserts new entry to the cache.
+			 * \brief Inserts new entry to the cache.
 			 * The inserted entry must not be in cache.
 			 */
-			Node* insert(const matrix<Sign> &board, Sign signToMove) noexcept;
+			Node* insert(const matrix<Sign> &board, Sign signToMove, int numberOfEdges) noexcept;
 			/**
-			 * @brief Removes given board state from the cache, if it exists in the cache.
+			 * \brief Removes given board state from the cache, if it exists in the cache.
 			 * If not, the function does nothing.
 			 */
 			void remove(const matrix<Sign> &board, Sign signToMove) noexcept;
 			/**
-			 * @brief Changes the number of bins to 2^newSize.
+			 * \brief Changes the number of bins to 2^newSize.
 			 */
 			void resize(size_t newSize);
 			/**
-			 * @brief Deallocates all buffered entries.
+			 * \brief Deallocates all buffered entries.
 			 */
 			void freeUnusedMemory() noexcept;
 
 		private:
-			void link(Entry **prev, Entry *next) noexcept;
-			NodeCache::Entry* unlink(Entry **prev) noexcept;
+//			void link(Entry **prev, Entry *next) noexcept;
+//			NodeCache::Entry* unlink(Entry **prev) noexcept;
 			NodeCache::Entry* get_new_entry();
 			void move_to_buffer(NodeCache::Entry *entry) noexcept;
 			bool is_hash_collision(const Entry *entry, const matrix<Sign> &board, Sign signToMove) const noexcept;

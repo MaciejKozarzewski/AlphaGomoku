@@ -60,7 +60,6 @@ namespace ag
 			void clearStats() noexcept;
 			void resetGames();
 			NNEvaluatorStats getEvaluatorStats() const noexcept;
-			TreeStats getTreeStats() const noexcept;
 			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
 		private:

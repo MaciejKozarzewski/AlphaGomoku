@@ -77,6 +77,11 @@ namespace ag
 	{
 	}
 
+	const SearchConfig& Search::getConfig() const noexcept
+	{
+		return search_config;
+	}
+
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();

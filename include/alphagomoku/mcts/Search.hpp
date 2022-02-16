@@ -63,6 +63,8 @@ namespace ag
 		public:
 			Search(GameConfig gameOptions, SearchConfig searchOptions);
 
+			const SearchConfig& getConfig() const noexcept;
+
 			void clearStats() noexcept;
 			void printSolverStats() const;
 			SearchStats getStats() const noexcept;

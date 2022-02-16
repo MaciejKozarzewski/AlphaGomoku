@@ -59,14 +59,6 @@ namespace ag
 	{
 		return nn_evaluator.getStats();
 	}
-	TreeStats GeneratorThread::getTreeStats() const noexcept
-	{
-		TreeStats result;
-		for (size_t i = 0; i < generators.size(); i++)
-			result += generators[i]->getTreeStats();
-		result /= static_cast<int>(generators.size());
-		return result;
-	}
 	NodeCacheStats GeneratorThread::getCacheStats() const noexcept
 	{
 		NodeCacheStats result;
@@ -161,22 +153,18 @@ namespace ag
 
 		NNEvaluatorStats evaluator_stats;
 		SearchStats search_stats;
-		TreeStats tree_stats;
 		NodeCacheStats cache_stats;
 		for (size_t i = 0; i < generators.size(); i++)
 		{
 			evaluator_stats += generators[i]->getEvaluatorStats();
 			search_stats += generators[i]->getSearchStats();
-			tree_stats += generators[i]->getTreeStats();
 			cache_stats += generators[i]->getCacheStats();
 		}
 		evaluator_stats /= static_cast<int>(generators.size());
 		search_stats /= static_cast<int>(generators.size());
-		tree_stats /= static_cast<int>(generators.size());
 		cache_stats /= static_cast<int>(generators.size());
 		std::cout << evaluator_stats.toString();
 		std::cout << search_stats.toString();
-		std::cout << tree_stats.toString();
 		std::cout << cache_stats.toString() << '\n';
 	}
 

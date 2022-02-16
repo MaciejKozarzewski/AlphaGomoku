@@ -32,24 +32,24 @@ namespace ag
 
 namespace ag
 {
-	struct TreeStats
-	{
-			int64_t allocated_nodes = 0;
-			int64_t used_nodes = 0;
-			int64_t allocated_edges = 0;
-			int64_t used_edges = 0;
-			int max_depth = 0;
-			int64_t node_proven_loss = 0;
-			int64_t node_proven_draw = 0;
-			int64_t node_proven_win = 0;
-			int64_t edge_proven_loss = 0;
-			int64_t edge_proven_draw = 0;
-			int64_t edge_proven_win = 0;
-
-			std::string toString() const;
-			TreeStats& operator+=(const TreeStats &other) noexcept;
-			TreeStats& operator/=(int i) noexcept;
-	};
+//	struct TreeStats
+//	{
+//			int64_t allocated_nodes = 0;
+//			int64_t used_nodes = 0;
+//			int64_t allocated_edges = 0;
+//			int64_t used_edges = 0;
+//			int max_depth = 0;
+//			int64_t node_proven_loss = 0;
+//			int64_t node_proven_draw = 0;
+//			int64_t node_proven_win = 0;
+//			int64_t edge_proven_loss = 0;
+//			int64_t edge_proven_draw = 0;
+//			int64_t edge_proven_win = 0;
+//
+//			std::string toString() const;
+//			TreeStats& operator+=(const TreeStats &other) noexcept;
+//			TreeStats& operator/=(int i) noexcept;
+//	};
 
 	enum class SelectOutcome
 	{
@@ -77,10 +77,11 @@ namespace ag
 			std::unique_ptr<EdgeGenerator> edge_generator;
 			matrix<Sign> base_board;
 			int base_depth = 0;
+			int max_depth = 0;
 			Sign sign_to_move = Sign::NONE;
 
 			TreeConfig config;
-			TreeStats stats;
+//			TreeStats stats;
 		public:
 			Tree(TreeConfig treeOptions);
 			int64_t getMemory() const noexcept;
@@ -106,8 +107,8 @@ namespace ag
 			Sign getSignToMove() const noexcept;
 
 			Node getInfo(const std::vector<Move> &moves) const;
-			void clearTreeStats() noexcept;
-			TreeStats getTreeStats() const noexcept;
+//			void clearTreeStats() noexcept;
+//			TreeStats getTreeStats() const noexcept;
 			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
 		private:
