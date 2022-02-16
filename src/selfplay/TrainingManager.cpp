@@ -49,8 +49,6 @@ namespace ag
 	void TrainingManager::runIterationRL()
 	{
 		generateGames();
-		std::cout << "first run\n";
-		return;
 
 		train();
 		validate();
@@ -63,10 +61,12 @@ namespace ag
 	void TrainingManager::runIterationSL()
 	{
 	}
-	//private
+	/*
+	 * private
+	 */
 	void TrainingManager::initFolderTree()
 	{
-		std::filesystem::create_directory(working_dir + "/checkpoint/");	// create folder for networks
+		std::filesystem::create_directory(working_dir + "/checkpoint/"); // create folder for networks
 		std::filesystem::create_directory(working_dir + "/train_buffer/"); // create folder for buffers
 		std::filesystem::create_directory(working_dir + "/valid_buffer/"); // create folder for buffers
 	}
@@ -158,7 +158,7 @@ namespace ag
 	{
 		if (config.evaluation_config.use_evaluation == false)
 		{
-			metadata["best_network"] = get_last_checkpoint() + 1;
+			metadata["best_checkpoint"] = get_last_checkpoint() + 1;
 			return;
 		}
 		std::string path_to_networks = working_dir + "/checkpoint/network_";
@@ -167,7 +167,7 @@ namespace ag
 		std::string first_name = get_name(get_last_checkpoint() + 1);
 		evaluator_manager.setFirstPlayer(config.evaluation_config.selfplay_options, first_network, first_name);
 
-		std::cout << "Evaluating network " << get_last_checkpoint() + 1 << " vs";
+		std::cout << "Evaluating network " << get_last_checkpoint() + 1 << " against";
 		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
 		{
 			std::string second_network = path_to_networks + std::to_string(std::max(0, get_best_checkpoint() - i)) + "_opt.bin";
@@ -192,7 +192,7 @@ namespace ag
 			for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
 				stats += evaluator_manager.getGameBuffer(i).getStats();
 			if (stats.cross_win + 0.5 * stats.draws >= config.evaluation_config.gating_threshold)
-				metadata["best_network"] = get_last_checkpoint() + 1;
+				metadata["best_checkpoint"] = get_last_checkpoint() + 1;
 		}
 		else
 			metadata["best_checkpoint"] = get_last_checkpoint() + 1;

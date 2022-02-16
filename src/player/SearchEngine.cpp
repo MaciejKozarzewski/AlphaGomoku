@@ -338,7 +338,6 @@ namespace ag
 
 		Logger::write("\n" + evaluator_stats.toString());
 		Logger::write(search_stats.toString());
-		Logger::write(tree.getTreeStats().toString());
 		Logger::write(tree.getNodeCacheStats().toString());
 		Logger::write("memory usage = " + std::to_string(tree.getMemory() / 1048576) + "MB");
 		Logger::write("");

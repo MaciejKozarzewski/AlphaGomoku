@@ -21,19 +21,13 @@ namespace ag
 			search(gameOptions, selfplayOptions.search_config),
 			simulations(selfplayOptions.simulations),
 			temperature(selfplayOptions.temperature),
-			use_opening(selfplayOptions.use_opening),
-			search_config(selfplayOptions.search_config)
+			use_opening(selfplayOptions.use_opening)
 	{
 	}
 	void GameGenerator::clearStats()
 	{
 		search.clearStats();
-		tree.clearTreeStats();
 		tree.clearNodeCacheStats();
-	}
-	TreeStats GameGenerator::getTreeStats() const noexcept
-	{
-		return tree.getTreeStats();
 	}
 	NodeCacheStats GameGenerator::getCacheStats() const noexcept
 	{
@@ -74,8 +68,12 @@ namespace ag
 	void GameGenerator::makeMove()
 	{
 		Node root_node = tree.getInfo( { });
+//		std::cout << "after search\n";
+//		std::cout << tree.getMemory() / 1024 << "kB\n";
+//		std::cout << tree.getNodeCacheStats().toString() << '\n';
 //		std::cout << root_node.toString() << '\n';
-//		for (int i = 0; i < root_node.numberOfEdges(); i++)
+//		root_node.sortEdges();
+//		for (int i = 0; i < std::min(10, root_node.numberOfEdges()); i++)
 //			std::cout << "  " << root_node.getEdge(i).toString() << '\n';
 
 		matrix<float> policy(game.rows(), game.cols());
@@ -122,7 +120,9 @@ namespace ag
 	{
 		if (state == GAME_NOT_STARTED)
 		{
+//			std::cout << "\n\n\nNEW GAME STARTS\n\n\n";
 			game.beginGame();
+			clear_node_cache();
 			if (use_opening)
 			{
 				opening_trials = 0;
@@ -186,10 +186,19 @@ namespace ag
 	{
 		search.cleanup(tree);
 		tree.setBoard(board, signToMove, true);
-		tree.setEdgeSelector(PuctSelector(search_config.exploration_constant, 0.5f));
+//		std::cout << "before search\n";
+//		std::cout << tree.getNodeCacheStats().toString() << '\n';
 
-		SolverGenerator base_generator(search_config.expansion_prior_treshold, search_config.max_children);
-		tree.setEdgeGenerator(NoisyGenerator(getNoiseMatrix(board), search_config.noise_weight, base_generator));
+		tree.setEdgeSelector(PuctSelector(search.getConfig().exploration_constant, 0.5f));
+
+		SolverGenerator base_generator(search.getConfig().expansion_prior_treshold, search.getConfig().max_children);
+		tree.setEdgeGenerator(NoisyGenerator(getNoiseMatrix(board), search.getConfig().noise_weight, base_generator));
+	}
+	void GameGenerator::clear_node_cache()
+	{
+		matrix<Sign> invalid_board(game.rows(), game.cols());
+		invalid_board.fill(Sign::CIRCLE);
+		tree.setBoard(invalid_board, Sign::CIRCLE);
 	}
 
 } /* namespace ag */

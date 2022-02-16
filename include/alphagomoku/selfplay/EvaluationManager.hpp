@@ -27,8 +27,8 @@ namespace ag
 	{
 		private:
 			std::future<void> evaluator_future;
-			NNEvaluator cross_evaluator;
-			NNEvaluator circle_evaluator;
+			NNEvaluator first_nn_evaluator;
+			NNEvaluator second_nn_evaluator;
 			std::vector<std::unique_ptr<EvaluationGame>> evaluators;
 
 			GameBuffer game_buffer;

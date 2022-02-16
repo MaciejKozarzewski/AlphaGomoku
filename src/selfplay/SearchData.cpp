@@ -41,6 +41,14 @@ namespace ag
 	{
 	}
 
+	int SearchData::rows() const noexcept
+	{
+		return actions.rows();
+	}
+	int SearchData::cols() const noexcept
+	{
+		return actions.cols();
+	}
 	void SearchData::setBoard(const matrix<Sign> &board) noexcept
 	{
 		for (int i = 0; i < board.size(); i++)
@@ -53,16 +61,18 @@ namespace ag
 	}
 	void SearchData::setPolicy(const matrix<float> &policy) noexcept
 	{
+		const float scale = 262143.0f;
 		for (int i = 0; i < policy.size(); i++)
-			actions.data()[i].prior = static_cast<int>(policy.data()[i] * 262143.0f);
+			actions.data()[i].prior = static_cast<int>(policy.data()[i] * scale);
 	}
 	void SearchData::setActionValues(const matrix<Value> &actionValues) noexcept
 	{
+		const float scale = 16383.0f;
 		for (int i = 0; i < actionValues.size(); i++)
 		{
-			actions.data()[i].win = static_cast<int>(actionValues.data()[i].win * 16383.0f);
-			actions.data()[i].draw = static_cast<int>(actionValues.data()[i].draw * 16383.0f);
-			actions.data()[i].loss = static_cast<int>(actionValues.data()[i].loss * 16383.0f);
+			actions.data()[i].win = static_cast<int>(actionValues.data()[i].win * scale);
+			actions.data()[i].draw = static_cast<int>(actionValues.data()[i].draw * scale);
+			actions.data()[i].loss = static_cast<int>(actionValues.data()[i].loss * scale);
 		}
 	}
 	void SearchData::setMinimaxValue(Value minimaxValue) noexcept
@@ -94,13 +104,13 @@ namespace ag
 	}
 	void SearchData::getPolicy(matrix<float> &policy) const noexcept
 	{
-		static const float scale = 1.0f / 262143.0f;
+		const float scale = 1.0f / 262143.0f;
 		for (int i = 0; i < policy.size(); i++)
 			policy.data()[i] = actions.data()[i].prior * scale;
 	}
 	void SearchData::getActionValues(matrix<Value> &actionValues) const noexcept
 	{
-		static const float scale = 1.0f / 16383.0f;
+		const float scale = 1.0f / 16383.0f;
 		for (int i = 0; i < actionValues.size(); i++)
 		{
 			actionValues.data()[i].win = actions.data()[i].win * scale;

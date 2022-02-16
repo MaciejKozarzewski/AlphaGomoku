@@ -42,6 +42,10 @@ namespace ag
 
 			Json saveProgress() const;
 			void loadProgress(const Json &json);
+		private:
+			matrix<float> prepare_policy_target(const SearchData &sample);
+			Value prepare_value_target(const SearchData &sample);
+			matrix<Value> prepare_action_values_target(const SearchData &sample);
 	};
 }
 

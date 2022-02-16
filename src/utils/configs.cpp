@@ -140,6 +140,7 @@ namespace ag
 			games_per_thread(get_value<int>(options, "games_per_thread")),
 			simulations(get_value<int>(options, "simulations")),
 			temperature(get_value<double>(options, "temperature")),
+			device_config(),
 			search_config(options["search_config"]),
 			tree_config(options["tree_config"])
 	{

@@ -11,8 +11,8 @@ namespace ag
 {
 
 	EvaluatorThread::EvaluatorThread(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index) :
-			cross_evaluator(selfplayOptions.device_config[index]),
-			circle_evaluator(selfplayOptions.device_config[index]),
+			first_nn_evaluator(selfplayOptions.device_config[index]),
+			second_nn_evaluator(selfplayOptions.device_config[index]),
 			evaluators(selfplayOptions.games_per_thread)
 	{
 		for (size_t i = 0; i < evaluators.size(); i++)
@@ -20,17 +20,17 @@ namespace ag
 	}
 	void EvaluatorThread::setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
 	{
-		cross_evaluator.loadGraph(pathToNetwork);
-		cross_evaluator.useSymmetries(options.use_symmetries);
+		first_nn_evaluator.loadGraph(pathToNetwork);
+		first_nn_evaluator.useSymmetries(options.use_symmetries);
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->setFirstPlayer(options, cross_evaluator, name);
+			evaluators[i]->setFirstPlayer(options, first_nn_evaluator, name);
 	}
 	void EvaluatorThread::setSecondPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
 	{
-		circle_evaluator.loadGraph(pathToNetwork);
-		circle_evaluator.useSymmetries(options.use_symmetries);
+		second_nn_evaluator.loadGraph(pathToNetwork);
+		second_nn_evaluator.useSymmetries(options.use_symmetries);
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->setSecondPlayer(options, circle_evaluator, name);
+			evaluators[i]->setSecondPlayer(options, second_nn_evaluator, name);
 	}
 	GameBuffer& EvaluatorThread::getGameBuffer() noexcept
 	{
@@ -47,10 +47,10 @@ namespace ag
 		if (evaluator_future.valid())
 		{
 			std::future_status search_status = evaluator_future.wait_for(std::chrono::milliseconds(0));
-			return search_status != std::future_status::ready;
+			return search_status == std::future_status::ready;
 		}
 		else
-			return false;
+			return true;
 	}
 	/*
 	 * private
@@ -62,13 +62,13 @@ namespace ag
 		{
 			for (size_t i = 0; i < evaluators.size() and game_buffer.size() < games_to_play; i++)
 				evaluators[i]->generate();
-			cross_evaluator.evaluateGraph();
-			circle_evaluator.evaluateGraph();
+			first_nn_evaluator.evaluateGraph();
+			second_nn_evaluator.evaluateGraph();
 		}
 		for (size_t i = 0; i < evaluators.size(); i++)
 			evaluators[i]->clear();
-		cross_evaluator.unloadGraph();
-		circle_evaluator.unloadGraph();
+		first_nn_evaluator.unloadGraph();
+		second_nn_evaluator.unloadGraph();
 	}
 
 	EvaluationManager::EvaluationManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions) :

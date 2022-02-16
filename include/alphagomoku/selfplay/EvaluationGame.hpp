@@ -57,8 +57,7 @@ namespace ag
 				GAME_NOT_STARTED,
 				PREPARE_OPENING,
 				GAMEPLAY_SELECT_SOLVE_EVALUATE,
-				GAMEPLAY_EXPAND_AND_BACKUP,
-				SEND_RESULTS
+				GAMEPLAY_EXPAND_AND_BACKUP
 			};
 			GameBuffer &game_buffer;
 			Game game;
@@ -77,8 +76,8 @@ namespace ag
 		public:
 			EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening);
 			void clear();
-			void setFirstPlayer(const SelfplayConfig &options, NNEvaluator &queue, const std::string &name);
-			void setSecondPlayer(const SelfplayConfig &options, NNEvaluator &queue, const std::string &name);
+			void setFirstPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
+			void setSecondPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
 			bool prepareOpening();
 			void generate();
 		private:

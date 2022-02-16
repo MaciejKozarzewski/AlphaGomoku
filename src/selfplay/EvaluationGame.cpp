@@ -22,8 +22,6 @@ namespace ag
 			name(name),
 			simulations(options.simulations)
 	{
-		tree.setEdgeSelector(PuctSelector(options.search_config.exploration_constant, 0.5f));
-		tree.setEdgeGenerator(SolverGenerator(options.search_config.expansion_prior_treshold, options.search_config.max_children));
 	}
 	void Player::setSign(Sign s) noexcept
 	{
@@ -41,6 +39,8 @@ namespace ag
 	{
 		search.cleanup(tree);
 		tree.setBoard(board, signToMove);
+		tree.setEdgeSelector(PuctSelector(search.getConfig().exploration_constant, 0.5f));
+		tree.setEdgeGenerator(SolverGenerator(search.getConfig().expansion_prior_treshold, search.getConfig().max_children));
 	}
 	void Player::selectSolveEvaluate()
 	{
@@ -73,6 +73,12 @@ namespace ag
 		BestEdgeSelector selector;
 		Node root_node = tree.getInfo( { });
 		Edge *edge = selector.select(&root_node);
+
+//		std::cout << Board::toString(tree.getBoard()) << '\n';
+//		std::cout << root_node.toString() << '\n';
+//		for (int i = 0; i < root_node.numberOfEdges(); i++)
+//			std::cout << "    " << root_node.getEdge(i).toString() << '\n';
+
 		return edge->getMove();
 	}
 
@@ -92,13 +98,13 @@ namespace ag
 		opening_trials = 0;
 		has_stored_opening = false;
 	}
-	void EvaluationGame::setFirstPlayer(const SelfplayConfig &options, NNEvaluator &queue, const std::string &name)
+	void EvaluationGame::setFirstPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name)
 	{
-		first_player = std::make_unique<Player>(game.getConfig(), options, queue, name);
+		first_player = std::make_unique<Player>(game.getConfig(), options, evaluator, name);
 	}
-	void EvaluationGame::setSecondPlayer(const SelfplayConfig &options, NNEvaluator &queue, const std::string &name)
+	void EvaluationGame::setSecondPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name)
 	{
-		second_player = std::make_unique<Player>(game.getConfig(), options, queue, name);
+		second_player = std::make_unique<Player>(game.getConfig(), options, evaluator, name);
 	}
 	bool EvaluationGame::prepareOpening()
 	{
@@ -195,20 +201,16 @@ namespace ag
 			{
 				game.makeMove(get_player().getMove());
 				if (game.isOver())
-					state = SEND_RESULTS;
-				else
 				{
-					get_player().setBoard(game.getBoard(), game.getSignToMove());
-					state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
+					game.resolveOutcome();
+					game_buffer.addToBuffer(game);
+					state = GAME_NOT_STARTED;
+					return;
 				}
+				else
+					get_player().setBoard(game.getBoard(), game.getSignToMove());
 			}
-		}
-
-		if (state == SEND_RESULTS)
-		{
-			game.resolveOutcome();
-			game_buffer.addToBuffer(game);
-			state = GAME_NOT_STARTED;
+			state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
 		}
 	}
 	/*

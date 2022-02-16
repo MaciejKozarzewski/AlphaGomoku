@@ -42,6 +42,9 @@ namespace ag
 			SearchData(const SerializedObject &so, size_t &offset);
 			SearchData(int rows, int cols);
 
+			int rows() const noexcept;
+			int cols() const noexcept;
+
 			void setBoard(const matrix<Sign> &board) noexcept;
 			void setActionProvenValues(const matrix<ProvenValue> &provenValues) noexcept;
 			void setPolicy(const matrix<float> &policy) noexcept;

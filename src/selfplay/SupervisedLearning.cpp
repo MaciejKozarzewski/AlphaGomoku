@@ -13,6 +13,7 @@
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <libml/Tensor.hpp>
 #include <libml/Shape.hpp>
 #include <libml/Scalar.hpp>
@@ -51,6 +52,8 @@ namespace ag
 	}
 	void SupervisedLearning::train(AGNetwork &model, GameBuffer &buffer, int steps)
 	{
+		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
+
 		ml::Shape shape = model.getGraph().getInputShape();
 		int batch_size = shape[0];
 		int rows = shape[1];
@@ -61,7 +64,6 @@ namespace ag
 
 		std::vector<float> acc(5);
 		matrix<Sign> board(rows, cols);
-		matrix<float> policy(rows, cols);
 		for (int i = 0; i < steps; i++)
 		{
 			if (i % 100 == 0)
@@ -77,15 +79,20 @@ namespace ag
 				}
 
 				sample.getBoard(board);
-				sample.getPolicy(policy);
+				matrix<float> policy_target = prepare_policy_target(sample);
+				matrix<Value> action_values_target = prepare_action_values_target(sample);
+				Value value_target = prepare_value_target(sample);
+
 				if (config.augment_training_data)
 				{
 					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
 					augment(board, r);
-					augment(policy, r);
+					augment(policy_target, r);
+					augment(action_values_target, r);
 				}
 
-				model.packData(b, board, policy, sample.getOutcome(), sample.getMove().sign);
+				model.packInputData(b, board, sample.getMove().sign);
+				model.packTargetData(b, policy_target, action_values_target, value_target);
 			}
 			model.forward(batch_size);
 			auto accuracy = model.getAccuracy(batch_size, 4);
@@ -97,13 +104,16 @@ namespace ag
 	}
 	void SupervisedLearning::validate(AGNetwork &model, GameBuffer &buffer)
 	{
+		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
+
 		ml::Shape shape = model.getGraph().getInputShape();
 		int batch_size = shape[0];
 		int rows = shape[1];
 		int cols = shape[2];
+
 		std::vector<float> acc(5);
 		matrix<Sign> board(rows, cols);
-		matrix<float> policy(rows, cols);
+
 		int counter = 0;
 		while (counter < buffer.size())
 		{
@@ -113,15 +123,37 @@ namespace ag
 				const SearchData &sample = buffer.getFromBuffer(counter).getSample();
 
 				sample.getBoard(board);
-				sample.getPolicy(policy);
+				matrix<float> policy_target = prepare_policy_target(sample);
+				matrix<Value> action_values_target = prepare_action_values_target(sample);
+				Value value_target = prepare_value_target(sample);
+
 				if (config.augment_training_data)
 				{
 					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
 					augment(board, r);
-					augment(policy, r);
+					augment(policy_target, r);
+					augment(action_values_target, r);
 				}
+//				sample.print();
+//				std::cout << "Training target\n";
+//				std::cout << Board::toString(board) << '\n';
+//				std::cout << Board::toString(board, policy_target) << '\n';
+//				std::cout << Board::toString(board, action_values_target) << '\n';
+//				std::cout << "Value target = " << value_target.toString() << '\n';
 
-				model.packData(this_batch, board, policy, sample.getOutcome(), sample.getMove().sign);
+				model.packInputData(this_batch, board, sample.getMove().sign);
+				model.packTargetData(this_batch, policy_target, action_values_target, value_target);
+
+//				sample.getBoard(board);
+//				sample.getPolicy(policy);
+//				if (config.augment_training_data)
+//				{
+//					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
+//					augment(board, r);
+//					augment(policy, r);
+//				}
+//
+//				model.packData(this_batch, board, policy, sample.getOutcome(), sample.getMove().sign);
 				counter++;
 				this_batch++;
 			}
@@ -182,6 +214,68 @@ namespace ag
 	void SupervisedLearning::loadProgress(const Json &json)
 	{
 		learning_steps = json["learning_steps"];
+	}
+	/*
+	 * private
+	 */
+	matrix<float> SupervisedLearning::prepare_policy_target(const SearchData &sample)
+	{
+		matrix<float> policy(sample.rows(), sample.cols());
+		matrix<ProvenValue> proven_values(sample.rows(), sample.cols());
+
+		sample.getPolicy(policy);
+		sample.getActionProvenValues(proven_values);
+		for (int i = 0; i < policy.size(); i++)
+		{
+			switch (proven_values[i])
+			{
+				case ProvenValue::UNKNOWN:
+					break;
+				case ProvenValue::LOSS:
+					policy[i] = 1.0e-6f;
+					break;
+				case ProvenValue::DRAW:
+					break;
+				case ProvenValue::WIN:
+					policy[i] = 1e6f;
+					break;
+
+			}
+		}
+		normalize(policy);
+		return policy;
+	}
+	matrix<Value> SupervisedLearning::prepare_action_values_target(const SearchData &sample)
+	{
+		matrix<Value> action_values(sample.rows(), sample.cols());
+		matrix<ProvenValue> proven_values(sample.rows(), sample.cols());
+
+		sample.getActionValues(action_values);
+		sample.getActionProvenValues(proven_values);
+
+		for (int i = 0; i < action_values.size(); i++)
+		{
+			switch (proven_values[i])
+			{
+				case ProvenValue::UNKNOWN:
+					break;
+				case ProvenValue::LOSS:
+					action_values[i] = Value(0.0f, 0.0f, 1.0f);
+					break;
+				case ProvenValue::DRAW:
+					action_values[i] = Value(0.0f, 1.0f, 0.0f);
+					break;
+				case ProvenValue::WIN:
+					action_values[i] = Value(1.0f, 0.0f, 0.0f);
+					break;
+
+			}
+		}
+		return action_values;
+	}
+	Value SupervisedLearning::prepare_value_target(const SearchData &sample)
+	{
+		return convertOutcome(sample.getOutcome(), sample.getMove().sign);;
 	}
 }
 
