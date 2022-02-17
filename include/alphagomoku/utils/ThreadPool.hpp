@@ -2,7 +2,7 @@
  * ThreadPool.hpp
  *
  *  Created on: Mar 22, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_UTILS_THREADPOOL_HPP_

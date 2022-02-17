@@ -2,7 +2,7 @@
  * FeatureTable.cpp
  *
  *  Created on: 2 maj 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>

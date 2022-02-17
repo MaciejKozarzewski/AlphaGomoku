@@ -275,7 +275,7 @@ namespace ag
 	}
 	Value SupervisedLearning::prepare_value_target(const SearchData &sample)
 	{
-		return convertOutcome(sample.getOutcome(), sample.getMove().sign);;
+		return convertOutcome(sample.getOutcome(), sample.getMove().sign);
 	}
 }
 

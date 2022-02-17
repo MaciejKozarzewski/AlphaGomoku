@@ -2,7 +2,7 @@
  * SearchData.cpp
  *
  *  Created on: Apr 7, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/selfplay/SearchData.hpp>

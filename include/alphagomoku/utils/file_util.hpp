@@ -2,7 +2,7 @@
  * FileLoader.hpp
  *
  *  Created on: Mar 6, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_UTILS_FILE_UTIL_HPP_

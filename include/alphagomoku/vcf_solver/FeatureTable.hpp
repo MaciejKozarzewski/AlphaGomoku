@@ -2,7 +2,7 @@
  * FeatureTable.hpp
  *
  *  Created on: 2 maj 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_VCF_SOLVER_FEATURETABLE_HPP_

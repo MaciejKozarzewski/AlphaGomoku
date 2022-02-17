@@ -2,7 +2,7 @@
  * GameBuffer.cpp
  *
  *  Created on: Mar 7, 2021
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/selfplay/GameBuffer.hpp>
