@@ -32,25 +32,6 @@ namespace ag
 
 namespace ag
 {
-//	struct TreeStats
-//	{
-//			int64_t allocated_nodes = 0;
-//			int64_t used_nodes = 0;
-//			int64_t allocated_edges = 0;
-//			int64_t used_edges = 0;
-//			int max_depth = 0;
-//			int64_t node_proven_loss = 0;
-//			int64_t node_proven_draw = 0;
-//			int64_t node_proven_win = 0;
-//			int64_t edge_proven_loss = 0;
-//			int64_t edge_proven_draw = 0;
-//			int64_t edge_proven_win = 0;
-//
-//			std::string toString() const;
-//			TreeStats& operator+=(const TreeStats &other) noexcept;
-//			TreeStats& operator/=(int i) noexcept;
-//	};
-
 	enum class SelectOutcome
 	{
 		REACHED_LEAF,
@@ -107,23 +88,9 @@ namespace ag
 			Sign getSignToMove() const noexcept;
 
 			Node getInfo(const std::vector<Move> &moves) const;
-//			void clearTreeStats() noexcept;
-//			TreeStats getTreeStats() const noexcept;
 			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
 		private:
-			/*
-			 * \brief Recursively checks every node in the subtree and deletes those representing states that can no longer appear in the tree (given current state at root).
-			 */
-			void prune_subtree(Node *node, matrix<Sign> &tmpBoard);
-			/*
-			 * \brief Recursively deletes all nodes in the subtree.
-			 */
-			void delete_subtree(Node *node, matrix<Sign> &tmpBoard);
-			/*
-			 * \brief Remove given node from the tree, freeing its edges and removing from cache.
-			 */
-			void remove_from_tree(Node *node, const matrix<Sign> &tmpBoard);
 			/*
 			 * \brief Calculates proper value if an information leak was found
 			 */
@@ -149,47 +116,6 @@ namespace ag
 			TreeLock& operator=(const TreeLock &other) = delete;
 			TreeLock& operator=(TreeLock &&other) = delete;
 	};
-
-//	class Tree_old
-//	{
-//		private:
-//			std::vector<std::unique_ptr<Node_old[]>> nodes;
-//			std::pair<int, int> current_index { 0, 0 };
-//			mutable std::mutex tree_mutex;
-//			Node_old root_node;
-//
-//			TreeConfig config;
-//			int balancing_depth = -1;
-//		public:
-//			Tree_old(TreeConfig treeOptions);
-//
-//			uint64_t getMemory() const noexcept;
-//			void clearStats() noexcept;
-//			TreeStats getStats() const noexcept;
-//
-//			void clear() noexcept;
-//			int allocatedNodes() const noexcept;
-//			int usedNodes() const noexcept;
-//
-//			bool isProven() const noexcept;
-//			const Node_old& getRootNode() const noexcept;
-//			Node_old& getRootNode() noexcept;
-//			void setBalancingDepth(int depth) noexcept;
-//			bool isRootNode(const Node_old *node) const noexcept;
-//			void select(SearchTrajectory_old &trajectory, float explorationConstant = 1.25f);
-//			bool expand(Node_old &parent, const std::vector<std::pair<uint16_t, float>> &movesToAdd);
-//			void backup(SearchTrajectory_old &trajectory, Value value, ProvenValue provenValue);
-//			void cancelVirtualLoss(SearchTrajectory_old &trajectory);
-//
-//			void getPolicyPriors(const Node_old &node, matrix<float> &result) const;
-//			void getPlayoutDistribution(const Node_old &node, matrix<float> &result) const;
-//			void getProvenValues(const Node_old &node, matrix<ProvenValue> &result) const;
-//			void getActionValues(const Node_old &node, matrix<Value> &result) const;
-//			SearchTrajectory_old getPrincipalVariation();
-//			void printSubtree(const Node_old &node, int depth = -1, bool sort = false, int top_n = -1) const;
-//		private:
-//			Node_old* reserve_nodes(int number);
-//	};
 
 } /* namespace ag */
 

@@ -5,7 +5,6 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/mcts/EvaluationRequest.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <libml/utils/json.hpp>
@@ -185,7 +184,7 @@ namespace ag
 	{
 		return search_data.size();
 	}
-	const SearchData& Game::getSample(int index)
+	const SearchData& Game::getSample(int index) const
 	{
 		if (index == -1)
 			index = randomizeState();
@@ -193,7 +192,14 @@ namespace ag
 
 		return search_data[index];
 	}
-	int Game::randomizeState()
+	SearchData& Game::getSample(int index)
+	{
+		if (index == -1)
+			index = randomizeState();
+		use_count[index]++;
+		return search_data[index];
+	}
+	int Game::randomizeState() const
 	{
 		float min = use_count[0] + 1.0f;
 		int idx = 0;

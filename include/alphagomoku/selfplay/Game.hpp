@@ -33,7 +33,7 @@ namespace ag
 			std::vector<SearchData> search_data;
 			std::vector<Move> played_moves;
 			matrix<Sign> current_board;
-			std::vector<int> use_count;
+			mutable std::vector<int> use_count;
 			GameRules rules;
 			GameOutcome outcome = GameOutcome::UNKNOWN;
 
@@ -66,8 +66,9 @@ namespace ag
 
 			bool isCorrect() const;
 			int getNumberOfSamples() const noexcept;
-			const SearchData& getSample(int index = -1);
-			int randomizeState();
+			const SearchData& getSample(int index = -1) const;
+			SearchData& getSample(int index = -1);
+			int randomizeState() const;
 
 			Json serialize(SerializedObject &binary_data) const;
 	};

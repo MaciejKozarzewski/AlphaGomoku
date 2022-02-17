@@ -11,7 +11,6 @@
 #include <alphagomoku/utils/ThreadPool.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
-#include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/mcts/EdgeSelector.hpp>

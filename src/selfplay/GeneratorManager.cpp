@@ -5,7 +5,6 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/mcts/EvaluationQueue.hpp>
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <libml/hardware/Device.hpp>
 #include <libml/utils/json.hpp>

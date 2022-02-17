@@ -8,8 +8,6 @@
 #ifndef ALPHAGOMOKU_EVALUATION_EVALUATIONGAME_HPP_
 #define ALPHAGOMOKU_EVALUATION_EVALUATIONGAME_HPP_
 
-#include <alphagomoku/mcts/Cache.hpp>
-#include <alphagomoku/mcts/EvaluationRequest.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/Tree.hpp>

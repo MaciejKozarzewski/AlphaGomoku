@@ -10,7 +10,6 @@
 
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
-#include <alphagomoku/mcts/Cache.hpp>
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
@@ -57,12 +56,10 @@ namespace ag
 			SearchStats getSearchStats() const noexcept;
 
 			void reset();
-			bool prepareOpening();
-			void makeMove();
-			void selectSolveEvaluate();
-			void expandAndBackup();
 			void generate();
 		private:
+			bool prepare_opening();
+			void make_move();
 			void prepare_search(const matrix<Sign> &board, Sign signToMove);
 			void clear_node_cache();
 	};

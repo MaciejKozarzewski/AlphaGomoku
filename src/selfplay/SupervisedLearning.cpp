@@ -8,6 +8,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
+#include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 #include <alphagomoku/utils/augmentations.hpp>

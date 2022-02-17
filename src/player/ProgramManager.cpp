@@ -8,6 +8,7 @@
 #include <alphagomoku/version.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/Logger.hpp>
+#include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 
 #include <alphagomoku/protocols/GomocupProtocol.hpp>

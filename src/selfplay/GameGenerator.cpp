@@ -42,7 +42,73 @@ namespace ag
 		state = GAME_NOT_STARTED;
 		is_request_scheduled = false;
 	}
-	bool GameGenerator::prepareOpening()
+	void GameGenerator::generate()
+	{
+		if (state == GAME_NOT_STARTED)
+		{
+//			std::cout << "\n\n\nNEW GAME STARTS\n\n\n";
+			game.beginGame();
+			clear_node_cache();
+			if (use_opening)
+			{
+				opening_trials = 0;
+				state = PREPARE_OPENING;
+			}
+			else
+			{
+				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
+				prepare_search(game.getBoard(), game.getSignToMove());
+			}
+		}
+
+		if (state == PREPARE_OPENING)
+		{
+			bool isReady = prepare_opening();
+			if (isReady == false)
+				return;
+			else
+			{
+				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
+				prepare_search(game.getBoard(), game.getSignToMove());
+			}
+		}
+
+		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE)
+		{
+			search.select(tree);
+			search.tryToSolve();
+			search.scheduleToNN(nn_evaluator);
+			state = GAMEPLAY_EXPAND_AND_BACKUP;
+			return;
+		}
+
+		if (state == GAMEPLAY_EXPAND_AND_BACKUP)
+		{
+			search.generateEdges(tree);
+			search.expand(tree);
+			search.backup(tree);
+
+			if (tree.getSimulationCount() > simulations or tree.isProven())
+			{
+				make_move();
+				if (game.isOver())
+				{
+					game.resolveOutcome();
+					game_buffer.addToBuffer(game);
+					state = GAME_NOT_STARTED;
+					return;
+				}
+				else
+					prepare_search(game.getBoard(), game.getSignToMove());
+			}
+			state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
+			return;
+		}
+	}
+	/*
+	 * private
+	 */
+	bool GameGenerator::prepare_opening()
 	{
 		if (is_request_scheduled == true)
 		{
@@ -65,7 +131,7 @@ namespace ag
 		is_request_scheduled = true;
 		return false;
 	}
-	void GameGenerator::makeMove()
+	void GameGenerator::make_move()
 	{
 		Node root_node = tree.getInfo( { });
 //		std::cout << "after search\n";
@@ -94,7 +160,7 @@ namespace ag
 			BestEdgeSelector selector;
 			Edge *edge = selector.select(&root_node);
 			move = edge->getMove();
-//			move = pickMove(policy);
+			//			move = pickMove(policy);
 		}
 		else
 		{
@@ -111,77 +177,11 @@ namespace ag
 		state.setProvenValue(root_node.getProvenValue());
 		state.setMove(move);
 
-//		state.print();
+		//		state.print();
 
 		game.makeMove(move);
 		game.addSearchData(state);
 	}
-	void GameGenerator::generate()
-	{
-		if (state == GAME_NOT_STARTED)
-		{
-//			std::cout << "\n\n\nNEW GAME STARTS\n\n\n";
-			game.beginGame();
-			clear_node_cache();
-			if (use_opening)
-			{
-				opening_trials = 0;
-				state = PREPARE_OPENING;
-			}
-			else
-			{
-				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
-				prepare_search(game.getBoard(), game.getSignToMove());
-			}
-		}
-
-		if (state == PREPARE_OPENING)
-		{
-			bool isReady = prepareOpening();
-			if (isReady == false)
-				return;
-			else
-			{
-				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
-				prepare_search(game.getBoard(), game.getSignToMove());
-			}
-		}
-
-		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE)
-		{
-			search.select(tree);
-			search.tryToSolve();
-			search.scheduleToNN(nn_evaluator);
-			state = GAMEPLAY_EXPAND_AND_BACKUP;
-			return;
-		}
-
-		if (state == GAMEPLAY_EXPAND_AND_BACKUP)
-		{
-			search.generateEdges(tree);
-			search.expand(tree);
-			search.backup(tree);
-
-			if (tree.getSimulationCount() > simulations or tree.isProven())
-			{
-				makeMove();
-				if (game.isOver())
-				{
-					game.resolveOutcome();
-					game_buffer.addToBuffer(game);
-					state = GAME_NOT_STARTED;
-					return;
-				}
-				else
-					prepare_search(game.getBoard(), game.getSignToMove());
-			}
-			state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
-			return;
-		}
-	}
-	/*
-	 * private
-	 */
 	void GameGenerator::prepare_search(const matrix<Sign> &board, Sign signToMove)
 	{
 		search.cleanup(tree);
