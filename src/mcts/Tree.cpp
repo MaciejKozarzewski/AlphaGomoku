@@ -65,9 +65,6 @@ namespace
 		}
 		else
 		{
-//			for (int i = 0; i < prefix; i++)
-//				std::cout << "|     ";
-//			std::cout << "└──... (subtree skipped)\n";
 			std::cout << "... (subtree skipped)\n";
 			for (int i = 0; i < prefix; i++)
 				std::cout << "|     ";
@@ -149,13 +146,14 @@ namespace ag
 		base_depth = Board::numberOfMoves(base_board);
 		sign_to_move = signToMove;
 
-		if (equalSize(tmp_board, newBoard) == false)
+		if (not equalSize(tmp_board, newBoard))
 		{
 			node_cache = NodeCache(newBoard.rows(), newBoard.cols(), config.initial_cache_size);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
-		node_cache.cleanup(newBoard, signToMove);
+		else
+			node_cache.cleanup(newBoard, signToMove);
 
 		root_node = node_cache.seek(base_board, sign_to_move);
 		if (forceRemoveRootNode and root_node != nullptr)
@@ -224,7 +222,7 @@ namespace ag
 			{
 				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
 				if (node != nullptr) // if found in the cache
-					edge->setNode(node); // link that edge to this node
+					edge->setNode(node); // link that edge to the found node
 			}
 
 			if (is_information_leak(edge, node))
@@ -260,7 +258,7 @@ namespace ag
 			if (task.visitedPathLength() > 0)
 				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
 			else
-				root_node = node_to_add; // if no pairs were visited, it means that the tree is empty
+				root_node = node_to_add; // if no pairs were visited, it means that the tree is empty and we have to assign the root node
 
 			return ExpandOutcome::SUCCESS;
 		}
@@ -347,7 +345,7 @@ namespace ag
 		else
 		{
 			Node result(*node);
-			result.setEdges(node->numberOfEdges());
+			result.createEdges(node->numberOfEdges());
 			for (int i = 0; i < node->numberOfEdges(); i++)
 				result.getEdge(i) = node->getEdge(i).copyInfo();
 			return result;

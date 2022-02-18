@@ -34,10 +34,6 @@ namespace ag
 	std::string NodeCacheStats::toString() const
 	{
 		std::string result = "----NodeCacheStats----\n";
-		if (calls == 0)
-			result += "hit rate = N/A\n";
-		else
-			result += "hit rate = " + std::to_string(static_cast<int>(1000.0 * static_cast<double>(hits) / calls) / 10.0) + "%\n";
 		result += "load factor = " + std::to_string(static_cast<int>(1000.0 * load_factor) / 1000.0) + "\n";
 
 		result += "stored nodes    = " + std::to_string(stored_nodes) + '\n';
@@ -54,10 +50,6 @@ namespace ag
 	}
 	NodeCacheStats& NodeCacheStats::operator+=(const NodeCacheStats &other) noexcept
 	{
-		this->hits += other.hits;
-		this->calls += other.calls;
-		this->collisions += other.collisions;
-
 		this->stored_nodes += other.stored_nodes;
 		this->allocated_nodes += other.allocated_nodes;
 		this->stored_edges += other.stored_edges;
@@ -72,10 +64,6 @@ namespace ag
 	}
 	NodeCacheStats& NodeCacheStats::operator/=(int i) noexcept
 	{
-		this->hits /= i;
-		this->calls /= i;
-		this->collisions /= i;
-
 		this->stored_nodes /= i;
 		this->allocated_nodes /= i;
 		this->stored_edges /= i;
@@ -90,12 +78,14 @@ namespace ag
 	}
 
 	NodeCache::NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize) :
+			edge_pool(boardHeight * boardWidth),
 			bins(round_to_power_of_2(initialCacheSize), nullptr),
 			hashing(boardHeight, boardWidth),
 			bin_index_mask(bins.size() - 1u)
 	{
 	}
 	NodeCache::NodeCache(NodeCache &&other) :
+			edge_pool(std::move(other.edge_pool)),
 			bins(std::move(other.bins)),
 			buffer(std::move(other.buffer)),
 			hashing(std::move(other.hashing)),
@@ -107,6 +97,7 @@ namespace ag
 	}
 	NodeCache& NodeCache::operator =(NodeCache &&other)
 	{
+		std::swap(this->edge_pool, other.edge_pool);
 		std::swap(this->bins, other.bins);
 		std::swap(this->buffer, other.buffer);
 		std::swap(this->hashing, other.hashing);
@@ -123,7 +114,6 @@ namespace ag
 
 	void NodeCache::clearStats() noexcept
 	{
-		stats.hits = stats.calls = 0;
 		stats.seek.reset();
 		stats.insert.reset();
 		stats.remove.reset();
@@ -136,9 +126,56 @@ namespace ag
 		return result;
 	}
 
+	NodeCache::CompressedBoard::CompressedBoard(const matrix<Sign> &board) noexcept
+	{
+		assert(board.rows() < 32 && board.cols() < 32);
+		for (int i = 0; i < board.rows(); i++)
+		{
+			uint64_t tmp = 0ull;
+			for (int j = 0; j < board.cols(); j++)
+				tmp = tmp | (static_cast<uint64_t>(board.at(i, j)) << (2 * j));
+			data[i] = tmp;
+		}
+		for (int i = board.rows(); i < 32; i++)
+			data[i] = 0ull;
+	}
+	bool NodeCache::CompressedBoard::operator==(const matrix<Sign> &board) const noexcept
+	{
+		assert(board.rows() < 32 && board.cols() < 32);
+		for (int i = 0; i < board.rows(); i++)
+		{
+			uint64_t tmp = data[i];
+			for (int j = 0; j < board.cols(); j++, tmp = tmp >> 2)
+				if ((tmp & 3) != static_cast<uint64_t>(board.at(i, j)))
+					return false;
+		}
+		return true;
+	}
+	bool NodeCache::CompressedBoard::isTransitionPossibleFrom(const NodeCache::CompressedBoard &board, int rows) const noexcept
+	{
+		/*                    transition from
+		 *               | NONE | CROSS | CIRCLE |
+		 *               |  00  |  01   |  10    |
+		 * to    NONE  00|  yes |  no   |  no    |
+		 * to   CROSS  01|  yes |  yes  |  no    |
+		 * to  CIRCLE  10|  yes |  no   |  yes   |
+		 *
+		 * The required logical function is AND(XOR(from, to), from) == 0
+		 */
+		assert(rows < 32);
+		uint64_t result = 0ull;
+		for (int i = 0; i < rows; i++)
+		{
+			uint64_t from = board.data[i];
+			uint64_t to = this->data[i];
+			result = result | ((from ^ to) & from);
+		}
+		return result == 0;
+	}
+
 	uint64_t NodeCache::getMemory() const noexcept
 	{
-		return entry_size_in_bytes * storedNodes() + sizeof(Entry*) * bins.size() + sizeof(Edge) * storedEdges();
+		return edge_pool.getMemory() + sizeof(Entry) * storedNodes() + sizeof(Entry*) * bins.size() + sizeof(Edge) * storedEdges();
 	}
 	int NodeCache::allocatedEdges() const noexcept
 	{
@@ -169,11 +206,6 @@ namespace ag
 		return static_cast<double>(stats.stored_nodes) / bins.size();
 	}
 
-//	void NodeCache::reserve(size_t n)
-//	{
-//		for (size_t i = buffered_nodes; i < n; i++)
-//			move_to_buffer(new Entry());
-//	}
 	void NodeCache::clear() noexcept
 	{
 		if (stats.stored_nodes == 0)
@@ -189,15 +221,6 @@ namespace ag
 			}
 			bins[i] = nullptr;
 		}
-//		for (size_t i = 0; i < bins.size(); i++)
-//		{
-//			while (bins[i] != nullptr)
-//			{
-//				Entry *tmp = unlink(&(bins[i]));
-//				move_to_buffer(tmp);
-//			}
-//			assert(bins[i] == nullptr);
-//		}
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 	}
 	void NodeCache::cleanup(const matrix<Sign> &newBoard, Sign signToMove) noexcept
@@ -206,14 +229,24 @@ namespace ag
 
 		if (stats.stored_nodes == 0)
 			return;
+
+		std::map<int, int> sizes;
+
+		CompressedBoard new_board(newBoard);
 		for (size_t i = 0; i < bins.size(); i++)
 		{
 			Entry *current = bins[i];
 			bins[i] = nullptr;
 			while (current != nullptr)
 			{
+				if (sizes.find(current->node.numberOfEdges()) == sizes.end())
+					sizes.insert( { current->node.numberOfEdges(), 0 });
+				else
+					sizes.find(current->node.numberOfEdges())->second++;
+
 				Entry *next = current->next_entry;
-				if (Board::isTransitionPossible(newBoard, current->board))
+//				if (Board::isTransitionPossible(newBoard, current->board))
+				if (current->board.isTransitionPossibleFrom(new_board, newBoard.rows()))
 				{
 					current->next_entry = bins[i];
 					bins[i] = current;
@@ -223,20 +256,10 @@ namespace ag
 				current = next;
 			}
 		}
-//		for (size_t i = 0; i < bins.size(); i++)
-//		{
-//			Entry **current = &(bins[i]);
-//			while (current != nullptr)
-//			{
-//				if (Board::isTransitionPossible(newBoard, (*current)->board))
-//					current = &((*current)->next_entry);
-//				else
-//				{
-//					Entry *tmp = unlink(current);
-//					move_to_buffer(tmp);
-//				}
-//			}
-//		}
+		std::cout << "Number of edges stats\n";
+		for (auto iter = sizes.begin(); iter != sizes.end(); iter++)
+			std::cout << iter->first << " " << iter->second << '\n';
+
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 	}
 	Node* NodeCache::seek(const matrix<Sign> &board, Sign signToMove) const noexcept
@@ -244,13 +267,11 @@ namespace ag
 		TimerGuard timer(stats.seek);
 		const uint64_t hash = hashing.getHash(board, signToMove);
 
-		stats.calls++; // statistics
 		Entry *current = bins[hash & bin_index_mask];
 		while (current != nullptr)
 		{
-			if (current->hash == hash and current->board == board)
+			if (current->hash == hash and current->board == board and current->node.getSignToMove() == signToMove)
 			{
-				stats.hits++; // statistics
 				return &(current->node);
 			}
 			current = current->next_entry;
@@ -266,9 +287,7 @@ namespace ag
 		TimerGuard timer(stats.insert);
 
 		Entry *new_entry = get_new_entry();
-		new_entry->board = board;
-		if (entry_size_in_bytes == 0)
-			entry_size_in_bytes = new_entry->sizeInBytes();
+		new_entry->board = CompressedBoard(board);
 
 		const uint64_t hash = hashing.getHash(board, signToMove);
 		new_entry->hash = hash;
@@ -277,17 +296,17 @@ namespace ag
 		new_entry->next_entry = bins[bin_index];
 		bins[bin_index] = new_entry;
 
-//		link(&(bins[hash & bin_index_mask]), new_entry);
 		stats.stored_nodes++;
 		stats.allocated_edges += numberOfEdges - new_entry->node.numberOfEdges();
 		stats.stored_edges += numberOfEdges;
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 
 		new_entry->node.clear();
-		new_entry->node.setEdges(numberOfEdges);
+		std::unique_ptr<Edge[]> edges = edge_pool.getNewBlockOfSize(numberOfEdges);
+		new_entry->node.setEdges(edges, numberOfEdges);
+//		new_entry->node.createEdges(numberOfEdges);
 		new_entry->node.setDepth(Board::numberOfMoves(board));
 		new_entry->node.setSignToMove(signToMove);
-		new_entry->node.markAsUsed();
 
 		return &(new_entry->node);
 	}
@@ -304,7 +323,7 @@ namespace ag
 		while (current != nullptr)
 		{
 			Entry *next = current->next_entry;
-			if (current->hash == hash and current->board == board)
+			if (current->hash == hash and current->board == board and current->node.getSignToMove() == signToMove)
 				move_to_buffer(current);
 			else
 			{
@@ -313,20 +332,6 @@ namespace ag
 			}
 			current = next;
 		}
-
-//		Entry **current = &(bins[bin_index]);
-//		while ((*current) != nullptr)
-//		{
-//			if ((*current)->hash == hash)
-//			{
-//				assert(is_hash_collision(*current, board, signToMove) == false);
-//				Entry *tmp = unlink(current);
-//				move_to_buffer(tmp);
-//				break;
-//			}
-//			else
-//				current = &((*current)->next_entry);
-//		}
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 	}
 	void NodeCache::resize(size_t newSize)
@@ -357,16 +362,6 @@ namespace ag
 			}
 		}
 
-//		Entry *storage = nullptr; // all currently stored elements will be appended here
-//		for (size_t i = 0; i < bins.size(); i++)
-//		{
-//			while (bins[i] != nullptr)
-//			{
-//				Entry *tmp = unlink(&(bins[i]));
-//				link(&storage, tmp);
-//			}
-//		}
-
 		bins.resize(newSize, nullptr);
 
 		while (storage != nullptr)
@@ -377,12 +372,6 @@ namespace ag
 			bins[bin_index] = storage;
 			storage = next;
 		}
-
-//		while (storage != nullptr)
-//		{
-//			Entry *tmp = unlink(&storage);
-//			link(&(bins[tmp->hash & bin_index_mask]), tmp);
-//		}
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 	}
 	void NodeCache::freeUnusedMemory() noexcept
@@ -393,12 +382,6 @@ namespace ag
 			delete buffer;
 			buffer = next;
 		}
-//		while (buffer != nullptr)
-//		{
-//			Entry *tmp = unlink(&buffer);
-//			assert(tmp->node.isUsed() == false);
-//			delete tmp;
-//		}
 		buffered_nodes = 0;
 		stats.allocated_nodes = stats.stored_nodes;
 		stats.allocated_edges = stats.stored_edges;
@@ -407,22 +390,6 @@ namespace ag
 	/*
 	 * private
 	 */
-//	void NodeCache::link(Entry **prev, Entry *next) noexcept
-//	{
-//		// changes : prev = &entry1{...}
-//		// into    : prev = &next{next_entry = &entry1{...}}
-//		next->next_entry = *prev;
-//		*prev = next;
-//	}
-//	NodeCache::Entry* NodeCache::unlink(Entry **prev) noexcept
-//	{
-//		// changes : prev = &entry1{next_entry = &entry2{...}}
-//		// into    : prev = &entry2{...} and returns pointer to entry1{next_entry = nullptr}
-//		Entry *result = *prev;
-//		*prev = result->next_entry;
-//		result->next_entry = nullptr;
-//		return result;
-//	}
 	NodeCache::Entry* NodeCache::get_new_entry()
 	{
 		if (buffer == nullptr)
@@ -439,34 +406,22 @@ namespace ag
 			buffer = result->next_entry;
 			result->next_entry = nullptr;
 			return result;
-//			return unlink(&buffer);
 		}
 	}
 	void NodeCache::move_to_buffer(NodeCache::Entry *entry) noexcept
 	{
-		entry->node.markAsUnused();
+		int number_of_edges = entry->node.numberOfEdges();
+		std::unique_ptr<Edge[]> edges = entry->node.freeEdges();
+		edge_pool.releaseBlock(edges, number_of_edges);
+		assert(edges == nullptr);
+
 		entry->next_entry = buffer;
 		buffer = entry;
 		assert(stats.stored_nodes > 0);
 		assert(stats.stored_edges > 0);
 		stats.stored_nodes--;
-		stats.stored_edges -= entry->node.numberOfEdges();
+		stats.stored_edges -= number_of_edges;
 		buffered_nodes++;
-	}
-	bool NodeCache::is_hash_collision(const Entry *entry, const matrix<Sign> &board, Sign signToMove) const noexcept
-	{
-		const Node &node = entry->node;
-		if (node.getSignToMove() != signToMove)
-			return true; // sign to move mismatch
-		if (node.getDepth() != Board::numberOfMoves(board))
-			return true; // depth mismatch
-		for (int i = 0; i < node.numberOfEdges(); i++)
-		{
-			Move move = node.getEdge(i).getMove();
-			if (board.at(move.row, move.col) != Sign::NONE)
-				return true; // we found an edge representing move that is invalid in this position
-		}
-		return false; // unfortunately the above checks do not give 100% confidence, but there is nothing more that could be done
 	}
 
 } /* namespace ag */

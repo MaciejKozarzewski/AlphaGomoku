@@ -31,7 +31,6 @@ namespace ag
 			int16_t number_of_edges = 0;
 			int16_t depth = 0;
 			Sign sign_to_move = Sign::NONE;
-			bool is_used = false;
 		public:
 			Node() = default;
 			Node(const Node &other) :
@@ -41,8 +40,7 @@ namespace ag
 					proven_value(other.proven_value),
 					number_of_edges(0),
 					depth(other.depth),
-					sign_to_move(other.sign_to_move),
-					is_used(other.is_used)
+					sign_to_move(other.sign_to_move)
 			{
 			}
 			Node(Node &&other) = default;
@@ -54,7 +52,6 @@ namespace ag
 				proven_value = other.proven_value;
 				depth = other.depth;
 				sign_to_move = other.sign_to_move;
-				is_used = other.is_used;
 				return *this;
 			}
 			Node& operator=(Node &&other) = default;
@@ -66,7 +63,6 @@ namespace ag
 				proven_value = ProvenValue::UNKNOWN;
 				depth = 0;
 				sign_to_move = Sign::NONE;
-				is_used = false;
 			}
 
 			bool isLeaf() const noexcept
@@ -135,12 +131,8 @@ namespace ag
 			{
 				return sign_to_move;
 			}
-			bool isUsed() const noexcept
-			{
-				return is_used;
-			}
 
-			void setEdges(int number) noexcept
+			void createEdges(int number) noexcept
 			{
 				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
 				if (number != number_of_edges)
@@ -148,6 +140,17 @@ namespace ag
 					edges = std::make_unique<Edge[]>(number);
 					number_of_edges = static_cast<int16_t>(number);
 				}
+			}
+			void setEdges(std::unique_ptr<Edge[]> &ptr, int number) noexcept
+			{
+				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
+				edges = std::move(ptr);
+				number_of_edges = static_cast<int16_t>(number);
+			}
+			std::unique_ptr<Edge[]> freeEdges() noexcept
+			{
+				number_of_edges = 0;
+				return std::move(edges);
 			}
 			void setValue(Value value) noexcept
 			{
@@ -173,16 +176,6 @@ namespace ag
 			void setSignToMove(Sign s) noexcept
 			{
 				sign_to_move = s;
-			}
-			void markAsUsed() noexcept
-			{
-				assert(is_used == false);
-				is_used = true;
-			}
-			void markAsUnused() noexcept
-			{
-				assert(is_used == true);
-				is_used = false;
 			}
 			std::string toString() const;
 			void sortEdges() const;

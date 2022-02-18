@@ -12,14 +12,12 @@
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
+#include <alphagomoku/utils/ObjectPool.hpp>
 
 namespace ag
 {
 	struct NodeCacheStats
 	{
-			uint64_t hits = 0;
-			uint64_t calls = 0;
-			uint64_t collisions = 0;
 			double load_factor = 0.0;
 
 			int64_t allocated_nodes = 0;
@@ -50,33 +48,36 @@ namespace ag
 	class NodeCache
 	{
 		private:
-			struct Entry
+			class CompressedBoard
 			{
-					Node node;
-					uint64_t hash = 0;
-					Entry *next_entry = nullptr; // non-owning
-					matrix<Sign> board;
-					int sizeInBytes() const noexcept
-					{
-						return sizeof(Entry) + board.sizeInBytes();
-					}
+					std::array<uint64_t, 32> data;
+				public:
+					CompressedBoard() = default;
+					CompressedBoard(const matrix<Sign> &board) noexcept;
+					bool operator==(const matrix<Sign> &board) const noexcept;
+					bool isTransitionPossibleFrom(const CompressedBoard &board, int rows) const noexcept;
 			};
 
+			struct Entry
+			{
+					uint64_t hash = 0;
+					Entry *next_entry = nullptr; // non-owning
+					Node node;
+					CompressedBoard board;
+			};
+
+			ObjectPool<Edge> edge_pool;
 			std::vector<Entry*> bins; // non-owning
 			Entry *buffer = nullptr; // non-owning
 			ZobristHashing hashing;
 			uint64_t bin_index_mask = 0u;
 
-			int64_t entry_size_in_bytes = 0;
 			int64_t buffered_nodes = 0;
 
 			mutable NodeCacheStats stats;
 		public:
 			NodeCache() = default;
-			/**
-			 * \brief Creates cache with 2^size initial bins.
-			 */
-			NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize = 10);
+			NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize = 1024);
 			NodeCache(const NodeCache &other) = delete;
 			NodeCache(NodeCache &&other);
 			NodeCache& operator=(const NodeCache &other) = delete;
@@ -95,10 +96,6 @@ namespace ag
 			int numberOfBins() const noexcept;
 			double loadFactor() const noexcept;
 
-//			/**
-//			 * \brief Ensures that at least n entries are allocated and ready to use.
-//			 */
-//			void reserve(size_t n);
 			/**
 			 * \brief Clears the cache.
 			 * All entries are moved to the temporary buffer to be used again.
@@ -134,11 +131,8 @@ namespace ag
 			void freeUnusedMemory() noexcept;
 
 		private:
-//			void link(Entry **prev, Entry *next) noexcept;
-//			NodeCache::Entry* unlink(Entry **prev) noexcept;
 			NodeCache::Entry* get_new_entry();
 			void move_to_buffer(NodeCache::Entry *entry) noexcept;
-			bool is_hash_collision(const Entry *entry, const matrix<Sign> &board, Sign signToMove) const noexcept;
 	};
 
 } /* namespace ag */
