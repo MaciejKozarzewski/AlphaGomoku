@@ -56,10 +56,6 @@ namespace ag
 
 			std::vector<float> getAccuracy(int batchSize, int top_k = 4) const;
 
-			void packData(int index, const matrix<Sign> &board, Sign signToMove);
-			void packData(int index, const matrix<Sign> &board, const matrix<float> &policy, GameOutcome outcome, Sign signToMove);
-			Value unpackOutput(int index, matrix<float> &policy) const;
-
 			void packInputData(int index, const matrix<Sign> &board, Sign signToMove);
 			void packTargetData(int index, const matrix<float> &policy, matrix<Value> &actionValues, Value value);
 			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const;

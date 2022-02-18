@@ -66,30 +66,6 @@ namespace ag
 		return result;
 	}
 
-	void AGNetwork::packData(int index, const matrix<Sign> &board, Sign signToMove)
-	{
-		assert(index >= 0 && index < input_on_cpu->firstDim());
-		encodeInputTensor(input_on_cpu->data<float>( { index, 0, 0, 0 }), board, signToMove);
-	}
-	void AGNetwork::packData(int index, const matrix<Sign> &board, const matrix<float> &policy, GameOutcome outcome, Sign signToMove)
-	{
-		assert(index >= 0 && index < input_on_cpu->firstDim());
-		encodeInputTensor(input_on_cpu->data<float>( { index, 0, 0, 0 }), board, signToMove);
-		std::memcpy(policy_target->data<float>( { index, 0 }), policy.data(), policy.sizeInBytes());
-
-		Value tmp = convertOutcome(outcome, signToMove);
-		value_target->set(tmp.win, { index, 0 });
-		value_target->set(tmp.draw, { index, 1 });
-		value_target->set(tmp.loss, { index, 2 });
-	}
-	Value AGNetwork::unpackOutput(int index, matrix<float> &policy) const
-	{
-		assert(index >= 0 && index < input_on_cpu->firstDim());
-		std::memcpy(policy.data(), policy_on_cpu->data<float>( { index, 0 }), policy.sizeInBytes());
-//		return Value(value_on_cpu->get<float>( { index, 0 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 2 }));
-		return Value(value_on_cpu->get<float>( { index, 2 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 0 }));
-	}
-
 	void AGNetwork::packInputData(int index, const matrix<Sign> &board, Sign signToMove)
 	{
 		assert(index >= 0 && index < input_on_cpu->firstDim());
@@ -110,6 +86,7 @@ namespace ag
 		std::memcpy(policy.data(), policy_on_cpu->data<float>( { index, 0 }), policy.sizeInBytes());
 		// TODO add processing of action values
 		value = Value(value_on_cpu->get<float>( { index, 0 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 2 }));
+//		value = Value(value_on_cpu->get<float>( { index, 2 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 1 }));
 	}
 
 	void AGNetwork::forward(int batch_size)
