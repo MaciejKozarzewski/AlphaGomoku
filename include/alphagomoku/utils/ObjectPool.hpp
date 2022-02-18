@@ -20,6 +20,66 @@ namespace ag
 	class ObjectPool
 	{
 		private:
+			class ListOfBlocks
+			{
+					std::vector<std::unique_ptr<T[]>> m_blocks;
+				public:
+					std::unique_ptr<T[]> getNewBlock(size_t size)
+					{
+						if (m_blocks.empty())
+							return std::make_unique<T[]>(size);
+						else
+						{
+							std::unique_ptr<T[]> result = std::move(m_blocks.back());
+							m_blocks.pop_back();
+							return result;
+						}
+					}
+					void addBlock(std::unique_ptr<T[]> &block)
+					{
+						m_blocks.push_back(std::move(block));
+					}
+					size_t size() const noexcept
+					{
+						return m_blocks.size();
+					}
+			};
+			std::vector<ListOfBlocks> m_pools;
+		public:
+			ObjectPool(size_t maxBlockSize = 0) :
+					m_pools(maxBlockSize)
+			{
+			}
+			std::unique_ptr<T[]> getNewBlockOfSize(size_t size)
+			{
+				assert(size < m_pools.size());
+				return m_pools[size].getNewBlock(size);
+			}
+			void releaseBlock(std::unique_ptr<T[]> &block, size_t size)
+			{
+				assert(size < m_pools.size());
+				m_pools[size].addBlock(block);
+			}
+			size_t numberOfObjects() const noexcept
+			{
+				size_t result = 0;
+				for (size_t i = 0; i < m_pools.size(); i++)
+					result += i * m_pools[i].size();
+				return result;
+			}
+			uint64_t getMemory() const noexcept
+			{
+				uint64_t result = 0;
+				for (size_t i = 0; i < m_pools.size(); i++)
+					result += sizeof(T*) * m_pools[i].size();
+				return result;
+			}
+	};
+
+	template<typename T>
+	class ObjectPool_v1
+	{
+		private:
 			/**
 			 * @brief Class describing block of contiguous memory but not owning it.
 			 */
@@ -165,12 +225,12 @@ namespace ag
 
 			std::map<size_t, size_t> size_stats;
 		public:
-			ObjectPool(size_t bucketSize = 1000, size_t expectedMaxBlockSize = 100) :
+			ObjectPool_v1(size_t bucketSize = 1000, size_t expectedMaxBlockSize = 100) :
 					m_list_of_small_blocks(expectedMaxBlockSize + 1),
 					m_bucket_size(bucketSize)
 			{
 			}
-			~ObjectPool()
+			~ObjectPool_v1()
 			{
 				for (auto iter = size_stats.begin(); iter != size_stats.end(); iter++)
 					std::cout << "block size " << iter->first << " count " << iter->second << '\n';
