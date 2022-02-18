@@ -62,6 +62,12 @@ namespace ag
 		result /= evaluators.size();
 		return result;
 	}
+	void NNEvaluatorPool::clearStats() noexcept
+	{
+		std::lock_guard lock(eval_mutex);
+		for (size_t i = 0; i < evaluators.size(); i++)
+			evaluators[i]->clearStats();
+	}
 
 	SearchThread::SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators) :
 			settings(settings),
@@ -209,7 +215,6 @@ namespace ag
 	void SearchEngine::startSearch()
 	{
 		assert(isSearchFinished());
-		initial_node_count = tree.getNodeCount(); // do not need locking as the search must not be running at this point
 		setup_search_threads();
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->start();
@@ -255,6 +260,7 @@ namespace ag
 		}
 		normalize(policy);
 
+		Logger::write(root_node.toString());
 		root_node.sortEdges();
 		Logger::write("BEST");
 		int children = std::min(10, root_node.numberOfEdges());
@@ -362,7 +368,8 @@ namespace ag
 			}
 			result.principal_variation.erase(result.principal_variation.begin(), result.principal_variation.begin() + listOfMoves.size());
 		}
-		result.number_of_nodes = result.node.getVisits() - initial_node_count;
+		for (size_t i = 0; i < search_threads.size(); i++)
+			result.number_of_nodes += search_threads[i]->getSearchStats().evaluate.getTotalCount();
 		return result;
 	}
 	/*
@@ -419,12 +426,12 @@ namespace ag
 //		const GameRules rules = GameRules::FREESTYLE; //resource_manager.getGameConfig().rules;
 //		assert(getOutcome(rules, board) == GameOutcome::UNKNOWN);
 //
-		// check for empty board first move
+// check for empty board first move
 //		if (isBoardEmpty(board) == true)
 //			return Message(MessageType::BEST_MOVE, Move(board.rows() / 2, board.cols() / 2, sign_to_move));
 //
 //		matrix<Sign> board_copy(board);
-		// check for own winning moves
+// check for own winning moves
 //		for (int i = 0; i < board.rows(); i++)
 //			for (int j = 0; j < board.cols(); j++)
 //				if (board.at(i, j) == Sign::NONE)
@@ -440,7 +447,7 @@ namespace ag
 //					}
 //				}
 //
-		// check for opp winning moves
+// check for opp winning moves
 //		for (int i = 0; i < board.rows(); i++)
 //			for (int j = 0; j < board.cols(); j++)
 //				if (board.at(i, j) == Sign::NONE)

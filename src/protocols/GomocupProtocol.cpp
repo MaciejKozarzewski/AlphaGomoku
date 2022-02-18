@@ -177,15 +177,12 @@ namespace ag
 		result += " winrate " + format_percents(summary.node.getWinRate());
 		result += " drawrate " + format_percents(summary.node.getDrawRate());
 
-		if (summary.number_of_nodes > 0)
-		{
-			result += " n " + std::to_string(summary.number_of_nodes);
-			if (summary.time_used > 0.0)
-				result += " n/s " + std::to_string((int) (summary.number_of_nodes / summary.time_used));
-			else
-				result += " n/s 0";
-			result += " tm " + std::to_string((int) (1000 * summary.time_used));
-		}
+		result += " n " + std::to_string(summary.number_of_nodes);
+		if (summary.time_used > 0.0)
+			result += " n/s " + std::to_string((int) (summary.number_of_nodes / summary.time_used));
+		else
+			result += " n/s 0";
+		result += " tm " + std::to_string((int) (1000 * summary.time_used));
 		if (summary.principal_variation.size() > 0)
 		{
 			result += " pv";

@@ -36,6 +36,7 @@ namespace ag
 			NNEvaluator& get() const;
 			void release(const NNEvaluator &queue) const;
 			NNEvaluatorStats getStats() const noexcept;
+			void clearStats() noexcept;
 	};
 
 	class SearchThread
@@ -71,8 +72,6 @@ namespace ag
 
 			std::vector<std::unique_ptr<SearchThread>> search_threads;
 			Tree tree;
-
-			int64_t initial_node_count = 0;
 
 		public:
 			SearchEngine(const EngineSettings &settings);
