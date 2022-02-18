@@ -230,8 +230,6 @@ namespace ag
 		if (stats.stored_nodes == 0)
 			return;
 
-		std::map<int, int> sizes;
-
 		CompressedBoard new_board(newBoard);
 		for (size_t i = 0; i < bins.size(); i++)
 		{
@@ -239,13 +237,7 @@ namespace ag
 			bins[i] = nullptr;
 			while (current != nullptr)
 			{
-				if (sizes.find(current->node.numberOfEdges()) == sizes.end())
-					sizes.insert( { current->node.numberOfEdges(), 0 });
-				else
-					sizes.find(current->node.numberOfEdges())->second++;
-
 				Entry *next = current->next_entry;
-//				if (Board::isTransitionPossible(newBoard, current->board))
 				if (current->board.isTransitionPossibleFrom(new_board, newBoard.rows()))
 				{
 					current->next_entry = bins[i];
@@ -256,10 +248,6 @@ namespace ag
 				current = next;
 			}
 		}
-		std::cout << "Number of edges stats\n";
-		for (auto iter = sizes.begin(); iter != sizes.end(); iter++)
-			std::cout << iter->first << " " << iter->second << '\n';
-
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 	}
 	Node* NodeCache::seek(const matrix<Sign> &board, Sign signToMove) const noexcept

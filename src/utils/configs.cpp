@@ -6,7 +6,6 @@
  */
 
 #include <alphagomoku/utils/configs.hpp>
-#include <alphagomoku/mcts/Node.hpp>
 
 #include <libml/utils/json.hpp>
 
@@ -182,6 +181,7 @@ namespace ag
 
 	MasterLearningConfig::MasterLearningConfig(const Json &options) :
 			description(get_value(options, "description", std::string())),
+			data_type(get_value(options, "data_type", std::string("games"))),
 			game_config(options["game_config"]),
 			training_config(options["training_config"]),
 			generation_config(options["generation_config"]),
@@ -192,6 +192,7 @@ namespace ag
 	{
 		Json result;
 		result["description"] = description;
+		result["data_type"] = data_type;
 		result["game_config"] = game_config.toJson();
 		result["training_config"] = training_config.toJson();
 		result["generation_config"] = generation_config.toJson();

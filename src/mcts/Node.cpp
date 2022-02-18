@@ -11,6 +11,26 @@
 #include <cmath>
 #include <iostream>
 
+namespace
+{
+	double expectation(const ag::Edge &edge) noexcept
+	{
+		return edge.getWinRate() + 0.5f * edge.getDrawRate();
+	}
+	double is_win(const ag::Edge &edge) noexcept
+	{
+		return static_cast<double>(edge.getProvenValue() == ag::ProvenValue::WIN);
+	}
+	double is_loss(const ag::Edge &edge) noexcept
+	{
+		return static_cast<double>(edge.getProvenValue() == ag::ProvenValue::LOSS);
+	}
+	double get_edge_value(const ag::Edge &edge) noexcept
+	{
+		return edge.getVisits() + expectation(edge) + 0.001 * edge.getPolicyPrior() + (is_win(edge) - is_loss(edge)) * 1e9;
+	}
+}
+
 namespace ag
 {
 	std::string Node::toString() const
@@ -48,49 +68,8 @@ namespace ag
 			return e.getWinRate() + 0.5f * e.getDrawRate();
 		};
 		std::sort(this->begin(), this->end(), [expectation](const Edge &lhs, const Edge &rhs)
-		{	double lhs_value = lhs.getVisits() + expectation(lhs) + 0.001 * lhs.getPolicyPrior();
-			lhs_value+= ((int)(lhs.getProvenValue() == ProvenValue::WIN) - (int)(lhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
-			double rhs_value = rhs.getVisits() + expectation(rhs) + 0.001 * rhs.getPolicyPrior();
-			rhs_value+= ((int)(rhs.getProvenValue() == ProvenValue::WIN) - (int)(rhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
-			return lhs_value > rhs_value;
-		});
+		{	return get_edge_value(lhs) > get_edge_value(rhs);});
 	}
 
-	std::string Node_old::toString() const
-	{
-		std::string result = Move::move_from_short(getMove()).toString() + " : ";
-		switch (getProvenValue())
-		{
-			default:
-			case ProvenValue::UNKNOWN:
-				result += 'U';
-				break;
-			case ProvenValue::LOSS:
-				result += 'L';
-				break;
-			case ProvenValue::DRAW:
-				result += 'D';
-				break;
-			case ProvenValue::WIN:
-				result += 'W';
-				break;
-		}
-		result += " : Q=" + value.toString();
-		result += " : P=" + std::to_string(policy_prior);
-		result += " : Visits=" + std::to_string(visits);
-		result += " : Children=" + std::to_string(numberOfChildren());
-		return result;
-	}
-	void Node_old::sortChildren() const
-	{
-		MaxExpectation expectation;
-		std::sort(children, children + numberOfChildren(), [expectation](const Node_old &lhs, const Node_old &rhs)
-		{	double lhs_value = lhs.visits + expectation(&lhs) + 0.001 * lhs.policy_prior;
-			lhs_value+= ((int)(lhs.getProvenValue() == ProvenValue::WIN) - (int)(lhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
-			double rhs_value = rhs.visits + expectation(&rhs) + 0.001 * rhs.policy_prior;
-			rhs_value+= ((int)(rhs.getProvenValue() == ProvenValue::WIN) - (int)(rhs.getProvenValue() == ProvenValue::LOSS)) * 1e9;
-			return lhs_value > rhs_value;
-		});
-	}
-}
+} /* namespace ag */
 

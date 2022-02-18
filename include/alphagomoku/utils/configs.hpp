@@ -147,6 +147,7 @@ namespace ag
 	struct MasterLearningConfig
 	{
 			std::string description;
+			std::string data_type;
 			GameConfig game_config;
 			TrainingConfig training_config;
 			SelfplayConfig generation_config;

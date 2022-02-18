@@ -9,8 +9,8 @@
 #define ALPHAGOMOKU_VCF_SOLVER_FEATUREEXTRACTOR_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
+#include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/configs.hpp>
-#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
 
 #include <unordered_map>

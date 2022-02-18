@@ -34,6 +34,8 @@ namespace ag
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			int16_t virtual_loss = 0;
 		public:
+			static constexpr int update_threshold = 2147483647;
+
 			Edge() noexcept = default;
 			Edge(Move m) noexcept :
 					move(m)
@@ -106,7 +108,8 @@ namespace ag
 			void updateValue(Value eval) noexcept
 			{
 				visits++;
-				const float tmp = 1.0f / static_cast<float>(visits);
+//				const float tmp = 1.0f / static_cast<float>(visits);
+				const float tmp = std::max(1.0f / update_threshold, 1.0f / static_cast<float>(visits)); // TODO
 				win_rate += (eval.win - win_rate) * tmp;
 				draw_rate += (eval.draw - draw_rate) * tmp;
 			}

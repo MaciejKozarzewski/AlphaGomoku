@@ -9,7 +9,6 @@
 #define ALPHAGOMOKU_SELFPLAY_GAME_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>

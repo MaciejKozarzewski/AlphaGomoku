@@ -9,9 +9,7 @@
 #define ALPHAGOMOKU_MCTS_TREE_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/mcts/NodeCache.hpp>
-#include <alphagomoku/utils/ObjectPool.hpp>
 #include <alphagomoku/mcts/EdgeSelector.hpp>
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
@@ -27,7 +25,7 @@
 namespace ag
 {
 	class SearchTask;
-	class SearchTrajectory_old;
+	class Node;
 } /* namespace ag */
 
 namespace ag
@@ -62,7 +60,6 @@ namespace ag
 			Sign sign_to_move = Sign::NONE;
 
 			TreeConfig config;
-//			TreeStats stats;
 		public:
 			Tree(TreeConfig treeOptions);
 			int64_t getMemory() const noexcept;

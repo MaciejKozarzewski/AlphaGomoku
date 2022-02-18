@@ -372,7 +372,8 @@ namespace ag
 		Value edgeQ = edge->getValue();
 		Value nodeQ = node->getValue().getInverted(); // edgeQ should be equal to 1 - nodeQ
 
-		Value v = (nodeQ - edgeQ) * edge->getVisits() + nodeQ;
+//		Value v = (nodeQ - edgeQ) * edge->getVisits() + nodeQ;
+		Value v = (nodeQ - edgeQ) * std::min(Edge::update_threshold, edge->getVisits()) + nodeQ; // TODO
 		task.setValue(v.getInverted()); // the leak is between the current node and the edge that leads to it
 		task.getLastEdge()->setProvenValue(invert(node->getProvenValue()));
 		task.setReady();
