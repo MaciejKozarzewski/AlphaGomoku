@@ -50,12 +50,12 @@ namespace ag
 		private:
 			class CompressedBoard
 			{
-					std::array<uint64_t, 32> data;
+					std::array<uint64_t, 20> data; // assuming maximal board size of 20x20
 				public:
 					CompressedBoard() = default;
 					CompressedBoard(const matrix<Sign> &board) noexcept;
 					bool operator==(const matrix<Sign> &board) const noexcept;
-					bool isTransitionPossibleFrom(const CompressedBoard &board, int rows) const noexcept;
+					bool isTransitionPossibleFrom(const CompressedBoard &board) const noexcept;
 			};
 
 			struct Entry
@@ -63,6 +63,7 @@ namespace ag
 					uint64_t hash = 0;
 					Entry *next_entry = nullptr; // non-owning
 					Node node;
+					BlockDescriptor<Edge> edge_block;
 					CompressedBoard board;
 			};
 
@@ -77,7 +78,7 @@ namespace ag
 			mutable NodeCacheStats stats;
 		public:
 			NodeCache() = default;
-			NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize = 1024);
+			NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize, size_t bucketSize);
 			NodeCache(const NodeCache &other) = delete;
 			NodeCache(NodeCache &&other);
 			NodeCache& operator=(const NodeCache &other) = delete;

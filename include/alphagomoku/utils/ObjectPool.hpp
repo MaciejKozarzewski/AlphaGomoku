@@ -17,126 +17,86 @@
 namespace ag
 {
 	template<typename T>
-	class ObjectPool
+	class ObjectPool;
+
+	/**
+	 * \brief Class describing block of contiguous memory but not owning it.
+	 */
+	template<typename T>
+	class BlockDescriptor
 	{
+			friend class ObjectPool<T> ;
 		private:
-			class ListOfBlocks
+			T *m_block_start = nullptr; // non-owning
+			size_t m_block_size = 0;
+			size_t m_source_block_index = -1;
+			BlockDescriptor(T *start, size_t size, size_t sourceIndex) noexcept :
+					m_block_start(start),
+					m_block_size(size),
+					m_source_block_index(sourceIndex)
 			{
-					std::vector<std::unique_ptr<T[]>> m_blocks;
-				public:
-					std::unique_ptr<T[]> getNewBlock(size_t size)
-					{
-						if (m_blocks.empty())
-							return std::make_unique<T[]>(size);
-						else
-						{
-							std::unique_ptr<T[]> result = std::move(m_blocks.back());
-							m_blocks.pop_back();
-							return result;
-						}
-					}
-					void addBlock(std::unique_ptr<T[]> &block)
-					{
-						m_blocks.push_back(std::move(block));
-					}
-					size_t size() const noexcept
-					{
-						return m_blocks.size();
-					}
-			};
-			std::vector<ListOfBlocks> m_pools;
+			}
 		public:
-			ObjectPool(size_t maxBlockSize = 0) :
-					m_pools(maxBlockSize)
+			BlockDescriptor() = default;
+			/**
+			 * \brief Extract elements from the block, effectively reducing its size
+			 */
+			BlockDescriptor<T> getSubBlock(size_t size) noexcept
 			{
-			}
-			std::unique_ptr<T[]> getNewBlockOfSize(size_t size)
-			{
-				assert(size < m_pools.size());
-				return m_pools[size].getNewBlock(size);
-			}
-			void releaseBlock(std::unique_ptr<T[]> &block, size_t size)
-			{
-				assert(size < m_pools.size());
-				m_pools[size].addBlock(block);
-			}
-			size_t numberOfObjects() const noexcept
-			{
-				size_t result = 0;
-				for (size_t i = 0; i < m_pools.size(); i++)
-					result += i * m_pools[i].size();
+				assert(m_block_start != nullptr);
+				assert(size <= m_block_size);
+				BlockDescriptor<T> result(this->m_block_start, size, this->m_source_block_index);
+				this->m_block_start += size;
+				this->m_block_size -= size;
 				return result;
 			}
-			uint64_t getMemory() const noexcept
+			const T* get() const noexcept
 			{
-				uint64_t result = 0;
-				for (size_t i = 0; i < m_pools.size(); i++)
-					result += sizeof(T*) * m_pools[i].size();
-				return result;
+				return m_block_start;
+			}
+			T* get() noexcept
+			{
+				return m_block_start;
+			}
+			size_t size() const noexcept
+			{
+				return m_block_size;
+			}
+			size_t sourceIndex() const noexcept
+			{
+				return m_source_block_index;
 			}
 	};
 
 	template<typename T>
-	class ObjectPool_v1
+	class ObjectPool
 	{
 		private:
 			/**
-			 * @brief Class describing block of contiguous memory but not owning it.
-			 */
-			class BlockDescriptor
-			{
-				private:
-					T *m_block_start = nullptr; // non-owning
-					size_t m_block_size = 0;
-				public:
-					BlockDescriptor() = default;
-					BlockDescriptor(T *start, size_t size) noexcept :
-							m_block_start(start),
-							m_block_size(size)
-					{
-					}
-					/**
-					 * \brief Extract elements from the block, effectively reducing its size
-					 */
-					T* getElements(size_t size) noexcept
-					{
-						assert(m_block_start != nullptr);
-						assert(size <= m_block_size);
-						T *result = m_block_start;
-						m_block_start += size;
-						m_block_size -= size;
-						return result;
-					}
-					size_t size() const noexcept
-					{
-						return m_block_size;
-					}
-					bool isInRange(const T *begin, const T *end) const noexcept
-					{
-						return begin <= m_block_start and (m_block_start + m_block_size) <= end;
-					}
-			};
-			/**
-			 * @brief Class that collects multiple block descriptors.
+			 * \brief Class that collects multiple block descriptors.
 			 */
 			class PoolOfBlocks
 			{
 				private:
-					std::vector<BlockDescriptor> m_list_of_blocks;
+					std::vector<BlockDescriptor<T>> m_list_of_blocks;
 				public:
-					[[nodiscard]] BlockDescriptor pop() noexcept
+					void clear() noexcept
+					{
+						m_list_of_blocks.clear();
+					}
+					[[nodiscard]] BlockDescriptor<T> pop() noexcept
 					{
 						assert(m_list_of_blocks.size() > 0);
-						BlockDescriptor result = m_list_of_blocks.back();
+						BlockDescriptor<T> result = m_list_of_blocks.back();
 						m_list_of_blocks.pop_back();
 						return result;
 					}
-					const BlockDescriptor& peek() const noexcept
+					const BlockDescriptor<T>& peek() const noexcept
 					{
 						assert(m_list_of_blocks.size() > 0);
 						return m_list_of_blocks.back();
 					}
-					void push(const BlockDescriptor &bd)
+					void push(const BlockDescriptor<T> &bd)
 					{
 						assert(bd.size() > 0);
 						m_list_of_blocks.push_back(bd);
@@ -145,51 +105,57 @@ namespace ag
 					{
 						return m_list_of_blocks.size();
 					}
+					bool isEmpty() const noexcept
+					{
+						return m_list_of_blocks.empty();
+					}
 					void sort()
 					{
-						std::sort(m_list_of_blocks.begin(), m_list_of_blocks.end(), [](const BlockDescriptor &lhs, const BlockDescriptor &rhs)
+						std::sort(m_list_of_blocks.begin(), m_list_of_blocks.end(), [](const BlockDescriptor<T> &lhs, const BlockDescriptor<T> &rhs)
 						{	return lhs.size() < rhs.size();});
 					}
 			};
 			/**
-			 * @brief Class that owns a block of memory for objects.
+			 * \brief Class that owns a block of memory for objects.
 			 */
-			class BlockOfObjects
+			class OwningBlockOfObjects
 			{
 				private:
-					std::unique_ptr<T[]> m_objects;
-					std::unique_ptr<bool[]> m_is_free;
+					std::vector<T> m_objects;
+					std::vector<bool> m_is_free;
 					size_t m_elements;
+					size_t m_index;
+
+					size_t get_distance(const BlockDescriptor<T> &block) const noexcept
+					{
+						assert(m_objects.data() <= block.get() && (block.get() + block.size()) < (m_objects.data() + m_elements));
+						return std::distance(static_cast<const T*>(m_objects.data()), block.get());
+					}
 				public:
-					BlockOfObjects(size_t elements) :
-							m_objects(std::make_unique<T[]>(elements)),
-							m_is_free(std::make_unique<bool[]>(elements)),
-							m_elements(elements)
+					OwningBlockOfObjects(size_t elements, size_t index) :
+							m_objects(elements),
+							m_is_free(elements, true),
+							m_elements(elements),
+							m_index(index)
 					{
 					}
-					bool contains(const BlockDescriptor &desc) const noexcept
+					BlockDescriptor<T> asSingleBlock() noexcept
 					{
-						return desc.isInRange(m_objects.get(), m_objects.get() + m_elements);
+						return BlockDescriptor<T>(m_objects.data(), m_elements, m_index);
 					}
-					BlockDescriptor asSingleBlock() noexcept
+					void markAsFree(const BlockDescriptor<T> &block) noexcept
 					{
-						return BlockDescriptor(m_objects.get(), m_elements);
+						const size_t offset = get_distance(block);
+						std::fill(m_is_free.begin() + offset, m_is_free.begin() + offset + block.size(), true);
 					}
-					void markAsFree(const T *blockPointer, size_t blockSize) noexcept
+					void markAsUsed(const BlockDescriptor<T> &block) noexcept
 					{
-						assert(m_objects.get() <= blockPointer && (blockPointer + blockSize) < (m_objects.get() + m_elements));
-						size_t offset = std::distance(m_objects.get(), blockPointer);
-						std::fill(m_is_free.get() + offset, m_is_free.get() + offset + blockSize, true);
+						const size_t offset = get_distance(block);
+						std::fill(m_is_free.begin() + offset, m_is_free.begin() + offset + block.size(), false);
 					}
-					void markAsUsed(const T *blockPointer, size_t blockSize) noexcept
+					std::vector<BlockDescriptor<T>> getFreeBlocks()
 					{
-						assert(m_objects.get() <= blockPointer && (blockPointer + blockSize) < (m_objects.get() + m_elements));
-						size_t offset = std::distance(m_objects.get(), blockPointer);
-						std::fill(m_is_free.get() + offset, m_is_free.get() + offset + blockSize, false);
-					}
-					std::vector<BlockDescriptor> getFreeBlocks() const
-					{
-						std::vector<BlockDescriptor> result;
+						std::vector<BlockDescriptor<T>> result;
 						T *block_start = nullptr;
 						size_t block_size = 0;
 						for (size_t i = 0; i < m_elements; i++)
@@ -197,7 +163,7 @@ namespace ag
 							if (m_is_free[i])
 							{
 								if (block_start == nullptr)
-									block_start = m_objects.get() + i; // is the element is free and there is no currently scanned block, it is a start of a new block
+									block_start = m_objects.data() + i; // if the element is free and there is no currently scanned block, it is a start of a new block
 								else
 									block_size++; // if the element is free and there is a currently scanned block, increase the size of it
 							}
@@ -205,11 +171,15 @@ namespace ag
 							{
 								if (block_start != nullptr)
 								{ // if the element is not free but there is a currently scanned block, it just ended so we can append it to the result and clear temporary variables
-									result.push_back(BlockDescriptor(block_start, block_size));
+									result.push_back(BlockDescriptor<T>(block_start, block_size, m_index));
 									block_start = nullptr;
 									block_size = 0;
 								}
 							}
+						}
+						if (block_start != nullptr)
+						{ // if the element is not free but there is a currently scanned block, it just ended so we can append it to the result and clear temporary variables
+							result.push_back(BlockDescriptor<T>(block_start, block_size, m_index));
 						}
 						return result;
 					}
@@ -218,118 +188,97 @@ namespace ag
 			std::vector<PoolOfBlocks> m_list_of_small_blocks;
 			PoolOfBlocks m_list_of_large_blocks;
 
-			std::vector<BlockOfObjects> m_owning_blocks;
+			std::vector<OwningBlockOfObjects> m_owning_blocks;
 			size_t m_bucket_size;
 
-			std::map<size_t, std::vector<std::unique_ptr<T[]>>> m_blocks;
-
-			std::map<size_t, size_t> size_stats;
 		public:
-			ObjectPool_v1(size_t bucketSize = 1000, size_t expectedMaxBlockSize = 100) :
+			ObjectPool(size_t bucketSize = 1000, size_t expectedMaxBlockSize = 100) :
 					m_list_of_small_blocks(expectedMaxBlockSize + 1),
 					m_bucket_size(bucketSize)
 			{
 			}
-			~ObjectPool_v1()
+			~ObjectPool()
 			{
-				for (auto iter = size_stats.begin(); iter != size_stats.end(); iter++)
-					std::cout << "block size " << iter->first << " count " << iter->second << '\n';
 			}
 
 			void consolidate()
 			{
+				m_list_of_large_blocks.clear();
+				for (size_t i = 0; i < m_list_of_small_blocks.size(); i++)
+					m_list_of_small_blocks[i].clear();
 
+				for (size_t i = 0; i < m_owning_blocks.size(); i++)
+				{
+					std::vector<BlockDescriptor<T>> blocks = m_owning_blocks[i].getFreeBlocks();
+					for (size_t j = 0; j < blocks.size(); j++)
+						store_block(blocks[i]);
+				}
+				m_list_of_large_blocks.sort();
 			}
-			/**
-			 * \param[in] elements Number of elements to allocate
-			 */
-			[[nodiscard]] T* allocate(size_t elements)
+			[[nodiscard]] BlockDescriptor<T> allocate(size_t elements)
 			{
-				if (size_stats.find(elements) == size_stats.end())
-					size_stats.insert( { elements, 1 });
-				else
-					size_stats.find(elements)->second++;
-//				for (size_t i = elements; i < m_list_of_small_blocks.size(); i++)  // try to find some space in small blocks
-//				{
-//					PoolOfBlocks &pool = m_list_of_small_blocks[elements];
-//					if (pool.size() > 0)
-//					{
-//						BlockDescriptor block = pool.pop();
-//						assert(result.size() >= elements);
-//						T *result = block.getElements(elements);
-//						if (block.size() > 0)
-//						{
-//							assert(block.size() <= m_list_of_small_blocks.size());
-//							m_list_of_small_blocks[block.size()].push(block); // append remaining block to appropriate pool
-//						}
-//						return result;
-//					}
-//				}
-//
-//				if (m_list_of_large_blocks.size() == 0) // there are no more large blocks, must create a new one
-//				{
-//					m_owning_blocks.push_back(BlockOfObjects(m_bucket_size));
-//					m_list_of_large_blocks.push(m_owning_blocks.back().asSingleBlock());
-//				}
-//
-//				BlockDescriptor block = m_list_of_large_blocks.pop();
-//				T *result = block.getElements(elements);
-//
-//				if (block.size() > 0)
-//				{
-//					if (block.size() < m_list_of_small_blocks.size())
-//						m_list_of_small_blocks[block.size()].push(block); // append remaining block to appropriate pool
-//					else
-//						m_list_of_large_blocks.push(block); // append remaining block to the large blocks list
-//				}
-//
-//				return result;
+				for (size_t i = elements; i < m_list_of_small_blocks.size(); i++)  // try to find some space in small blocks
+				{
+					PoolOfBlocks &pool = m_list_of_small_blocks[elements];
+					if (not pool.isEmpty())
+						return get_block(pool, elements);
+				}
 
-//				if (elements == 0)
-//					return nullptr;
-//				else
-//				{
-//					auto tmp = m_blocks.find(elements);
-//					if (tmp != m_blocks.end())
-//					{
-//						if (tmp->second.size() > 0)
-//						{
-//							std::unique_ptr<T[]> result(std::move(tmp->second.back()));
-//							tmp->second.pop_back();
-//							return result.release();
-//						}
-//					}
-//					return new T[elements];
-//				}
+				if (m_list_of_large_blocks.isEmpty()) // there are no more large blocks, must create a new one
+				{
+					const size_t index = m_owning_blocks.size();
+					m_owning_blocks.push_back(OwningBlockOfObjects(m_bucket_size, index));
+					m_list_of_large_blocks.push(m_owning_blocks.back().asSingleBlock());
+				}
 
-				if (elements == 0)
-					return nullptr;
-				else
-					return new T[elements]; // TODO this needs to be rewritten
+				return get_block(m_list_of_large_blocks, elements);
 			}
-			/**
-			 * \param[in] ptr Pointer to be deallocated
-			 * \param[in] elements Number of elements to be deallocated. It is important that this value matches the original number of elements that was allocated.
-			 */
-			void free(T *ptr, size_t elements)
+			void free(BlockDescriptor<T> &block)
 			{
-//				assert(elements > 0);
-//				auto tmp = m_blocks.find(elements);
-//				if (tmp == m_blocks.end())
-//					m_blocks.insert( { elements, std::vector<std::unique_ptr<T[]>>() });
-//				tmp->second.push_back(std::unique_ptr<T[]>(ptr));
-				delete[] ptr; // TODO this needs to be rewritten
+				if (block.get() != nullptr)
+				{
+					const size_t src_idx = block.sourceIndex();
+					m_owning_blocks[src_idx].markAsFree(block);
+					store_block(block);
+					block = BlockDescriptor<T>();
+				}
+			}
+			int64_t getMemory() const noexcept
+			{
+				return sizeof(T) * m_bucket_size * m_owning_blocks.size();
 			}
 		private:
-			BlockOfObjects& get_owning_block(const BlockDescriptor &desc) const
+			OwningBlockOfObjects& get_owning_block(const BlockDescriptor<T> &desc) const
 			{
 				for (auto iter = m_owning_blocks.begin(); iter < m_owning_blocks.end(); iter++)
 					if (iter->contains(desc))
 						return *iter;
 				throw std::logic_error("block is not a part of a pool");
 			}
-	}
-	;
+			BlockDescriptor<T> get_block(PoolOfBlocks &pool, size_t elements)
+			{
+				assert(pool.isEmpty() == false);
+				BlockDescriptor<T> block = pool.pop();
+				assert(block.size() >= elements);
+
+				const size_t src_idx = block.sourceIndex();
+				BlockDescriptor<T> result = block.getSubBlock(elements);
+				m_owning_blocks[src_idx].markAsUsed(result);
+
+				store_block(block);
+				return result;
+			}
+			void store_block(BlockDescriptor<T> &block)
+			{
+				if (block.size() > 0)
+				{
+					if (block.size() < m_list_of_small_blocks.size())
+						m_list_of_small_blocks[block.size()].push(block); // append remaining block to appropriate pool
+					else
+						m_list_of_large_blocks.push(block); // append remaining block to the large blocks list
+				}
+			}
+	};
 
 } /* namespace ag */
 

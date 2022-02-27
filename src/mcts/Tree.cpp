@@ -148,7 +148,7 @@ namespace ag
 
 		if (not equalSize(tmp_board, newBoard))
 		{
-			node_cache = NodeCache(newBoard.rows(), newBoard.cols(), config.initial_cache_size);
+			node_cache = NodeCache(newBoard.rows(), newBoard.cols(), config.initial_cache_size, config.bucket_size);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
@@ -358,6 +358,10 @@ namespace ag
 	NodeCacheStats Tree::getNodeCacheStats() const noexcept
 	{
 		return node_cache.getStats();
+	}
+	void Tree::freeMemory()
+	{
+		node_cache.freeUnusedMemory();
 	}
 	/*
 	 * private

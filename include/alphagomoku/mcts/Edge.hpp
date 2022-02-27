@@ -109,7 +109,7 @@ namespace ag
 			{
 				visits++;
 //				const float tmp = 1.0f / static_cast<float>(visits);
-				const float tmp = std::max(1.0f / update_threshold, 1.0f / static_cast<float>(visits)); // TODO
+				const float tmp = 1.0f / std::min(update_threshold, visits);
 				win_rate += (eval.win - win_rate) * tmp;
 				draw_rate += (eval.draw - draw_rate) * tmp;
 			}

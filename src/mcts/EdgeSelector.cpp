@@ -62,9 +62,9 @@ namespace ag
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			if (edge->isProven() == false)
 			{
-				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVloss(edge) : parent_value;
+				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVloss(edge) : parent_value; // init to parent
 
-//				const float Q = getQ(edge, style_factor) * getVloss(edge);
+//				const float Q = getQ(edge, style_factor) * getVloss(edge); // init to loss
 				const float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
 
 				if (Q + U > bestValue)

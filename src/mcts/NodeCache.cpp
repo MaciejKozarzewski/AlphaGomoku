@@ -77,8 +77,8 @@ namespace ag
 		return *this;
 	}
 
-	NodeCache::NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize) :
-			edge_pool(boardHeight * boardWidth),
+	NodeCache::NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize, size_t bucketSize) :
+			edge_pool(bucketSize, boardHeight * boardWidth),
 			bins(round_to_power_of_2(initialCacheSize), nullptr),
 			hashing(boardHeight, boardWidth),
 			bin_index_mask(bins.size() - 1u)
@@ -128,7 +128,7 @@ namespace ag
 
 	NodeCache::CompressedBoard::CompressedBoard(const matrix<Sign> &board) noexcept
 	{
-		assert(board.rows() < 32 && board.cols() < 32);
+		assert(board.rows() < static_cast<int>(data.size()) && board.cols() < 32);
 		for (int i = 0; i < board.rows(); i++)
 		{
 			uint64_t tmp = 0ull;
@@ -136,12 +136,12 @@ namespace ag
 				tmp = tmp | (static_cast<uint64_t>(board.at(i, j)) << (2 * j));
 			data[i] = tmp;
 		}
-		for (int i = board.rows(); i < 32; i++)
+		for (size_t i = board.rows(); i < data.size(); i++)
 			data[i] = 0ull;
 	}
 	bool NodeCache::CompressedBoard::operator==(const matrix<Sign> &board) const noexcept
 	{
-		assert(board.rows() < 32 && board.cols() < 32);
+		assert(board.rows() < static_cast<int>(data.size()) && board.cols() < 32);
 		for (int i = 0; i < board.rows(); i++)
 		{
 			uint64_t tmp = data[i];
@@ -151,7 +151,7 @@ namespace ag
 		}
 		return true;
 	}
-	bool NodeCache::CompressedBoard::isTransitionPossibleFrom(const NodeCache::CompressedBoard &board, int rows) const noexcept
+	bool NodeCache::CompressedBoard::isTransitionPossibleFrom(const NodeCache::CompressedBoard &board) const noexcept
 	{
 		/*                    transition from
 		 *               | NONE | CROSS | CIRCLE |
@@ -162,9 +162,8 @@ namespace ag
 		 *
 		 * The required logical function is AND(XOR(from, to), from) == 0
 		 */
-		assert(rows < 32);
 		uint64_t result = 0ull;
-		for (int i = 0; i < rows; i++)
+		for (size_t i = 0; i < data.size(); i++)
 		{
 			uint64_t from = board.data[i];
 			uint64_t to = this->data[i];
@@ -238,7 +237,7 @@ namespace ag
 			while (current != nullptr)
 			{
 				Entry *next = current->next_entry;
-				if (current->board.isTransitionPossibleFrom(new_board, newBoard.rows()))
+				if (current->board.isTransitionPossibleFrom(new_board))
 				{
 					current->next_entry = bins[i];
 					bins[i] = current;
@@ -248,6 +247,7 @@ namespace ag
 				current = next;
 			}
 		}
+		edge_pool.consolidate();
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 	}
 	Node* NodeCache::seek(const matrix<Sign> &board, Sign signToMove) const noexcept
@@ -290,9 +290,8 @@ namespace ag
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 
 		new_entry->node.clear();
-		std::unique_ptr<Edge[]> edges = edge_pool.getNewBlockOfSize(numberOfEdges);
-		new_entry->node.setEdges(edges, numberOfEdges);
-//		new_entry->node.createEdges(numberOfEdges);
+		new_entry->edge_block = edge_pool.allocate(numberOfEdges);
+		new_entry->node.setEdges(new_entry->edge_block.get(), numberOfEdges);
 		new_entry->node.setDepth(Board::numberOfMoves(board));
 		new_entry->node.setSignToMove(signToMove);
 
@@ -399,9 +398,8 @@ namespace ag
 	void NodeCache::move_to_buffer(NodeCache::Entry *entry) noexcept
 	{
 		int number_of_edges = entry->node.numberOfEdges();
-		std::unique_ptr<Edge[]> edges = entry->node.freeEdges();
-		edge_pool.releaseBlock(edges, number_of_edges);
-		assert(edges == nullptr);
+		entry->node.freeEdges();
+		edge_pool.free(entry->edge_block);
 
 		entry->next_entry = buffer;
 		buffer = entry;

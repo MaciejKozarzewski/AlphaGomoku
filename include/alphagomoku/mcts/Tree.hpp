@@ -87,6 +87,7 @@ namespace ag
 			Node getInfo(const std::vector<Move> &moves) const;
 			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
+			void freeMemory();
 		private:
 			/*
 			 * \brief Calculates proper value if an information leak was found

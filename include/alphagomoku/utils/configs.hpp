@@ -44,9 +44,11 @@ namespace ag
 			struct Defaults
 			{
 					static constexpr int initial_cache_size = 65536;
+					static constexpr int bucket_size = 100000;
 			};
 		public:
 			int initial_cache_size = Defaults::initial_cache_size;
+			int bucket_size = Defaults::bucket_size;
 
 			TreeConfig() = default;
 			TreeConfig(const Json &cfg);

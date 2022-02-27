@@ -23,7 +23,7 @@ namespace ag
 	class Node
 	{
 		private:
-			std::unique_ptr<Edge[]> edges;
+			Edge *edges = nullptr;
 			float win_rate = 0.0f;
 			float draw_rate = 0.0f;
 			int32_t visits = 0;
@@ -31,6 +31,7 @@ namespace ag
 			int16_t number_of_edges = 0;
 			int16_t depth = 0;
 			Sign sign_to_move = Sign::NONE;
+			bool is_owning = false;
 		public:
 			Node() = default;
 			Node(const Node &other) :
@@ -43,18 +44,51 @@ namespace ag
 					sign_to_move(other.sign_to_move)
 			{
 			}
-			Node(Node &&other) = default;
+			Node(Node &&other) noexcept :
+					edges(other.edges),
+					win_rate(other.win_rate),
+					draw_rate(other.draw_rate),
+					visits(other.visits),
+					proven_value(other.proven_value),
+					number_of_edges(other.number_of_edges),
+					depth(other.depth),
+					sign_to_move(other.sign_to_move),
+					is_owning(other.is_owning)
+			{
+				other.edges = nullptr;
+				other.number_of_edges = 0;
+				other.is_owning = false;
+			}
 			Node& operator=(const Node &other)
 			{
+				edges = nullptr;
 				win_rate = other.win_rate;
 				draw_rate = other.draw_rate;
 				visits = other.visits;
 				proven_value = other.proven_value;
+				number_of_edges = 0;
 				depth = other.depth;
 				sign_to_move = other.sign_to_move;
+				is_owning = false;
 				return *this;
 			}
-			Node& operator=(Node &&other) = default;
+			Node& operator=(Node &&other) noexcept
+			{
+				std::swap(this->edges, other.edges);
+				std::swap(this->win_rate, other.win_rate);
+				std::swap(this->draw_rate, other.draw_rate);
+				std::swap(this->visits, other.visits);
+				std::swap(this->proven_value, other.proven_value);
+				std::swap(this->number_of_edges, other.number_of_edges);
+				std::swap(this->sign_to_move, other.sign_to_move);
+				std::swap(this->is_owning, other.is_owning);
+				return *this;
+			}
+			~Node()
+			{
+				if (is_owning)
+					delete[] edges;
+			}
 
 			void clear() noexcept
 			{
@@ -84,12 +118,12 @@ namespace ag
 			Edge* begin() const noexcept
 			{
 				assert(edges != nullptr);
-				return edges.get();
+				return edges;
 			}
 			Edge* end() const noexcept
 			{
 				assert(edges != nullptr);
-				return edges.get() + number_of_edges;
+				return edges + number_of_edges;
 			}
 			float getWinRate() const noexcept
 			{
@@ -135,22 +169,28 @@ namespace ag
 			void createEdges(int number) noexcept
 			{
 				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
-				if (number != number_of_edges)
-				{
-					edges = std::make_unique<Edge[]>(number);
-					number_of_edges = static_cast<int16_t>(number);
-				}
+				if (is_owning and number != number_of_edges)
+					delete[] edges;
+				edges = new Edge[number];
+				number_of_edges = static_cast<int16_t>(number);
+				is_owning = true;
 			}
-			void setEdges(std::unique_ptr<Edge[]> &ptr, int number) noexcept
+			void setEdges(Edge *ptr, int number) noexcept
 			{
 				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
-				edges = std::move(ptr);
+				if (is_owning)
+					delete[] edges;
+				edges = ptr;
 				number_of_edges = static_cast<int16_t>(number);
+				is_owning = false;
 			}
-			std::unique_ptr<Edge[]> freeEdges() noexcept
+			void freeEdges() noexcept
 			{
+				if (is_owning)
+					delete[] edges;
 				number_of_edges = 0;
-				return std::move(edges);
+				edges = nullptr;
+				is_owning = false;
 			}
 			void setValue(Value value) noexcept
 			{
@@ -161,7 +201,7 @@ namespace ag
 			{
 				visits++;
 //				const float tmp = 1.0f / static_cast<float>(visits);
-				const float tmp = std::max(1.0f / Edge::update_threshold, 1.0f / static_cast<float>(visits)); // TODO
+				const float tmp = 1.0f / std::min(Edge::update_threshold, visits);
 				win_rate += (eval.win - win_rate) * tmp;
 				draw_rate += (eval.draw - draw_rate) * tmp;
 			}

@@ -96,8 +96,8 @@ namespace ag
 	{
 			Node node;
 			std::vector<Move> principal_variation;
-			double time_used;
-			int number_of_nodes;
+			double time_used = 0.0;
+			int number_of_nodes = 0;
 	};
 
 	/**
