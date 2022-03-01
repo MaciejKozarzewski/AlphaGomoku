@@ -396,14 +396,12 @@ namespace ag
 	}
 	void NodeCache::move_to_buffer(NodeCache::Entry *entry) noexcept
 	{
-		int number_of_edges = entry->node.numberOfEdges();
 		entry->node.freeEdges();
 		edge_pool.free(entry->edge_block);
 
 		entry->next_entry = buffer;
 		buffer = entry;
 		assert(stats.stored_nodes > 0);
-		assert(stats.stored_edges > 0);
 		stats.stored_nodes--;
 		buffered_nodes++;
 	}
