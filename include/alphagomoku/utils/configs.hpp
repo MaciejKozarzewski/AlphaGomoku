@@ -123,8 +123,9 @@ namespace ag
 			bool use_symmetries = true;
 			int games_per_iteration = 100;
 			int games_per_thread = 8;
-			int simulations = 800;
-			double temperature = 0.0;
+			int simulations_min = 100;
+			int simulations_max = 800;
+			int positions_skip = 1;
 			std::vector<DeviceConfig> device_config = { DeviceConfig() };
 			SearchConfig search_config;
 			TreeConfig tree_config;

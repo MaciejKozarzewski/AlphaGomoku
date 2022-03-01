@@ -32,8 +32,10 @@ namespace ag
 	{
 		size_t offset = json["binary_offset"];
 		size_t nb_of_moves = json["nb_of_moves"];
-		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(uint16_t))
-			played_moves.push_back(Move::move_from_short(binary_data.load<uint16_t>(offset)));
+		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(Move))
+			played_moves.push_back(binary_data.load<Move>(offset));
+//		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(uint16_t))
+//			played_moves.push_back(Move::move_from_short(binary_data.load<uint16_t>(offset)));
 
 		size_t nb_of_states = json["nb_of_states"];
 		for (size_t i = 0; i < nb_of_states; i++)
@@ -75,7 +77,7 @@ namespace ag
 	Move Game::getLastMove() const noexcept
 	{
 		if (played_moves.empty())
-			return Move(0, 0, Sign::CIRCLE); // fake move so the first player starts with CROSS sign
+			return Move(Sign::CIRCLE, 0, 0); // fake move so the first player starts with CROSS sign
 		else
 			return Move(played_moves.back());
 	}
@@ -197,15 +199,15 @@ namespace ag
 		if (index == -1)
 			index = randomizeState();
 		use_count[index]++;
-		return search_data[index];
+		return search_data.at(index);
 	}
 	int Game::randomizeState() const
 	{
-		float min = use_count[0] + 1.0f;
+		float min = use_count.at(0) + 1.0f;
 		int idx = 0;
 		for (size_t i = 1; i < search_data.size(); i++)
 		{
-			float tmp = use_count[i] + randFloat();
+			float tmp = use_count.at(i) + randFloat();
 			if (tmp < min)
 			{
 				min = tmp;
@@ -226,7 +228,9 @@ namespace ag
 		result["nb_of_states"] = search_data.size();
 		result["binary_offset"] = binary_data.size();
 		for (size_t i = 0; i < played_moves.size(); i++)
-			binary_data.save(played_moves[i].toShort());
+			binary_data.save<Move>(played_moves[i]);
+//			binary_data.save(played_moves[i].toShort());
+
 		for (size_t i = 0; i < search_data.size(); i++)
 			search_data[i].serialize(binary_data);
 		return result;

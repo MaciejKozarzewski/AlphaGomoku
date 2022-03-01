@@ -141,12 +141,10 @@ namespace ag
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove, bool forceRemoveRootNode)
 	{
-		matrix<Sign> tmp_board = base_board;
-		base_board = newBoard;
-		base_depth = Board::numberOfMoves(base_board);
-		sign_to_move = signToMove;
+		if (forceRemoveRootNode and node_cache.seek(newBoard, signToMove) != nullptr)
+			node_cache.remove(newBoard, signToMove);
 
-		if (not equalSize(tmp_board, newBoard))
+		if (not equalSize(base_board, newBoard))
 		{
 			node_cache = NodeCache(newBoard.rows(), newBoard.cols(), config.initial_cache_size, config.bucket_size);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
@@ -155,12 +153,11 @@ namespace ag
 		else
 			node_cache.cleanup(newBoard, signToMove);
 
-		root_node = node_cache.seek(base_board, sign_to_move);
-		if (forceRemoveRootNode and root_node != nullptr)
-		{
-			node_cache.remove(base_board, sign_to_move);
-			root_node = nullptr;
-		}
+		base_board = newBoard;
+		base_depth = Board::numberOfMoves(newBoard);
+		sign_to_move = signToMove;
+
+		root_node = node_cache.seek(newBoard, signToMove);
 		max_depth = 0;
 	}
 	void Tree::setEdgeSelector(const EdgeSelector &selector)

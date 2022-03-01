@@ -20,7 +20,7 @@ namespace ag
 			tree(options.tree_config),
 			search(gameOptions, options.search_config),
 			name(name),
-			simulations(options.simulations)
+			simulations(options.simulations_min)
 	{
 	}
 	void Player::setSign(Sign s) noexcept

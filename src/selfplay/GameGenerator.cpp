@@ -19,8 +19,9 @@ namespace ag
 			request(game.getRules()),
 			tree(selfplayOptions.tree_config),
 			search(gameOptions, selfplayOptions.search_config),
-			simulations(selfplayOptions.simulations),
-			temperature(selfplayOptions.temperature),
+			simulations_min(selfplayOptions.simulations_min),
+			simulations_max(selfplayOptions.simulations_max),
+			positions_skip(selfplayOptions.positions_skip),
 			use_opening(selfplayOptions.use_opening)
 	{
 	}
@@ -88,13 +89,14 @@ namespace ag
 			search.expand(tree);
 			search.backup(tree);
 
-			if (tree.getSimulationCount() > simulations or tree.isProven())
+			if (tree.getSimulationCount() > nb_of_simulations() or tree.isProven())
 			{
 				make_move();
 				if (game.isOver())
 				{
 					game.resolveOutcome();
-					game_buffer.addToBuffer(game);
+					if (game.getNumberOfSamples() > 0)
+						game_buffer.addToBuffer(game);
 					state = GAME_NOT_STARTED;
 					return;
 				}
@@ -154,19 +156,9 @@ namespace ag
 		}
 		normalize(policy);
 
-		Move move;
-		if (temperature == 0.0f)
-		{
-			BestEdgeSelector selector;
-			Edge *edge = selector.select(&root_node);
-			move = edge->getMove();
-			//			move = pickMove(policy);
-		}
-		else
-		{
-			move = randomizeMove(policy, temperature);
-			move.sign = root_node.getSignToMove();
-		}
+		BestEdgeSelector selector;
+		Edge *edge = selector.select(&root_node);
+		Move move = edge->getMove();
 
 		SearchData state(policy.rows(), policy.cols());
 		state.setBoard(game.getBoard());
@@ -177,28 +169,46 @@ namespace ag
 		state.setProvenValue(root_node.getProvenValue());
 		state.setMove(move);
 
-		//		state.print();
+//		state.print();
+
+		if (perform_full_search)
+			game.addSearchData(state);
 
 		game.makeMove(move);
-		game.addSearchData(state);
 	}
 	void GameGenerator::prepare_search(const matrix<Sign> &board, Sign signToMove)
 	{
+		perform_full_search = (randInt(positions_skip) == 0);
+
 		search.cleanup(tree);
-		tree.setBoard(board, signToMove, true);
+		if (perform_full_search)
+			tree.setBoard(board, signToMove, true); // force remove root node
+		else
+			tree.setBoard(board, signToMove, false); // root node can be left in the tree
 //		std::cout << "before search\n";
 //		std::cout << tree.getNodeCacheStats().toString() << '\n';
 
 		tree.setEdgeSelector(PuctSelector(search.getConfig().exploration_constant, 0.5f));
 
 		SolverGenerator base_generator(search.getConfig().expansion_prior_treshold, search.getConfig().max_children);
-		tree.setEdgeGenerator(NoisyGenerator(getNoiseMatrix(board), search.getConfig().noise_weight, base_generator));
+		if (perform_full_search)
+			tree.setEdgeGenerator(NoisyGenerator(getNoiseMatrix(board), search.getConfig().noise_weight, base_generator));
+		else
+			tree.setEdgeGenerator(base_generator);
 	}
 	void GameGenerator::clear_node_cache()
 	{
 		matrix<Sign> invalid_board(game.rows(), game.cols());
 		invalid_board.fill(Sign::CIRCLE);
 		tree.setBoard(invalid_board, Sign::CIRCLE);
+		tree.freeMemory();
+	}
+	int GameGenerator::nb_of_simulations() const noexcept
+	{
+		if (perform_full_search)
+			return simulations_max;
+		else
+			return simulations_min;
 	}
 
 } /* namespace ag */

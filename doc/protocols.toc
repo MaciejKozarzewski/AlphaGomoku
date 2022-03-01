@@ -28,20 +28,21 @@
 \contentsline {subsection}{\numberline {3.2}PLAY [C],[R]}{9}{subsection.3.2}%
 \contentsline {subsection}{\numberline {3.3}Additional INFO keys}{9}{subsection.3.3}%
 \contentsline {subsubsection}{\numberline {3.3.1}INFO evaluate [C1],[R1] [C2],[R2] ...}{9}{subsubsection.3.3.1}%
-\contentsline {subsubsection}{\numberline {3.3.2}INFO analysis{\_}mode [x]}{10}{subsubsection.3.3.2}%
-\contentsline {subsubsection}{\numberline {3.3.3}INFO max{\_}depth [x]}{10}{subsubsection.3.3.3}%
-\contentsline {subsubsection}{\numberline {3.3.4}INFO max{\_}node [x]}{10}{subsubsection.3.3.4}%
-\contentsline {subsubsection}{\numberline {3.3.5}INFO time{\_}increment [x]}{10}{subsubsection.3.3.5}%
-\contentsline {subsubsection}{\numberline {3.3.6}INFO style [x]}{10}{subsubsection.3.3.6}%
-\contentsline {subsubsection}{\numberline {3.3.7}INFO auto{\_}pondering [x]}{11}{subsubsection.3.3.7}%
-\contentsline {subsubsection}{\numberline {3.3.8}INFO protocol{\_}lag [x]}{11}{subsubsection.3.3.8}%
-\contentsline {subsubsection}{\numberline {3.3.9}INFO thread{\_}num [x]}{11}{subsubsection.3.3.9}%
-\contentsline {subsubsection}{\numberline {3.3.10}Default values}{11}{subsubsection.3.3.10}%
+\contentsline {subsubsection}{\numberline {3.3.2}INFO rule [x]}{10}{subsubsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.3.3}INFO analysis{\_}mode [x]}{10}{subsubsection.3.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.4}INFO max{\_}depth [x]}{10}{subsubsection.3.3.4}%
+\contentsline {subsubsection}{\numberline {3.3.5}INFO max{\_}node [x]}{10}{subsubsection.3.3.5}%
+\contentsline {subsubsection}{\numberline {3.3.6}INFO time{\_}increment [x]}{10}{subsubsection.3.3.6}%
+\contentsline {subsubsection}{\numberline {3.3.7}INFO style [x]}{11}{subsubsection.3.3.7}%
+\contentsline {subsubsection}{\numberline {3.3.8}INFO auto{\_}pondering [x]}{11}{subsubsection.3.3.8}%
+\contentsline {subsubsection}{\numberline {3.3.9}INFO protocol{\_}lag [x]}{11}{subsubsection.3.3.9}%
+\contentsline {subsubsection}{\numberline {3.3.10}INFO thread{\_}num [x]}{11}{subsubsection.3.3.10}%
+\contentsline {subsubsection}{\numberline {3.3.11}Default values}{12}{subsubsection.3.3.11}%
 \contentsline {subsection}{\numberline {3.4}PONDER [value]}{12}{subsection.3.4}%
 \contentsline {subsection}{\numberline {3.5}STOP}{12}{subsection.3.5}%
 \contentsline {subsection}{\numberline {3.6}SWAP2BOARD}{12}{subsection.3.6}%
-\contentsline {subsection}{\numberline {3.7}SWAPBOARD}{13}{subsection.3.7}%
+\contentsline {subsection}{\numberline {3.7}SWAPBOARD}{14}{subsection.3.7}%
 \contentsline {subsection}{\numberline {3.8}SHOWFORBID}{14}{subsection.3.8}%
-\contentsline {subsection}{\numberline {3.9}BALANCE [n]}{14}{subsection.3.9}%
+\contentsline {subsection}{\numberline {3.9}BALANCE [n]}{15}{subsection.3.9}%
 \contentsline {subsection}{\numberline {3.10}CLEARHASH}{15}{subsection.3.10}%
-\contentsline {subsection}{\numberline {3.11}PROTOCOLVERSION}{15}{subsection.3.11}%
+\contentsline {subsection}{\numberline {3.11}PROTOCOLVERSION}{16}{subsection.3.11}%

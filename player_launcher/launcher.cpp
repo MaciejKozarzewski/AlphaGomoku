@@ -40,8 +40,7 @@ void test_search()
 	GameConfig game_config(GameRules::STANDARD, 15);
 
 	TreeConfig tree_config;
-//	tree_config.bucket_size = 1000000;
-//	tree_config.cache_size = 1024;
+	tree_config.bucket_size = 1000000;
 	Tree tree(tree_config);
 
 	SearchConfig search_config;
@@ -50,59 +49,58 @@ void test_search()
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 30;
-	search_config.use_endgame_solver = true;
 	search_config.vcf_solver_level = 2;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
 	device_config.omp_threads = 1;
-	device_config.device = ml::Device::cuda(0);
+	device_config.device = ml::Device::cpu();
 	NNEvaluator nn_evaluator(device_config);
 	nn_evaluator.useSymmetries(false);
-//	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test_10x10_standard/checkpoint/network_65_opt.bin");
+//	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
 	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
+//	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
 
 	Sign sign_to_move;
 	matrix<Sign> board;
 
-	// @formatter:off
-	board = Board::fromString(
-			/*        a b c d e f g h i j k l m n o         */
-			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
-			/*  7 */" _ _ _ _ O _ _ O _ _ X _ _ _ _\n"/*  7 */
-			/*  8 */" _ _ _ _ _ _ _ _ X X O _ _ _ _\n"/*  8 */
-			/*  9 */" _ _ _ _ _ _ _ X O O O X _ _ _\n"/*  9 */
-			/* 10 */" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"/* 10 */
-			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X _ _ _\n"/* 11 */
-			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
-
-	board = Board::fromString(" _ _ _ X O O O O X _ _ _ _ _ _\n"
-			" X _ O O _ X O _ _ _ _ _ _ _ _\n"
-			" X X O X X X X O _ _ _ _ _ _ _\n"
-			" X X O X X X O _ X _ _ _ _ _ _\n"
-			" O O O X O X O _ _ O _ _ O _ _\n"
-			" _ X O O X O X X _ X _ X _ _ _\n"
-			" _ _ O O X O X O _ O O _ _ _ _\n"
-			" _ _ X O O O X _ _ O _ _ _ _ _\n"
-			" _ _ O O X X _ X O O O _ _ _ _\n"
-			" _ O X X X X O X X X _ _ _ _ _\n"
-			" _ _ X O O X X O X O _ _ _ _ _\n"
-			" O X X X X O O O X _ _ _ _ _ _\n"
-			" O _ _ O _ _ _ X X _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-			" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n");
-
 //	// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
+//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" _ _ _ _ O _ _ O _ _ X _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ _ _ _ X X O _ _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ X O O O X _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
+//	board = Board::fromString(" _ _ _ X O O O O X _ _ _ _ _ _\n"
+//			" X _ O O _ X O _ _ _ _ _ _ _ _\n"
+//			" X X O X X X X O _ _ _ _ _ _ _\n"
+//			" X X O X X X O _ X _ _ _ _ _ _\n"
+//			" O O O X O X O _ _ O _ _ O _ _\n"
+//			" _ X O O X O X X _ X _ X _ _ _\n"
+//			" _ _ O O X O X O _ O O _ _ _ _\n"
+//			" _ _ X O O O X _ _ O _ _ _ _ _\n"
+//			" _ _ O O X X _ X O O O _ _ _ _\n"
+//			" _ O X X X X O X X X _ _ _ _ _\n"
+//			" _ _ X O O X X O X O _ _ _ _ _\n"
+//			" O X X X X O O O X _ _ _ _ _ _\n"
+//			" O _ _ O _ _ _ X X _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+//			" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n");
+
+// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l m n o          */
 //			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -121,10 +119,44 @@ void test_search()
 //			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 //			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
 //			/*        a b c d e f g h i j k l m n o          */); // @formatter:on
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
+//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" _ _ _ _ O _ _ O _ _ X _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ _ _ _ X X O _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ X O O O X\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ X _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X\n"/* 11 */
+//			/*        a b c d e f g h i j k l         */); // @formatter:on
+// @formatter:off
+	board = Board::fromString(
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ O O O X _ _ _ _ _ _\n"
+			" _ _ _ X O X X _ _ O _ _ _ _ _\n"
+			" _ _ _ _ X O O _ X _ _ _ _ _ _\n"
+			" _ _ _ _ _ X X O _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
+
 	sign_to_move = Sign::CIRCLE;
 
-	std::cout << get_BOARD_command(board, sign_to_move);
-	return;
+//	std::cout << get_BOARD_command(board, sign_to_move);
+//	return;
 
 //	// @formatter:off
 //	board = Board::fromString(
@@ -158,40 +190,34 @@ void test_search()
 	tree.setEdgeSelector(PuctSelector(1.25f));
 	tree.setEdgeGenerator(SolverGenerator(search_config.expansion_prior_treshold, search_config.max_children));
 
-//	matrix<float> policy(board.rows(), board.cols());
 	int next_step = 0;
-	for (int i = 0; i <= 1000000; i++)
+	for (int i = 0; i <= 1000; i++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ...\n";
-			next_step += 10000;
+			next_step += 100;
 		}
-//		while (tree.getSimulationCount() < i * 100)
-		{
-			search.select(tree, 1000000);
-			search.tryToSolve();
+		search.select(tree, 1000);
+		search.tryToSolve();
 
-			search.scheduleToNN(nn_evaluator);
-			nn_evaluator.evaluateGraph();
+		search.scheduleToNN(nn_evaluator);
+		nn_evaluator.evaluateGraph();
 
-			search.generateEdges(tree);
-			search.expand(tree);
-			search.backup(tree);
+		search.generateEdges(tree);
+		search.expand(tree);
+		search.backup(tree);
 
-//			std::cout << "\n\n";
-//			tree.printSubtree(-1, false);
-
-			if (tree.isProven())
-				break;
-		}
+		if (tree.isProven())
+			break;
 	}
+	search.cleanup(tree);
 
 	tree.printSubtree(0, true, 10);
 	search.printSolverStats();
 	std::cout << search.getStats().toString() << '\n';
-	std::cout << tree.getTreeStats().toString();
 	std::cout << "memory = " << (tree.getMemory() >> 20) << "MB\n\n";
+	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
 	std::cout << tree.getNodeCacheStats().toString() << '\n';
 	std::cout << nn_evaluator.getStats().toString() << '\n';
 
@@ -218,6 +244,8 @@ void test_search()
 		for (int i = 0; i < policy.size(); i++)
 			policy.data()[i] *= r;
 	}
+
+	std::cout << Board::toString(board) << '\n';
 
 	std::string result;
 	for (int i = 0; i < board.rows(); i++)
@@ -277,21 +305,41 @@ void test_search()
 		std::cout << i << " : " << task.getPair(i).edge->toString() << '\n';
 	}
 
-	double start = getTime();
-	Board::putMove(board, Move(Sign::CIRCLE, 10, 9));
-	Board::putMove(board, Move(Sign::CROSS, 8, 7));
+	Board::putMove(board, Move(Sign::CIRCLE, 0, 0));
+	Board::putMove(board, Move(Sign::CROSS, 0, 1));
+
+	std::cout << Board::toString(board) << '\n';
+
 	tree.setBoard(board, Sign::CIRCLE);
-	double stop = getTime();
-	std::cout << (stop - start) << '\n';
-	std::cout << tree.getTreeStats().toString() << '\n';
+	tree.setEdgeSelector(PuctSelector(1.25f));
+	std::cout << tree.getNodeCacheStats().toString() << '\n';
+
+	search = Search(game_config, search_config);
+	for (int i = 0; i <= 1000; i++)
+	{
+		search.select(tree, 1000);
+		search.tryToSolve();
+
+		search.scheduleToNN(nn_evaluator);
+		nn_evaluator.evaluateGraph();
+
+		search.generateEdges(tree);
+		search.expand(tree);
+		search.backup(tree);
+
+		if (tree.isProven())
+			break;
+	}
+	tree.printSubtree(0, true);
+	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
 	std::cout << tree.getNodeCacheStats().toString() << '\n';
 }
 
 int main(int argc, char *argv[])
 {
-//	test_search();
-//	std::cout << "END" << std::endl;
-//	return 0;
+	test_search();
+	std::cout << "END" << std::endl;
+	return 0;
 
 //	GameConfig game_config(GameRules::FREESTYLE, 10);
 //	TreeConfig tree_config;

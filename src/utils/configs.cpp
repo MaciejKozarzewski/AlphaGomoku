@@ -138,8 +138,9 @@ namespace ag
 			use_symmetries(get_value<bool>(options, "use_symmetries")),
 			games_per_iteration(get_value<int>(options, "games_per_iteration")),
 			games_per_thread(get_value<int>(options, "games_per_thread")),
-			simulations(get_value<int>(options, "simulations")),
-			temperature(get_value<double>(options, "temperature")),
+			simulations_min(get_value<int>(options, "simulations_min")),
+			simulations_max(get_value<int>(options, "simulations_max", simulations_min)),
+			positions_skip(get_value<int>(options, "positions_skip", 1)),
 			device_config(),
 			search_config(options["search_config"]),
 			tree_config(options["tree_config"])
@@ -154,8 +155,9 @@ namespace ag
 		result["use_symmetries"] = use_symmetries;
 		result["games_per_iteration"] = games_per_iteration;
 		result["games_per_thread"] = games_per_thread;
-		result["simulations"] = simulations;
-		result["temperature"] = temperature;
+		result["simulations_min"] = simulations_min;
+		result["simulations_max"] = simulations_max;
+		result["positions_skip"] = positions_skip;
 		for (size_t i = 0; i < device_config.size(); i++)
 			result["device_config"][i] = device_config[i].toJson();
 		result["search_config"] = search_config.toJson();

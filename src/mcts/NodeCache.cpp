@@ -123,6 +123,8 @@ namespace ag
 	{
 		NodeCacheStats result = stats;
 		result.load_factor = this->loadFactor();
+		result.allocated_edges = allocatedEdges();
+		result.stored_edges = storedEdges();
 		return result;
 	}
 
@@ -178,11 +180,11 @@ namespace ag
 	}
 	int NodeCache::allocatedEdges() const noexcept
 	{
-		return stats.allocated_edges;
+		return edge_pool.getAllocatedObjects();
 	}
 	int NodeCache::storedEdges() const noexcept
 	{
-		return stats.stored_edges;
+		return edge_pool.getUsedObjects();
 	}
 	int NodeCache::allocatedNodes() const noexcept
 	{
@@ -285,8 +287,6 @@ namespace ag
 		bins[bin_index] = new_entry;
 
 		stats.stored_nodes++;
-		stats.allocated_edges += numberOfEdges - new_entry->node.numberOfEdges();
-		stats.stored_edges += numberOfEdges;
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 
 		new_entry->node.clear();
@@ -371,7 +371,6 @@ namespace ag
 		}
 		buffered_nodes = 0;
 		stats.allocated_nodes = stats.stored_nodes;
-		stats.allocated_edges = stats.stored_edges;
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 	}
 	/*
@@ -406,7 +405,6 @@ namespace ag
 		assert(stats.stored_nodes > 0);
 		assert(stats.stored_edges > 0);
 		stats.stored_nodes--;
-		stats.stored_edges -= number_of_edges;
 		buffered_nodes++;
 	}
 

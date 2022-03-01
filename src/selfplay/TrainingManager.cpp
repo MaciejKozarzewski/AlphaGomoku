@@ -107,7 +107,8 @@ namespace ag
 
 		std::string path_to_best_network = working_dir + "/checkpoint/network_" + std::to_string(get_best_checkpoint()) + "_opt.bin";
 		std::cout << "Loading " << path_to_best_network << '\n';
-		int training_games = std::min(1000 * (1 + get_last_checkpoint()), config.generation_config.games_per_iteration);
+//		int training_games = std::min(2000 * (1 + get_last_checkpoint()), config.generation_config.games_per_iteration);
+		int training_games = config.generation_config.games_per_iteration;
 		int validation_games = training_games * config.training_config.validation_percent;
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
@@ -124,6 +125,7 @@ namespace ag
 	{
 		GameBuffer buffer;
 		loadBuffer(buffer, working_dir + "/train_buffer/");
+		std::cout << buffer.getStats().toString() << '\n';
 
 		AGNetwork model;
 		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint()) + ".bin");

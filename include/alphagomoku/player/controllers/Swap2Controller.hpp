@@ -14,9 +14,23 @@ namespace ag
 {
 	class Swap2Controller: public EngineController
 	{
+		private:
+			enum class ControllerState
+			{
+				IDLE,
+				CHECK_BOARD,
+				PUT_FIRST_3_STONES,
+				EVALUATE_FIRST_3_STONES,
+				BALANCE_THE_OPENING,
+				EVALUATE_5_STONES
+			};
+			ControllerState state = ControllerState::CHECK_BOARD;
+			std::vector<std::string> opening_book;
 		public:
 			Swap2Controller(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine);
 			void control(MessageQueue &outputQueue);
+		private:
+			void load_opening_book();
 	};
 } /* namespace ag */
 

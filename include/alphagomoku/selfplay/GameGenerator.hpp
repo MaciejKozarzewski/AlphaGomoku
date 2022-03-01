@@ -45,9 +45,11 @@ namespace ag
 			GameState state = GAME_NOT_STARTED;
 			int opening_trials = 0;
 
-			int simulations = 0;
-			float temperature = 0.0f;
+			int simulations_min = 0;
+			int simulations_max = 0;
+			int positions_skip = 1;
 			bool use_opening = false;
+			bool perform_full_search = false;
 		public:
 			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator);
 
@@ -62,6 +64,7 @@ namespace ag
 			void make_move();
 			void prepare_search(const matrix<Sign> &board, Sign signToMove);
 			void clear_node_cache();
+			int nb_of_simulations() const noexcept;
 	};
 
 } /* namespace ag */

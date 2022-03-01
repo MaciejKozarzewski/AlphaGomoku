@@ -119,7 +119,6 @@ Specifies the rules used for the game. A bitmask that can have several possible 
 	\item[\text{$[x]=1$}]{exactly five wins - standard rule. Supported only for 15x15 board.}
 	\item[\text{$[x]=2$}]{continuous game - not supported.}
 	\item[\text{$[x]=4$}]{renju rule. Currently not implemented.}
-	\item[\text{$[x]=8$}]{caro rule (OXXXXXO is not a win). Currently not implemented.}
 \end{enumerate}
 
 \textbf{Note:} This setting cannot be changed during the search.
@@ -251,6 +250,13 @@ If path specified in the command does not exist in the tree for any reason, the 
 
 \textbf{Note:} Sending excessive amounts of \texttt{INFO evaluate} commands during the search is discouraged as it can degrade engine performance.
 
+\subsubsection{INFO rule [x]}
+\label{cmd_info_rule}
+In addition to the possible values in base Gomocup protocol, one more new value is allowed:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=8$}]{caro rule (OXXXXXO is not a win). Currently not implemented.}
+	\end{enumerate}
+
 \subsubsection{INFO analysis{\_}mode [x]}
 Controls how engine responds to the \texttt{BEGIN}, \texttt{BOARD} and \texttt{TURN} commands. The allowed values are:
 \begin{enumerate}[leftmargin=7.5em]
@@ -321,7 +327,7 @@ This command starts the search in pondering mode for [value] milliseconds. The p
 
 \subsection{STOP}
 \label{cmd_stop}
-This command stops the current search. If it was regular search, either the best move will be returned or \texttt{SUGGEST} message will be sent, depending on the \texttt{INFO analysis{\_}mode} settings. If it was pondering search it is simply stopped. Such interrupted pondering can be launched again by another \texttt{PONDER} command.
+This command stops the current search. If it was regular search, either the best move will be returned or \texttt{SUGGEST} message will be sent, depending on the \texttt{INFO analysis{\_}mode} settings. If it was pondering search it is simply stopped and no output is produced. Such interrupted pondering can be launched again by another \texttt{PONDER} command.
 
 
 \subsection{SWAP2BOARD}
