@@ -66,6 +66,10 @@ namespace ag
 			{
 				return m_source_block_index;
 			}
+			bool isEmpty() const noexcept
+			{
+				return m_block_start == nullptr;
+			}
 	};
 
 	template<typename T>
@@ -96,10 +100,10 @@ namespace ag
 						assert(m_list_of_blocks.size() > 0);
 						return m_list_of_blocks.back();
 					}
-					void push(const BlockDescriptor<T> &bd)
+					void push(const BlockDescriptor<T> &block)
 					{
-						assert(bd.size() > 0);
-						m_list_of_blocks.push_back(bd);
+						assert(block.size() > 0);
+						m_list_of_blocks.push_back(block);
 					}
 					size_t size() const noexcept
 					{
@@ -123,34 +127,38 @@ namespace ag
 				private:
 					std::vector<T> m_objects;
 					std::vector<bool> m_is_free;
-					size_t m_elements;
 					size_t m_index;
 
 					size_t get_distance(const BlockDescriptor<T> &block) const noexcept
 					{
-						assert(m_objects.data() <= block.get() && (block.get() + block.size()) < (m_objects.data() + m_elements));
+						assert(block.sourceIndex() == m_index);
+						assert(m_objects.data() <= block.get());
+						assert((block.get() + block.size()) <= (m_objects.data() + m_objects.size()));
 						return std::distance(static_cast<const T*>(m_objects.data()), block.get());
 					}
 				public:
 					OwningBlockOfObjects(size_t elements, size_t index) :
 							m_objects(elements),
 							m_is_free(elements, true),
-							m_elements(elements),
 							m_index(index)
 					{
 					}
 					BlockDescriptor<T> asSingleBlock() noexcept
 					{
-						return BlockDescriptor<T>(m_objects.data(), m_elements, m_index);
+						return BlockDescriptor<T>(m_objects.data(), m_objects.size(), m_index);
 					}
 					void markAsFree(const BlockDescriptor<T> &block) noexcept
 					{
 						const size_t offset = get_distance(block);
+						assert(offset < m_objects.size());
+						assert(offset + block.size() <= m_objects.size());
 						std::fill(m_is_free.begin() + offset, m_is_free.begin() + offset + block.size(), true);
 					}
 					void markAsUsed(const BlockDescriptor<T> &block) noexcept
 					{
 						const size_t offset = get_distance(block);
+						assert(offset < m_objects.size());
+						assert(offset + block.size() <= m_objects.size());
 						std::fill(m_is_free.begin() + offset, m_is_free.begin() + offset + block.size(), false);
 					}
 					std::vector<BlockDescriptor<T>> getFreeBlocks()
@@ -158,7 +166,7 @@ namespace ag
 						std::vector<BlockDescriptor<T>> result;
 						T *block_start = nullptr;
 						size_t block_size = 0;
-						for (size_t i = 0; i < m_elements; i++)
+						for (size_t i = 0; i < m_is_free.size(); i++)
 						{
 							if (m_is_free[i])
 							{
@@ -179,8 +187,15 @@ namespace ag
 						}
 						if (block_start != nullptr)
 						{ // if the element is not free but there is a currently scanned block, it just ended so we can append it to the result and clear temporary variables
-							result.push_back(BlockDescriptor<T>(block_start, block_size, m_index));
+							result.push_back(BlockDescriptor<T>(block_start, block_size + 1, m_index)); // adding one to make the block point to the end of array
 						}
+						return result;
+					}
+					size_t countUsed() const noexcept
+					{
+						size_t result = 0;
+						for (size_t i = 0; i < m_is_free.size(); i++)
+							result += static_cast<size_t>(m_is_free[i]);
 						return result;
 					}
 			};
@@ -191,6 +206,9 @@ namespace ag
 			std::vector<OwningBlockOfObjects> m_owning_blocks;
 			size_t m_bucket_size;
 
+			size_t m_allocated_objects = 0;
+			size_t m_used_objects = 0;
+
 		public:
 			ObjectPool(size_t bucketSize = 1000, size_t expectedMaxBlockSize = 100) :
 					m_list_of_small_blocks(expectedMaxBlockSize + 1),
@@ -199,6 +217,14 @@ namespace ag
 			}
 			~ObjectPool()
 			{
+			}
+			size_t getUsedObjects() const noexcept
+			{
+				return m_used_objects;
+			}
+			size_t getAllocatedObjects() const noexcept
+			{
+				return m_allocated_objects;
 			}
 
 			void consolidate()
@@ -211,7 +237,7 @@ namespace ag
 				{
 					std::vector<BlockDescriptor<T>> blocks = m_owning_blocks[i].getFreeBlocks();
 					for (size_t j = 0; j < blocks.size(); j++)
-						store_block(blocks[i]);
+						store_block(blocks[j]);
 				}
 				m_list_of_large_blocks.sort();
 			}
@@ -219,13 +245,15 @@ namespace ag
 			{
 				for (size_t i = elements; i < m_list_of_small_blocks.size(); i++)  // try to find some space in small blocks
 				{
-					PoolOfBlocks &pool = m_list_of_small_blocks[elements];
+					PoolOfBlocks &pool = m_list_of_small_blocks[i];
 					if (not pool.isEmpty())
 						return get_block(pool, elements);
 				}
 
-				if (m_list_of_large_blocks.isEmpty()) // there are no more large blocks, must create a new one
+				// there are no more large blocks or it is too small, must create a new one
+				if (m_list_of_large_blocks.isEmpty() or m_list_of_large_blocks.peek().size() < elements)
 				{
+					m_allocated_objects += m_bucket_size;
 					const size_t index = m_owning_blocks.size();
 					m_owning_blocks.push_back(OwningBlockOfObjects(m_bucket_size, index));
 					m_list_of_large_blocks.push(m_owning_blocks.back().asSingleBlock());
@@ -235,8 +263,9 @@ namespace ag
 			}
 			void free(BlockDescriptor<T> &block)
 			{
-				if (block.get() != nullptr)
+				if (not block.isEmpty())
 				{
+					m_used_objects -= block.size();
 					const size_t src_idx = block.sourceIndex();
 					m_owning_blocks[src_idx].markAsFree(block);
 					store_block(block);
@@ -248,13 +277,6 @@ namespace ag
 				return sizeof(T) * m_bucket_size * m_owning_blocks.size();
 			}
 		private:
-			OwningBlockOfObjects& get_owning_block(const BlockDescriptor<T> &desc) const
-			{
-				for (auto iter = m_owning_blocks.begin(); iter < m_owning_blocks.end(); iter++)
-					if (iter->contains(desc))
-						return *iter;
-				throw std::logic_error("block is not a part of a pool");
-			}
 			BlockDescriptor<T> get_block(PoolOfBlocks &pool, size_t elements)
 			{
 				assert(pool.isEmpty() == false);
@@ -266,6 +288,7 @@ namespace ag
 				m_owning_blocks[src_idx].markAsUsed(result);
 
 				store_block(block);
+				m_used_objects += result.size();
 				return result;
 			}
 			void store_block(BlockDescriptor<T> &block)
