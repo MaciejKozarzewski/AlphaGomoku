@@ -483,6 +483,7 @@ void find_proven_positions(const std::string &path, int index)
 	GameConfig game_config(GameRules::STANDARD, 12, 12);
 	matrix<Sign> board(game_config.rows, game_config.cols);
 	FeatureExtractor extractor(game_config);
+	extractor.setBoard(board, Sign::CROSS);
 
 	std::vector<std::pair<uint16_t, float>> list_of_moves;
 	matrix<float> policy(board.rows(), board.cols());
