@@ -107,7 +107,6 @@ namespace ag
 
 		std::string path_to_best_network = working_dir + "/checkpoint/network_" + std::to_string(get_best_checkpoint()) + "_opt.bin";
 		std::cout << "Loading " << path_to_best_network << '\n';
-//		int training_games = std::min(2000 * (1 + get_last_checkpoint()), config.generation_config.games_per_iteration);
 		int training_games = config.generation_config.games_per_iteration;
 		int validation_games = training_games * config.training_config.validation_percent;
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
@@ -216,10 +215,10 @@ namespace ag
 	void TrainingManager::loadBuffer(GameBuffer &result, const std::string &path)
 	{
 		int last_checkpoint = metadata["last_checkpoint"];
-		int iterations = static_cast<int>(std::max(10.0, 0.999 + last_checkpoint * 0.2));
+		int buffer_size = get_buffer_size();
 
-		std::cout << "Loading buffers from " << std::max(0, last_checkpoint + 1 - iterations) << " to " << last_checkpoint << '\n';
-		for (int i = std::max(0, last_checkpoint + 1 - iterations); i <= last_checkpoint; i++)
+		std::cout << "Loading buffers from " << std::max(0, last_checkpoint + 1 - buffer_size) << " to " << last_checkpoint << '\n';
+		for (int i = std::max(0, last_checkpoint + 1 - buffer_size); i <= last_checkpoint; i++)
 			result.load(path + "buffer_" + std::to_string(i) + ".bin");
 		if (result.isCorrect() == false)
 			throw std::runtime_error("loaded buffer is invalid");
@@ -240,6 +239,29 @@ namespace ag
 			if (get_last_checkpoint() >= iter->first)
 				result = iter->second;
 		std::cout << "using learning rate = " << result << '\n';
+		return result;
+	}
+	int TrainingManager::get_buffer_size() const
+	{
+		std::vector<std::pair<int, int>> sizes = config.training_config.buffer_size;
+		if (get_last_checkpoint() <= sizes.front().first)
+			return sizes.front().second;
+		if (get_last_checkpoint() >= sizes.back().first)
+			return sizes.back().second;
+
+		std::pair<int, int> prev, next;
+		for (size_t i = 0; i < sizes.size(); i++)
+			if (get_last_checkpoint() > sizes[i].first)
+			{
+				prev = sizes.at(i);
+				next = sizes.at(i + 1);
+			}
+		double tmp1 = get_last_checkpoint() - prev.first;
+		double tmp2 = next.first - prev.first;
+		double tmp3 = next.second - prev.second;
+		int result = std::max(1.0, 0.5 + prev.second + tmp1 / tmp2 * tmp3);
+
+		std::cout << "using buffer size = " << result << '\n';
 		return result;
 	}
 

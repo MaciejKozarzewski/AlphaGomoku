@@ -47,6 +47,7 @@ namespace ag
 			int get_last_checkpoint() const;
 			int get_best_checkpoint() const;
 			float get_learning_rate() const;
+			int get_buffer_size() const;
 	};
 
 } /* namespace ag */

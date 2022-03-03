@@ -201,7 +201,7 @@ namespace ag
 		matrix<Sign> invalid_board(game.rows(), game.cols());
 		invalid_board.fill(Sign::CIRCLE);
 		tree.setBoard(invalid_board, Sign::CIRCLE);
-		tree.freeMemory();
+//		tree.freeMemory();
 	}
 	int GameGenerator::nb_of_simulations() const noexcept
 	{

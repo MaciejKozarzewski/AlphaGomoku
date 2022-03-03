@@ -449,23 +449,28 @@ void check_all_dataset(const std::string &path, int counter)
 	size_t all_games = 0;
 	size_t sym_positions = 0;
 
-	matrix<Sign> board(15, 15);
-	for (int i = 100; i < counter; i++)
+	matrix<Sign> board(12, 12);
+	for (int i = 0; i < counter; i++)
 	{
 		GameBuffer buffer(path + "buffer_" + std::to_string(i) + ".bin");
 
-		all_games += buffer.size();
+		all_positions = 0;
 		for (int j = 0; j < buffer.size(); j++)
-		{
 			all_positions += buffer.getFromBuffer(j).getNumberOfSamples();
-			for (int k = 0; k < buffer.getFromBuffer(j).getNumberOfSamples(); k++)
-			{
-				buffer.getFromBuffer(j).getSample(k).getBoard(board);
-				if (is_symmetric(board))
-					sym_positions++;
-			}
-		}
-		std::cout << i << " " << sym_positions << " / " << all_positions << " in " << all_games << " games\n";
+		std::cout << i << " " << all_positions << " " << buffer.size() << '\n';
+
+//		all_games += buffer.size();
+//		for (int j = 0; j < buffer.size(); j++)
+//		{
+//			all_positions += buffer.getFromBuffer(j).getNumberOfSamples();
+//			for (int k = 0; k < buffer.getFromBuffer(j).getNumberOfSamples(); k++)
+//			{
+//				buffer.getFromBuffer(j).getSample(k).getBoard(board);
+//				if (is_symmetric(board))
+//					sym_positions++;
+//			}
+//		}
+//		std::cout << i << " " << sym_positions << " / " << all_positions << " in " << all_games << " games\n";
 	}
 }
 
@@ -473,9 +478,9 @@ void find_proven_positions(const std::string &path, int index)
 {
 	size_t all_positions = 0;
 	size_t all_games = 0;
-	size_t sym_positions = 0;
+	size_t proven_positions = 0;
 
-	GameConfig game_config(GameRules::STANDARD, 15, 15);
+	GameConfig game_config(GameRules::STANDARD, 12, 12);
 	matrix<Sign> board(game_config.rows, game_config.cols);
 	FeatureExtractor extractor(game_config);
 
@@ -484,6 +489,8 @@ void find_proven_positions(const std::string &path, int index)
 
 	GameBuffer buffer(path + "buffer_" + std::to_string(index) + ".bin");
 
+	TimedStat set_timer("set board");
+	TimedStat solve_timer("solve    ");
 	for (int i = 0; i < buffer.size(); i++)
 	{
 		all_games++;
@@ -493,40 +500,45 @@ void find_proven_positions(const std::string &path, int index)
 			buffer.getFromBuffer(i).getSample(j).getBoard(board);
 			Sign sign_to_move = buffer.getFromBuffer(i).getSample(j).getMove().sign;
 
+			set_timer.startTimer();
 			extractor.setBoard(board, sign_to_move);
+			set_timer.stopTimer();
+
+			solve_timer.startTimer();
 			ProvenValue asdf = extractor.solve(policy, list_of_moves);
+			solve_timer.stopTimer();
+
 			if (asdf != ProvenValue::UNKNOWN)
 			{
-				sym_positions++;
+				proven_positions++;
 				break;
 			}
 		}
-		std::cout << sym_positions << " / " << all_positions << " in " << all_games << " games\n";
+		std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
 	}
+//	extractor.print_stats();
+	std::cout << set_timer.toString() << '\n';
+	std::cout << solve_timer.toString() << '\n';
 }
 
 void test_evaluate()
 {
-//	FileLoader fl("/home/maciek/alphagomoku/config.json");
-//	EvaluationManager manager(fl.getJson());
-//	Json config = fl.getJson()["evaluation_options"];
-//
-////	config["search_options"]["batch_size"] = 1;
-//	config["search_options"]["batch_size"] = 4;
-//	config["simulations"] = 100;
-//	manager.setFirstPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "batch_4");
-//
-//	config["search_options"]["batch_size"] = 32;
-//	config["simulations"] = 100;
-//	manager.setSecondPlayer(config, "/home/maciek/alphagomoku/freestyle_20x20/checkpoint/network_102.bin", "batch_32");
-//
-//	manager.generate(1000);
-//	std::string to_save;
-//	for (int i = 0; i < manager.numberOfThreads(); i++)
-//		to_save += manager.getGameBuffer(i).generatePGN();
-//	std::ofstream file("/home/maciek/alphagomoku/fixed100.pgn", std::ios::out | std::ios::app);
-//	file.write(to_save.data(), to_save.size());
-//	file.close();
+	MasterLearningConfig config(FileLoader("/home/maciek/alphagomoku/config.json").getJson());
+	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
+
+	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
+	cfg.simulations_min = 3200;
+	cfg.simulations_max = 3200;
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/test7_12x12_standard/checkpoint/network_38.bin", "test7");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/test9_12x12_standard/checkpoint/network_40.bin", "test9");
+
+	manager.generate(1000);
+	std::string to_save;
+	for (int i = 0; i < manager.numberOfThreads(); i++)
+		to_save += manager.getGameBuffer(i).generatePGN();
+	std::ofstream file("/home/maciek/alphagomoku/test7_test9_2.pgn", std::ios::out | std::ios::app);
+	file.write(to_save.data(), to_save.size());
+	file.close();
 }
 
 void generate_openings(int number)
@@ -646,6 +658,9 @@ int main(int argc, char *argv[])
 	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
+//	check_all_dataset("/home/maciek/alphagomoku/test7_12x12_standard/train_buffer/", 35);
+//	return 0;
+
 //	test_expand();
 //	return 0;
 
@@ -653,10 +668,10 @@ int main(int argc, char *argv[])
 //	generate_openings(500);
 
 //	benchmark_features();
-//	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/valid_buffer/", 119);
-//	return 0;
+	find_proven_positions("/home/maciek/alphagomoku/test9_12x12_standard/train_buffer/", 39);
+	return 0;
 
-	std::string path = "/home/maciek/alphagomoku/debug/";
+	std::string path = "/home/maciek/alphagomoku/test9_12x12_standard/";
 //	ArgumentParser ap;
 //	ap.addArgument("path", [&](const std::string &arg)
 //	{	path = arg;});
