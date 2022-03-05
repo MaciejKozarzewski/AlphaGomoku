@@ -50,14 +50,13 @@ namespace ag
 		private:
 			class CompressedBoard
 			{
-					std::array<uint64_t, 20> data; // assuming maximal board size of 20x20
+					std::array<uint64_t, 20> data;
 				public:
 					CompressedBoard() = default;
 					CompressedBoard(const matrix<Sign> &board) noexcept;
 					bool operator==(const matrix<Sign> &board) const noexcept;
 					bool isTransitionPossibleFrom(const CompressedBoard &board) const noexcept;
 			};
-
 			struct Entry
 			{
 					uint64_t hash = 0;

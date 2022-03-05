@@ -45,6 +45,14 @@ namespace ag
 	{
 		return x * x;
 	}
+	template<typename T>
+	T round_to_power_of_2(T x) noexcept
+	{
+		T result = 1;
+		while (result <= x)
+			result *= 2;
+		return result / 2;
+	}
 
 	/*
 	 * \brief Returns current time in seconds.
