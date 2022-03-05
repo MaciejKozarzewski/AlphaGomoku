@@ -122,26 +122,23 @@ namespace
 				for (size_t j = 0; j < length; j++, tmp /= 4)
 					line[line.size() - 1 - j] = static_cast<Sign>(tmp & 3);
 			}
-			bool is_five_for(Sign sign) noexcept
+			bool is_five_for(Sign sign) const noexcept
 			{
 				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-				assert(line[length] == Sign::NONE);
-				line[length] = sign;
 				const GameOutcome outcome = getOutcome(rules, line);
-				line[length] = Sign::NONE;
 				if (sign == Sign::CROSS)
 					return outcome == GameOutcome::CROSS_WIN;
 				else
 					return outcome == GameOutcome::CIRCLE_WIN;
 			}
-			int is_four_for(Sign sign) noexcept
+			int count_fours_for(Sign sign) noexcept
 			{
 				int winning = 0;
 				for (size_t i = 0; i < line.size(); i++)
 					if (line[i] == Sign::NONE)
 					{
 						line[i] = sign;
-						if (is_five_for_cross(line, rules))
+						if (is_five_for(sign))
 							winning++;
 						line[i] = Sign::NONE;
 					}
@@ -151,17 +148,15 @@ namespace
 			{
 				if (is_five_for(sign))
 					return ThreatType::FIVE;
-				else
+
+				switch (count_fours_for(sign))
 				{
-					switch (is_four_for(sign))
-					{
-						case 0:
-							return ThreatType::NONE;
-						case 1:
-							return ThreatType::HALF_OPEN_FOUR;
-						default:
-							return ThreatType::OPEN_FOUR;
-					}
+					case 0:
+						return ThreatType::NONE;
+					case 1:
+						return ThreatType::HALF_OPEN_FOUR;
+					default:
+						return ThreatType::OPEN_FOUR;
 				}
 			}
 		public:
@@ -174,10 +169,14 @@ namespace
 			Threat operator()(FeatureDescriptor feature)
 			{
 				fill_line(feature);
+				assert(line[length] == Sign::NONE);
 
 				Threat result;
+				line[length] = Sign::CROSS;
 				result.for_cross = get_threat_type_for(Sign::CROSS);
-				result.for_cross = get_threat_type_for(Sign::CIRCLE);
+				line[length] = Sign::CIRCLE;
+				result.for_circle = get_threat_type_for(Sign::CIRCLE);
+				line[length] = Sign::NONE;
 				return result;
 			}
 	};
@@ -202,16 +201,36 @@ namespace ag
 		}
 	}
 
+	std::string FeatureDescriptor::toString(int length) const
+	{
+		std::string result;
+		for (int i = 0; i < length; i++)
+			result += text(static_cast<Sign>((left >> (2 * i)) & 3));
+		result += " ";
+		for (int i = length - 1; i >= 0; i--)
+			result += text(static_cast<Sign>((right >> (2 * i)) & 3));
+		return result;
+	}
+
 	FeatureTable::FeatureTable(GameRules rules) :
 			feature_length(get_feature_length(rules))
 	{
-		create_maps(rules);
 		init(rules);
-		init_v2(rules);
+//		create_maps(rules);
+//		init_v2(rules);
 	}
 	Threat FeatureTable::getThreat(uint32_t feature) const noexcept
 	{
 		return Threat(features[feature]);
+	}
+	Threat FeatureTable::getThreat_v2(uint32_t feature) const noexcept
+	{
+		return Threat(features[feature]);
+//		const uint32_t mask = 3 << (2 * feature_length);
+//		if ((feature & mask) == 0) // only features with empty central spot are stored in the table
+//			return Threat(features_v2[get_position(feature)]);
+//		else
+//			return Threat();
 	}
 	Threat FeatureTable::getThreat(FeatureDescriptor feature) const noexcept
 	{
@@ -224,7 +243,7 @@ namespace ag
 	{
 		const size_t line_length = 2 * get_feature_length(rules) + 1;
 		const size_t number_of_features = 1 << (2 * line_length);
-		features.reserve(number_of_features);
+		features.resize(number_of_features);
 
 		std::vector<Sign> feature(line_length);
 		for (size_t i = 0; i < number_of_features; i++)
@@ -269,27 +288,37 @@ namespace ag
 					}
 				}
 			}
-			features[i] = result.encode();
+			features.at(i) = result.encode();
 		}
 	}
 	void FeatureTable::init_v2(GameRules rules)
 	{
-		features_v2.reserve(legal_features * (legal_features + 1) / 2);
-
 		const uint16_t number_of_features = 1 << (2 * feature_length);
+		features_v2.resize(legal_features * (legal_features + 1) / 2);
+//		features_v2.resize(number_of_features * number_of_features);
 
 		FeatureClassifier classify(rules);
-		int counter = 0;
 		for (uint16_t left = 0; left < number_of_features; left++)
 			for (uint16_t right = 0; right <= left; right++)
-				if (index_map[left] != -1 and index_map[right] != -1) //both sides are possible
+//			for (uint16_t right = 0; right < number_of_features; right++)
+				if (left_map[left] != -1 and left_map[right] != -1) //both sides are possible
 				{
 					FeatureDescriptor feature { left, right };
 					Threat threat = classify(feature);
 					const int position = get_position(feature);
 					features_v2[position] = threat.encode();
-					counter++;
 				}
+
+//		for (uint16_t left = 0; left < number_of_features; left++)
+//			for (uint16_t right = 0; right < number_of_features; right++)
+//				if (left_map[left] != -1 and left_map[right] != -1) //both sides are possible
+//				{
+//					FeatureDescriptor feature { left, right };
+//					Threat threat = classify(feature);
+//					if (threat.for_cross == ThreatType::OPEN_FOUR)
+//						std::cout << feature.toString(feature_length) << '\n';
+//				}
+//		exit(0);
 	}
 	void FeatureTable::create_maps(GameRules rules)
 	{
@@ -297,24 +326,53 @@ namespace ag
 		std::vector<Sign> feature(feature_length);
 
 		legal_features = 0;
-		index_map.reserve(number_of_features);
+		left_map.resize(number_of_features);
+		right_map.resize(number_of_features);
 		for (size_t i = 0; i < number_of_features; i++)
 		{
 			decode_feature(feature, i);
-			if (is_feature_possible(feature))
+			const bool is_possible = is_feature_possible(feature);
+
+			std::reverse(feature.begin(), feature.end());
+			const int right_index = encode_feature(feature);
+
+			if (is_possible)
 			{
-				index_map[i] = legal_features;
+				left_map[i] = legal_features;
+				right_map[right_index] = legal_features;
 				legal_features++;
 			}
 			else
-				index_map[i] = -1;
+			{
+				left_map[i] = -1;
+				right_map[right_index] = -1;
+			}
 		}
+	}
+	int FeatureTable::get_position(uint32_t feature) const noexcept
+	{
+//		const uint16_t number_of_features = 1 << (2 * feature_length);
+
+		const int shift = 2 * feature_length;
+		const int mask = (1 << shift) - 1;
+		const int row = left_map[feature & mask];
+		const int col = right_map[(feature >> (shift + 2)) & mask];
+
+		assert(row != -1 && col != -1);
+//		return row * number_of_features + col;
+		if (row >= col)
+			return (row + 1) * row / 2 + col;
+		else
+			return (col + 1) * col / 2 + row;
 	}
 	int FeatureTable::get_position(FeatureDescriptor feature) const noexcept
 	{
-		const int row = index_map[feature.left];
-		const int col = index_map[feature.right];
+//		const uint16_t number_of_features = 1 << (2 * feature_length);
+
+		const int row = left_map[feature.left];
+		const int col = left_map[feature.right];
 		assert(row != -1 && col != -1);
+//		return row * number_of_features + col;
 		if (row >= col)
 			return (row + 1) * row / 2 + col;
 		else

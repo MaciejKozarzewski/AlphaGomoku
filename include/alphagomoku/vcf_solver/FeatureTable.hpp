@@ -12,6 +12,14 @@
 
 namespace ag
 {
+	enum class Direction
+	{
+		HORIZONTAL,
+		VERTICAL,
+		DIAGONAL,
+		ANTIDIAGONAL
+	};
+
 	enum class ThreatType
 	{
 		NONE,
@@ -26,6 +34,7 @@ namespace ag
 	{
 			uint16_t left;
 			uint16_t right;
+			std::string toString(int length) const;
 	};
 
 	struct Threat
@@ -56,15 +65,19 @@ namespace ag
 			int legal_features;
 			std::vector<uint8_t> features;
 			std::vector<uint8_t> features_v2;
-			std::vector<int> index_map;
+
+			std::vector<int16_t> left_map;
+			std::vector<int16_t> right_map;
 		public:
 			FeatureTable(GameRules rules);
 			Threat getThreat(uint32_t feature) const noexcept;
+			Threat getThreat_v2(uint32_t feature) const noexcept;
 			Threat getThreat(FeatureDescriptor feature) const noexcept;
 		private:
 			void init(GameRules rules);
 			void init_v2(GameRules rules);
 			void create_maps(GameRules rules);
+			int get_position(uint32_t feature) const noexcept;
 			int get_position(FeatureDescriptor feature) const noexcept;
 	};
 

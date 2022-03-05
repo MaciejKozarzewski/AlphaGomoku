@@ -37,14 +37,6 @@ namespace ag
 			}
 	};
 
-	enum class Direction
-	{
-		HORIZONTAL,
-		VERTICAL,
-		DIAGONAL,
-		ANTIDIAGONAL
-	};
-
 	class FeatureExtractor
 	{
 		private:
@@ -92,8 +84,8 @@ namespace ag
 			int total_positions = 0;
 			int root_depth = 0;
 
-			int max_positions = 100; // maximum number of positions that will be searched
-			int max_depth = 30; // maximum recursion depth
+			int max_positions = 1000; // maximum number of positions that will be searched
+			int max_depth = 50; // maximum recursion depth
 			bool use_caching = true; // whether to use position caching or not
 			int cache_size = 1000; // number of positions in the cache
 

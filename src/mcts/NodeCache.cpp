@@ -10,17 +10,6 @@
 
 #include <iostream>
 
-namespace
-{
-	size_t round_to_power_of_2(size_t x)
-	{
-		size_t result = 1;
-		while (result <= x)
-			result *= 2;
-		return result / 2;
-	}
-}
-
 namespace ag
 {
 	NodeCacheStats::NodeCacheStats() :

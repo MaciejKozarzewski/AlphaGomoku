@@ -7,6 +7,8 @@
 
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
+#include <alphagomoku/vcf_solver/FastHashTable.hpp>
+#include <alphagomoku/vcf_solver/VCFSolver.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
@@ -483,15 +485,25 @@ void find_proven_positions(const std::string &path, int index)
 	GameConfig game_config(GameRules::STANDARD, 12, 12);
 	matrix<Sign> board(game_config.rows, game_config.cols);
 	FeatureExtractor extractor(game_config);
-	extractor.setBoard(board, Sign::CROSS);
+	VCFSolver solver(game_config);
 
 	std::vector<std::pair<uint16_t, float>> list_of_moves;
 	matrix<float> policy(board.rows(), board.cols());
 
 	GameBuffer buffer(path + "buffer_" + std::to_string(index) + ".bin");
 
-	TimedStat set_timer("set board");
-	TimedStat solve_timer("solve    ");
+	SearchTask task1(game_config.rules);
+	SearchTask task2(game_config.rules);
+	task1.reset(board, Sign::CROSS);
+	task2.reset(board, Sign::CROSS);
+
+	extractor.solve(task1, 2);
+	solver.solve(task2, 2);
+
+	TimedStat t_extractor("extractor");
+	TimedStat t_solver("solver   ");
+
+	std::cout << "start\n";
 	for (int i = 0; i < buffer.size(); i++)
 	{
 		all_games++;
@@ -501,25 +513,47 @@ void find_proven_positions(const std::string &path, int index)
 			buffer.getFromBuffer(i).getSample(j).getBoard(board);
 			Sign sign_to_move = buffer.getFromBuffer(i).getSample(j).getMove().sign;
 
-			set_timer.startTimer();
-			extractor.setBoard(board, sign_to_move);
-			set_timer.stopTimer();
+			task1.reset(board, sign_to_move);
+			task2.reset(board, sign_to_move);
 
-			solve_timer.startTimer();
-			ProvenValue asdf = extractor.solve(policy, list_of_moves);
-			solve_timer.stopTimer();
+			t_extractor.startTimer();
+			extractor.solve(task1, 2);
+			t_extractor.stopTimer();
+			solver.solve(task2, 2);
 
-			if (asdf != ProvenValue::UNKNOWN)
+			if (task1.isReady() != task2.isReady())
+			{
+				std::cout << task1.toString() << '\n';
+				std::cout << "----------------------------------------\n";
+				std::cout << task2.toString() << '\n';
+				return;
+			}
+			if (task1.isReady())
 			{
 				proven_positions++;
-				break;
 			}
 		}
-		std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
 	}
+
+	std::cout << t_extractor.toString() << '\n';
+
+	for (int i = 0; i < buffer.size(); i++)
+		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+		{
+			buffer.getFromBuffer(i).getSample(j).getBoard(board);
+			Sign sign_to_move = buffer.getFromBuffer(i).getSample(j).getMove().sign;
+
+			task2.reset(board, sign_to_move);
+			t_solver.startTimer();
+			solver.solve(task2, 2);
+			t_solver.stopTimer();
+		}
+
+	std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
+
 //	extractor.print_stats();
-	std::cout << set_timer.toString() << '\n';
-	std::cout << solve_timer.toString() << '\n';
+
+	std::cout << t_solver.toString() << '\n';
 }
 
 void test_evaluate()
@@ -656,8 +690,11 @@ void test_expand()
 
 int main(int argc, char *argv[])
 {
-	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
-	std::cout << ml::Device::hardwareInfo() << '\n';
+//	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
+//	std::cout << ml::Device::hardwareInfo() << '\n';
+
+//	FeatureTable ft(GameRules::FREESTYLE);
+//	return 0;
 
 //	check_all_dataset("/home/maciek/alphagomoku/test7_12x12_standard/train_buffer/", 35);
 //	return 0;
@@ -670,6 +707,32 @@ int main(int argc, char *argv[])
 
 //	benchmark_features();
 	find_proven_positions("/home/maciek/alphagomoku/test9_12x12_standard/train_buffer/", 39);
+	return 0;
+
+	matrix<Sign> zxc(12, 12);
+	Board::putMove(zxc, Move(Sign::CROSS, 3, 4));
+	Board::putMove(zxc, Move(Sign::CIRCLE, 2, 3));
+	Board::putMove(zxc, Move(Sign::CROSS, 6, 5));
+	FastHashTable<uint32_t, SolvedValue, 4> table(zxc.size(), 1024);
+	table.setBoard(zxc);
+	std::cout << table.getHash() << '\n';
+	table.updateHash(Move(Sign::CIRCLE, 9, 9));
+	std::cout << table.getHash() << '\n';
+
+	Board::putMove(zxc, Move(Sign::CIRCLE, 9, 9));
+	table.setBoard(zxc);
+	std::cout << table.getHash() << '\n';
+
+	table.insert(987, SolvedValue::UNSOLVED);
+	table.insert(1024 + 987, SolvedValue::LOSS);
+	table.insert(2048 + 987, SolvedValue::WIN);
+	table.insert(4096 + 987, SolvedValue::LOSS);
+
+	std::cout << static_cast<int>(table.get(987)) << '\n';
+	std::cout << static_cast<int>(table.get(1024 + 987)) << '\n';
+	std::cout << static_cast<int>(table.get(2048 + 987)) << '\n';
+	std::cout << static_cast<int>(table.get(4096 + 987)) << '\n';
+
 	return 0;
 
 	std::string path = "/home/maciek/alphagomoku/test9_12x12_standard/";

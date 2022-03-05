@@ -349,8 +349,8 @@ namespace ag
 
 		total_positions += position_counter;
 		statistics[root_depth].add(nodes_buffer.front().solved_value == SolvedValue::SOLVED_LOSS, position_counter);
-		//		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
-		//				<< position_counter << " positions, total = " << total_positions << ", in cache " << hashtable.size() << "\n";
+//		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
+//				<< position_counter << " positions, total = " << total_positions << ", in cache " << hashtable.size() << "\n";
 		if (nodes_buffer.front().solved_value == SolvedValue::SOLVED_LOSS)
 		{
 			for (auto iter = nodes_buffer[0].children; iter < nodes_buffer[0].children + nodes_buffer[0].number_of_children; iter++)
@@ -618,7 +618,9 @@ namespace ag
 			}
 	}
 
-// private
+	/*
+	 * private
+	 */
 	uint64_t FeatureExtractor::get_hash() const noexcept
 	{
 		assert(static_cast<int>(hashing_keys.size()) == 2 * game_config.rows * game_config.cols);
@@ -644,7 +646,7 @@ namespace ag
 	uint64_t FeatureExtractor::update_hash(uint64_t old_hash, Move move) const noexcept
 	{
 		assert(static_cast<int>(hashing_keys.size()) == 2 * game_config.rows * game_config.cols);
-		return old_hash ^ hashing_keys[move.row * game_config.cols + move.col + static_cast<int>(move.sign) - 1];
+		return old_hash ^ hashing_keys[2 * (move.row * game_config.cols + move.col) + static_cast<int>(move.sign) - 1];
 	}
 	void FeatureExtractor::create_hashtable()
 	{
@@ -743,6 +745,13 @@ namespace ag
 						circle_threats.at(pad + row, (pad + col) * 4 + dir) = ThreatType::NONE;
 					}
 				}
+
+//		std::random_shuffle(cross_five.begin(), cross_five.end());
+//		std::random_shuffle(cross_open_four.begin(), cross_open_four.end());
+//		std::random_shuffle(cross_half_open_four.begin(), cross_half_open_four.end());
+//		std::random_shuffle(circle_five.begin(), circle_five.end());
+//		std::random_shuffle(circle_open_four.begin(), circle_open_four.end());
+//		std::random_shuffle(circle_half_open_four.begin(), circle_half_open_four.end());
 	}
 	void FeatureExtractor::recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth)
 	{
@@ -751,14 +760,14 @@ namespace ag
 //		printAllThreats();
 
 		Sign signToMove = invertSign(node.move.sign);
-		std::vector<Move> &own_five = (signToMove == Sign::CROSS) ? cross_five : circle_five;
+		const std::vector<Move> &own_five = (signToMove == Sign::CROSS) ? cross_five : circle_five;
 		if (own_five.size() > 0) // if side to move can make a five, mark this node as loss
 		{
 			node.solved_value = SolvedValue::SOLVED_LOSS;
 			return;
 		}
 
-		std::vector<Move> &opponent_five = (signToMove == Sign::CROSS) ? circle_five : cross_five;
+		const std::vector<Move> &opponent_five = (signToMove == Sign::CROSS) ? circle_five : cross_five;
 		if (opponent_five.size() > 1) // if the other side side to move can make more than one five, mark this node as win
 		{
 			node.solved_value = SolvedValue::SOLVED_WIN;
@@ -789,6 +798,8 @@ namespace ag
 		}
 		else
 		{
+//			std::random_shuffle(own_open_four.begin(), own_open_four.end());
+//			std::random_shuffle(own_half_open_four.begin(), own_half_open_four.end());
 			size_t children_counter = 0;
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++, children_counter++)
 				node.children[children_counter].init(iter->row, iter->col, signToMove);
