@@ -53,16 +53,16 @@ namespace ag
 
 	struct ThreatGroup
 	{
-			ThreatType horizontal;
-			ThreatType vertical;
-			ThreatType diagonal;
-			ThreatType antidiagonal;
+			Threat horizontal;
+			Threat vertical;
+			Threat diagonal;
+			Threat antidiagonal;
 
-			ThreatType best() const noexcept
+			Threat best() const noexcept
 			{
-				return std::max(std::max(horizontal, vertical), std::max(diagonal, antidiagonal));
+				return max(max(horizontal, vertical), max(diagonal, antidiagonal));
 			}
-			ThreatType get(Direction dir) const noexcept
+			Threat get(Direction dir) const noexcept
 			{
 				switch (dir)
 				{
@@ -75,10 +75,10 @@ namespace ag
 					case Direction::ANTIDIAGONAL:
 						return antidiagonal;
 					default:
-						return ThreatType::NONE;
+						return Threat();
 				}
 			}
-			ThreatType& get(Direction dir) noexcept
+			Threat& get(Direction dir) noexcept
 			{
 				switch (dir)
 				{
@@ -105,8 +105,7 @@ namespace ag
 			int root_depth = 0;
 			matrix<int> internal_board;
 			matrix<FeatureGroup> features;
-			matrix<ThreatGroup> cross_threats;
-			matrix<ThreatGroup> circle_threats;
+			matrix<ThreatGroup> threats;
 
 			std::vector<Move> cross_five;
 			std::vector<Move> cross_open_four;

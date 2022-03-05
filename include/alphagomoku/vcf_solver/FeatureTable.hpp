@@ -56,6 +56,10 @@ namespace ag
 			{
 				return static_cast<uint32_t>(for_cross) | (static_cast<uint32_t>(for_circle) << 4);
 			}
+			friend Threat max(const Threat &lhs, const Threat &rhs) noexcept
+			{
+				return Threat(std::max(lhs.for_cross, rhs.for_cross), std::max(lhs.for_circle, rhs.for_circle));
+			}
 	};
 
 	class FeatureTable

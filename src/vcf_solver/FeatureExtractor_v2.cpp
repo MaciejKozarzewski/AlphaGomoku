@@ -18,180 +18,194 @@ namespace
 {
 	using namespace ag;
 
-	template<int pad>
+	template<int Pad>
 	void horizontal(matrix<FeatureGroup> &features, const matrix<int> &board) noexcept
 	{
 		assert(board.isSquare());
-		const uint32_t shift = 4 * pad;
-		for (int row = pad; row < board.rows() - pad; row++)
+		const uint32_t shift = 4 * Pad;
+		for (int row = Pad; row < board.rows() - Pad; row++)
 		{
-			uint32_t line = (1 << (2 * pad)) - 1;
-			for (int col = pad; col <= 2 * pad; col++)
+			uint32_t line = (1 << (2 * Pad)) - 1;
+			for (int col = Pad; col <= 2 * Pad; col++)
 				line = line | (board.at(row, col) << (col * 2));
-			features.at(row, pad).horizontal = line;
-			for (int col = pad + 1; col < board.cols() - pad; col++)
+			features.at(row, Pad).horizontal = line;
+			for (int col = Pad + 1; col < board.cols() - Pad; col++)
 			{
-				line = (board.at(row, col + pad) << shift) | (line >> 2);
+				line = (board.at(row, col + Pad) << shift) | (line >> 2);
 				features.at(row, col).horizontal = line;
 			}
 		}
 	}
-	template<int pad>
+	template<int Pad>
 	void vertical(matrix<FeatureGroup> &features, const matrix<int> &board) noexcept
 	{
 		assert(board.isSquare());
-		const uint32_t shift = 4 * pad;
-		for (int col = pad; col < board.cols() - pad; col++)
+		const uint32_t shift = 4 * Pad;
+		for (int col = Pad; col < board.cols() - Pad; col++)
 		{
-			uint32_t line = (1 << (2 * pad)) - 1;
-			for (int row = pad; row <= 2 * pad; row++)
+			uint32_t line = (1 << (2 * Pad)) - 1;
+			for (int row = Pad; row <= 2 * Pad; row++)
 				line = line | (board.at(row, col) << (row * 2));
-			features.at(pad, col).vertical = line;
-			for (int row = pad + 1; row < board.rows() - pad; row++)
+			features.at(Pad, col).vertical = line;
+			for (int row = Pad + 1; row < board.rows() - Pad; row++)
 			{
-				line = (board.at(row + pad, col) << shift) | (line >> 2);
+				line = (board.at(row + Pad, col) << shift) | (line >> 2);
 				features.at(row, col).vertical = line;
 			}
 		}
 	}
-	template<int pad>
+	template<int Pad>
 	void diagonal(matrix<FeatureGroup> &features, const matrix<int> &board) noexcept
 	{
 		assert(board.isSquare());
-		const uint32_t shift = 4 * pad;
-		for (int i = 0; i < board.rows() - 2 * pad; i++) // lower left half
+		const uint32_t shift = 4 * Pad;
+		for (int i = 0; i < board.rows() - 2 * Pad; i++) // lower left half
 		{
-			uint32_t line = (1 << (2 * pad)) - 1;
-			for (int j = pad; j <= 2 * pad; j++)
+			uint32_t line = (1 << (2 * Pad)) - 1;
+			for (int j = Pad; j <= 2 * Pad; j++)
 				line = line | (board.at(i + j, j) << (j * 2));
-			features.at(pad + i, pad).diagonal = line;
-			for (int j = pad + 1; j < board.cols() - pad - i; j++)
+			features.at(Pad + i, Pad).diagonal = line;
+			for (int j = Pad + 1; j < board.cols() - Pad - i; j++)
 			{
-				line = (board.at(pad + i + j, pad + j) << shift) | (line >> 2);
+				line = (board.at(Pad + i + j, Pad + j) << shift) | (line >> 2);
 				features.at(i + j, j).diagonal = line;
 			}
 		}
 
-		for (int i = 1; i < board.cols() - 2 * pad; i++) // upper right half
+		for (int i = 1; i < board.cols() - 2 * Pad; i++) // upper right half
 		{
-			uint32_t line = (1 << (2 * pad)) - 1;
-			for (int j = pad; j <= 2 * pad; j++)
+			uint32_t line = (1 << (2 * Pad)) - 1;
+			for (int j = Pad; j <= 2 * Pad; j++)
 				line = line | (board.at(j, i + j) << (j * 2));
-			features.at(pad, pad + i).diagonal = line;
-			for (int j = pad + 1; j < board.rows() - pad - i; j++)
+			features.at(Pad, Pad + i).diagonal = line;
+			for (int j = Pad + 1; j < board.rows() - Pad - i; j++)
 			{
-				line = (board.at(pad + j, pad + i + j) << shift) | (line >> 2);
+				line = (board.at(Pad + j, Pad + i + j) << shift) | (line >> 2);
 				features.at(j, j + i).diagonal = line;
 			}
 		}
 	}
-	template<int pad>
+	template<int Pad>
 	void antidiagonal(matrix<FeatureGroup> &features, const matrix<int> &board) noexcept
 	{
 		assert(board.isSquare());
-		const uint32_t shift = 4 * pad;
-		for (int i = 0; i < board.rows() - 2 * pad; i++) // upper left half
+		const uint32_t shift = 4 * Pad;
+		for (int i = 0; i < board.rows() - 2 * Pad; i++) // upper left half
 		{
-			uint32_t line = (1 << (2 * pad)) - 1;
-			for (int j = 0; j <= pad; j++)
-				line = line | (board.at(pad + i - j, pad + j) << ((pad + j) * 2));
-			features.at(pad + i, pad).antidiagonal = line;
+			uint32_t line = (1 << (2 * Pad)) - 1;
+			for (int j = 0; j <= Pad; j++)
+				line = line | (board.at(Pad + i - j, Pad + j) << ((Pad + j) * 2));
+			features.at(Pad + i, Pad).antidiagonal = line;
 			for (int j = 1; j <= i; j++)
 			{
-				line = (board.at(pad + i - j - pad, pad + j + pad) << shift) | (line >> 2);
-				features.at(pad + i - j, pad + j).antidiagonal = line;
+				line = (board.at(Pad + i - j - Pad, Pad + j + Pad) << shift) | (line >> 2);
+				features.at(Pad + i - j, Pad + j).antidiagonal = line;
 			}
 		}
 
-		for (int i = 0; i < board.cols() - 2 * pad; i++) // lower right half
+		for (int i = 0; i < board.cols() - 2 * Pad; i++) // lower right half
 		{
-			uint32_t line = (1 << (2 * pad)) - 1;
-			for (int j = 0; j <= pad; j++)
-				line = line | (board.at(board.rows() - pad - 1 - j, pad + i + j) << ((pad + j) * 2));
-			features.at(board.rows() - pad - 1, pad + i).antidiagonal = line;
-			for (int j = 1; j < board.cols() - 2 * pad - i; j++)
+			uint32_t line = (1 << (2 * Pad)) - 1;
+			for (int j = 0; j <= Pad; j++)
+				line = line | (board.at(board.rows() - Pad - 1 - j, Pad + i + j) << ((Pad + j) * 2));
+			features.at(board.rows() - Pad - 1, Pad + i).antidiagonal = line;
+			for (int j = 1; j < board.cols() - 2 * Pad - i; j++)
 			{
-				line = (board.at(board.rows() - pad - 1 - j - pad, pad + i + j + pad) << shift) | (line >> 2);
-				features.at(board.rows() - pad - 1 - j, pad + i + j).antidiagonal = line;
+				line = (board.at(board.rows() - Pad - 1 - j - Pad, Pad + i + j + Pad) << shift) | (line >> 2);
+				features.at(board.rows() - Pad - 1 - j, Pad + i + j).antidiagonal = line;
 			}
 		}
 	}
 
-	template<int pad>
+	template<int Pad>
 	void add_move(matrix<FeatureGroup> &features, matrix<int> &board, const Move &move) noexcept
 	{
 		assert(board.isSquare());
 		assert(move.sign != Sign::NONE);
-		assert(board.at(pad + move.row, pad + move.col) == 0); // move must be made on empty spot
+		assert(board.at(Pad + move.row, Pad + move.col) == 0); // move must be made on empty spot
 
-		board.at(pad + move.row, pad + move.col) = static_cast<int>(move.sign);
+		board.at(Pad + move.row, Pad + move.col) = static_cast<int>(move.sign);
 
 		// first calculate rows above move
-		uint32_t mask1 = static_cast<uint32_t>(move.sign) << (4 * pad);
+		uint32_t mask1 = static_cast<uint32_t>(move.sign) << (4 * Pad);
 		uint32_t mask2 = static_cast<uint32_t>(move.sign);
-		for (int i = 0; i <= pad; i++)
+		for (int i = 0; i <= Pad; i++)
 		{
-			features.at(move.row + i, pad + move.col - (pad - i)).diagonal |= mask1; // diagonal
-			features.at(move.row + i, pad + move.col).vertical |= mask1; // vertical
-			features.at(move.row + i, pad + move.col + (pad - i)).antidiagonal |= mask2; // antidiagonal
+			features.at(move.row + i, Pad + move.col - (Pad - i)).diagonal |= mask1; // diagonal
+			features.at(move.row + i, Pad + move.col).vertical |= mask1; // vertical
+			features.at(move.row + i, Pad + move.col + (Pad - i)).antidiagonal |= mask2; // antidiagonal
 			mask1 = mask1 >> 2;
 			mask2 = mask2 << 2;
 		}
 
-		uint32_t mask3 = static_cast<uint32_t>(move.sign) << (4 * pad);
-		for (int i = 0; i <= 2 * pad; i++)
+		uint32_t mask3 = static_cast<uint32_t>(move.sign) << (4 * Pad);
+		for (int i = 0; i <= 2 * Pad; i++)
 		{
-			features.at(pad + move.row, move.col + i).horizontal |= mask3; // horizontal
+			features.at(Pad + move.row, move.col + i).horizontal |= mask3; // horizontal
 			mask3 = mask3 >> 2;
 		}
 
-		for (int i = 1; i <= pad; i++)
+		for (int i = 1; i <= Pad; i++)
 		{
-			features.at(pad + move.row + i, pad + move.col - i).antidiagonal |= mask2; // antidiagonal
-			features.at(pad + move.row + i, pad + move.col).vertical |= mask1; // vertical
-			features.at(pad + move.row + i, pad + move.col + i).diagonal |= mask1; // diagonal
+			features.at(Pad + move.row + i, Pad + move.col - i).antidiagonal |= mask2; // antidiagonal
+			features.at(Pad + move.row + i, Pad + move.col).vertical |= mask1; // vertical
+			features.at(Pad + move.row + i, Pad + move.col + i).diagonal |= mask1; // diagonal
 			mask1 = mask1 >> 2;
 			mask2 = mask2 << 2;
 		}
 	}
-	template<int pad>
+	template<int Pad>
 	void undo_move(matrix<FeatureGroup> &features, matrix<int> &board, const Move &move) noexcept
 	{
 		assert(board.isSquare());
 		assert(move.sign != Sign::NONE);
-		assert(board.at(pad + move.row, pad + move.col) == static_cast<int>(move.sign));
+		assert(board.at(Pad + move.row, Pad + move.col) == static_cast<int>(move.sign));
 
-		board.at(pad + move.row, pad + move.col) = static_cast<int>(Sign::NONE);
+		board.at(Pad + move.row, Pad + move.col) = static_cast<int>(Sign::NONE);
 
 		// first calculate rows above move
-		uint32_t mask1 = ~(3 << (4 * pad));
+		uint32_t mask1 = ~(3 << (4 * Pad));
 		uint32_t mask2 = ~3;
-		for (int i = 0; i <= pad; i++)
+		for (int i = 0; i <= Pad; i++)
 		{
-			features.at(move.row + i, pad + move.col - (pad - i)).diagonal &= mask1; // diagonal
-			features.at(move.row + i, pad + move.col).vertical &= mask1; // vertical
-			features.at(move.row + i, pad + move.col + (pad - i)).antidiagonal &= mask2; // antidiagonal
+			features.at(move.row + i, Pad + move.col - (Pad - i)).diagonal &= mask1; // diagonal
+			features.at(move.row + i, Pad + move.col).vertical &= mask1; // vertical
+			features.at(move.row + i, Pad + move.col + (Pad - i)).antidiagonal &= mask2; // antidiagonal
 			mask1 = (3 << 30) | (mask1 >> 2);
 			mask2 = (mask2 << 2) | 3;
 		}
 
-		uint32_t mask3 = ~(3 << (4 * pad));
-		for (int i = 0; i <= 2 * pad; i++)
+		uint32_t mask3 = ~(3 << (4 * Pad));
+		for (int i = 0; i <= 2 * Pad; i++)
 		{
-			features.at(pad + move.row, move.col + i).horizontal &= mask3; // horizontal
+			features.at(Pad + move.row, move.col + i).horizontal &= mask3; // horizontal
 			mask3 = (3 << 30) | (mask3 >> 2);
 		}
 
-		for (int i = 1; i <= pad; i++)
+		for (int i = 1; i <= Pad; i++)
 		{
-			features.at(pad + move.row + i, pad + move.col - i).antidiagonal &= mask2; // antidiagonal
-			features.at(pad + move.row + i, pad + move.col).vertical &= mask1; // vertical
-			features.at(pad + move.row + i, pad + move.col + i).diagonal &= mask1; // diagonal
+			features.at(Pad + move.row + i, Pad + move.col - i).antidiagonal &= mask2; // antidiagonal
+			features.at(Pad + move.row + i, Pad + move.col).vertical &= mask1; // vertical
+			features.at(Pad + move.row + i, Pad + move.col + i).diagonal &= mask1; // diagonal
 			mask1 = (3 << 30) | (mask1 >> 2);
 			mask2 = (mask2 << 2) | 3;
 		}
 	}
 
+	int get_padding(GameRules rules)
+	{
+		switch (rules)
+		{
+			case GameRules::FREESTYLE:
+				return 4;
+			case GameRules::STANDARD:
+			case GameRules::RENJU:
+			case GameRules::CARO:
+				return 5;
+			default:
+				throw std::logic_error("unknown rule");
+		}
+	}
 	const FeatureTable& get_feature_table(GameRules rules)
 	{
 		switch (rules)
@@ -227,11 +241,10 @@ namespace ag
 
 	FeatureExtractor_v2::FeatureExtractor_v2(GameConfig gameConfig) :
 			game_config(gameConfig),
-			pad((game_config.rules == GameRules::FREESTYLE) ? 4 : 5),
+			pad(get_padding(gameConfig.rules)),
 			internal_board(gameConfig.rows + 2 * pad, gameConfig.cols + 2 * pad),
-			features(internal_board.rows(), internal_board.cols() * 4),
-			cross_threats(internal_board.rows(), internal_board.cols() * 4),
-			circle_threats(internal_board.rows(), internal_board.cols() * 4)
+			features(internal_board.rows(), internal_board.cols()),
+			threats(gameConfig.rows, gameConfig.cols)
 	{
 		internal_board.fill(3);
 	}
@@ -337,9 +350,9 @@ namespace ag
 			default:
 				return ThreatType::NONE;
 			case Sign::CROSS:
-				return cross_threats.at(pad + row, pad + col).get(dir);
+				return threats.at(row, col).get(dir).for_cross;
 			case Sign::CIRCLE:
-				return circle_threats.at(pad + row, pad + col).get(dir);
+				return threats.at(row, col).get(dir).for_circle;
 		}
 	}
 
@@ -479,22 +492,19 @@ namespace ag
 		circle_half_open_four.clear();
 
 		const FeatureTable &table = get_feature_table(game_config.rules);
-		for (int row = 0; row < internal_board.rows() - 2 * pad; row++)
-			for (int col = 0; col < internal_board.cols() - 2 * pad; col++)
+		for (int row = 0; row < game_config.rows; row++)
+			for (int col = 0; col < game_config.cols; col++)
 				if (internal_board.at(pad + row, pad + col) == 0)
 				{
-					ThreatType best_cross = ThreatType::NONE;
-					ThreatType best_circle = ThreatType::NONE;
 					for (int dir = 0; dir < 4; dir++)
 					{
-						Threat tmp = table.getThreat_v2(get_feature_at(row, col, static_cast<Direction>(dir)));
-						cross_threats.at(pad + row, pad + col).get(static_cast<Direction>(dir)) = tmp.for_cross;
-						circle_threats.at(pad + row, pad + col).get(static_cast<Direction>(dir)) = tmp.for_circle;
-						best_cross = std::max(best_cross, tmp.for_cross);
-						best_circle = std::max(best_circle, tmp.for_circle);
+						const Direction direction = static_cast<Direction>(dir);
+						threats.at(row, col).get(direction) = table.getThreat_v2(get_feature_at(row, col, direction));
 					}
 
-					switch (best_cross)
+					Threat best_threat = threats.at(row, col).best();
+
+					switch (best_threat.for_cross)
 					{
 						case ThreatType::NONE:
 							break;
@@ -509,7 +519,7 @@ namespace ag
 							break;
 					}
 
-					switch (best_circle)
+					switch (best_threat.for_circle)
 					{
 						case ThreatType::NONE:
 							break;
@@ -527,10 +537,7 @@ namespace ag
 				else
 				{
 					for (int dir = 0; dir < 4; dir++)
-					{
-						cross_threats.at(pad + row, pad + col).get(static_cast<Direction>(dir)) = ThreatType::NONE;
-						circle_threats.at(pad + row, pad + col).get(static_cast<Direction>(dir)) = ThreatType::NONE;
-					}
+						threats.at(row, col).get(static_cast<Direction>(dir)) = Threat();
 				}
 	}
 	void FeatureExtractor_v2::update_threats(int row, int col)
@@ -556,15 +563,14 @@ namespace ag
 		if (row >= 0 and row < game_config.rows and col >= 0 and col < game_config.cols) // only inside board
 		{
 			// check what was the best threat at (row, col) before updating
-			Threat old_best_threat(cross_threats.at(pad + row, pad + col).best(), circle_threats.at(pad + row, pad + col).best());
+			const Threat old_best_threat = threats.at(row, col).best();
 
 			// update the threat tables with newly formed threat in the given direction
-			Threat new_threat = table.getThreat_v2(get_feature_at(row, col, direction)); // this is new threat as taken from feature table
-			cross_threats.at(pad + row, pad + col).get(direction) = new_threat.for_cross;
-			circle_threats.at(pad + row, pad + col).get(direction) = new_threat.for_circle;
+			const Threat new_threat = table.getThreat_v2(get_feature_at(row, col, direction)); // this is new threat as taken from feature table
+			threats.at(row, col).get(direction) = new_threat;
 
 			// check what is the new best threat at (row, col) after threat tables was updated
-			Threat new_best_threat(cross_threats.at(pad + row, pad + col).best(), circle_threats.at(pad + row, pad + col).best());
+			const Threat new_best_threat = threats.at(row, col).best();
 
 			// update list of threats for cross and circle
 			update_threat_list(old_best_threat.for_cross, new_best_threat.for_cross, Move(row, col), cross_five, cross_open_four,
@@ -598,14 +604,18 @@ namespace ag
 			{
 				auto index = std::find(open_four.begin(), open_four.end(), move);
 				assert(index != open_four.end()); // the threat must exist in the list
-				open_four.erase(index);
+				std::swap(*index, open_four.back());
+				open_four.pop_back();
+//				open_four.erase(index);
 				break;
 			}
 			case ThreatType::FIVE:
 			{
 				auto index = std::find(five.begin(), five.end(), move);
 				assert(index != five.end());
-				five.erase(index);
+				std::swap(*index, five.back());
+				five.pop_back();
+//				five.erase(index);
 				break;
 			}
 		}
