@@ -234,6 +234,25 @@ namespace
 				throw std::logic_error("unknown rule");
 		}
 	}
+
+	Threat find_4x4_fork(const ThreatGroup &t) noexcept
+	{
+		int cross = 0, circle = 0;
+		auto check_direction = [&](Threat t)
+		{	cross += (t.for_cross == ThreatType::HALF_OPEN_FOUR);
+			circle += (t.for_circle == ThreatType::HALF_OPEN_FOUR);
+		};
+		check_direction(t.horizontal);
+		check_direction(t.vertical);
+		check_direction(t.diagonal);
+		check_direction(t.antidiagonal);
+
+		Threat result;
+		result.for_cross = (cross >= 2) ? ThreatType::OPEN_FOUR : ThreatType::NONE;
+		result.for_circle = (circle >= 2) ? ThreatType::OPEN_FOUR : ThreatType::NONE;
+		return result;
+	}
+
 }
 
 namespace ag
@@ -602,27 +621,27 @@ namespace ag
 				assert(index != half_open_four.end()); // the threat must exist in the list
 				// 				as half-open fours are frequent, instead of deleting element from the middle, move it to the end first
 				//				such shuffling of threats should improve search efficiency (on average)
-//				std::swap(*index, half_open_four.back());
-//				half_open_four.pop_back();
-				half_open_four.erase(index);
+				std::swap(*index, half_open_four.back());
+				half_open_four.pop_back();
+//				half_open_four.erase(index);
 				break;
 			}
 			case ThreatType::OPEN_FOUR:
 			{
 				auto index = std::find(open_four.begin(), open_four.end(), move);
 				assert(index != open_four.end()); // the threat must exist in the list
-//				std::swap(*index, open_four.back());
-//				open_four.pop_back();
-				open_four.erase(index);
+				std::swap(*index, open_four.back());
+				open_four.pop_back();
+//				open_four.erase(index);
 				break;
 			}
 			case ThreatType::FIVE:
 			{
 				auto index = std::find(five.begin(), five.end(), move);
 				assert(index != five.end());
-//				std::swap(*index, five.back());
-//				five.pop_back();
-				five.erase(index);
+				std::swap(*index, five.back());
+				five.pop_back();
+//				five.erase(index);
 				break;
 			}
 		}

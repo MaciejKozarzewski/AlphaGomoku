@@ -10,6 +10,18 @@
 
 #include <iostream>
 
+namespace
+{
+	int square(int x) noexcept
+	{
+		return x * x;
+	}
+	int distance(ag::Move lhs, ag::Move rhs) noexcept
+	{
+		return square(lhs.row - rhs.row) + square(lhs.col - rhs.col);
+	}
+}
+
 namespace ag
 {
 	void VCFSolver::SolverData::clear() noexcept
@@ -269,12 +281,6 @@ namespace ag
 		}
 
 		const std::vector<Move> &opponent_five = feature_extractor.getThreats(ThreatType::FIVE, invertSign(sign_to_move));
-		if (opponent_five.size() > 1) // if the other side side to move can make more than one five, mark this node as win
-		{
-			node.solved_value = SolvedValue::WIN;
-			return;
-		}
-
 		switch (opponent_five.size())
 		{
 			case 0:
@@ -297,14 +303,6 @@ namespace ag
 				return;
 		}
 
-//		const std::vector<Move> &own_open_four = feature_extractor.getThreats(ThreatType::OPEN_FOUR, sign_to_move);
-//		const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
-//
-//		if (opponent_five.size() > 0)
-//			node.number_of_children = 1; // there is only one defensive move
-//		else
-//			node.number_of_children = static_cast<int>(own_open_four.size() + own_half_open_four.size());
-
 		node.solved_value = SolvedValue::UNSOLVED;
 		if (node.number_of_children == 0)
 			return; // no available threats
@@ -323,10 +321,12 @@ namespace ag
 		{
 			const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
 			size_t children_counter = 0;
-//			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++, children_counter++)
-//				node.children[children_counter].init(iter->row, iter->col, sign_to_move);
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++, children_counter++)
 				node.children[children_counter].init(iter->row, iter->col, sign_to_move);
+
+			const Move last_move = node.move;
+			std::sort(node.children, node.children + node.number_of_children, [last_move](const InternalNode &lhs, const InternalNode &rhs)
+			{	return distance(last_move, lhs.move) < distance(last_move, rhs.move);});
 		}
 
 		int loss_counter = 0;
