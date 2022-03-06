@@ -56,6 +56,13 @@ namespace ag
 		return getSolvedValue() != SolvedValue::UNKNOWN;
 	}
 
+	/*
+	 * Solver Table
+	 *
+	 *
+	 *
+	 */
+
 	VCFSolver::VCFSolver(GameConfig gameConfig) :
 			statistics(gameConfig.rows * gameConfig.cols),
 			search_path(gameConfig.rows * gameConfig.cols),
@@ -268,13 +275,35 @@ namespace ag
 			return;
 		}
 
-		const std::vector<Move> &own_open_four = feature_extractor.getThreats(ThreatType::OPEN_FOUR, sign_to_move);
-		const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
+		switch (opponent_five.size())
+		{
+			case 0:
+			{
+				const std::vector<Move> &own_open_four = feature_extractor.getThreats(ThreatType::OPEN_FOUR, sign_to_move);
+				const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
+				if (own_open_four.size() > 0) // if side to move can make an open four but the opponent has no fives, mark this node as loss
+				{
+					node.solved_value = SolvedValue::LOSS;
+					return;
+				}
+				node.number_of_children = static_cast<int>(own_half_open_four.size());
+				break;
+			}
+			case 1:
+				node.number_of_children = 1; // there is only one defensive move
+				break;
+			default:
+				node.solved_value = SolvedValue::WIN; // if the other side side to move can make more than one five, mark this node as win
+				return;
+		}
 
-		if (opponent_five.size() > 0)
-			node.number_of_children = 1; // there is only one defensive move
-		else
-			node.number_of_children = static_cast<int>(own_open_four.size() + own_half_open_four.size());
+//		const std::vector<Move> &own_open_four = feature_extractor.getThreats(ThreatType::OPEN_FOUR, sign_to_move);
+//		const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
+//
+//		if (opponent_five.size() > 0)
+//			node.number_of_children = 1; // there is only one defensive move
+//		else
+//			node.number_of_children = static_cast<int>(own_open_four.size() + own_half_open_four.size());
 
 		node.solved_value = SolvedValue::UNSOLVED;
 		if (node.number_of_children == 0)
@@ -292,9 +321,10 @@ namespace ag
 		}
 		else
 		{
+			const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
 			size_t children_counter = 0;
-			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++, children_counter++)
-				node.children[children_counter].init(iter->row, iter->col, sign_to_move);
+//			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++, children_counter++)
+//				node.children[children_counter].init(iter->row, iter->col, sign_to_move);
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++, children_counter++)
 				node.children[children_counter].init(iter->row, iter->col, sign_to_move);
 		}

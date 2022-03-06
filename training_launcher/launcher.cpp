@@ -519,24 +519,24 @@ void find_proven_positions(const std::string &path, int index)
 			t_extractor.startTimer();
 			extractor.solve(task1, 2);
 			t_extractor.stopTimer();
-			solver.solve(task2, 2);
-
-			if (task1.isReady() != task2.isReady())
-			{
-				std::cout << task1.toString() << '\n';
-				std::cout << "----------------------------------------\n";
-				std::cout << task2.toString() << '\n';
-				return;
-			}
+//			solver.solve(task2, 2);
+//
+//			if (task1.isReady() != task2.isReady())
+//			{
+//				std::cout << i << " " << j << '\n';
+//				std::cout << task1.toString() << '\n';
+//				std::cout << "----------------------------------------\n";
+//				std::cout << task2.toString() << '\n';
+//				return;
+//			}
 			if (task1.isReady())
-			{
 				proven_positions++;
-			}
 		}
 	}
-
+	std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
 	std::cout << t_extractor.toString() << '\n';
 
+	proven_positions = 0;
 	for (int i = 0; i < buffer.size(); i++)
 		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
 		{
@@ -547,12 +547,11 @@ void find_proven_positions(const std::string &path, int index)
 			t_solver.startTimer();
 			solver.solve(task2, 2);
 			t_solver.stopTimer();
+
+			if (task2.isReady())
+				proven_positions++;
 		}
-
 	std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
-
-//	extractor.print_stats();
-
 	std::cout << t_solver.toString() << '\n';
 }
 
