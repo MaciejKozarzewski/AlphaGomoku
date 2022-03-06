@@ -11,7 +11,7 @@
 #include <string>
 #include <variant>
 #include <vector>
-#include <exception>
+#include <stdexcept>
 #include <functional>
 
 namespace ag

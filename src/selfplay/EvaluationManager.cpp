@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
+#include <thread>
 
 namespace ag
 {
