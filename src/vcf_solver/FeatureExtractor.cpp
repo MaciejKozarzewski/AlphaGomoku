@@ -745,13 +745,6 @@ namespace ag
 						circle_threats.at(pad + row, (pad + col) * 4 + dir) = ThreatType::NONE;
 					}
 				}
-
-//		std::random_shuffle(cross_five.begin(), cross_five.end());
-//		std::random_shuffle(cross_open_four.begin(), cross_open_four.end());
-//		std::random_shuffle(cross_half_open_four.begin(), cross_half_open_four.end());
-//		std::random_shuffle(circle_five.begin(), circle_five.end());
-//		std::random_shuffle(circle_open_four.begin(), circle_open_four.end());
-//		std::random_shuffle(circle_half_open_four.begin(), circle_half_open_four.end());
 	}
 	void FeatureExtractor::recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth)
 	{

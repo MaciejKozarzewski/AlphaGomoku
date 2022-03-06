@@ -131,9 +131,9 @@ namespace
 		uint32_t mask2 = static_cast<uint32_t>(move.sign);
 		for (int i = 0; i <= Pad; i++)
 		{
-			features.at(move.row + i, Pad + move.col - (Pad - i)).diagonal |= mask1; // diagonal
-			features.at(move.row + i, Pad + move.col).vertical |= mask1; // vertical
-			features.at(move.row + i, Pad + move.col + (Pad - i)).antidiagonal |= mask2; // antidiagonal
+			features.at(move.row + i, Pad + move.col - (Pad - i)).diagonal |= mask1;
+			features.at(move.row + i, Pad + move.col).vertical |= mask1;
+			features.at(move.row + i, Pad + move.col + (Pad - i)).antidiagonal |= mask2;
 			mask1 = mask1 >> 2;
 			mask2 = mask2 << 2;
 		}
@@ -141,15 +141,15 @@ namespace
 		uint32_t mask3 = static_cast<uint32_t>(move.sign) << (4 * Pad);
 		for (int i = 0; i <= 2 * Pad; i++)
 		{
-			features.at(Pad + move.row, move.col + i).horizontal |= mask3; // horizontal
+			features.at(Pad + move.row, move.col + i).horizontal |= mask3;
 			mask3 = mask3 >> 2;
 		}
 
 		for (int i = 1; i <= Pad; i++)
 		{
-			features.at(Pad + move.row + i, Pad + move.col - i).antidiagonal |= mask2; // antidiagonal
-			features.at(Pad + move.row + i, Pad + move.col).vertical |= mask1; // vertical
-			features.at(Pad + move.row + i, Pad + move.col + i).diagonal |= mask1; // diagonal
+			features.at(Pad + move.row + i, Pad + move.col - i).antidiagonal |= mask2;
+			features.at(Pad + move.row + i, Pad + move.col).vertical |= mask1;
+			features.at(Pad + move.row + i, Pad + move.col + i).diagonal |= mask1;
 			mask1 = mask1 >> 2;
 			mask2 = mask2 << 2;
 		}
@@ -168,9 +168,9 @@ namespace
 		uint32_t mask2 = ~3;
 		for (int i = 0; i <= Pad; i++)
 		{
-			features.at(move.row + i, Pad + move.col - (Pad - i)).diagonal &= mask1; // diagonal
-			features.at(move.row + i, Pad + move.col).vertical &= mask1; // vertical
-			features.at(move.row + i, Pad + move.col + (Pad - i)).antidiagonal &= mask2; // antidiagonal
+			features.at(move.row + i, Pad + move.col - (Pad - i)).diagonal &= mask1;
+			features.at(move.row + i, Pad + move.col).vertical &= mask1;
+			features.at(move.row + i, Pad + move.col + (Pad - i)).antidiagonal &= mask2;
 			mask1 = (3 << 30) | (mask1 >> 2);
 			mask2 = (mask2 << 2) | 3;
 		}
@@ -178,15 +178,15 @@ namespace
 		uint32_t mask3 = ~(3 << (4 * Pad));
 		for (int i = 0; i <= 2 * Pad; i++)
 		{
-			features.at(Pad + move.row, move.col + i).horizontal &= mask3; // horizontal
+			features.at(Pad + move.row, move.col + i).horizontal &= mask3;
 			mask3 = (3 << 30) | (mask3 >> 2);
 		}
 
 		for (int i = 1; i <= Pad; i++)
 		{
-			features.at(Pad + move.row + i, Pad + move.col - i).antidiagonal &= mask2; // antidiagonal
-			features.at(Pad + move.row + i, Pad + move.col).vertical &= mask1; // vertical
-			features.at(Pad + move.row + i, Pad + move.col + i).diagonal &= mask1; // diagonal
+			features.at(Pad + move.row + i, Pad + move.col - i).antidiagonal &= mask2;
+			features.at(Pad + move.row + i, Pad + move.col).vertical &= mask1;
+			features.at(Pad + move.row + i, Pad + move.col + i).diagonal &= mask1;
 			mask1 = (3 << 30) | (mask1 >> 2);
 			mask2 = (mask2 << 2) | 3;
 		}
@@ -502,7 +502,7 @@ namespace ag
 						threats.at(row, col).get(direction) = table.getThreat_v2(get_feature_at(row, col, direction));
 					}
 
-					Threat best_threat = threats.at(row, col).best();
+					const Threat best_threat = threats.at(row, col).best();
 
 					switch (best_threat.for_cross)
 					{
@@ -539,6 +539,12 @@ namespace ag
 					for (int dir = 0; dir < 4; dir++)
 						threats.at(row, col).get(static_cast<Direction>(dir)) = Threat();
 				}
+//		std::random_shuffle(cross_five.begin(), cross_five.end());
+//		std::random_shuffle(cross_open_four.begin(), cross_open_four.end());
+//		std::random_shuffle(cross_half_open_four.begin(), cross_half_open_four.end());
+//		std::random_shuffle(circle_five.begin(), circle_five.end());
+//		std::random_shuffle(circle_open_four.begin(), circle_open_four.end());
+//		std::random_shuffle(circle_half_open_four.begin(), circle_half_open_four.end());
 	}
 	void FeatureExtractor_v2::update_threats(int row, int col)
 	{
@@ -596,26 +602,27 @@ namespace ag
 				assert(index != half_open_four.end()); // the threat must exist in the list
 				// 				as half-open fours are frequent, instead of deleting element from the middle, move it to the end first
 				//				such shuffling of threats should improve search efficiency (on average)
-				std::swap(*index, half_open_four.back());
-				half_open_four.pop_back();
+//				std::swap(*index, half_open_four.back());
+//				half_open_four.pop_back();
+				half_open_four.erase(index);
 				break;
 			}
 			case ThreatType::OPEN_FOUR:
 			{
 				auto index = std::find(open_four.begin(), open_four.end(), move);
 				assert(index != open_four.end()); // the threat must exist in the list
-				std::swap(*index, open_four.back());
-				open_four.pop_back();
-//				open_four.erase(index);
+//				std::swap(*index, open_four.back());
+//				open_four.pop_back();
+				open_four.erase(index);
 				break;
 			}
 			case ThreatType::FIVE:
 			{
 				auto index = std::find(five.begin(), five.end(), move);
 				assert(index != five.end());
-				std::swap(*index, five.back());
-				five.pop_back();
-//				five.erase(index);
+//				std::swap(*index, five.back());
+//				five.pop_back();
+				five.erase(index);
 				break;
 			}
 		}

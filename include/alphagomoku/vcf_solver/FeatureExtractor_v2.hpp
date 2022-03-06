@@ -45,10 +45,6 @@ namespace ag
 						return 0;
 				}
 			}
-//			FeatureDescriptor horizontal;
-//			FeatureDescriptor vertical;
-//			FeatureDescriptor diagonal;
-//			FeatureDescriptor antidiagonal;
 	};
 
 	struct ThreatGroup
