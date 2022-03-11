@@ -12,6 +12,8 @@
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 
+#include <libml/utils/json.hpp>
+
 namespace ag
 {
 
@@ -21,13 +23,14 @@ namespace ag
 			MasterLearningConfig config;
 			Json metadata;
 			std::string working_dir;
+			std::string path_to_data;
 
 			GeneratorManager generator_manager;
 			EvaluationManager evaluator_manager;
 			SupervisedLearning supervised_learning_manager;
 
 		public:
-			TrainingManager(const std::string &workingDirectory);
+			TrainingManager(std::string workingDirectory, std::string pathToData = std::string());
 
 			void runIterationRL();
 			void runIterationSL();

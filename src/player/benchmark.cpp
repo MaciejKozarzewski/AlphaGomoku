@@ -111,7 +111,7 @@ namespace ag
 			for (int omp_threads = 1; omp_threads <= std::min(4, cpu_cores / search_threads); omp_threads *= 2) // usually it doesn't make sense to use more than 4 OpenMP threads
 				configs_to_test.push_back( { ml::Device::cpu(), search_threads, omp_threads });
 
-			/* create list of CUDA configurations to test */
+		/* create list of CUDA configurations to test */
 		for (int device_index = 0; device_index < ml::Device::numberOfCudaDevices(); device_index++)
 			for (int search_threads = 1; search_threads <= cpu_cores; search_threads *= 2)
 				configs_to_test.push_back( { ml::Device::cuda(device_index), search_threads, 1 });

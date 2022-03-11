@@ -38,6 +38,8 @@
 #include <thread>
 #include <filesystem>
 
+#include <alphagomoku/utils/configs.hpp>
+
 using namespace ag;
 
 void benchmark_features()
@@ -482,7 +484,7 @@ void find_proven_positions(const std::string &path, int index)
 	size_t all_games = 0;
 	size_t proven_positions = 0;
 
-	GameConfig game_config(GameRules::STANDARD, 12, 12);
+	GameConfig game_config(GameRules::STANDARD, 15, 15);
 	matrix<Sign> board(game_config.rows, game_config.cols);
 	FeatureExtractor extractor(game_config);
 	VCFSolver solver(game_config);
@@ -689,6 +691,27 @@ void test_expand()
 
 int main(int argc, char *argv[])
 {
+	GameConfig game_config(GameRules::STANDARD, 15, 15);
+	TrainingConfig training_config;
+	training_config.blocks = 3;
+	training_config.filters = 32;
+	training_config.augment_training_data = false;
+	training_config.device_config.device = ml::Device::cuda(1);
+	training_config.device_config.batch_size = 32;
+
+	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
+	AGNetwork model(game_config, training_config);
+
+	SupervisedLearning sl(training_config);
+
+	for (int i = 0; i < 10; i++)
+	{
+		sl.train(model, buffer, 1000);
+		sl.clearStats();
+	}
+
+	return 0;
+
 //	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
 //	std::cout << ml::Device::hardwareInfo() << '\n';
 
@@ -705,36 +728,10 @@ int main(int argc, char *argv[])
 //	generate_openings(500);
 
 //	benchmark_features();
-	find_proven_positions("/home/maciek/alphagomoku/test9_12x12_standard/train_buffer/", 39);
+	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/train_buffer/", 100);
 	return 0;
 
-	matrix<Sign> zxc(12, 12);
-	Board::putMove(zxc, Move(Sign::CROSS, 3, 4));
-	Board::putMove(zxc, Move(Sign::CIRCLE, 2, 3));
-	Board::putMove(zxc, Move(Sign::CROSS, 6, 5));
-	FastHashTable<uint32_t, SolvedValue, 4> table(zxc.size(), 1024);
-	table.setBoard(zxc);
-	std::cout << table.getHash() << '\n';
-	table.updateHash(Move(Sign::CIRCLE, 9, 9));
-	std::cout << table.getHash() << '\n';
-
-	Board::putMove(zxc, Move(Sign::CIRCLE, 9, 9));
-	table.setBoard(zxc);
-	std::cout << table.getHash() << '\n';
-
-	table.insert(987, SolvedValue::UNSOLVED);
-	table.insert(1024 + 987, SolvedValue::LOSS);
-	table.insert(2048 + 987, SolvedValue::WIN);
-	table.insert(4096 + 987, SolvedValue::LOSS);
-
-	std::cout << static_cast<int>(table.get(987)) << '\n';
-	std::cout << static_cast<int>(table.get(1024 + 987)) << '\n';
-	std::cout << static_cast<int>(table.get(2048 + 987)) << '\n';
-	std::cout << static_cast<int>(table.get(4096 + 987)) << '\n';
-
-	return 0;
-
-	std::string path = "/home/maciek/alphagomoku/test9_12x12_standard/";
+	std::string path = "/home/maciek/alphagomoku/new_run_15x15s/";
 //	ArgumentParser ap;
 //	ap.addArgument("path", [&](const std::string &arg)
 //	{	path = arg;});
@@ -742,9 +739,10 @@ int main(int argc, char *argv[])
 
 	if (std::filesystem::exists(path + "/config.json"))
 	{
-		TrainingManager tm(path);
-		for (int i = 0; i < 80; i++)
-			tm.runIterationRL();
+		TrainingManager tm(path, "/home/maciek/alphagomoku/standard_15x15/");
+//		TrainingManager tm(path);
+		for (int i = 0; i < 120; i++)
+			tm.runIterationSL();
 	}
 	else
 	{

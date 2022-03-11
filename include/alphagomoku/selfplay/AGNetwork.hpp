@@ -16,7 +16,6 @@
 #include <memory>
 #include <vector>
 
-class SerializedObject;
 namespace ml
 {
 	class Shape;
@@ -25,8 +24,7 @@ namespace ml
 
 namespace ag
 {
-	enum class GameOutcome
-	;
+	enum class GameOutcome;
 	struct Value;
 	struct GameConfig;
 	struct TrainingConfig;

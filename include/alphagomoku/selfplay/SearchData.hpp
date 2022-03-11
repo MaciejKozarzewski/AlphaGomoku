@@ -13,11 +13,11 @@
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
-#include <libml/utils/serialization.hpp>
 
 #include <vector>
 #include <inttypes.h>
 
+class SerializedObject;
 namespace ag
 {
 

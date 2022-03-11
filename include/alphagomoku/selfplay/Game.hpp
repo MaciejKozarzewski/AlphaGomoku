@@ -13,11 +13,12 @@
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
-#include <libml/utils/serialization.hpp>
 
 #include <vector>
 #include <inttypes.h>
 
+class Json;
+class SerializedObject;
 namespace ag
 {
 	class EvaluationRequest;

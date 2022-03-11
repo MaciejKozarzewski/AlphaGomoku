@@ -27,6 +27,19 @@
 #include <thread>
 #include <chrono>
 
+namespace
+{
+	using namespace ag;
+
+	void augment_data(matrix<Sign> &board, matrix<float> &policyTarget, matrix<Value> &actionValues)
+	{
+		int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
+		augment(board, r);
+		augment(policyTarget, r);
+		augment(actionValues, r);
+	}
+}
+
 namespace ag
 {
 	SupervisedLearning::SupervisedLearning(const TrainingConfig &config) :
@@ -63,12 +76,15 @@ namespace ag
 		std::vector<int> training_sample_order = permutation(buffer.size());
 		size_t training_sample_index = 0;
 
-		std::vector<float> acc(5);
 		matrix<Sign> board(rows, cols);
+		matrix<Sign> board_copy(rows, cols);
 		for (int i = 0; i < steps; i++)
 		{
-			if (i % 100 == 0)
+			if (i % (steps / 10) == 0)
+			{
 				std::cout << i << '\n';
+				std::cout << training_loss.at(1) / training_loss.at(0) << " " << training_loss.at(2) / training_loss.at(0) << '\n';
+			}
 			for (int b = 0; b < batch_size; b++)
 			{
 				const SearchData &sample = buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample();
@@ -85,21 +101,18 @@ namespace ag
 				Value value_target = prepare_value_target(sample);
 
 				if (config.augment_training_data)
-				{
-					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
-					augment(board, r);
-					augment(policy_target, r);
-					augment(action_values_target, r);
-				}
+					augment_data(board, policy_target, action_values_target);
 
 				model.packInputData(b, board, sample.getMove().sign);
 				model.packTargetData(b, policy_target, action_values_target, value_target);
 			}
 			model.forward(batch_size);
+
 			auto accuracy = model.getAccuracy(batch_size, 4);
 			model.backward(batch_size);
 			std::vector<ml::Scalar> loss = model.getLoss(batch_size);
 			updateTrainingStats(loss.at(0).get<float>(), loss.at(1).get<float>(), accuracy);
+
 			learning_steps++;
 		}
 	}
@@ -112,7 +125,6 @@ namespace ag
 		int rows = shape[1];
 		int cols = shape[2];
 
-		std::vector<float> acc(5);
 		matrix<Sign> board(rows, cols);
 
 		int counter = 0;
@@ -129,12 +141,8 @@ namespace ag
 				Value value_target = prepare_value_target(sample);
 
 				if (config.augment_training_data)
-				{
-					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
-					augment(board, r);
-					augment(policy_target, r);
-					augment(action_values_target, r);
-				}
+					augment_data(board, policy_target, action_values_target);
+
 //				sample.print();
 //				std::cout << "Training target\n";
 //				std::cout << Board::toString(board) << '\n';
@@ -184,26 +192,29 @@ namespace ag
 		}
 		else
 		{
-			averageStats(training_loss);
-			averageStats(training_accuracy);
-			averageStats(validation_loss);
-			averageStats(validation_accuracy);
+			std::vector<float> train_loss = averageStats(training_loss);
+			std::vector<float> train_acc = averageStats(training_accuracy);
+			std::vector<float> valid_loss = averageStats(validation_loss);
+			std::vector<float> valid_acc = averageStats(validation_accuracy);
 
 			history_file << std::setprecision(6);
 			history_file << learning_steps;
-			history_file << " " << training_loss.at(1) << " " << training_loss.at(2);
-			history_file << " " << validation_loss.at(1) << " " << validation_loss.at(2);
-			for (size_t i = 1; i < training_accuracy.size(); i++)
-				history_file << " " << 100 * training_accuracy.at(i);
-			for (size_t i = 1; i < validation_accuracy.size(); i++)
-				history_file << " " << 100 * validation_accuracy.at(i);
+			history_file << " " << train_loss.at(1) << " " << train_loss.at(2);
+			history_file << " " << valid_loss.at(1) << " " << valid_loss.at(2);
+			for (size_t i = 1; i < train_acc.size(); i++)
+				history_file << " " << 100 * train_acc.at(i);
+			for (size_t i = 1; i < valid_acc.size(); i++)
+				history_file << " " << 100 * valid_acc.at(i);
 			history_file << '\n';
 			history_file.close();
-			std::fill(training_loss.begin(), training_loss.end(), 0.0f);
-			std::fill(training_accuracy.begin(), training_accuracy.end(), 0.0f);
-			std::fill(validation_loss.begin(), validation_loss.end(), 0.0f);
-			std::fill(validation_accuracy.begin(), validation_accuracy.end(), 0.0f);
 		}
+	}
+	void SupervisedLearning::clearStats()
+	{
+		std::fill(training_loss.begin(), training_loss.end(), 0.0f);
+		std::fill(training_accuracy.begin(), training_accuracy.end(), 0.0f);
+		std::fill(validation_loss.begin(), validation_loss.end(), 0.0f);
+		std::fill(validation_accuracy.begin(), validation_accuracy.end(), 0.0f);
 	}
 
 	Json SupervisedLearning::saveProgress() const

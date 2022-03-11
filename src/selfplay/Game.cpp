@@ -8,6 +8,7 @@
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <libml/utils/json.hpp>
+#include <libml/utils/serialization.hpp>
 
 #include <cstdlib>
 #include <iostream>
@@ -32,10 +33,10 @@ namespace ag
 	{
 		size_t offset = json["binary_offset"];
 		size_t nb_of_moves = json["nb_of_moves"];
-		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(Move))
-			played_moves.push_back(binary_data.load<Move>(offset));
-//		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(uint16_t))
-//			played_moves.push_back(Move::move_from_short(binary_data.load<uint16_t>(offset)));
+//		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(Move))
+//			played_moves.push_back(binary_data.load<Move>(offset));
+		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(uint16_t))
+			played_moves.push_back(Move::move_from_short(binary_data.load<uint16_t>(offset)));
 
 		size_t nb_of_states = json["nb_of_states"];
 		for (size_t i = 0; i < nb_of_states; i++)

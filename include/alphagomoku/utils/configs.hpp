@@ -13,10 +13,12 @@
 #include <libml/hardware/Device.hpp>
 
 #include <vector>
+#include <limits>
 
 class Json;
 namespace ag
 {
+
 	struct GameConfig
 	{
 		private:

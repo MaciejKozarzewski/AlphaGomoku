@@ -6,11 +6,8 @@ doc/html/*
 doc/latex/*
 bin/*
 bin/objects/*
-contrib/blis/*
-contrib/openblas/*
-contrib/gtest/*
-contrib/libml/*
-contrib/ftxui/*
+extern/openblas/*
+extern/libml/*
 /contrib/mingw64/*
 *.pyc
 gmon.out

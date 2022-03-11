@@ -26,10 +26,11 @@ namespace
 
 namespace ag
 {
-	TrainingManager::TrainingManager(const std::string &workingDirectory) :
+	TrainingManager::TrainingManager(std::string workingDirectory, std::string pathToData) :
 			config(FileLoader(workingDirectory + "/config.json").getJson()),
 			metadata( { { "last_checkpoint", 0 }, { "best_checkpoint", 0 }, { "learning_steps", 0 } }),
 			working_dir(workingDirectory + '/'),
+			path_to_data(pathToData.empty() ? working_dir : pathToData),
 			generator_manager(config.game_config, config.generation_config),
 			evaluator_manager(config.game_config, config.evaluation_config.selfplay_options),
 			supervised_learning_manager(config.training_config)
@@ -49,7 +50,10 @@ namespace ag
 	void TrainingManager::runIterationRL()
 	{
 		generateGames();
-
+		runIterationSL();
+	}
+	void TrainingManager::runIterationSL()
+	{
 		train();
 		validate();
 		supervised_learning_manager.saveTrainingHistory(working_dir);
@@ -57,9 +61,6 @@ namespace ag
 		evaluate();
 		metadata["last_checkpoint"] = get_last_checkpoint() + 1;
 		saveMetadata();
-	}
-	void TrainingManager::runIterationSL()
-	{
 	}
 	/*
 	 * private
@@ -123,7 +124,7 @@ namespace ag
 	void TrainingManager::train()
 	{
 		GameBuffer buffer;
-		loadBuffer(buffer, working_dir + "/train_buffer/");
+		loadBuffer(buffer, path_to_data + "/train_buffer/");
 		std::cout << buffer.getStats().toString() << '\n';
 
 		AGNetwork model;
@@ -145,7 +146,7 @@ namespace ag
 	void TrainingManager::validate()
 	{
 		GameBuffer buffer;
-		loadBuffer(buffer, working_dir + "/valid_buffer/");
+		loadBuffer(buffer, path_to_data + "/valid_buffer/");
 
 		AGNetwork model;
 		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint() + 1) + ".bin");

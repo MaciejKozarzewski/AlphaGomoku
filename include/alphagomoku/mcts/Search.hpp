@@ -14,6 +14,7 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/vcf_solver/VCFSolver.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 
 #include <inttypes.h>
@@ -55,6 +56,7 @@ namespace ag
 			std::vector<SearchTask> search_tasks;
 			int active_task_count = 0;
 
+//			VCFSolver vcf_solver;
 			FeatureExtractor vcf_solver;
 
 			GameConfig game_config;

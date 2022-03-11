@@ -39,6 +39,7 @@ namespace ag
 			void train(AGNetwork &model, GameBuffer &buffer, int steps);
 			void validate(AGNetwork &model, GameBuffer &buffer);
 			void saveTrainingHistory(const std::string &workingDirectory);
+			void clearStats();
 
 			Json saveProgress() const;
 			void loadProgress(const Json &json);

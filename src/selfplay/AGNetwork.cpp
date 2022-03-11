@@ -18,9 +18,11 @@
 #include <libml/layers/dense/Flatten.hpp>
 #include <libml/layers/merge/Add.hpp>
 #include <libml/layers/norm/BatchNormalization.hpp>
+#include <libml/layers/activations/Softmax.hpp>
 #include <libml/layers/Parameter.hpp>
 #include <libml/losses/CrossEntropyLoss.hpp>
 #include <libml/losses/KLDivergenceLoss.hpp>
+#include <libml/losses/MeanSquareLoss.hpp>
 #include <libml/math/activations.hpp>
 #include <libml/optimizers/ADAM.hpp>
 #include <libml/regularizers/RegularizerL2.hpp>
@@ -31,6 +33,8 @@
 #include <cassert>
 #include <cstring>
 #include <string>
+
+#include <alphagomoku/game/Board.hpp>
 
 namespace ag
 {
@@ -86,7 +90,6 @@ namespace ag
 		std::memcpy(policy.data(), policy_on_cpu->data<float>( { index, 0 }), policy.sizeInBytes());
 		// TODO add processing of action values
 		value = Value(value_on_cpu->get<float>( { index, 0 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 2 }));
-//		value = Value(value_on_cpu->get<float>( { index, 2 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 0 }));
 	}
 
 	void AGNetwork::forward(int batch_size)
@@ -97,8 +100,8 @@ namespace ag
 		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
 		graph.context().synchronize();
-		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *policy_on_cpu);
-		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *value_on_cpu);
+//		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *policy_on_cpu);
+//		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *value_on_cpu);
 	}
 	void AGNetwork::backward(int batch_size)
 	{
@@ -198,7 +201,9 @@ namespace ag
 		p = graph.add(ml::Conv2D(1, 1, "linear").useBias(false), p);
 		p = graph.add(ml::Flatten(), p);
 		p = graph.add(ml::Affine("linear").useWeights(false), p);
-		graph.addOutput(p, ml::KLDivergenceLoss().applySoftmax());
+		p = graph.add(ml::Softmax(), p);
+		graph.addOutput(p, ml::KLDivergenceLoss());
+//		graph.addOutput(p, ml::KLDivergenceLoss().applySoftmax());
 
 		// value head
 		auto v = graph.add(ml::Conv2D(2, 1, "linear").useBias(false), x);
@@ -208,7 +213,9 @@ namespace ag
 		v = graph.add(ml::Dense(std::min(256, 2 * filters), "linear"), v);
 		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
 		v = graph.add(ml::Dense(3, "linear"), v);
-		graph.addOutput(v, ml::CrossEntropyLoss().applySoftmax());
+		v = graph.add(ml::Softmax(), v);
+		graph.addOutput(v, ml::CrossEntropyLoss());
+//		graph.addOutput(v, ml::CrossEntropyLoss().applySoftmax());
 
 		graph.init();
 		graph.setOptimizer(ml::ADAM());

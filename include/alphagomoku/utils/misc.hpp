@@ -92,7 +92,7 @@ namespace ag
 	matrix<float> getNoiseMatrix(const matrix<Sign> &board);
 
 	void scaleArray(matrix<float> &array, float scale);
-	void averageStats(std::vector<float> &stats);
+	std::vector<float> averageStats(std::vector<float> &stats);
 
 	Move pickMove(const matrix<float> &policy);
 	Move pickMove(const matrix<float> &policy, const matrix<ProvenValue> &provenValues);

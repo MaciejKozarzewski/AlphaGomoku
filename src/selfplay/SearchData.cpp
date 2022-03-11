@@ -8,6 +8,8 @@
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <libml/utils/serialization.hpp>
+
 #include <iostream>
 
 namespace ag
@@ -33,10 +35,10 @@ namespace ag
 		game_outcome = static_cast<GameOutcome>(so.load<int>(offset));
 		offset += sizeof(int);
 
-		played_move = so.load<Move>(offset);
-		offset += sizeof(Move);
-//		played_move = Move::move_from_short(so.load<uint16_t>(offset));
-//		offset += sizeof(uint16_t);
+//		played_move = so.load<Move>(offset);
+//		offset += sizeof(Move);
+		played_move = Move::move_from_short(so.load<uint16_t>(offset));
+		offset += sizeof(uint16_t);
 	}
 	SearchData::SearchData(int rows, int cols) :
 			actions(rows, cols)

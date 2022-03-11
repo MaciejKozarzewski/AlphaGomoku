@@ -12,6 +12,7 @@
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/player/ProgramManager.hpp>
+#include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 
 #include <numeric>
 
@@ -196,7 +197,7 @@ void test_search()
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ...\n";
-			next_step += 100;
+			next_step += 1000;
 		}
 		search.select(tree, 1000);
 		search.tryToSolve();
@@ -291,55 +292,55 @@ void test_search()
 	}
 	std::cout << result;
 
-	tree.setEdgeSelector(BestEdgeSelector());
-	SearchTask task(game_config.rules);
-	tree.select(task);
-	tree.cancelVirtualLoss(task);
-
-	for (int i = 0; i < task.visitedPathLength(); i++)
-	{
-		if (i < 10 and task.visitedPathLength() >= 10)
-			std::cout << " ";
-		if (i < 100 and task.visitedPathLength() >= 100)
-			std::cout << " ";
-		std::cout << i << " : " << task.getPair(i).edge->toString() << '\n';
-	}
-
-	Board::putMove(board, Move(Sign::CIRCLE, 0, 0));
-	Board::putMove(board, Move(Sign::CROSS, 0, 1));
-
-	std::cout << Board::toString(board) << '\n';
-
-	tree.setBoard(board, Sign::CIRCLE);
-	tree.setEdgeSelector(PuctSelector(1.25f));
-	std::cout << tree.getNodeCacheStats().toString() << '\n';
-
-	search = Search(game_config, search_config);
-	for (int i = 0; i <= 1000; i++)
-	{
-		search.select(tree, 1000);
-		search.tryToSolve();
-
-		search.scheduleToNN(nn_evaluator);
-		nn_evaluator.evaluateGraph();
-
-		search.generateEdges(tree);
-		search.expand(tree);
-		search.backup(tree);
-
-		if (tree.isProven())
-			break;
-	}
-	tree.printSubtree(0, true);
-	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
-	std::cout << tree.getNodeCacheStats().toString() << '\n';
+//	tree.setEdgeSelector(BestEdgeSelector());
+//	SearchTask task(game_config.rules);
+//	tree.select(task);
+//	tree.cancelVirtualLoss(task);
+//
+//	for (int i = 0; i < task.visitedPathLength(); i++)
+//	{
+//		if (i < 10 and task.visitedPathLength() >= 10)
+//			std::cout << " ";
+//		if (i < 100 and task.visitedPathLength() >= 100)
+//			std::cout << " ";
+//		std::cout << i << " : " << task.getPair(i).edge->toString() << '\n';
+//	}
+//
+//	Board::putMove(board, Move(Sign::CIRCLE, 0, 0));
+//	Board::putMove(board, Move(Sign::CROSS, 0, 1));
+//
+//	std::cout << Board::toString(board) << '\n';
+//
+//	tree.setBoard(board, Sign::CIRCLE);
+//	tree.setEdgeSelector(PuctSelector(1.25f));
+//	std::cout << tree.getNodeCacheStats().toString() << '\n';
+//
+//	search = Search(game_config, search_config);
+//	for (int i = 0; i <= 1000; i++)
+//	{
+//		search.select(tree, 1000);
+//		search.tryToSolve();
+//
+//		search.scheduleToNN(nn_evaluator);
+//		nn_evaluator.evaluateGraph();
+//
+//		search.generateEdges(tree);
+//		search.expand(tree);
+//		search.backup(tree);
+//
+//		if (tree.isProven())
+//			break;
+//	}
+//	tree.printSubtree(0, true);
+//	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
+//	std::cout << tree.getNodeCacheStats().toString() << '\n';
 }
 
 int main(int argc, char *argv[])
 {
-	test_search();
-	std::cout << "END" << std::endl;
-	return 0;
+//	test_search();
+//	std::cout << "END" << std::endl;
+//	return 0;
 
 //	GameConfig game_config(GameRules::FREESTYLE, 10);
 //	TreeConfig tree_config;
