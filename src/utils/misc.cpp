@@ -401,7 +401,7 @@ namespace ag
 
 	std::vector<float> averageStats(std::vector<float> &stats)
 	{
-		std::vector<float> result(stats.size(), 0.0f);
+		std::vector<float> result(stats.size() - 1, 0.0f);
 		if (stats[0] != 0.0f)
 			for (size_t i = 0; i < result.size(); i++)
 				result[i] = stats[1 + i] / stats[0];

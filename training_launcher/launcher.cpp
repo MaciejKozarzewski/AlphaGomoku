@@ -691,26 +691,26 @@ void test_expand()
 
 int main(int argc, char *argv[])
 {
-	GameConfig game_config(GameRules::STANDARD, 15, 15);
-	TrainingConfig training_config;
-	training_config.blocks = 3;
-	training_config.filters = 32;
-	training_config.augment_training_data = false;
-	training_config.device_config.device = ml::Device::cuda(1);
-	training_config.device_config.batch_size = 32;
-
-	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
-	AGNetwork model(game_config, training_config);
-
-	SupervisedLearning sl(training_config);
-
-	for (int i = 0; i < 10; i++)
-	{
-		sl.train(model, buffer, 1000);
-		sl.clearStats();
-	}
-
-	return 0;
+//	GameConfig game_config(GameRules::STANDARD, 15, 15);
+//	TrainingConfig training_config;
+//	training_config.blocks = 10;
+//	training_config.filters = 128;
+//	training_config.augment_training_data = false;
+//	training_config.device_config.device = ml::Device::cuda(1);
+//	training_config.device_config.batch_size = 128;
+//
+//	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
+//	AGNetwork model(game_config, training_config);
+//
+//	SupervisedLearning sl(training_config);
+//
+//	for (int i = 0; i < 100; i++)
+//	{
+//		sl.train(model, buffer, 1000);
+//		sl.clearStats();
+//	}
+//
+//	return 0;
 
 //	std::cout << "Compiled on " << __DATE__ << " at " << __TIME__ << std::endl;
 //	std::cout << ml::Device::hardwareInfo() << '\n';
@@ -728,8 +728,8 @@ int main(int argc, char *argv[])
 //	generate_openings(500);
 
 //	benchmark_features();
-	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/train_buffer/", 100);
-	return 0;
+//	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/train_buffer/", 100);
+//	return 0;
 
 	std::string path = "/home/maciek/alphagomoku/new_run_15x15s/";
 //	ArgumentParser ap;

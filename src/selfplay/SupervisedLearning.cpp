@@ -80,11 +80,8 @@ namespace ag
 		matrix<Sign> board_copy(rows, cols);
 		for (int i = 0; i < steps; i++)
 		{
-			if (i % (steps / 10) == 0)
-			{
-				std::cout << i << '\n';
-				std::cout << training_loss.at(1) / training_loss.at(0) << " " << training_loss.at(2) / training_loss.at(0) << '\n';
-			}
+			if ((i + 1) % (steps / 10) == 0)
+				std::cout << i + 1 << '\n';
 			for (int b = 0; b < batch_size; b++)
 			{
 				const SearchData &sample = buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample();
@@ -199,11 +196,11 @@ namespace ag
 
 			history_file << std::setprecision(6);
 			history_file << learning_steps;
-			history_file << " " << train_loss.at(1) << " " << train_loss.at(2);
-			history_file << " " << valid_loss.at(1) << " " << valid_loss.at(2);
-			for (size_t i = 1; i < train_acc.size(); i++)
+			history_file << " " << train_loss.at(0) << " " << train_loss.at(1);
+			history_file << " " << valid_loss.at(0) << " " << valid_loss.at(1);
+			for (size_t i = 0; i < train_acc.size(); i++)
 				history_file << " " << 100 * train_acc.at(i);
-			for (size_t i = 1; i < valid_acc.size(); i++)
+			for (size_t i = 0; i < valid_acc.size(); i++)
 				history_file << " " << 100 * valid_acc.at(i);
 			history_file << '\n';
 			history_file.close();

@@ -100,8 +100,8 @@ namespace ag
 		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
 		graph.context().synchronize();
-//		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *policy_on_cpu);
-//		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *value_on_cpu);
+		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *policy_on_cpu);
+		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *value_on_cpu);
 	}
 	void AGNetwork::backward(int batch_size)
 	{
@@ -201,9 +201,7 @@ namespace ag
 		p = graph.add(ml::Conv2D(1, 1, "linear").useBias(false), p);
 		p = graph.add(ml::Flatten(), p);
 		p = graph.add(ml::Affine("linear").useWeights(false), p);
-		p = graph.add(ml::Softmax(), p);
-		graph.addOutput(p, ml::KLDivergenceLoss());
-//		graph.addOutput(p, ml::KLDivergenceLoss().applySoftmax());
+		graph.addOutput(p, ml::KLDivergenceLoss().applySoftmax());
 
 		// value head
 		auto v = graph.add(ml::Conv2D(2, 1, "linear").useBias(false), x);
@@ -213,9 +211,7 @@ namespace ag
 		v = graph.add(ml::Dense(std::min(256, 2 * filters), "linear"), v);
 		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
 		v = graph.add(ml::Dense(3, "linear"), v);
-		v = graph.add(ml::Softmax(), v);
-		graph.addOutput(v, ml::CrossEntropyLoss());
-//		graph.addOutput(v, ml::CrossEntropyLoss().applySoftmax());
+		graph.addOutput(v, ml::CrossEntropyLoss().applySoftmax());
 
 		graph.init();
 		graph.setOptimizer(ml::ADAM());
