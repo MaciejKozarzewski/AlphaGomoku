@@ -115,7 +115,7 @@ namespace ag
 			std::vector<uint64_t> hashing_keys;
 			uint64_t current_board_hash = 0;
 		public:
-			FeatureExtractor(GameConfig gameConfig);
+			FeatureExtractor(GameConfig gameConfig, int maxPositions = 100);
 
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
 			void solve(SearchTask &task, int level = 0);

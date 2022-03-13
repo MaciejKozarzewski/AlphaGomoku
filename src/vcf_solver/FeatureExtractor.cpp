@@ -225,8 +225,9 @@ namespace
 namespace ag
 {
 
-	FeatureExtractor::FeatureExtractor(GameConfig gameConfig) :
+	FeatureExtractor::FeatureExtractor(GameConfig gameConfig, int maxPositions) :
 			statistics(gameConfig.rows * gameConfig.cols),
+			max_positions(maxPositions),
 			nodes_buffer(10000),
 			game_config(gameConfig),
 			pad((game_config.rules == GameRules::FREESTYLE) ? 4 : 5),

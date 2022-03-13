@@ -69,7 +69,7 @@ namespace ag
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
-			vcf_solver(gameOptions),
+			vcf_solver(gameOptions, searchOptions.vcf_solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{

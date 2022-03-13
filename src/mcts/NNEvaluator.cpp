@@ -105,6 +105,8 @@ namespace ag
 	}
 	void NNEvaluator::evaluateGraph()
 	{
+		if (network.getGraph().numberOfLayers() == 0)
+			throw std::logic_error("graph is empty - the network has not been loaded");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
 		while (task_queue.size() > 0)
 		{

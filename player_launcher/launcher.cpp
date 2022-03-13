@@ -11,6 +11,7 @@
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/game/Board.hpp>
+#include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/player/ProgramManager.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 
@@ -36,6 +37,235 @@ std::string get_BOARD_command(const matrix<Sign> &board, Sign signToMove)
 	return result + "DONE\n";
 }
 
+class SolverSearch
+{
+		SearchTask m_task;
+		VCFSolver m_vcf_solver;
+//		FeatureExtractor m_vcf_solver;
+	public:
+		SolverSearch(GameConfig gameConfig, int maxPositions) :
+				m_task(gameConfig.rules),
+				m_vcf_solver(gameConfig, maxPositions)
+		{
+		}
+		bool solve(const matrix<Sign> &board, Sign signToMove)
+		{
+			m_task.reset(board, signToMove);
+			m_vcf_solver.reset_stats();
+			m_vcf_solver.solve(m_task, 2);
+			return m_task.isReady();
+		}
+		int getPositions() const
+		{
+			return m_vcf_solver.get_positions();
+		}
+};
+
+class NNSearch
+{
+		Tree m_tree;
+		NNEvaluator m_nn_evaluator;
+		Search m_search;
+	public:
+		NNSearch(GameConfig gameConfig, TreeConfig treeConfig, SearchConfig SearchConfig, DeviceConfig deviceConfig) :
+				m_tree(treeConfig),
+				m_nn_evaluator(deviceConfig),
+				m_search(gameConfig, SearchConfig)
+		{
+			m_nn_evaluator.useSymmetries(true);
+		}
+		void loadNetwork(const std::string &path)
+		{
+			m_nn_evaluator.loadGraph(path);
+		}
+		void setup(const matrix<Sign> &board, Sign signToMove)
+		{
+			matrix<Sign> tmp(board);
+			tmp.fill(Sign::CIRCLE);
+			m_tree.setBoard(tmp, Sign::CIRCLE);
+
+			m_tree.setBoard(board, signToMove);
+			m_tree.setEdgeSelector(PuctSelector(1.25f));
+			m_tree.setEdgeGenerator(SolverGenerator(m_search.getConfig().expansion_prior_treshold, m_search.getConfig().max_children));
+		}
+		bool search(int simulations, bool printProgress = false)
+		{
+			int next_step = 0;
+			for (int j = 0; j <= simulations; j++)
+			{
+				if (m_tree.getSimulationCount() >= next_step and printProgress)
+				{
+					std::cout << m_tree.getSimulationCount() << " ...\n";
+					next_step += (simulations / 10);
+				}
+				m_search.select(m_tree, simulations);
+				m_search.tryToSolve();
+
+				m_search.scheduleToNN(m_nn_evaluator);
+				m_nn_evaluator.evaluateGraph();
+
+				m_search.generateEdges(m_tree);
+				m_search.expand(m_tree);
+				m_search.backup(m_tree);
+
+				if (m_tree.isProven())
+					break;
+			}
+			m_search.cleanup(m_tree);
+			return m_tree.isProven();
+		}
+		void printStats() const
+		{
+			m_search.printSolverStats();
+			std::cout << m_search.getStats().toString() << '\n';
+			std::cout << m_tree.getNodeCacheStats().toString() << '\n';
+			std::cout << m_nn_evaluator.getStats().toString() << '\n';
+		}
+		int getPositions() const
+		{
+			return m_tree.getSimulationCount();
+		}
+};
+
+void test_proven_positions(int pos)
+{
+//	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	TreeConfig tree_config;
+	tree_config.bucket_size = 1000000;
+
+	SearchConfig search_config;
+	search_config.max_batch_size = 32;
+	search_config.expansion_prior_treshold = 1.0e-4f;
+	search_config.max_children = 30;
+	search_config.vcf_solver_level = 2;
+	search_config.vcf_solver_max_positions = pos;
+
+	DeviceConfig device_config;
+	device_config.batch_size = 32;
+	device_config.device = ml::Device::cuda(1);
+
+//	GameBuffer buffer("/home/maciek/alphagomoku/freestyle_20x20/valid_buffer/buffer_100.bin");
+	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
+
+	SolverSearch solver(game_config, 2 * search_config.vcf_solver_max_positions);
+	NNSearch mcgs(game_config, tree_config, search_config, device_config);
+//	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/freestyle_10x128.bin");
+	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
+
+	matrix<Sign> board(game_config.rows, game_config.cols);
+	Sign sign_to_move;
+//	std::cout << buffer.size() << " games\n";
+	int solver_pos = 0;
+	int mcgs_pos = 0;
+	int count = 0;
+	for (int i = 0; i < buffer.size(); i++)
+	{
+		buffer.getFromBuffer(i).getSample(0).getBoard(board);
+		const int opening_length = Board::numberOfMoves(board);
+		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+		{
+			const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
+			sample.getBoard(board);
+			sign_to_move = sample.getMove().sign;
+			bool is_solved = solver.solve(board, sign_to_move);
+
+			if (is_solved)
+			{
+				int solver_positions = solver.getPositions();
+				mcgs.setup(board, sign_to_move);
+
+				bool is_proven = mcgs.search(10000);
+				int mcgs_positions = mcgs.getPositions();
+
+				if (is_proven)
+				{
+//					std::cout << "game " << i << " move " << j << " " << game_length << " solver " << solver_positions << " mcgs " << mcgs_positions
+//							<< '\n';
+//					std::cout << i << " " << opening_length + j << " " << opening_length + buffer.getFromBuffer(i).getNumberOfSamples() << " "
+//							<< solver_positions << " " << mcgs_positions << '\n';
+					if (solver_positions != 0)
+					{
+						solver_pos += solver_positions;
+						mcgs_pos += mcgs_positions;
+						count += 1;
+					}
+					break;
+				}
+			}
+		}
+	}
+	std::cout << pos << " " << solver_pos << " " << mcgs_pos << " " << count << '\n';
+}
+
+void test_proven_positions2(int pos)
+{
+//	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	TreeConfig tree_config;
+	tree_config.bucket_size = 1000000;
+
+	SearchConfig search_config;
+	search_config.max_batch_size = 32;
+	search_config.expansion_prior_treshold = 1.0e-4f;
+	search_config.max_children = 30;
+	search_config.vcf_solver_level = 2;
+	search_config.vcf_solver_max_positions = pos;
+
+	DeviceConfig device_config;
+	device_config.batch_size = 32;
+	device_config.device = ml::Device::cuda(1);
+
+//	GameBuffer buffer("/home/maciek/alphagomoku/freestyle_20x20/valid_buffer/buffer_100.bin");
+	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
+
+	SolverSearch solver(game_config, 10000);
+	NNSearch mcgs(game_config, tree_config, search_config, device_config);
+//	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/freestyle_10x128.bin");
+	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
+
+	matrix<Sign> board(game_config.rows, game_config.cols);
+	Sign sign_to_move;
+
+	std::vector<std::pair<int, int>> histogram(14);
+	for (int i = 0; i < buffer.size(); i++)
+	{
+		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+		{
+			const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
+			sample.getBoard(board);
+			sign_to_move = sample.getMove().sign;
+
+			bool is_solved = solver.solve(board, sign_to_move);
+
+			if (is_solved)
+			{
+			mcgs.setup(board, sign_to_move);
+			bool is_proven = mcgs.search(10000);
+
+				if (is_proven)
+				{
+					if (solver.getPositions() > 0)
+					{
+						int bin = std::log2(solver.getPositions());
+						histogram.at(bin).first += mcgs.getPositions();
+						histogram.at(bin).second++;
+					}
+					break;
+				}
+			}
+//			std::cout << i << "/" << 10 << ", " << j << "/" << buffer.getFromBuffer(i).getNumberOfSamples() << '\n';
+		}
+	}
+//	mcgs.printStats();
+	std::cout << pos << " positions\n";
+	std::cout << "solver mcgs\n";
+	for (size_t i = 0; i < histogram.size(); i++)
+		std::cout << (int) std::pow(2, i) << " " << (double) histogram[i].first / histogram[i].second << '\n';
+}
+
 void test_search()
 {
 	GameConfig game_config(GameRules::STANDARD, 15);
@@ -50,21 +280,21 @@ void test_search()
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 30;
-	search_config.vcf_solver_level = 2;
+	search_config.vcf_solver_level = 0;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
 	device_config.omp_threads = 1;
-	device_config.device = ml::Device::cpu();
+	device_config.device = ml::Device::cuda(1);
 	NNEvaluator nn_evaluator(device_config);
-	nn_evaluator.useSymmetries(false);
+	nn_evaluator.useSymmetries(true);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
 	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
 
 	Sign sign_to_move;
-	matrix<Sign> board;
+	matrix<Sign> board(15, 15);
 
 //	// @formatter:off
 //	board = Board::fromString(
@@ -137,22 +367,22 @@ void test_search()
 //			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X\n"/* 11 */
 //			/*        a b c d e f g h i j k l         */); // @formatter:on
 // @formatter:off
-	board = Board::fromString(
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ O O O X _ _ _ _ _ _\n"
-			" _ _ _ X O X X _ _ O _ _ _ _ _\n"
-			" _ _ _ _ X O O _ X _ _ _ _ _ _\n"
-			" _ _ _ _ _ X X O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
+//	board = Board::fromString(
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ O O O X _ _ _ _ _ _\n"
+//			" _ _ _ X O X X _ _ O _ _ _ _ _\n"
+//			" _ _ _ _ X O O _ X _ _ _ _ _ _\n"
+//			" _ _ _ _ _ X X O _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
 
 	sign_to_move = Sign::CIRCLE;
 
@@ -186,20 +416,19 @@ void test_search()
 	extractor.printAllThreats();
 
 	Search search(game_config, search_config);
-
 	tree.setBoard(board, sign_to_move);
 	tree.setEdgeSelector(PuctSelector(1.25f));
 	tree.setEdgeGenerator(SolverGenerator(search_config.expansion_prior_treshold, search_config.max_children));
 
 	int next_step = 0;
-	for (int i = 0; i <= 1000; i++)
+	for (int j = 0; j <= 100000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ...\n";
-			next_step += 1000;
+			next_step += 10000;
 		}
-		search.select(tree, 1000);
+		search.select(tree, 100000);
 		search.tryToSolve();
 
 		search.scheduleToNN(nn_evaluator);
@@ -339,6 +568,15 @@ void test_search()
 int main(int argc, char *argv[])
 {
 //	test_search();
+//	for (int i = 20; i <= 10240; i *= 4)
+	test_proven_positions2(20);
+//	test_proven_positions2(50);
+//	test_proven_positions2(100);
+//	test_proven_positions2(200);
+//	test_proven_positions2(500);
+//	test_proven_positions2(1000);
+//	test_proven_positions2(2000);
+//	test_proven_positions2(5000);
 //	std::cout << "END" << std::endl;
 //	return 0;
 

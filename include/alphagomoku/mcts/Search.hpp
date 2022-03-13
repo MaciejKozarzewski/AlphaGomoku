@@ -56,8 +56,8 @@ namespace ag
 			std::vector<SearchTask> search_tasks;
 			int active_task_count = 0;
 
-//			VCFSolver vcf_solver;
-			FeatureExtractor vcf_solver;
+			VCFSolver vcf_solver;
+//			FeatureExtractor vcf_solver;
 
 			GameConfig game_config;
 			SearchConfig search_config;

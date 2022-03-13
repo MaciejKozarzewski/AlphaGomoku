@@ -68,6 +68,7 @@ namespace ag
 					static constexpr int max_children = std::numeric_limits<int>::max();
 					static constexpr float noise_weight = 0.0f;
 					static constexpr int vcf_solver_level = 0;
+					static constexpr int vcf_solver_max_positions = 100;
 					static constexpr int style_factor = 1;
 			};
 		public:
@@ -77,6 +78,7 @@ namespace ag
 			int max_children = Defaults::max_children;
 			float noise_weight = Defaults::noise_weight;
 			int vcf_solver_level = Defaults::vcf_solver_level; /**< 0 - only terminal moves, 1 - static evaluation, 2 - recursive search */
+			int vcf_solver_max_positions = Defaults::vcf_solver_max_positions;
 			int style_factor = Defaults::style_factor; /**< 0 - win + draw, 1 - win + 0.5 * draw, 2 - win */
 
 			SearchConfig() = default;

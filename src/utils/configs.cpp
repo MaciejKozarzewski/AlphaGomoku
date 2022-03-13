@@ -72,14 +72,16 @@ namespace ag
 			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
 			noise_weight(get_value<float>(cfg, "noise_weight", Defaults::noise_weight)),
 			vcf_solver_level(get_value<int>(cfg, "vcf_solver_level", Defaults::vcf_solver_level)),
+			vcf_solver_max_positions(get_value(cfg, "vcf_solver_max_positions", Defaults::vcf_solver_max_positions)),
 			style_factor(get_value<int>(cfg, "style_factor", Defaults::style_factor))
 	{
 	}
 	Json SearchConfig::toJson() const
 	{
-		return Json( { { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "expansion_prior_treshold",
-				expansion_prior_treshold }, { "max_children", max_children }, { "noise_weight", noise_weight },
-				{ "vcf_solver_level", vcf_solver_level }, { "style_factor", style_factor } });
+		return Json(
+				{ { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "expansion_prior_treshold",
+						expansion_prior_treshold }, { "max_children", max_children }, { "noise_weight", noise_weight }, { "vcf_solver_level",
+						vcf_solver_level }, { "vcf_solver_max_positions", vcf_solver_max_positions }, { "style_factor", style_factor } });
 	}
 
 	DeviceConfig::DeviceConfig(const Json &cfg) :

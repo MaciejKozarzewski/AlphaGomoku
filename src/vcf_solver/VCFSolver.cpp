@@ -24,49 +24,49 @@ namespace
 
 namespace ag
 {
-	void VCFSolver::SolverData::clear() noexcept
-	{
-		actions.clear();
-		current_action_index = 0;
-		solved_value = SolvedValue::UNKNOWN;
-	}
-	void VCFSolver::SolverData::updateWith(SolvedValue sv) noexcept
-	{
-		switch (sv)
-		{
-			case SolvedValue::UNKNOWN:
-			case SolvedValue::UNSOLVED:
-				has_unsolved_action = true;
-				break;
-			case SolvedValue::LOSS:
-				losing_actions_count++;
-				break;
-			case SolvedValue::WIN:
-				has_win_action = true;
-				break;
-		}
-	}
-	SolvedValue VCFSolver::SolverData::getSolvedValue() const noexcept
-	{
-		if (has_win_action)
-			return SolvedValue::WIN;
-		else
-		{
-			if (losing_actions_count == static_cast<int>(actions.size()))
-				return SolvedValue::LOSS;
-			else
-			{
-				if (has_unsolved_action)
-					return SolvedValue::UNSOLVED;
-				else
-					return SolvedValue::UNKNOWN;
-			}
-		}
-	}
-	bool VCFSolver::SolverData::isSolved() const noexcept
-	{
-		return getSolvedValue() != SolvedValue::UNKNOWN;
-	}
+//	void VCFSolver::SolverData::clear() noexcept
+//	{
+//		actions.clear();
+//		current_action_index = 0;
+//		solved_value = SolvedValue::UNKNOWN;
+//	}
+//	void VCFSolver::SolverData::updateWith(SolvedValue sv) noexcept
+//	{
+//		switch (sv)
+//		{
+//			case SolvedValue::UNKNOWN:
+//			case SolvedValue::UNSOLVED:
+//				has_unsolved_action = true;
+//				break;
+//			case SolvedValue::LOSS:
+//				losing_actions_count++;
+//				break;
+//			case SolvedValue::WIN:
+//				has_win_action = true;
+//				break;
+//		}
+//	}
+//	SolvedValue VCFSolver::SolverData::getSolvedValue() const noexcept
+//	{
+//		if (has_win_action)
+//			return SolvedValue::WIN;
+//		else
+//		{
+//			if (losing_actions_count == static_cast<int>(actions.size()))
+//				return SolvedValue::LOSS;
+//			else
+//			{
+//				if (has_unsolved_action)
+//					return SolvedValue::UNSOLVED;
+//				else
+//					return SolvedValue::UNKNOWN;
+//			}
+//		}
+//	}
+//	bool VCFSolver::SolverData::isSolved() const noexcept
+//	{
+//		return getSolvedValue() != SolvedValue::UNKNOWN;
+//	}
 
 	/*
 	 * Solver Table
@@ -75,39 +75,58 @@ namespace ag
 	 *
 	 */
 
-	VCFSolver::VCFSolver(GameConfig gameConfig) :
+	VCFSolver::VCFSolver(GameConfig gameConfig, int maxPositions) :
 			statistics(gameConfig.rows * gameConfig.cols),
-			search_path(gameConfig.rows * gameConfig.cols),
-			nodes_buffer(10000),
+//			search_path(gameConfig.rows * gameConfig.cols),
+			max_positions(maxPositions),
+			nodes_buffer(200000),
 			game_config(gameConfig),
 			feature_extractor(gameConfig),
-			hashtable(gameConfig.rows * gameConfig.cols, 1024)
+			hashtable(gameConfig.rows * gameConfig.cols, 65536),
+			time_setup("setup    "),
+			time_1ply_win("1ply_win "),
+			time_1ply_draw("1ply_draw"),
+			time_block5("block5   "),
+			time_3ply_win("3ply_win "),
+			time_block4("block4   "),
+			time_recursive("recursive")
 	{
 	}
 
 	void VCFSolver::solve(SearchTask &task, int level)
 	{
+		time_setup.startTimer();
 		feature_extractor.setBoard(task.getBoard(), task.getSignToMove());
-		hashtable.setBoard(task.getBoard());
+		time_setup.stopTimer();
 
+		time_1ply_win.startTimer();
 		bool success = static_solve_1ply_win(task);
+		time_1ply_win.stopTimer();
 		if (success)
 			return;
 
+		time_1ply_draw.startTimer();
 		success = static_solve_1ply_draw(task);
+		time_1ply_draw.stopTimer();
 		if (success)
 			return;
 
 		if (level <= 0)
 			return; // only winning or draw moves will be found
 
+		time_block5.startTimer();
 		success = static_solve_block_5(task);
+		time_block5.stopTimer();
 		if (success)
 			return;
+		time_3ply_win.startTimer();
 		success = static_solve_3ply_win(task);
+		time_3ply_win.stopTimer();
 		if (success)
 			return;
+		time_block4.startTimer();
 		success = static_solve_block_4(task);
+		time_block4.stopTimer();
 		if (success)
 			return;
 
@@ -118,19 +137,27 @@ namespace ag
 		const std::vector<Move> &own_open_four = feature_extractor.getThreats(ThreatType::OPEN_FOUR, sign_to_move);
 		const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
 		if (own_open_four.size() + own_half_open_four.size() == 0)
-			return; // there are not threats that we can make
+			return; // there are no threats that we can make
+
+		TimerGuard timer(time_recursive);
 
 		if (use_caching)
+		{
+			hashtable.setBoard(task.getBoard());
 			hashtable.clear();
+		}
 
 		const int root_depth = feature_extractor.getRootDepth();
 		position_counter = 0;
 		node_counter = 1; // prepare node stack
 		nodes_buffer.front().init(0, 0, invertSign(sign_to_move)); // prepare node stack
+
+		double start = getTime();
 		recursive_solve(nodes_buffer.front(), false, 0);
+		double stop = getTime();
 
 		total_positions += position_counter;
-		statistics[root_depth].add(nodes_buffer.front().solved_value == SolvedValue::LOSS, position_counter);
+		statistics[root_depth].add(nodes_buffer.front().solved_value == SolvedValue::LOSS, position_counter, 1.0e6 * (stop - start));
 //		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
 //				<< position_counter << " positions, total = " << total_positions << "\n";
 		if (nodes_buffer.front().solved_value == SolvedValue::LOSS)
@@ -145,6 +172,37 @@ namespace ag
 
 	void VCFSolver::print_stats() const
 	{
+		std::cout << time_setup.toString() << '\n';
+		std::cout << time_1ply_win.toString() << '\n';
+		std::cout << time_1ply_draw.toString() << '\n';
+		std::cout << time_block5.toString() << '\n';
+		std::cout << time_3ply_win.toString() << '\n';
+		std::cout << time_block4.toString() << '\n';
+		std::cout << time_recursive.toString() << '\n';
+		for (size_t i = 0; i < statistics.size(); i++)
+			if (statistics[i].calls > 0)
+			{
+				std::cout << "depth = " << i << ", calls " << statistics[i].hits << "/" << statistics[i].calls << ", positions "
+						<< statistics[i].positions_hit << "/" << (statistics[i].positions_total) << ", time " << statistics[i].time_hit << "/"
+						<< statistics[i].time_total << '\n';
+			}
+	}
+	void VCFSolver::reset_stats()
+	{
+		total_positions = 0;
+		time_setup.reset();
+		time_1ply_win.reset();
+		time_1ply_draw.reset();
+		time_block5.reset();
+		time_3ply_win.reset();
+		time_block4.reset();
+		time_recursive.reset();
+		for (size_t i = 0; i < statistics.size(); i++)
+			statistics[i] = solver_stats();
+	}
+	int VCFSolver::get_positions() const
+	{
+		return total_positions;
 	}
 	/*
 	 * private
@@ -348,7 +406,7 @@ namespace ag
 			const SolvedValue solved_value_from_table = use_caching ? hashtable.get(hashtable.getHash()) : SolvedValue::UNKNOWN;
 			if (solved_value_from_table == SolvedValue::UNKNOWN) // not found
 			{
-				if (position_counter < max_positions and depth <= max_depth)
+				if (position_counter < max_positions) // and depth <= max_depth)
 				{
 					feature_extractor.addMove(iter->move);
 					recursive_solve(*iter, not mustProveAllChildren, depth + 1);
