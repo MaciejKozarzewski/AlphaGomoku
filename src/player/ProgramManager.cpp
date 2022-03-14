@@ -295,7 +295,7 @@ namespace ag
 
 	void ProgramManager::setup_protocol()
 	{
-		if (not config.contains("protocol"))
+		if (not config.hasKey("protocol"))
 		{
 			config["protocol"] = "gomocup";
 			Logger::write("No 'protocol' field in the configuration, using GOMOCUP protocol");

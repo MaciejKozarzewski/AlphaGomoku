@@ -58,6 +58,11 @@ namespace ag
 		public:
 			NNEvaluator(const DeviceConfig &cfg);
 
+			/**
+			 * \brief Returns average time per single sample (in seconds)
+			 */
+			double getAverageEvalTime() const noexcept;
+			bool isOnGPU() const noexcept;
 			void clearStats() noexcept;
 			NNEvaluatorStats getStats() const noexcept;
 			int getQueueSize() const noexcept;

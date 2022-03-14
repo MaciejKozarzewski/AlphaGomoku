@@ -28,9 +28,11 @@ namespace ag
 	std::string SearchStats::toString() const
 	{
 		std::string result = "----SearchStats----\n";
-		result += "nb_duplicate_nodes   = " + std::to_string(nb_duplicate_nodes) + '\n';
-		result += "nb_information_leaks = " + std::to_string(nb_information_leaks) + '\n';
-		result += "nb_wasted_expansions = " + std::to_string(nb_wasted_expansions) + '\n';
+		result += "nb_duplicate_nodes     = " + std::to_string(nb_duplicate_nodes) + '\n';
+		result += "nb_information_leaks   = " + std::to_string(nb_information_leaks) + '\n';
+		result += "nb_wasted_expansions   = " + std::to_string(nb_wasted_expansions) + '\n';
+		result += "nb_network_evaluations = " + std::to_string(nb_network_evaluations) + '\n';
+		result += "nb_node_count = " + std::to_string(nb_node_count) + '\n';
 		result += select.toString() + '\n';
 		result += evaluate.toString() + '\n';
 		result += schedule.toString() + '\n';
@@ -51,6 +53,8 @@ namespace ag
 		this->nb_duplicate_nodes += other.nb_duplicate_nodes;
 		this->nb_information_leaks += other.nb_information_leaks;
 		this->nb_wasted_expansions += other.nb_wasted_expansions;
+		this->nb_network_evaluations += other.nb_network_evaluations;
+		this->nb_node_count += other.nb_node_count;
 		return *this;
 	}
 	SearchStats& SearchStats::operator/=(int i) noexcept
@@ -65,7 +69,14 @@ namespace ag
 		this->nb_duplicate_nodes /= i;
 		this->nb_information_leaks /= i;
 		this->nb_wasted_expansions /= i;
+		this->nb_network_evaluations /= i;
+		this->nb_node_count /= i;
 		return *this;
+	}
+	double SearchStats::getTotalTime() const noexcept
+	{
+		return select.getTotalTime() + evaluate.getTotalTime() + schedule.getTotalTime() + generate.getTotalTime() + expand.getTotalTime()
+				+ backup.getTotalTime();
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
@@ -79,14 +90,13 @@ namespace ag
 	{
 		return search_config;
 	}
-
+	void Search::setAvgNetworkEvalTime(double averageEvalTime, bool isInParallel) noexcept
+	{
+		avg_network_eval_time = averageEvalTime;
+	}
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
-	}
-	void Search::printSolverStats() const
-	{
-		vcf_solver.print_stats();
 	}
 	SearchStats Search::getStats() const noexcept
 	{
@@ -137,7 +147,10 @@ namespace ag
 		{
 			TimerGuard timer(stats.schedule);
 			if (search_tasks[i].isReady() == false)
+			{
+				stats.nb_network_evaluations++;
 				evaluator.addToQueue(search_tasks.at(i));
+			}
 		}
 	}
 	void Search::generateEdges(const Tree &tree)
@@ -159,12 +172,14 @@ namespace ag
 	}
 	void Search::backup(Tree &tree)
 	{
+		stats.nb_node_count += active_task_count;
 		for (int i = 0; i < active_task_count; i++)
 		{
 			TimerGuard timer(stats.backup);
 			tree.backup(search_tasks[i]);
 		}
 		active_task_count = 0; // those task should not be used again
+		tune_solver();
 	}
 	void Search::cleanup(Tree &tree)
 	{
@@ -174,14 +189,30 @@ namespace ag
 	/*
 	 * private
 	 */
+	void Search::tune_solver()
+	{
+		if (stats.nb_node_count - last_tuning_point.node_count < 1000)
+			return;
+		double search_time = stats.getTotalTime() - last_tuning_point.cpu_time;
+		double nn_eval_time = (stats.nb_network_evaluations - last_tuning_point.network_evaluations) * avg_network_eval_time;
+		int nodes = stats.nb_node_count - last_tuning_point.node_count;
+
+		double speed;
+		if (is_network_eval_in_parallel)
+			speed = nodes / std::max(search_time, nn_eval_time); // for NN evaluation in parallel on GPU
+		else
+			speed = nodes / (search_time + nn_eval_time);
+		vcf_solver.tune(speed);
+//		std::cout << "speed = " << speed << " n/s, cpu = " << search_time << " (" << nodes << "), gpu = " << nn_eval_time << " ("
+//				<< stats.nb_network_evaluations - last_tuning_point.network_evaluations << ")\n";
+		last_tuning_point.cpu_time = stats.getTotalTime();
+		last_tuning_point.network_evaluations = stats.nb_network_evaluations;
+		last_tuning_point.node_count = stats.nb_node_count;
+	}
 	int Search::get_batch_size(int simulation_count) const noexcept
 	{
-//		int result = 2;
 		int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
 		return std::max(1, std::min(search_config.max_batch_size, tmp));
-//		for (int i = 1; i < simulation_count; i *= 10)
-//			result *= 2; // doubling batch size for every 10x increase of simulations count
-//		return std::min(search_config.max_batch_size, result);
 	}
 	SearchTask& Search::get_next_task()
 	{

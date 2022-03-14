@@ -15,8 +15,6 @@
 #include <alphagomoku/vcf_solver/FastHashTable.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor_v2.hpp>
 
-#include <unordered_map>
-
 namespace ag
 {
 	class SearchTask;
@@ -35,31 +33,6 @@ namespace ag
 	class VCFSolver
 	{
 		private:
-			struct MoveValuePair
-			{
-					Move move;
-					SolvedValue solved_value;
-			};
-
-			/**
-			 * \brief Structure representing single level of search.
-			 */
-//			struct SolverData
-//			{
-//				private:
-//					int losing_actions_count = 0;
-//					bool has_win_action = false;
-//					bool has_unsolved_action = false;
-//				public:
-//					std::vector<MoveValuePair> actions;
-//					size_t current_action_index = 0;
-//					SolvedValue solved_value = SolvedValue::UNKNOWN;
-//
-//					void clear() noexcept;
-//					void updateWith(SolvedValue sv) noexcept;
-//					SolvedValue getSolvedValue() const noexcept;
-//					bool isSolved() const noexcept;
-//			};
 			struct InternalNode
 			{
 					InternalNode *children = nullptr;
@@ -75,38 +48,11 @@ namespace ag
 					}
 			};
 
-			struct solver_stats
-			{
-					int calls = 0;
-					int hits = 0;
-					int positions_hit = 0;
-					int positions_total = 0;
-					double time_hit = 0.0;
-					double time_total = 0.0;
-					void add(bool is_hit, int positions_checked, double time) noexcept
-					{
-						calls++;
-						positions_total += positions_checked;
-						time_total += time;
-						if (is_hit)
-						{
-							hits++;
-							positions_hit += positions_checked;
-							time_hit += time;
-						}
-					}
-			};
-			std::vector<solver_stats> statistics;
-
-			int total_positions = 0;
-
 			int max_positions = 100; // maximum number of positions that will be searched
-			int max_depth = 50; // maximum recursion depth
 			bool use_caching = true; // whether to use position caching or not
 
 			int position_counter = 0;
 			int node_counter = 0;
-//			std::vector<SolverData> search_path;
 			std::vector<InternalNode> nodes_buffer;
 
 			GameConfig game_config;
@@ -115,20 +61,22 @@ namespace ag
 			FastHashTable<uint32_t, SolvedValue> hashtable;
 
 			TimedStat time_setup;
-			TimedStat time_1ply_win;
-			TimedStat time_1ply_draw;
-			TimedStat time_block5;
-			TimedStat time_3ply_win;
-			TimedStat time_block4;
+			TimedStat time_static;
 			TimedStat time_recursive;
+
+			struct TuningPoint
+			{
+					int positions = 0;
+					float speed = 0.0f;
+			};
+			TuningPoint last_tuning_points;
+			double tuning_step = 1.1;
 		public:
 			VCFSolver(GameConfig gameConfig, int maxPositions = 100);
 
 			void solve(SearchTask &task, int level = 0);
 
-			void print_stats() const;
-			void reset_stats();
-			int get_positions() const;
+			void tune(float speed);
 		private:
 			void add_move(Move move) noexcept;
 			void undo_move(Move move) noexcept;
@@ -138,8 +86,7 @@ namespace ag
 			bool static_solve_3ply_win(SearchTask &task);
 			bool static_solve_block_4(SearchTask &task);
 
-			void recursive_solve();
-			void recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth);
+			void recursive_solve(InternalNode &node, bool mustProveAllChildren);
 	};
 
 } /* namespace ag */

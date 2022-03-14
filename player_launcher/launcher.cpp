@@ -51,13 +51,8 @@ class SolverSearch
 		bool solve(const matrix<Sign> &board, Sign signToMove)
 		{
 			m_task.reset(board, signToMove);
-			m_vcf_solver.reset_stats();
 			m_vcf_solver.solve(m_task, 2);
 			return m_task.isReady();
-		}
-		int getPositions() const
-		{
-			return m_vcf_solver.get_positions();
 		}
 };
 
@@ -116,7 +111,6 @@ class NNSearch
 		}
 		void printStats() const
 		{
-			m_search.printSolverStats();
 			std::cout << m_search.getStats().toString() << '\n';
 			std::cout << m_tree.getNodeCacheStats().toString() << '\n';
 			std::cout << m_nn_evaluator.getStats().toString() << '\n';
@@ -173,7 +167,7 @@ void test_proven_positions(int pos)
 
 			if (is_solved)
 			{
-				int solver_positions = solver.getPositions();
+				int solver_positions = 0; //solver.getPositions();
 				mcgs.setup(board, sign_to_move);
 
 				bool is_proven = mcgs.search(10000);
@@ -242,14 +236,14 @@ void test_proven_positions2(int pos)
 
 			if (is_solved)
 			{
-			mcgs.setup(board, sign_to_move);
-			bool is_proven = mcgs.search(10000);
+				mcgs.setup(board, sign_to_move);
+				bool is_proven = mcgs.search(10000);
 
 				if (is_proven)
 				{
-					if (solver.getPositions() > 0)
+//					if (solver.getPositions() > 0)
 					{
-						int bin = std::log2(solver.getPositions());
+						int bin = 0; //std::log2(solver.getPositions());
 						histogram.at(bin).first += mcgs.getPositions();
 						histogram.at(bin).second++;
 					}
@@ -280,14 +274,15 @@ void test_search()
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 30;
-	search_config.vcf_solver_level = 0;
+	search_config.vcf_solver_level = 2;
+	search_config.vcf_solver_max_positions = 1000;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
 	device_config.omp_threads = 1;
-	device_config.device = ml::Device::cuda(1);
+	device_config.device = ml::Device::cuda(0);
 	NNEvaluator nn_evaluator(device_config);
-	nn_evaluator.useSymmetries(true);
+	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
 	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
@@ -367,22 +362,22 @@ void test_search()
 //			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X\n"/* 11 */
 //			/*        a b c d e f g h i j k l         */); // @formatter:on
 // @formatter:off
-//	board = Board::fromString(
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ O O O X _ _ _ _ _ _\n"
-//			" _ _ _ X O X X _ _ O _ _ _ _ _\n"
-//			" _ _ _ _ X O O _ X _ _ _ _ _ _\n"
-//			" _ _ _ _ _ X X O _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
+	board = Board::fromString(
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X X _ _ _ _ _ _\n"
+			" _ _ _ _ _ O O O X _ _ _ _ _ _\n"
+			" _ _ _ X O X X _ _ O _ _ _ _ _\n"
+			" _ _ _ _ X O O _ X _ _ _ _ _ _\n"
+			" _ _ _ _ _ X X O _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
 
 	sign_to_move = Sign::CIRCLE;
 
@@ -421,18 +416,19 @@ void test_search()
 	tree.setEdgeGenerator(SolverGenerator(search_config.expansion_prior_treshold, search_config.max_children));
 
 	int next_step = 0;
-	for (int j = 0; j <= 100000; j++)
+	for (int j = 0; j <= 1000000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ...\n";
-			next_step += 10000;
+			next_step += 100000;
 		}
-		search.select(tree, 100000);
+		search.select(tree, 1000000);
 		search.tryToSolve();
 
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
+		search.setAvgNetworkEvalTime(nn_evaluator.getAverageEvalTime(), not device_config.device.isCPU());
 
 		search.generateEdges(tree);
 		search.expand(tree);
@@ -444,12 +440,12 @@ void test_search()
 	search.cleanup(tree);
 
 	tree.printSubtree(0, true, 10);
-	search.printSolverStats();
 	std::cout << search.getStats().toString() << '\n';
 	std::cout << "memory = " << (tree.getMemory() >> 20) << "MB\n\n";
 	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
 	std::cout << tree.getNodeCacheStats().toString() << '\n';
 	std::cout << nn_evaluator.getStats().toString() << '\n';
+	std::cout << 1.0e6 * nn_evaluator.getAverageEvalTime() << "us\n";
 
 	Node info = tree.getInfo( { });
 	info.sortEdges();
@@ -569,7 +565,7 @@ int main(int argc, char *argv[])
 {
 //	test_search();
 //	for (int i = 20; i <= 10240; i *= 4)
-	test_proven_positions2(20);
+//	test_proven_positions2(20);
 //	test_proven_positions2(50);
 //	test_proven_positions2(100);
 //	test_proven_positions2(200);

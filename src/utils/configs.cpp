@@ -14,7 +14,7 @@ namespace
 	template<typename T>
 	T get_value(const Json &json, const std::string &key)
 	{
-		if (json.contains(key))
+		if (json.hasKey(key))
 			return static_cast<T>(json[key]);
 		else
 			throw std::runtime_error("Missing parameter '" + key + "'");
@@ -22,7 +22,7 @@ namespace
 	template<typename T>
 	T get_value(const Json &json, const std::string &key, T default_value)
 	{
-		if (json.contains(key))
+		if (json.hasKey(key))
 			return static_cast<T>(json[key]);
 		else
 			return default_value;

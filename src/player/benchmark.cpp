@@ -121,7 +121,7 @@ namespace ag
 
 		/* run benchmarks */
 		output_sender.send("Detected following devices:\n" + ml::Device::hardwareInfo());
-		output_sender.send("Starting benchmark. This should take up to " + std::to_string(estimated_time) + " minutes.");
+		output_sender.send("Starting benchmark. This should take about " + std::to_string(estimated_time) + " minutes.");
 		for (size_t i = 0; i < configs_to_test.size(); i++)
 		{
 			int progress = 100 * i / configs_to_test.size();

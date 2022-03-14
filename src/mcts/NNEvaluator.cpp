@@ -59,6 +59,14 @@ namespace ag
 			omp_threads(cfg.omp_threads)
 	{
 	}
+	double NNEvaluator::getAverageEvalTime() const noexcept
+	{
+		return (stats.pack.getTotalTime() + stats.eval.getTotalTime() + stats.unpack.getTotalTime()) / (1.0e-16 + stats.batch_sizes);
+	}
+	bool NNEvaluator::isOnGPU() const noexcept
+	{
+		return device.isCUDA();
+	}
 	void NNEvaluator::clearStats() noexcept
 	{
 		stats = NNEvaluatorStats();

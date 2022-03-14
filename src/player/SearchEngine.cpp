@@ -130,6 +130,7 @@ namespace ag
 			NNEvaluator &evaluator = evaluator_pool.get();
 			search.scheduleToNN(evaluator);
 			evaluator.evaluateGraph();
+			search.setAvgNetworkEvalTime(evaluator.getAverageEvalTime(), evaluator.isOnGPU());
 			evaluator_pool.release(evaluator);
 
 			search.generateEdges(tree); // this step doesn't require locking the tree

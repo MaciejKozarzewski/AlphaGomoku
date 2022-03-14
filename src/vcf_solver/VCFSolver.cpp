@@ -76,19 +76,13 @@ namespace ag
 	 */
 
 	VCFSolver::VCFSolver(GameConfig gameConfig, int maxPositions) :
-			statistics(gameConfig.rows * gameConfig.cols),
-//			search_path(gameConfig.rows * gameConfig.cols),
 			max_positions(maxPositions),
-			nodes_buffer(200000),
+			nodes_buffer(10000),
 			game_config(gameConfig),
 			feature_extractor(gameConfig),
-			hashtable(gameConfig.rows * gameConfig.cols, 65536),
+			hashtable(gameConfig.rows * gameConfig.cols, 4096),
 			time_setup("setup    "),
-			time_1ply_win("1ply_win "),
-			time_1ply_draw("1ply_draw"),
-			time_block5("block5   "),
-			time_3ply_win("3ply_win "),
-			time_block4("block4   "),
+			time_static("static   "),
 			time_recursive("recursive")
 	{
 	}
@@ -99,36 +93,28 @@ namespace ag
 		feature_extractor.setBoard(task.getBoard(), task.getSignToMove());
 		time_setup.stopTimer();
 
-		time_1ply_win.startTimer();
-		bool success = static_solve_1ply_win(task);
-		time_1ply_win.stopTimer();
-		if (success)
-			return;
+		{ // artificial scope for timer guard
+			TimerGuard tg(time_static);
+			bool success = static_solve_1ply_win(task);
+			if (success)
+				return;
+			success = static_solve_1ply_draw(task);
+			if (success)
+				return;
 
-		time_1ply_draw.startTimer();
-		success = static_solve_1ply_draw(task);
-		time_1ply_draw.stopTimer();
-		if (success)
-			return;
+			if (level <= 0)
+				return; // only winning or draw moves will be found
 
-		if (level <= 0)
-			return; // only winning or draw moves will be found
-
-		time_block5.startTimer();
-		success = static_solve_block_5(task);
-		time_block5.stopTimer();
-		if (success)
-			return;
-		time_3ply_win.startTimer();
-		success = static_solve_3ply_win(task);
-		time_3ply_win.stopTimer();
-		if (success)
-			return;
-		time_block4.startTimer();
-		success = static_solve_block_4(task);
-		time_block4.stopTimer();
-		if (success)
-			return;
+			success = static_solve_block_5(task);
+			if (success)
+				return;
+			success = static_solve_3ply_win(task);
+			if (success)
+				return;
+			success = static_solve_block_4(task);
+			if (success)
+				return;
+		}
 
 		if (level <= 1)
 			return; // winning and forced moves will be found
@@ -147,17 +133,12 @@ namespace ag
 			hashtable.clear();
 		}
 
-		const int root_depth = feature_extractor.getRootDepth();
 		position_counter = 0;
 		node_counter = 1; // prepare node stack
 		nodes_buffer.front().init(0, 0, invertSign(sign_to_move)); // prepare node stack
 
-		double start = getTime();
-		recursive_solve(nodes_buffer.front(), false, 0);
-		double stop = getTime();
+		recursive_solve(nodes_buffer.front(), false);
 
-		total_positions += position_counter;
-		statistics[root_depth].add(nodes_buffer.front().solved_value == SolvedValue::LOSS, position_counter, 1.0e6 * (stop - start));
 //		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
 //				<< position_counter << " positions, total = " << total_positions << "\n";
 		if (nodes_buffer.front().solved_value == SolvedValue::LOSS)
@@ -170,39 +151,32 @@ namespace ag
 		}
 	}
 
-	void VCFSolver::print_stats() const
+	void VCFSolver::tune(float speed)
 	{
-		std::cout << time_setup.toString() << '\n';
-		std::cout << time_1ply_win.toString() << '\n';
-		std::cout << time_1ply_draw.toString() << '\n';
-		std::cout << time_block5.toString() << '\n';
-		std::cout << time_3ply_win.toString() << '\n';
-		std::cout << time_block4.toString() << '\n';
-		std::cout << time_recursive.toString() << '\n';
-		for (size_t i = 0; i < statistics.size(); i++)
-			if (statistics[i].calls > 0)
-			{
-				std::cout << "depth = " << i << ", calls " << statistics[i].hits << "/" << statistics[i].calls << ", positions "
-						<< statistics[i].positions_hit << "/" << (statistics[i].positions_total) << ", time " << statistics[i].time_hit << "/"
-						<< statistics[i].time_total << '\n';
-			}
-	}
-	void VCFSolver::reset_stats()
-	{
-		total_positions = 0;
-		time_setup.reset();
-		time_1ply_win.reset();
-		time_1ply_draw.reset();
-		time_block5.reset();
-		time_3ply_win.reset();
-		time_block4.reset();
-		time_recursive.reset();
-		for (size_t i = 0; i < statistics.size(); i++)
-			statistics[i] = solver_stats();
-	}
-	int VCFSolver::get_positions() const
-	{
-		return total_positions;
+		if (last_tuning_points.positions == 0) // initialize auto-tuning
+		{
+			last_tuning_points.positions = max_positions;
+			last_tuning_points.speed = speed;
+
+			max_positions /= tuning_step; // try decreasing 'max_positions'
+			return;
+		}
+
+		if (speed > last_tuning_points.speed) // last direction was successful
+		{
+			max_positions *= tuning_step;
+			tuning_step = std::min(1.5, tuning_step * 1.05);
+		}
+		else
+		{
+			tuning_step = 1.05;
+			max_positions /= tuning_step;
+		}
+
+		last_tuning_points.positions = max_positions;
+		last_tuning_points.speed = speed;
+		max_positions = std::max(50, std::min(5000, max_positions));
+//		std::cout << "new step = " << tuning_step << ", positions = " << max_positions << '\n';
 	}
 	/*
 	 * private
@@ -310,21 +284,7 @@ namespace ag
 		}
 		return false;
 	}
-	void VCFSolver::recursive_solve()
-	{
-//		for (size_t i = 0; i < search_path.size(); i++)
-//			search_path[i].clear();
-//
-//		const int root_depth = feature_extractor.getRootDepth();
-//		int current_depth = root_depth;
-//		while (current_depth >= root_depth)
-//		{
-//			const Sign sign_to_move = feature_extractor.getSignToMove();
-//
-//			const std::vector<Move> &own_five = feature_extractor.getThreats(ThreatType::FIVE, sign_to_move);
-//		}
-	}
-	void VCFSolver::recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth)
+	void VCFSolver::recursive_solve(InternalNode &node, bool mustProveAllChildren)
 	{
 		position_counter++;
 //		print();
@@ -409,7 +369,7 @@ namespace ag
 				if (position_counter < max_positions) // and depth <= max_depth)
 				{
 					feature_extractor.addMove(iter->move);
-					recursive_solve(*iter, not mustProveAllChildren, depth + 1);
+					recursive_solve(*iter, not mustProveAllChildren);
 					feature_extractor.undoMove(iter->move);
 				}
 			}

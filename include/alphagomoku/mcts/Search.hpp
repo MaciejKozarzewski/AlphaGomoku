@@ -43,11 +43,14 @@ namespace ag
 			uint64_t nb_duplicate_nodes = 0;
 			uint64_t nb_information_leaks = 0;
 			uint64_t nb_wasted_expansions = 0;
+			uint64_t nb_network_evaluations = 0;
+			uint64_t nb_node_count = 0;
 
 			SearchStats();
 			std::string toString() const;
 			SearchStats& operator+=(const SearchStats &other) noexcept;
 			SearchStats& operator/=(int i) noexcept;
+			double getTotalTime() const noexcept;
 	};
 
 	class Search
@@ -57,18 +60,28 @@ namespace ag
 			int active_task_count = 0;
 
 			VCFSolver vcf_solver;
-//			FeatureExtractor vcf_solver;
 
 			GameConfig game_config;
 			SearchConfig search_config;
 			SearchStats stats;
+
+			struct TuningPoint
+			{
+					double cpu_time = 0.0;
+					uint64_t network_evaluations = 0;
+					uint64_t node_count = 0;
+			};
+
+			TuningPoint last_tuning_point;
+			double avg_network_eval_time = 0.0;
+			bool is_network_eval_in_parallel = false;
 		public:
 			Search(GameConfig gameOptions, SearchConfig searchOptions);
 
 			const SearchConfig& getConfig() const noexcept;
 
+			void setAvgNetworkEvalTime(double averageEvalTime, bool isInParallel) noexcept;
 			void clearStats() noexcept;
-			void printSolverStats() const;
 			SearchStats getStats() const noexcept;
 
 			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
@@ -79,6 +92,7 @@ namespace ag
 			void backup(Tree &tree);
 			void cleanup(Tree &tree);
 		private:
+			void tune_solver();
 			int get_batch_size(int simulation_count) const noexcept;
 			SearchTask& get_next_task();
 			bool is_duplicate(const SearchTask &task) const noexcept;
