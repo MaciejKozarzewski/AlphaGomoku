@@ -35,10 +35,8 @@ namespace ag
 		game_outcome = static_cast<GameOutcome>(so.load<int>(offset));
 		offset += sizeof(int);
 
-//		played_move = so.load<Move>(offset);
-//		offset += sizeof(Move);
-		played_move = Move::move_from_short(so.load<uint16_t>(offset));
-		offset += sizeof(uint16_t);
+		played_move = so.load<Move>(offset);
+		offset += sizeof(Move);
 	}
 	SearchData::SearchData(int rows, int cols) :
 			actions(rows, cols)
@@ -147,7 +145,6 @@ namespace ag
 		binary_data.save<int>(static_cast<int>(proven_value));
 		binary_data.save<int>(static_cast<int>(game_outcome));
 		binary_data.save<Move>(played_move);
-//		binary_data.save<uint16_t>(played_move.toShort());
 	}
 	void SearchData::print() const
 	{

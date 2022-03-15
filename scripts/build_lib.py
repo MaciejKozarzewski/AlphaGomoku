@@ -61,9 +61,9 @@ class LibBuilder:
     def _includes(self) -> str:
         tmp = ''
         if self._main_compiler == 'gcc':
-            tmp = ' -I\"../include/\" -I\"../contrib/\"'
+            tmp = ' -I\"../include/\" -I\"../extern/\"'
         if self._main_compiler == 'msvc':
-            tmp = ' /I\"../include/\" /I\"../contrib/\"'
+            tmp = ' /I\"../include/\" /I\"../extern/\"'
 
         if self._platform == 'windows' and self._use_cuda:
             if self._main_compiler == 'gcc':
@@ -71,6 +71,8 @@ class LibBuilder:
                 tmp += ' -I\"../contrib/mingw64/include/\"'
             if self._main_compiler == 'msvc':
                 tmp += ' /I\"' + self._path_to_cuda + 'include/\"'
+        if self._platform == 'linux' and self._use_cuda:
+             tmp += ' -I\"/usr/local/cuda-11.6/include/\"'
         return tmp
 
     def _misc_options(self) -> str:
@@ -120,24 +122,25 @@ class LibBuilder:
         result = ''
         if self._platform == 'windows' and self._use_cuda:
             if self._main_compiler == 'gcc':
-                result += ' -L\"' + self._path_to_cuda + 'bin/\" -L\"../contrib/\"'
+                result += ' -L\"' + self._path_to_cuda + 'bin/\" -L\"../extern/\"'
             if self._main_compiler == 'msvc':
                 result += ' /link /LIBPATH:\"' + self._path_to_cuda + 'bin/\" /LIBPATH:\"../contrib/\" /LIBPATH:\"../bin\"'
-
+        if self._platform == 'linux' and self._use_cuda:
+            result += ' -L\"/usr/local/cuda-11.6/lib64/\"'
         return result
 
     def _add_libraries(self) -> str:
         command = ' \"../bin/' + self._lib_name() + '\"'
         if self._use_cuda:
-            command += ' \"../contrib/libml/bin/libml.a\"'
+            command += ' \"../extern/libml/bin/libml.a\"'
         else:
-            command += ' \"../contrib/libml/bin/cpu_libml.a\"'
+            command += ' \"../extern/libml/bin/cpu_libml.a\"'
         if self._platform == 'windows':
             if self._main_compiler == 'gcc':
-                command += ' \"../contrib/openblas/libopenblas.a\"'
-                command += ' \"../contrib/mingw64/lib/libz.a\"'
+                command += ' \"../extern/openblas/libopenblas.a\"'
+                command += ' \"../extern/mingw64/lib/libz.a\"'
             else:
-                command += ' \"../contrib/openblas/libopenblas.dll.a\"'
+                command += ' \"../extern/openblas/libopenblas.dll.a\"'
         else:
             command += ' -lopenblas -lz'
 #            command += ' \"../contrib/blis/libblis.a\" -lz'
@@ -147,13 +150,13 @@ class LibBuilder:
         command = ''
         if self._platform == 'linux':
             if self._build_target == 'release':
-                command += ' \"../contrib/libml/bin/cuda_math.a\"'
+                command += ' \"../extern/libml/bin/cuda_math.a\"'
             else:
-                command += ' \"../contrib/libml/bin/cuda_math_d.a\"'
+                command += ' \"../extern/libml/bin/cuda_math_d.a\"'
             command += ' -lcudart -lcublas'
         if self._platform == 'windows':
             if self._main_compiler == 'gcc':
-                command += ' -L\"../contrib/libml/bin/\"'
+                command += ' -L\"../extern/libml/bin/\"'
                 if self._build_target == 'release':
                     command += ' -lcuda_math'
                 else:
@@ -183,7 +186,7 @@ class LibBuilder:
         list_of_sources = find_sources('../test/', '.cpp', '.hpp', [])
         for src in list_of_sources:
             result += ' \"' + src[0] + src[1] + '\"'
-        result += ' \"../contrib/gtest/gtest-all.cc\"'
+        result += ' -lgtest'
         return result
 
     def create_exec(self) -> list:
@@ -198,7 +201,7 @@ class LibBuilder:
         if self._build_target == 'test':
             command += self.build_test()
         else:
-            command += ' \"../player_launcher/launcher.cpp\" \"../player_launcher/engine_manager.cpp\" \"../player_launcher/benchmark.cpp\" \"../player_launcher/configuration.cpp\"'
+            command += ' \"../training_launcher/launcher.cpp\"'
 
         command += self._includes() + self._optimizations() + self._math_flags() + self._libraries_path() + self._add_libraries()
         if self._use_cuda:

@@ -691,23 +691,36 @@ void test_expand()
 
 int main(int argc, char *argv[])
 {
+
 //	GameConfig game_config(GameRules::STANDARD, 15, 15);
 //	TrainingConfig training_config;
 //	training_config.blocks = 10;
 //	training_config.filters = 128;
-//	training_config.augment_training_data = false;
+//	training_config.augment_training_data = true;
 //	training_config.device_config.device = ml::Device::cuda(1);
-//	training_config.device_config.batch_size = 128;
+//	training_config.device_config.batch_size = 256;
 //
-//	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
+//	GameBuffer buffer;
+//	for (int i = 105; i < 120; i++)
+//	{
+//		std::cout << "Loading buffer " << i << '\n';
+//		buffer.load("/home/maciek/alphagomoku/standard_15x15/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//	}
+//	std::cout << buffer.getStats().toString() << '\n';
+//
 //	AGNetwork model(game_config, training_config);
 //
 //	SupervisedLearning sl(training_config);
+//	std::string working_dir = "/home/maciek/alphagomoku/pretrain_15x15s/";
 //
-//	for (int i = 0; i < 100; i++)
+//	sl.saveTrainingHistory(working_dir);
+//	model.saveToFile(working_dir + "model_0.bin");
+//	for (int i = 0; i < 20; i++)
 //	{
 //		sl.train(model, buffer, 1000);
+//		sl.saveTrainingHistory(working_dir);
 //		sl.clearStats();
+//		model.saveToFile(working_dir + "new_model_" + std::to_string(i + 1) + ".bin");
 //	}
 //
 //	return 0;
@@ -731,21 +744,30 @@ int main(int argc, char *argv[])
 //	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/train_buffer/", 100);
 //	return 0;
 
-	std::string path = "/home/maciek/alphagomoku/new_run_15x15s/";
+	std::string path = "/home/maciek/alphagomoku/run2022_15x15s/";
 //	ArgumentParser ap;
 //	ap.addArgument("path", [&](const std::string &arg)
 //	{	path = arg;});
 //	ap.parseArguments(argc, argv);
+	if (path.empty())
+	{
+		std::cout << "Path is empty, exiting" << std::endl;
+		return 0;
+	}
 
 	if (std::filesystem::exists(path + "/config.json"))
 	{
-		TrainingManager tm(path, "/home/maciek/alphagomoku/standard_15x15/");
-//		TrainingManager tm(path);
-		for (int i = 0; i < 120; i++)
-			tm.runIterationSL();
+		TrainingManager tm(path);
+		for (int i = 0; i < 200; i++)
+			tm.runIterationRL();
 	}
 	else
 	{
+		if (not std::filesystem::exists(path))
+		{
+			std::filesystem::create_directory(path);
+			std::cout << "Created working directory" << std::endl;
+		}
 		MasterLearningConfig cfg;
 		FileSaver fs(path + "/config.json");
 		fs.save(cfg.toJson(), SerializedObject(), 2, false);

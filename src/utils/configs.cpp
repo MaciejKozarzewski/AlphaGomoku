@@ -7,8 +7,6 @@
 
 #include <alphagomoku/utils/configs.hpp>
 
-#include <libml/utils/json.hpp>
-
 namespace
 {
 	template<typename T>
@@ -102,20 +100,22 @@ namespace ag
 			blocks(get_value<int>(options, "blocks")),
 			filters(get_value<int>(options, "filters")),
 			l2_regularization(get_value<double>(options, "l2_regularization")),
-			validation_percent(get_value<double>(options, "validation_percent"))
+			validation_percent(get_value<double>(options, "validation_percent")),
+			learning_rate(options["learning_rate"]),
+			buffer_size(options["buffer_size"])
 	{
-		for (int i = 0; i < options["learning_rate_schedule"].size(); i++)
-		{
-			int first = options["learning_rate_schedule"][i]["from_epoch"];
-			double second = options["learning_rate_schedule"][i]["value"];
-			learning_rate_schedule.push_back( { first, second });
-		}
-		for (int i = 0; i < options["buffer_size"].size(); i++)
-		{
-			int first = options["buffer_size"][i]["from_epoch"];
-			int second = options["buffer_size"][i]["size"];
-			buffer_size.push_back( { first, second });
-		}
+//		for (int i = 0; i < options["learning_rate_schedule"].size(); i++)
+//		{
+//			int first = options["learning_rate_schedule"][i]["from_epoch"];
+//			double second = options["learning_rate_schedule"][i]["value"];
+//			learning_rate_schedule.push_back( { first, second });
+//		}
+//		for (int i = 0; i < options["buffer_size"].size(); i++)
+//		{
+//			int first = options["buffer_size"][i]["from_epoch"];
+//			int second = options["buffer_size"][i]["size"];
+//			buffer_size.push_back( { first, second });
+//		}
 	}
 	Json TrainingConfig::toJson() const
 	{
@@ -127,11 +127,13 @@ namespace ag
 		result["filters"] = filters;
 		result["l2_regularization"] = l2_regularization;
 		result["validation_percent"] = validation_percent;
-		for (size_t i = 0; i < learning_rate_schedule.size(); i++)
-			result["learning_rate_schedule"][i] = Json(
-					{ { "from_epoch", learning_rate_schedule[i].first }, { "value", learning_rate_schedule[i].second } });
-		for (size_t i = 0; i < buffer_size.size(); i++)
-			result["buffer_size"][i] = Json( { { "from_epoch", buffer_size[i].first }, { "size", buffer_size[i].second } });
+		result["learning_rate"] = learning_rate.toJson();
+		result["buffer_size"] = buffer_size.toJson();
+//		for (size_t i = 0; i < learning_rate_schedule.size(); i++)
+//			result["learning_rate_schedule"][i] = Json(
+//					{ { "from_epoch", learning_rate_schedule[i].first }, { "value", learning_rate_schedule[i].second } });
+//		for (size_t i = 0; i < buffer_size.size(); i++)
+//			result["buffer_size"][i] = Json( { { "from_epoch", buffer_size[i].first }, { "size", buffer_size[i].second } });
 		return result;
 	}
 
@@ -140,8 +142,8 @@ namespace ag
 			use_symmetries(get_value<bool>(options, "use_symmetries")),
 			games_per_iteration(get_value<int>(options, "games_per_iteration")),
 			games_per_thread(get_value<int>(options, "games_per_thread")),
-			simulations_min(get_value<int>(options, "simulations_min")),
-			simulations_max(get_value<int>(options, "simulations_max", simulations_min)),
+			simulations_min(options["simulations_min"]),
+			simulations_max(options["simulations_max"]),
 			positions_skip(get_value<int>(options, "positions_skip", 1)),
 			device_config(),
 			search_config(options["search_config"]),
@@ -157,8 +159,8 @@ namespace ag
 		result["use_symmetries"] = use_symmetries;
 		result["games_per_iteration"] = games_per_iteration;
 		result["games_per_thread"] = games_per_thread;
-		result["simulations_min"] = simulations_min;
-		result["simulations_max"] = simulations_max;
+		result["simulations_min"] = simulations_min.toJson();
+		result["simulations_max"] = simulations_max.toJson();
 		result["positions_skip"] = positions_skip;
 		for (size_t i = 0; i < device_config.size(); i++)
 			result["device_config"][i] = device_config[i].toJson();

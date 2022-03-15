@@ -19,11 +19,15 @@ namespace ag
 			request(game.getRules()),
 			tree(selfplayOptions.tree_config),
 			search(gameOptions, selfplayOptions.search_config),
-			simulations_min(selfplayOptions.simulations_min),
-			simulations_max(selfplayOptions.simulations_max),
+			selfplay_config(selfplayOptions),
 			positions_skip(selfplayOptions.positions_skip),
 			use_opening(selfplayOptions.use_opening)
 	{
+	}
+	void GameGenerator::setEpoch(int epoch)
+	{
+		this->simulations_min = selfplay_config.simulations_min.getValue(epoch);
+		this->simulations_max = selfplay_config.simulations_max.getValue(epoch);
 	}
 	void GameGenerator::clearStats()
 	{

@@ -28,8 +28,10 @@ namespace ag
 		for (size_t i = 0; i < generators.size(); i++)
 			generators[i] = std::make_unique<GameGenerator>(gameOptions, selfplayOptions, manager.getGameBuffer(), nn_evaluator);
 	}
-	void GeneratorThread::start()
+	void GeneratorThread::start(int epoch)
 	{
+		for (size_t i = 0; i < generators.size(); i++)
+			generators[i]->setEpoch(epoch);
 		generator_future = std::async(std::launch::async, [this]()
 		{	this->run();});
 	}
@@ -117,7 +119,7 @@ namespace ag
 		for (size_t i = 0; i < generators.size(); i++)
 			generators[i]->resetGames();
 	}
-	void GeneratorManager::generate(const std::string &pathToNetwork, int numberOfGames)
+	void GeneratorManager::generate(const std::string &pathToNetwork, int numberOfGames, int epoch)
 	{
 		games_to_generate = numberOfGames;
 		path_to_network = pathToNetwork;
@@ -125,7 +127,7 @@ namespace ag
 		for (size_t i = 0; i < generators.size(); i++)
 		{
 			generators[i]->clearStats();
-			generators[i]->start();
+			generators[i]->start(epoch);
 		}
 
 		int counter = 0;

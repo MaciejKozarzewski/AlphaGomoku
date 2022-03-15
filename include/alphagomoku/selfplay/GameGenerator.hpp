@@ -45,6 +45,7 @@ namespace ag
 			GameState state = GAME_NOT_STARTED;
 			int opening_trials = 0;
 
+			SelfplayConfig selfplay_config;
 			int simulations_min = 0;
 			int simulations_max = 0;
 			int positions_skip = 1;
@@ -53,6 +54,7 @@ namespace ag
 		public:
 			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator);
 
+			void setEpoch(int epoch);
 			void clearStats();
 			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;

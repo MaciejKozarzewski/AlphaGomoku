@@ -153,29 +153,29 @@ namespace ag
 
 	void VCFSolver::tune(float speed)
 	{
-		if (last_tuning_points.positions == 0) // initialize auto-tuning
-		{
-			last_tuning_points.positions = max_positions;
-			last_tuning_points.speed = speed;
-
-			max_positions /= tuning_step; // try decreasing 'max_positions'
-			return;
-		}
-
-		if (speed > last_tuning_points.speed) // last direction was successful
-		{
-			max_positions *= tuning_step;
-			tuning_step = std::min(1.5, tuning_step * 1.05);
-		}
-		else
-		{
-			tuning_step = 1.05;
-			max_positions /= tuning_step;
-		}
-
-		last_tuning_points.positions = max_positions;
-		last_tuning_points.speed = speed;
-		max_positions = std::max(50, std::min(5000, max_positions));
+//		if (last_tuning_points.positions == 0) // initialize auto-tuning
+//		{
+//			last_tuning_points.positions = max_positions;
+//			last_tuning_points.speed = speed;
+//
+//			max_positions /= tuning_step; // try decreasing 'max_positions'
+//			return;
+//		}
+//
+//		if (speed > last_tuning_points.speed) // last direction was successful
+//		{
+//			max_positions *= tuning_step;
+//			tuning_step = std::min(1.5, tuning_step * 1.05);
+//		}
+//		else
+//		{
+//			tuning_step = 1.05;
+//			max_positions /= tuning_step;
+//		}
+//
+//		last_tuning_points.positions = max_positions;
+//		last_tuning_points.speed = speed;
+//		max_positions = std::max(50, std::min(5000, max_positions));
 //		std::cout << "new step = " << tuning_step << ", positions = " << max_positions << '\n';
 	}
 	/*

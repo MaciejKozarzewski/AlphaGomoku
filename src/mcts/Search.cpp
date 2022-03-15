@@ -179,7 +179,7 @@ namespace ag
 			tree.backup(search_tasks[i]);
 		}
 		active_task_count = 0; // those task should not be used again
-		tune_solver();
+//		tune_solver();
 	}
 	void Search::cleanup(Tree &tree)
 	{

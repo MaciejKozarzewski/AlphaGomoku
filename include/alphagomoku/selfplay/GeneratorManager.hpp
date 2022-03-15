@@ -55,7 +55,7 @@ namespace ag
 			std::vector<std::unique_ptr<GameGenerator>> generators;
 		public:
 			GeneratorThread(GeneratorManager &manager, const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index);
-			void start();
+			void start(int epoch);
 			bool isFinished() const noexcept;
 			void clearStats() noexcept;
 			void resetGames();
@@ -83,7 +83,7 @@ namespace ag
 			std::string getPathToNetwork() const;
 
 			void resetGames();
-			void generate(const std::string &pathToNetwork, int numberOfGames);
+			void generate(const std::string &pathToNetwork, int numberOfGames, int epoch);
 			bool hasEnoughGames() const noexcept;
 
 			void printStats();
