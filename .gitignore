@@ -13,3 +13,6 @@ extern/libml/*
 gmon.out
 test_file.*
 scripts/tmp_script.bat
+.project
+.cproject
+.settings/*
