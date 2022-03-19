@@ -1,7 +1,7 @@
 /*
  * FeatureTable.hpp
  *
- *  Created on: 2 maj 2021
+ *  Created on: May 2, 2021
  *      Author: Maciej Kozarzewski
  */
 
@@ -23,9 +23,14 @@ namespace ag
 	enum class ThreatType
 	{
 		NONE,
+//		OPEN_THREE,
 		HALF_OPEN_FOUR,
 		OPEN_FOUR,
 		FIVE
+//		FORBIDDEN,
+//		DOUBLE_THREE,
+//		FOUR_THREE,
+//		DOUBLE_FOUR
 	};
 
 	std::string toString(ThreatType t);
@@ -74,7 +79,11 @@ namespace ag
 //			std::vector<int16_t> right_map;
 		public:
 			FeatureTable(GameRules rules);
-			Threat getThreat(uint32_t feature) const noexcept;
+			Threat getThreat(uint32_t feature) const noexcept
+			{
+				assert(feature < features.size());
+				return Threat(features[feature]);
+			}
 			Threat getThreat_v2(uint32_t feature) const noexcept;
 //			Threat getThreat(FeatureDescriptor feature) const noexcept;
 		private:

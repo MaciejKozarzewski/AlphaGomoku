@@ -1,12 +1,11 @@
 /*
  * FeatureTable.cpp
  *
- *  Created on: 2 maj 2021
+ *  Created on: May 2, 2021
  *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
-#include <alphagomoku/rules/game_rules.hpp>
 
 #include <iostream>
 #include <algorithm>
@@ -219,12 +218,14 @@ namespace ag
 //		create_maps(rules);
 //		init_v2(rules);
 	}
-	Threat FeatureTable::getThreat(uint32_t feature) const noexcept
-	{
-		return Threat(features[feature]);
-	}
+//	Threat FeatureTable::getThreat(uint32_t feature) const noexcept
+//	{
+//		assert(feature < features.size());
+//		return Threat(features[feature]);
+//	}
 	Threat FeatureTable::getThreat_v2(uint32_t feature) const noexcept
 	{
+		assert(feature < features.size());
 		return Threat(features[feature]);
 //		const uint32_t mask = 3 << (2 * feature_length);
 //		if ((feature & mask) == 0) // only features with empty central spot are stored in the table
