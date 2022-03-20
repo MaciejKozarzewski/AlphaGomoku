@@ -144,7 +144,7 @@ namespace ag
 			games_per_thread(get_value<int>(options, "games_per_thread")),
 			simulations_min(options["simulations_min"]),
 			simulations_max(options["simulations_max"]),
-			positions_skip(get_value<int>(options, "positions_skip", 1)),
+			positions_skip(options["positions_skip"]),
 			device_config(),
 			search_config(options["search_config"]),
 			tree_config(options["tree_config"])
@@ -161,7 +161,7 @@ namespace ag
 		result["games_per_thread"] = games_per_thread;
 		result["simulations_min"] = simulations_min.toJson();
 		result["simulations_max"] = simulations_max.toJson();
-		result["positions_skip"] = positions_skip;
+		result["positions_skip"] = positions_skip.toJson();
 		for (size_t i = 0; i < device_config.size(); i++)
 			result["device_config"][i] = device_config[i].toJson();
 		result["search_config"] = search_config.toJson();

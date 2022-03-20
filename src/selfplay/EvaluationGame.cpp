@@ -45,7 +45,7 @@ namespace ag
 	void Player::selectSolveEvaluate()
 	{
 		search.select(tree);
-		search.tryToSolve();
+		search.solve();
 		search.scheduleToNN(nn_evaluator);
 	}
 	void Player::expandBackup()

@@ -30,6 +30,33 @@ namespace ag
 		WIN
 	};
 
+	struct SolverStats
+	{
+			TimedStat setup;
+			TimedStat static_solve;
+			TimedStat recursive_solve;
+
+			SolverStats();
+			std::string toString() const;
+	};
+
+	class AutoTuner
+	{
+		private:
+			struct Stat
+			{
+					float value = 0.0f;
+					int visits = 0;
+			};
+			std::vector<int> m_positions;
+			std::vector<Stat> m_stats;
+		public:
+			AutoTuner(int positions);
+			void reset() noexcept;
+			void update(int positions, float speed) noexcept;
+			int select() const noexcept;
+	};
+
 	class VCFSolver
 	{
 		private:
@@ -37,14 +64,14 @@ namespace ag
 			{
 					InternalNode *children = nullptr;
 					Move move;
+					int16_t number_of_children = 0;
 					SolvedValue solved_value = SolvedValue::UNKNOWN;
-					int number_of_children = 0;
 					void init(int row, int col, Sign sign) noexcept
 					{
 						children = nullptr;
 						move = Move(row, col, sign);
-						solved_value = SolvedValue::UNKNOWN;
 						number_of_children = 0;
+						solved_value = SolvedValue::UNKNOWN;
 					}
 			};
 
@@ -58,25 +85,19 @@ namespace ag
 			GameConfig game_config;
 
 			FeatureExtractor_v2 feature_extractor;
-			FastHashTable<uint32_t, SolvedValue> hashtable;
+			FastHashTable<uint32_t, SolvedValue, 4> hashtable;
 
-			TimedStat time_setup;
-			TimedStat time_static;
-			TimedStat time_recursive;
+			AutoTuner automatic_tuner;
 
-			struct TuningPoint
-			{
-					int positions = 0;
-					float speed = 0.0f;
-			};
-			TuningPoint last_tuning_points;
-			double tuning_step = 1.1;
+			SolverStats stats;
 		public:
 			VCFSolver(GameConfig gameConfig, int maxPositions = 100);
 
 			void solve(SearchTask &task, int level = 0);
-
 			void tune(float speed);
+
+			SolverStats getStats() const;
+			void clearStats();
 		private:
 			void add_move(Move move) noexcept;
 			void undo_move(Move move) noexcept;

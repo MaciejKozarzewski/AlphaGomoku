@@ -20,7 +20,7 @@ namespace ag
 		CIRCLE, // or white
 		ILLEGAL // typically outside of board
 	};
-	inline Sign invertSign(Sign sign) noexcept
+	inline constexpr Sign invertSign(Sign sign) noexcept
 	{
 		switch (sign)
 		{

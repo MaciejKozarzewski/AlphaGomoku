@@ -14,6 +14,7 @@
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/player/ProgramManager.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
+#include <alphagomoku/vcf_solver/FeatureTable_v2.hpp>
 
 #include <numeric>
 
@@ -53,6 +54,10 @@ class SolverSearch
 			m_task.reset(board, signToMove);
 			m_vcf_solver.solve(m_task, 2);
 			return m_task.isReady();
+		}
+		void printStats()
+		{
+			std::cout << m_vcf_solver.getStats().toString() << '\n';
 		}
 };
 
@@ -94,7 +99,7 @@ class NNSearch
 					next_step += (simulations / 10);
 				}
 				m_search.select(m_tree, simulations);
-				m_search.tryToSolve();
+				m_search.solve();
 
 				m_search.scheduleToNN(m_nn_evaluator);
 				m_nn_evaluator.evaluateGraph();
@@ -102,6 +107,7 @@ class NNSearch
 				m_search.generateEdges(m_tree);
 				m_search.expand(m_tree);
 				m_search.backup(m_tree);
+				m_search.tune();
 
 				if (m_tree.isProven())
 					break;
@@ -136,17 +142,18 @@ void test_proven_positions(int pos)
 	search_config.vcf_solver_level = 2;
 	search_config.vcf_solver_max_positions = pos;
 
-	DeviceConfig device_config;
-	device_config.batch_size = 32;
-	device_config.device = ml::Device::cuda(1);
+//	DeviceConfig device_config;
+//	device_config.batch_size = 32;
+//	device_config.device = ml::Device::cuda(1);
 
 //	GameBuffer buffer("/home/maciek/alphagomoku/freestyle_20x20/valid_buffer/buffer_100.bin");
-	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
+//	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
+	GameBuffer buffer("C:\\buffer_37.bin");
 
 	SolverSearch solver(game_config, 2 * search_config.vcf_solver_max_positions);
-	NNSearch mcgs(game_config, tree_config, search_config, device_config);
+//	NNSearch mcgs(game_config, tree_config, search_config, device_config);
 //	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/freestyle_10x128.bin");
-	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
+//	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
 
 	matrix<Sign> board(game_config.rows, game_config.cols);
 	Sign sign_to_move;
@@ -157,7 +164,7 @@ void test_proven_positions(int pos)
 	for (int i = 0; i < buffer.size(); i++)
 	{
 		buffer.getFromBuffer(i).getSample(0).getBoard(board);
-		const int opening_length = Board::numberOfMoves(board);
+//		const int opening_length = Board::numberOfMoves(board);
 		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
 		{
 			const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
@@ -165,32 +172,33 @@ void test_proven_positions(int pos)
 			sign_to_move = sample.getMove().sign;
 			bool is_solved = solver.solve(board, sign_to_move);
 
-			if (is_solved)
-			{
-				int solver_positions = 0; //solver.getPositions();
-				mcgs.setup(board, sign_to_move);
-
-				bool is_proven = mcgs.search(10000);
-				int mcgs_positions = mcgs.getPositions();
-
-				if (is_proven)
-				{
+//			if (is_solved)
+//			{
+//				int solver_positions = 0; //solver.getPositions();
+//				mcgs.setup(board, sign_to_move);
+//
+//				bool is_proven = mcgs.search(10000);
+//				int mcgs_positions = mcgs.getPositions();
+//
+//				if (is_proven)
+//				{
 //					std::cout << "game " << i << " move " << j << " " << game_length << " solver " << solver_positions << " mcgs " << mcgs_positions
 //							<< '\n';
 //					std::cout << i << " " << opening_length + j << " " << opening_length + buffer.getFromBuffer(i).getNumberOfSamples() << " "
 //							<< solver_positions << " " << mcgs_positions << '\n';
-					if (solver_positions != 0)
-					{
-						solver_pos += solver_positions;
-						mcgs_pos += mcgs_positions;
-						count += 1;
-					}
-					break;
-				}
-			}
+//					if (solver_positions != 0)
+//					{
+//						solver_pos += solver_positions;
+//						mcgs_pos += mcgs_positions;
+//						count += 1;
+//					}
+//					break;
+//				}
+//			}
 		}
 	}
-	std::cout << pos << " " << solver_pos << " " << mcgs_pos << " " << count << '\n';
+//	std::cout << pos << " " << solver_pos << " " << mcgs_pos << " " << count << '\n';
+	solver.printStats();
 }
 
 void test_proven_positions2(int pos)
@@ -275,18 +283,19 @@ void test_search()
 	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 30;
 	search_config.vcf_solver_level = 2;
-	search_config.vcf_solver_max_positions = 1000;
+	search_config.vcf_solver_max_positions = 5000;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
 	device_config.omp_threads = 1;
-	device_config.device = ml::Device::cuda(0);
+	device_config.device = ml::Device::cpu();
 	NNEvaluator nn_evaluator(device_config);
 	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
-	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
+//	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
+	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_52_opt.bin");
 
 	Sign sign_to_move;
 	matrix<Sign> board(15, 15);
@@ -327,24 +336,24 @@ void test_search()
 //			" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n");
 
 // @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o          */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */" _ _ _ _ _ X X X _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*        a b c d e f g h i j k l m n o          */); // @formatter:on
+	board = Board::fromString(
+			/*        a b c d e f g h i j k l m n o          */
+			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
+			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
+			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
+			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
+			/*  7 */" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n" /*  7 */
+			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
+			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
+			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
+			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+			/*        a b c d e f g h i j k l m n o          */); // @formatter:on
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l         */
@@ -362,24 +371,24 @@ void test_search()
 //			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X\n"/* 11 */
 //			/*        a b c d e f g h i j k l         */); // @formatter:on
 // @formatter:off
-	board = Board::fromString(
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X X _ _ _ _ _ _\n"
-			" _ _ _ _ _ O O O X _ _ _ _ _ _\n"
-			" _ _ _ X O X X _ _ O _ _ _ _ _\n"
-			" _ _ _ _ X O O _ X _ _ _ _ _ _\n"
-			" _ _ _ _ _ X X O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
+//	board = Board::fromString(
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ O O O X _ _ _ _ _ _\n"
+//			" _ _ _ X O X X _ _ O _ _ _ _ _\n"
+//			" _ _ _ _ X O O _ X _ _ _ _ _ _\n"
+//			" _ _ _ _ _ X X O _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
 
-	sign_to_move = Sign::CIRCLE;
+	sign_to_move = Sign::CROSS;
 
 //	std::cout << get_BOARD_command(board, sign_to_move);
 //	return;
@@ -416,23 +425,23 @@ void test_search()
 	tree.setEdgeGenerator(SolverGenerator(search_config.expansion_prior_treshold, search_config.max_children));
 
 	int next_step = 0;
-	for (int j = 0; j <= 1000000; j++)
+	for (int j = 0; j <= 10000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
-			std::cout << tree.getSimulationCount() << " ...\n";
-			next_step += 100000;
+			std::cout << tree.getSimulationCount() << " ..." << std::endl;
+			next_step += 100;
 		}
-		search.select(tree, 1000000);
-		search.tryToSolve();
+		search.select(tree, 10000);
+		search.solve();
 
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
-		search.setAvgNetworkEvalTime(nn_evaluator.getAverageEvalTime(), not device_config.device.isCPU());
 
 		search.generateEdges(tree);
 		search.expand(tree);
 		search.backup(tree);
+		search.tune();
 
 		if (tree.isProven())
 			break;
@@ -445,7 +454,6 @@ void test_search()
 	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
 	std::cout << tree.getNodeCacheStats().toString() << '\n';
 	std::cout << nn_evaluator.getStats().toString() << '\n';
-	std::cout << 1.0e6 * nn_evaluator.getAverageEvalTime() << "us\n";
 
 	Node info = tree.getInfo( { });
 	info.sortEdges();
@@ -563,7 +571,37 @@ void test_search()
 
 int main(int argc, char *argv[])
 {
-//	test_search();
+//	FeatureTable freestyle(GameRules::FREESTYLE);
+//	FeatureTable standard(GameRules::STANDARD);
+//	test_proven_positions(1000);
+//	return 0;
+
+//	std::vector<uint32_t> features(10000000);
+//	for (size_t i = 0; i < features.size(); i++)
+//		features[i] = randInt(4194304);
+//
+//	FeatureTable ft_v1(GameRules::STANDARD);
+//
+//	Threat threat1 = ft_v1.getThreat(0);
+//	double start = getTime();
+//	for (size_t i = 0; i < features.size(); i++)
+//		threat1 = max(threat1, ft_v1.getThreat(features[i]));
+//	double stop = getTime();
+//
+//	std::cout << "v1 = " << (stop - start) << std::endl;
+//
+//	Threat threat2 = ft_v1.getThreat_v2(0);
+//	start = getTime();
+//	for (size_t i = 0; i < features.size(); i++)
+//		threat2 = max(threat2, ft_v1.getThreat_v2(features[i]));
+//	stop = getTime();
+//	std::cout << "v2 = " << (stop - start) << std::endl;
+
+//	std::cout << (int) max(threat1, threat2).for_cross << '\n';
+//	FeatureTable ft2(GameRules::FREESTYLE);
+	test_search();
+
+	return 0;
 //	for (int i = 20; i <= 10240; i *= 4)
 //	test_proven_positions2(20);
 //	test_proven_positions2(50);

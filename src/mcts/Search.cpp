@@ -90,13 +90,10 @@ namespace ag
 	{
 		return search_config;
 	}
-	void Search::setAvgNetworkEvalTime(double averageEvalTime, bool isInParallel) noexcept
-	{
-		avg_network_eval_time = averageEvalTime;
-	}
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
+		vcf_solver.clearStats();
 	}
 	SearchStats Search::getStats() const noexcept
 	{
@@ -133,7 +130,7 @@ namespace ag
 			}
 		}
 	}
-	void Search::tryToSolve()
+	void Search::solve()
 	{
 		for (int i = 0; i < active_task_count; i++)
 		{
@@ -179,36 +176,29 @@ namespace ag
 			tree.backup(search_tasks[i]);
 		}
 		active_task_count = 0; // those task should not be used again
-//		tune_solver();
 	}
 	void Search::cleanup(Tree &tree)
 	{
 		for (int i = 0; i < active_task_count; i++)
 			tree.cancelVirtualLoss(search_tasks[i]);
 	}
+	void Search::tune()
+	{
+//		const double elapsed_time = getTime() - last_tuning_point.time;
+//		const int64_t evaluated_nodes = stats.nb_node_count - last_tuning_point.node_count;
+//		if (elapsed_time >= 0.5 or evaluated_nodes >= 1000)
+//		{
+//			const double speed = evaluated_nodes / elapsed_time;
+//			std::cout << "speed = " << speed << " n/s, time = " << elapsed_time << ", nodes = " << evaluated_nodes << std::endl;
+//			if (evaluated_nodes > 1)
+//				vcf_solver.tune(speed);
+//			last_tuning_point.time = getTime();
+//			last_tuning_point.node_count = stats.nb_node_count;
+//		}
+	}
 	/*
 	 * private
 	 */
-	void Search::tune_solver()
-	{
-		if (stats.nb_node_count - last_tuning_point.node_count < 1000)
-			return;
-		double search_time = stats.getTotalTime() - last_tuning_point.cpu_time;
-		double nn_eval_time = (stats.nb_network_evaluations - last_tuning_point.network_evaluations) * avg_network_eval_time;
-		int nodes = stats.nb_node_count - last_tuning_point.node_count;
-
-		double speed;
-		if (is_network_eval_in_parallel)
-			speed = nodes / std::max(search_time, nn_eval_time); // for NN evaluation in parallel on GPU
-		else
-			speed = nodes / (search_time + nn_eval_time);
-		vcf_solver.tune(speed);
-//		std::cout << "speed = " << speed << " n/s, cpu = " << search_time << " (" << nodes << "), gpu = " << nn_eval_time << " ("
-//				<< stats.nb_network_evaluations - last_tuning_point.network_evaluations << ")\n";
-		last_tuning_point.cpu_time = stats.getTotalTime();
-		last_tuning_point.network_evaluations = stats.nb_network_evaluations;
-		last_tuning_point.node_count = stats.nb_node_count;
-	}
 	int Search::get_batch_size(int simulation_count) const noexcept
 	{
 		int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count

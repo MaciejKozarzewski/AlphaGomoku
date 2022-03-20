@@ -238,7 +238,7 @@ namespace ag
 			int games_per_thread = 8;
 			Parameter<int> simulations_min = 100;
 			Parameter<int> simulations_max = 800;
-			int positions_skip = 1;
+			Parameter<int> positions_skip = 1;
 			std::vector<DeviceConfig> device_config = { DeviceConfig() };
 			SearchConfig search_config;
 			TreeConfig tree_config;

@@ -24,56 +24,71 @@ namespace
 
 namespace ag
 {
-//	void VCFSolver::SolverData::clear() noexcept
-//	{
-//		actions.clear();
-//		current_action_index = 0;
-//		solved_value = SolvedValue::UNKNOWN;
-//	}
-//	void VCFSolver::SolverData::updateWith(SolvedValue sv) noexcept
-//	{
-//		switch (sv)
-//		{
-//			case SolvedValue::UNKNOWN:
-//			case SolvedValue::UNSOLVED:
-//				has_unsolved_action = true;
-//				break;
-//			case SolvedValue::LOSS:
-//				losing_actions_count++;
-//				break;
-//			case SolvedValue::WIN:
-//				has_win_action = true;
-//				break;
-//		}
-//	}
-//	SolvedValue VCFSolver::SolverData::getSolvedValue() const noexcept
-//	{
-//		if (has_win_action)
-//			return SolvedValue::WIN;
-//		else
-//		{
-//			if (losing_actions_count == static_cast<int>(actions.size()))
-//				return SolvedValue::LOSS;
-//			else
-//			{
-//				if (has_unsolved_action)
-//					return SolvedValue::UNSOLVED;
-//				else
-//					return SolvedValue::UNKNOWN;
-//			}
-//		}
-//	}
-//	bool VCFSolver::SolverData::isSolved() const noexcept
-//	{
-//		return getSolvedValue() != SolvedValue::UNKNOWN;
-//	}
 
-	/*
-	 * Solver Table
-	 *
-	 *
-	 *
-	 */
+	SolverStats::SolverStats() :
+			setup("setup    "),
+			static_solve("static   "),
+			recursive_solve("recursive")
+	{
+	}
+	std::string SolverStats::toString() const
+	{
+		std::string result = "----SolverStats----\n";
+		result += setup.toString() + '\n';
+		result += static_solve.toString() + '\n';
+		result += recursive_solve.toString() + '\n';
+		return result;
+	}
+
+	AutoTuner::AutoTuner(int positions) :
+			m_positions( { 50, 100, 200, 400, 800, 1600, 3200, 6400 }),
+			m_stats(m_positions.size())
+	{
+		for (size_t i = 0; i < m_positions.size(); i++)
+			m_stats[i].value = 100.0f / (1.0f + std::abs(positions - m_positions[i]));
+	}
+	void AutoTuner::reset() noexcept
+	{
+		for (size_t i = 0; i < m_positions.size(); i++)
+			m_stats[i].visits = 1;
+	}
+	void AutoTuner::update(int positions, float speed) noexcept
+	{
+		for (size_t i = 0; i < m_positions.size(); i++)
+			if (m_positions[i] == positions)
+			{
+				m_stats[i].visits++;
+				const float tmp = 1.0f / std::min(5, m_stats[i].visits);
+				m_stats[i].value += (speed - m_stats[i].value) * tmp;
+				return;
+			}
+	}
+	int AutoTuner::select() const noexcept
+	{
+		float max_value = std::numeric_limits<float>::lowest();
+		int sum_visits = 0;
+		for (size_t i = 0; i < m_stats.size(); i++)
+		{
+			max_value = std::max(max_value, m_stats[i].value);
+			sum_visits += m_stats[i].visits;
+		}
+
+		float best_value = std::numeric_limits<float>::lowest();
+		int best_index = -1;
+		for (size_t i = 0; i < m_stats.size(); i++)
+		{
+			const float Q = m_stats[i].value / max_value;
+			const float U = (sum_visits == 0) ? 0.0f : std::sqrt(std::log(sum_visits) / (1.0f + m_stats[i].visits));
+			std::cout << m_positions[i] << "    " << m_stats[i].value << "    " << m_stats[i].visits << "    " << Q + U << std::endl;
+			if ((Q + U) > best_value)
+			{
+				best_value = Q + U;
+				best_index = i;
+			}
+		}
+		std::cout << std::endl;
+		return m_positions.at(best_index);
+	}
 
 	VCFSolver::VCFSolver(GameConfig gameConfig, int maxPositions) :
 			max_positions(maxPositions),
@@ -81,20 +96,18 @@ namespace ag
 			game_config(gameConfig),
 			feature_extractor(gameConfig),
 			hashtable(gameConfig.rows * gameConfig.cols, 4096),
-			time_setup("setup    "),
-			time_static("static   "),
-			time_recursive("recursive")
+			automatic_tuner(max_positions)
 	{
 	}
 
 	void VCFSolver::solve(SearchTask &task, int level)
 	{
-		time_setup.startTimer();
+		stats.setup.startTimer();
 		feature_extractor.setBoard(task.getBoard(), task.getSignToMove());
-		time_setup.stopTimer();
+		stats.setup.stopTimer();
 
 		{ // artificial scope for timer guard
-			TimerGuard tg(time_static);
+			TimerGuard tg(stats.static_solve);
 			bool success = static_solve_1ply_win(task);
 			if (success)
 				return;
@@ -125,7 +138,7 @@ namespace ag
 		if (own_open_four.size() + own_half_open_four.size() == 0)
 			return; // there are no threats that we can make
 
-		TimerGuard timer(time_recursive);
+		TimerGuard timer(stats.recursive_solve);
 
 		if (use_caching)
 		{
@@ -153,30 +166,17 @@ namespace ag
 
 	void VCFSolver::tune(float speed)
 	{
-//		if (last_tuning_points.positions == 0) // initialize auto-tuning
-//		{
-//			last_tuning_points.positions = max_positions;
-//			last_tuning_points.speed = speed;
-//
-//			max_positions /= tuning_step; // try decreasing 'max_positions'
-//			return;
-//		}
-//
-//		if (speed > last_tuning_points.speed) // last direction was successful
-//		{
-//			max_positions *= tuning_step;
-//			tuning_step = std::min(1.5, tuning_step * 1.05);
-//		}
-//		else
-//		{
-//			tuning_step = 1.05;
-//			max_positions /= tuning_step;
-//		}
-//
-//		last_tuning_points.positions = max_positions;
-//		last_tuning_points.speed = speed;
-//		max_positions = std::max(50, std::min(5000, max_positions));
-//		std::cout << "new step = " << tuning_step << ", positions = " << max_positions << '\n';
+		automatic_tuner.update(max_positions, speed);
+		max_positions = automatic_tuner.select();
+	}
+	SolverStats VCFSolver::getStats() const
+	{
+		return stats;
+	}
+	void VCFSolver::clearStats()
+	{
+		stats = SolverStats();
+		automatic_tuner.reset();
 	}
 	/*
 	 * private
@@ -333,7 +333,7 @@ namespace ag
 		if (opponent_five.size() > 0) // must make this defensive move
 		{
 			assert(opponent_five.size() == 1); // it was checked earlier that opponent cannot have more than one five
-			node.children[0].init(opponent_five[0].row, opponent_five[0].col, sign_to_move);
+			node.children[0].init(opponent_five.front().row, opponent_five.front().col, sign_to_move);
 		}
 		else
 		{

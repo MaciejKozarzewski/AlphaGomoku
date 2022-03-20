@@ -125,12 +125,11 @@ namespace ag
 				TreeLock lock(tree);
 				search.select(tree);
 			}
-			search.tryToSolve();
+			search.solve();
 
 			NNEvaluator &evaluator = evaluator_pool.get();
 			search.scheduleToNN(evaluator);
 			evaluator.evaluateGraph();
-			search.setAvgNetworkEvalTime(evaluator.getAverageEvalTime(), evaluator.isOnGPU());
 			evaluator_pool.release(evaluator);
 
 			search.generateEdges(tree); // this step doesn't require locking the tree
@@ -141,6 +140,7 @@ namespace ag
 				if (isStopConditionFulfilled())
 					break;
 			}
+			search.tune();
 			std::lock_guard lock(search_mutex);
 			if (is_running == false)
 				break;

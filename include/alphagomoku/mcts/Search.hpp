@@ -67,32 +67,27 @@ namespace ag
 
 			struct TuningPoint
 			{
-					double cpu_time = 0.0;
-					uint64_t network_evaluations = 0;
+					double time = 0.0;
 					uint64_t node_count = 0;
 			};
 
 			TuningPoint last_tuning_point;
-			double avg_network_eval_time = 0.0;
-			bool is_network_eval_in_parallel = false;
 		public:
 			Search(GameConfig gameOptions, SearchConfig searchOptions);
 
 			const SearchConfig& getConfig() const noexcept;
-
-			void setAvgNetworkEvalTime(double averageEvalTime, bool isInParallel) noexcept;
 			void clearStats() noexcept;
 			SearchStats getStats() const noexcept;
 
 			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
-			void tryToSolve();
+			void solve();
 			void scheduleToNN(NNEvaluator &evaluator);
 			void generateEdges(const Tree &tree);
 			void expand(Tree &tree);
 			void backup(Tree &tree);
 			void cleanup(Tree &tree);
+			void tune();
 		private:
-			void tune_solver();
 			int get_batch_size(int simulation_count) const noexcept;
 			SearchTask& get_next_task();
 			bool is_duplicate(const SearchTask &task) const noexcept;

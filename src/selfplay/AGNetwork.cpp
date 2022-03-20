@@ -9,7 +9,7 @@
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/mcts/Value.hpp>
-#include <libml/graph/optimization/graph_optimizers.hpp>
+#include <libml/inference/graph_optimizers.hpp>
 #include <libml/hardware/Device.hpp>
 #include <libml/hardware/DeviceContext.hpp>
 #include <libml/layers/conv/Conv2D.hpp>

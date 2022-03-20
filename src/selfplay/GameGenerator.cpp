@@ -20,7 +20,6 @@ namespace ag
 			tree(selfplayOptions.tree_config),
 			search(gameOptions, selfplayOptions.search_config),
 			selfplay_config(selfplayOptions),
-			positions_skip(selfplayOptions.positions_skip),
 			use_opening(selfplayOptions.use_opening)
 	{
 	}
@@ -28,6 +27,7 @@ namespace ag
 	{
 		this->simulations_min = selfplay_config.simulations_min.getValue(epoch);
 		this->simulations_max = selfplay_config.simulations_max.getValue(epoch);
+		this->positions_skip = selfplay_config.positions_skip.getValue(epoch);
 	}
 	void GameGenerator::clearStats()
 	{
@@ -81,7 +81,7 @@ namespace ag
 		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE)
 		{
 			search.select(tree);
-			search.tryToSolve();
+			search.solve();
 			search.scheduleToNN(nn_evaluator);
 			state = GAMEPLAY_EXPAND_AND_BACKUP;
 			return;
