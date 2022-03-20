@@ -235,24 +235,23 @@ namespace
 		}
 	}
 
-	Threat find_4x4_fork(const ThreatGroup &t) noexcept
-	{
-		int cross = 0, circle = 0;
-		auto check_direction = [&](Threat t)
-		{	cross += (t.for_cross == ThreatType::HALF_OPEN_FOUR);
-			circle += (t.for_circle == ThreatType::HALF_OPEN_FOUR);
-		};
-		check_direction(t.horizontal);
-		check_direction(t.vertical);
-		check_direction(t.diagonal);
-		check_direction(t.antidiagonal);
-
-		Threat result;
-		result.for_cross = (cross >= 2) ? ThreatType::OPEN_FOUR : ThreatType::NONE;
-		result.for_circle = (circle >= 2) ? ThreatType::OPEN_FOUR : ThreatType::NONE;
-		return result;
-	}
-
+//	Threat find_4x4_fork(const ThreatGroup &t) noexcept
+//	{
+//		int cross = 0, circle = 0;
+//		auto check_direction = [&](Threat t)
+//		{	cross += (t.for_cross == ThreatType::HALF_OPEN_FOUR);
+//			circle += (t.for_circle == ThreatType::HALF_OPEN_FOUR);
+//		};
+//		check_direction(t.horizontal);
+//		check_direction(t.vertical);
+//		check_direction(t.diagonal);
+//		check_direction(t.antidiagonal);
+//
+//		Threat result;
+//		result.for_cross = (cross >= 2) ? ThreatType::OPEN_FOUR : ThreatType::NONE;
+//		result.for_circle = (circle >= 2) ? ThreatType::OPEN_FOUR : ThreatType::NONE;
+//		return result;
+//	}
 }
 
 namespace ag
@@ -266,12 +265,15 @@ namespace ag
 			threats(gameConfig.rows, gameConfig.cols)
 	{
 		internal_board.fill(3);
+		cross_five.reserve(64);
+		cross_open_four.reserve(64);
+		cross_half_open_four.reserve(64);
+
+		circle_five.reserve(64);
+		circle_open_four.reserve(64);
+		circle_half_open_four.reserve(64);
 	}
 
-	Sign FeatureExtractor_v2::signAt(int row, int col) const noexcept
-	{
-		return static_cast<Sign>(internal_board.at(pad + row, pad + col));
-	}
 	void FeatureExtractor_v2::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
 		assert(board.rows() + 2 * pad == internal_board.rows());
@@ -284,29 +286,6 @@ namespace ag
 		root_depth = Board::numberOfMoves(board);
 		calc_all_features();
 		get_threat_lists();
-	}
-	Sign FeatureExtractor_v2::getSignToMove() const noexcept
-	{
-		return sign_to_move;
-	}
-	int FeatureExtractor_v2::getRootDepth() const noexcept
-	{
-		return root_depth;
-	}
-	const std::vector<Move>& FeatureExtractor_v2::getThreats(ThreatType type, Sign sign) const noexcept
-	{
-		assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-		assert(type != ThreatType::NONE);
-		switch (type)
-		{
-			default:
-			case ThreatType::HALF_OPEN_FOUR:
-				return (sign == Sign::CROSS) ? cross_half_open_four : circle_half_open_four;
-			case ThreatType::OPEN_FOUR:
-				return (sign == Sign::CROSS) ? cross_open_four : circle_open_four;
-			case ThreatType::FIVE:
-				return (sign == Sign::CROSS) ? cross_five : circle_five;
-		}
 	}
 
 	void FeatureExtractor_v2::printFeature(int row, int col) const
@@ -380,7 +359,7 @@ namespace ag
 		const FeatureTable &table = get_feature_table(game_config.rules);
 		std::cout << "Threat for cross at  (" << row << ", " << col << ") = ";
 		for (int i = 0; i < 4; i++)
-			std::cout << ag::toString(table.getThreat_v2(get_feature_at(row, col, static_cast<Direction>(i))).for_cross) << ", ";
+			std::cout << ag::toString(table.getThreat(get_feature_at(row, col, static_cast<Direction>(i))).for_cross) << ", ";
 		std::cout << "in map = ";
 		for (int i = 0; i < 4; i++)
 			std::cout << ag::toString(getThreatAt(Sign::CROSS, row, col, static_cast<Direction>(i))) << ", ";
@@ -388,7 +367,7 @@ namespace ag
 
 		std::cout << "Threat for circle at (" << row << ", " << col << ") = ";
 		for (int i = 0; i < 4; i++)
-			std::cout << ag::toString(table.getThreat_v2(get_feature_at(row, col, static_cast<Direction>(i))).for_circle) << ", ";
+			std::cout << ag::toString(table.getThreat(get_feature_at(row, col, static_cast<Direction>(i))).for_circle) << ", ";
 		std::cout << "in map = ";
 		for (int i = 0; i < 4; i++)
 			std::cout << ag::toString(getThreatAt(Sign::CIRCLE, row, col, static_cast<Direction>(i))) << ", ";
@@ -518,7 +497,7 @@ namespace ag
 					for (int dir = 0; dir < 4; dir++)
 					{
 						const Direction direction = static_cast<Direction>(dir);
-						threats.at(row, col).get(direction) = table.getThreat_v2(get_feature_at(row, col, direction));
+						threats.at(row, col).get(direction) = table.getThreat(get_feature_at(row, col, direction));
 					}
 
 					const Threat best_threat = threats.at(row, col).best();
@@ -591,7 +570,7 @@ namespace ag
 			const Threat old_best_threat = threats.at(row, col).best();
 
 			// update the threat tables with newly formed threat in the given direction
-			const Threat new_threat = table.getThreat_v2(get_feature_at(row, col, direction)); // this is new threat as taken from feature table
+			const Threat new_threat = table.getThreat(get_feature_at(row, col, direction)); // this is new threat as taken from feature table
 			threats.at(row, col).get(direction) = new_threat;
 
 			// check what is the new best threat at (row, col) after threat tables was updated
