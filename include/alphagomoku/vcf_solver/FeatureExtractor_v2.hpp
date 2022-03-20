@@ -11,9 +11,8 @@
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/configs.hpp>
+#include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
-
-#include <unordered_map>
 
 namespace ag
 {
@@ -125,7 +124,7 @@ namespace ag
 
 			Sign sign_to_move = Sign::NONE;
 			int root_depth = 0;
-			matrix<int> internal_board;
+			matrix<int16_t> internal_board;
 			matrix<FeatureGroup> features;
 			matrix<ThreatGroup> threats;
 
@@ -136,6 +135,7 @@ namespace ag
 			std::vector<Move> circle_five;
 			std::vector<Move> circle_open_four;
 			std::vector<Move> circle_half_open_four;
+
 		public:
 			FeatureExtractor_v2(GameConfig gameConfig);
 
@@ -188,8 +188,59 @@ namespace ag
 
 			void update_threats(int row, int col);
 			void update_threat_at(const FeatureTable &table, int row, int col, Direction direction);
-			void update_threat_list(ThreatType old_threat, ThreatType new_threat, Move move, std::vector<Move> &five, std::vector<Move> &open_four,
-					std::vector<Move> &half_open_four);
+			void update_central_threat(const FeatureTable &table, int row, int col);
+
+			void remove_single_threat(Move move, std::vector<Move> &list) noexcept
+			{
+				auto index = std::find(list.begin(), list.end(), move);
+				assert(index != list.end()); // the threat must exist in the list
+				// 		instead of deleting element from the middle, move it to the end first
+				//		such shuffling of threats should improve search efficiency (on average)
+//				list.erase(index);
+				std::swap(*index, list.back());
+				list.pop_back();
+			}
+			void add_single_threat(Move move, std::vector<Move> &list) noexcept
+			{
+				list.push_back(move);
+			}
+
+			template<Sign sign>
+			void remove_threat(ThreatType threat, Move move) noexcept
+			{
+				switch (threat)
+				{
+					default:
+						break;
+					case ThreatType::HALF_OPEN_FOUR:
+						remove_single_threat(move, (sign == Sign::CROSS) ? cross_half_open_four : circle_half_open_four);
+						break;
+					case ThreatType::OPEN_FOUR:
+						remove_single_threat(move, (sign == Sign::CROSS) ? cross_open_four : circle_open_four);
+						break;
+					case ThreatType::FIVE:
+						remove_single_threat(move, (sign == Sign::CROSS) ? cross_five : circle_five);
+						break;
+				}
+			}
+			template<Sign sign>
+			void add_threat(ThreatType threat, Move move) noexcept
+			{
+				switch (threat)
+				{
+					default:
+						break;
+					case ThreatType::HALF_OPEN_FOUR:
+						add_single_threat(move, (sign == Sign::CROSS) ? cross_half_open_four : circle_half_open_four);
+						break;
+					case ThreatType::OPEN_FOUR:
+						add_single_threat(move, (sign == Sign::CROSS) ? cross_open_four : circle_open_four);
+						break;
+					case ThreatType::FIVE:
+						add_single_threat(move, (sign == Sign::CROSS) ? cross_five : circle_five);
+						break;
+				}
+			}
 	};
 
 } /* namespace ag */

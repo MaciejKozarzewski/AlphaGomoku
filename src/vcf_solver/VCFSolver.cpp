@@ -249,7 +249,7 @@ namespace ag
 	{
 		const Sign sign_to_move = feature_extractor.getSignToMove();
 		const std::vector<Move> &own_open_four = feature_extractor.getThreats(ThreatType::OPEN_FOUR, sign_to_move);
-		if (own_open_four.size() > 0) // can make an open four, but it was already checked that opponent cannot make any five
+		if (own_open_four.size() > 0) // we can make an open four, but it was already checked that opponent cannot make any five
 		{
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
 				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN); // it is a win in 3 plys
