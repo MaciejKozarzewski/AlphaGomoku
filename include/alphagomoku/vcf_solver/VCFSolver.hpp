@@ -75,8 +75,7 @@ namespace ag
 					}
 			};
 
-			int max_positions = 100; // maximum number of positions that will be searched
-			bool use_caching = true; // whether to use position caching or not
+			int max_positions; // maximum number of positions that will be searched
 
 			int position_counter = 0;
 			int node_counter = 0;

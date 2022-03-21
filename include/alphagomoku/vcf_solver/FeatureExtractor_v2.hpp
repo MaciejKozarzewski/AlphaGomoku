@@ -192,13 +192,9 @@ namespace ag
 
 			void remove_single_threat(Move move, std::vector<Move> &list) noexcept
 			{
-				auto index = std::find(list.begin(), list.end(), move);
+				const auto index = std::find(list.begin(), list.end(), move);
 				assert(index != list.end()); // the threat must exist in the list
-				// 		instead of deleting element from the middle, move it to the end first
-				//		such shuffling of threats should improve search efficiency (on average)
-//				list.erase(index);
-				std::swap(*index, list.back());
-				list.pop_back();
+				list.erase(index);
 			}
 			void add_single_threat(Move move, std::vector<Move> &list) noexcept
 			{

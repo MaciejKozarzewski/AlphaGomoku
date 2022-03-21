@@ -525,18 +525,14 @@ namespace ag
 			UPDATE_THREAT_AT(row - i, col, Direction::VERTICAL)
 			UPDATE_THREAT_AT(row - i, col + i, Direction::ANTIDIAGONAL)
 		}
-		for (int i = col - pad; i < col; i++) // update the same row as placed move
-		{
+		for (int i = col - pad; i < col; i++) // update the same row on the left of the placed move
 			UPDATE_THREAT_AT(row, i, Direction::HORIZONTAL)
-		}
 
 		update_central_threat(table, row, col);
 
-		for (int i = col + 1; i <= col + pad; i++) // update the same row as placed move
-		{
+		for (int i = col + 1; i <= col + pad; i++) // update the same row on the right of the placed move
 			UPDATE_THREAT_AT(row, i, Direction::HORIZONTAL)
-		}
-		for (int i = 1; i <= std::min(game_config.rows - row, pad); i++) // update rows below
+		for (int i = 1; i <= std::min(game_config.rows - 1 - row, pad); i++) // update rows below
 		{
 			UPDATE_THREAT_AT(row + i, col - i, Direction::ANTIDIAGONAL)
 			UPDATE_THREAT_AT(row + i, col, Direction::VERTICAL)
@@ -546,7 +542,7 @@ namespace ag
 	}
 	void FeatureExtractor_v2::update_threat_at(const FeatureTable &table, int row, int col, Direction direction)
 	{
-		assert(row >=0 && row < game_config.rows && col >= 0 && col < game_config.cols);
+		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
 		assert(signAt(row, col) == Sign::NONE);
 		// check what was the best threat at (row, col) before updating
 		const Threat old_best_threat = threats.at(row, col).best();
@@ -572,7 +568,7 @@ namespace ag
 	}
 	void FeatureExtractor_v2::update_central_threat(const FeatureTable &table, int row, int col)
 	{
-		assert(row >=0 && row < game_config.rows && col >= 0 && col < game_config.cols);
+		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
 
 		if (signAt(row, col) != Sign::NONE) // stone was placed at this spot
 		{
@@ -581,7 +577,7 @@ namespace ag
 			remove_threat<Sign::CROSS>(old_best_threat.for_cross, Move(row, col));
 			remove_threat<Sign::CIRCLE>(old_best_threat.for_circle, Move(row, col));
 		}
-		else
+		else // stone was removed from this spot
 		{
 			for (int i = 0; i < 4; i++)
 			{

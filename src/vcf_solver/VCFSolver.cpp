@@ -20,6 +20,20 @@ namespace
 	{
 		return square(lhs.row - rhs.row) + square(lhs.col - rhs.col);
 	}
+	bool get_rand_bool() noexcept
+	{
+		static const std::array<bool, 256> table = []()
+		{
+			std::array<bool, 256> result;
+			for (size_t i = 0; i < result.size(); i++)
+				result[i] = rand() & 1;
+			return result;
+		}();
+		static size_t index = -1;
+
+		index = (index + 1) % table.size();
+		return table[index];
+	}
 }
 
 namespace ag
@@ -140,11 +154,8 @@ namespace ag
 
 		TimerGuard timer(stats.recursive_solve);
 
-		if (use_caching)
-		{
-			hashtable.setBoard(task.getBoard());
-			hashtable.clear();
-		}
+		hashtable.setBoard(task.getBoard());
+		hashtable.clear();
 
 		position_counter = 0;
 		node_counter = 1; // prepare node stack
@@ -341,10 +352,6 @@ namespace ag
 			size_t children_counter = 0;
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++, children_counter++)
 				node.children[children_counter].init(iter->row, iter->col, sign_to_move);
-
-			const Move last_move = node.move;
-			std::sort(node.children, node.children + node.number_of_children, [last_move](const InternalNode &lhs, const InternalNode &rhs)
-			{	return distance(last_move, lhs.move) < distance(last_move, rhs.move);});
 		}
 
 		int loss_counter = 0;
@@ -363,10 +370,10 @@ namespace ag
 //			std::cout << "now checking " << iter->move.toString() << '\n';
 
 			hashtable.updateHash(iter->move);
-			const SolvedValue solved_value_from_table = use_caching ? hashtable.get(hashtable.getHash()) : SolvedValue::UNKNOWN;
+			const SolvedValue solved_value_from_table = hashtable.get(hashtable.getHash());
 			if (solved_value_from_table == SolvedValue::UNKNOWN) // not found
 			{
-				if (position_counter < max_positions) // and depth <= max_depth)
+				if (position_counter < max_positions)
 				{
 					feature_extractor.addMove(iter->move);
 					recursive_solve(*iter, not mustProveAllChildren);
@@ -413,9 +420,9 @@ namespace ag
 					node.solved_value = SolvedValue::UNSOLVED;
 			}
 		}
-		if (use_caching)
-			hashtable.insert(hashtable.getHash(), node.solved_value);
+		hashtable.insert(hashtable.getHash(), node.solved_value);
 		node_counter -= node.number_of_children;
 	}
+
 } /* namespace ag */
 
