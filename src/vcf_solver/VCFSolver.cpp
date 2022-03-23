@@ -76,7 +76,7 @@ namespace ag
 	}
 	std::pair<float, float> Measurement::predict(int x) const noexcept
 	{
-		if (m_values.size() < 3)
+		if (m_values.size() < 5)
 			return std::pair<float, float>( { 0.0f, 1.0e6f });
 		else
 		{
@@ -157,7 +157,6 @@ namespace ag
 	}
 	void VCFSolver::tune(float speed)
 	{
-		std::cout << max_positions << " positions, speed = " << speed << std::endl;
 		if (max_positions == lower_measurement.getParamValue())
 		{
 			lower_measurement.update(step_counter, speed);
@@ -175,16 +174,11 @@ namespace ag
 		std::pair<float, float> upper_mean_and_stddev = upper_measurement.predict(step_counter);
 
 		float mean = lower_mean_and_stddev.first - upper_mean_and_stddev.first;
-		float stddev = lower_mean_and_stddev.second + upper_mean_and_stddev.second;
+		float stddev = std::hypot(lower_mean_and_stddev.second, upper_mean_and_stddev.second);
 
 		float probability = 1.0f - gaussian_cdf(mean / stddev);
 
-		std::cout << "lower " << lower_mean_and_stddev.first << " +/- " << lower_mean_and_stddev.second << std::endl;
-		std::cout << "upper " << upper_mean_and_stddev.first << " +/- " << upper_mean_and_stddev.second << std::endl;
-		std::cout << mean << " " << stddev << " " << probability << std::endl;
-		std::cout << std::endl;
-
-		if (probability > 0.9f) // there is 90% chance that higher value of 'max_positions' gives higher speed
+		if (probability > 0.95f) // there is 90% chance that higher value of 'max_positions' gives higher speed
 		{
 			if (lower_measurement.getParamValue() * tuning_step <= 6400)
 			{
@@ -194,7 +188,7 @@ namespace ag
 			}
 			max_positions = lower_measurement.getParamValue();
 		}
-		if (probability < 0.1f) // there is 10% chance that higher value of 'max_positions' gives higher speed
+		if (probability < 0.05f) // there is 10% chance that higher value of 'max_positions' gives higher speed
 		{
 			if (lower_measurement.getParamValue() / tuning_step >= 50)
 			{
@@ -204,17 +198,6 @@ namespace ag
 			}
 			max_positions = lower_measurement.getParamValue();
 		}
-//		switch (dir)
-//		{
-//			case -1:
-//				max_positions /= 2;
-//				break;
-//			case 1:
-//				max_positions *= 2;
-//				break;
-//			default:
-//				break;
-//		}
 	}
 	SolverStats VCFSolver::getStats() const
 	{
