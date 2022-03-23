@@ -48,6 +48,8 @@ class SolverSearch
 				m_task(gameConfig.rules),
 				m_vcf_solver(gameConfig, maxPositions)
 		{
+			m_task.reset(matrix<Sign>(gameConfig.rows, gameConfig.cols), Sign::CROSS);
+			m_vcf_solver.solve(m_task, 0);
 		}
 		bool solve(const matrix<Sign> &board, Sign signToMove)
 		{
@@ -150,14 +152,13 @@ void test_proven_positions(int pos)
 //	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
 	GameBuffer buffer("C:\\buffer_37.bin");
 
-	SolverSearch solver(game_config, 2 * search_config.vcf_solver_max_positions);
+	SolverSearch solver(game_config, search_config.vcf_solver_max_positions);
 //	NNSearch mcgs(game_config, tree_config, search_config, device_config);
 //	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/freestyle_10x128.bin");
 //	mcgs.loadNetwork("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
 
 	matrix<Sign> board(game_config.rows, game_config.cols);
 	Sign sign_to_move;
-//	std::cout << buffer.size() << " games\n";
 	int solver_pos = 0;
 	int mcgs_pos = 0;
 	int count = 0;
@@ -171,6 +172,8 @@ void test_proven_positions(int pos)
 			sample.getBoard(board);
 			sign_to_move = sample.getMove().sign;
 			bool is_solved = solver.solve(board, sign_to_move);
+
+			count += is_solved;
 
 //			if (is_solved)
 //			{
@@ -198,6 +201,7 @@ void test_proven_positions(int pos)
 		}
 	}
 //	std::cout << pos << " " << solver_pos << " " << mcgs_pos << " " << count << '\n';
+	std::cout << "solved " << count << " positions" << std::endl;
 	solver.printStats();
 }
 
@@ -283,19 +287,19 @@ void test_search()
 	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 30;
 	search_config.vcf_solver_level = 2;
-	search_config.vcf_solver_max_positions = 5000;
+	search_config.vcf_solver_max_positions = 400;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
 	device_config.omp_threads = 1;
-	device_config.device = ml::Device::cpu();
+	device_config.device = ml::Device::cuda(0);
 	NNEvaluator nn_evaluator(device_config);
 	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
-	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_52_opt.bin");
+	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_75_opt.bin");
 
 	Sign sign_to_move;
 	matrix<Sign> board(15, 15);
@@ -346,14 +350,14 @@ void test_search()
 			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
 			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
 			/*  7 */" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n" /*  7 */
-			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
+			/*  8 */" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /*  8 */
 			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
 			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
 			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
 			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-			/*        a b c d e f g h i j k l m n o          */); // @formatter:on
+			/*        a b c d e f g h i j k l m n o          */);        // @formatter:on
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l         */
@@ -427,12 +431,12 @@ void test_search()
 	int next_step = 0;
 	for (int j = 0; j <= 10000; j++)
 	{
-		if (tree.getSimulationCount() >= next_step)
-		{
-			std::cout << tree.getSimulationCount() << " ..." << std::endl;
-			next_step += 100;
-		}
-		search.select(tree, 10000);
+//		if (tree.getSimulationCount() >= next_step)
+//		{
+//			std::cout << tree.getSimulationCount() << " ..." << std::endl;
+//			next_step += 100;
+//		}
+		search.select(tree, 100000);
 		search.solve();
 
 		search.scheduleToNN(nn_evaluator);

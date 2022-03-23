@@ -184,17 +184,17 @@ namespace ag
 	}
 	void Search::tune()
 	{
-//		const double elapsed_time = getTime() - last_tuning_point.time;
-//		const int64_t evaluated_nodes = stats.nb_node_count - last_tuning_point.node_count;
-//		if (elapsed_time >= 0.5 or evaluated_nodes >= 1000)
-//		{
-//			const double speed = evaluated_nodes / elapsed_time;
-//			std::cout << "speed = " << speed << " n/s, time = " << elapsed_time << ", nodes = " << evaluated_nodes << std::endl;
-//			if (evaluated_nodes > 1)
-//				vcf_solver.tune(speed);
-//			last_tuning_point.time = getTime();
-//			last_tuning_point.node_count = stats.nb_node_count;
-//		}
+		const double elapsed_time = getTime() - last_tuning_point.time;
+		const int64_t evaluated_nodes = stats.nb_node_count - last_tuning_point.node_count;
+		if (elapsed_time >= 0.5 or evaluated_nodes >= 1000)
+		{
+			const double speed = evaluated_nodes / elapsed_time;
+			std::cout << "speed = " << speed << " n/s, time = " << elapsed_time << ", nodes = " << evaluated_nodes << std::endl;
+			if (stats.nb_node_count > 1)
+				vcf_solver.tune(speed);
+			last_tuning_point.time = getTime();
+			last_tuning_point.node_count = stats.nb_node_count;
+		}
 	}
 	/*
 	 * private

@@ -40,21 +40,15 @@ namespace ag
 			std::string toString() const;
 	};
 
-	class AutoTuner
+	class Measurement
 	{
-		private:
-			struct Stat
-			{
-					float value = 0.0f;
-					int visits = 0;
-			};
-			std::vector<int> m_positions;
-			std::vector<Stat> m_stats;
+			std::vector<std::pair<int, float>> m_values;
+			int m_param_value;
 		public:
-			AutoTuner(int positions);
-			void reset() noexcept;
-			void update(int positions, float speed) noexcept;
-			int select() const noexcept;
+			Measurement(int paramValue) noexcept;
+			int getParamValue() const noexcept;
+			void update(int x, float y) noexcept;
+			std::pair<float, float> predict(int x) const noexcept;
 	};
 
 	class VCFSolver
@@ -86,7 +80,10 @@ namespace ag
 			FeatureExtractor_v2 feature_extractor;
 			FastHashTable<uint32_t, SolvedValue, 4> hashtable;
 
-			AutoTuner automatic_tuner;
+			size_t step_counter = 0;
+			int tuning_step = 2;
+			Measurement lower_measurement;
+			Measurement upper_measurement;
 
 			SolverStats stats;
 		public:

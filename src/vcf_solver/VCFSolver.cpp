@@ -7,6 +7,7 @@
 
 #include <alphagomoku/vcf_solver/VCFSolver.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
+#include <alphagomoku/utils/LinearRegression.hpp>
 
 #include <iostream>
 
@@ -34,6 +35,11 @@ namespace
 		index = (index + 1) % table.size();
 		return table[index];
 	}
+	template<typename T>
+	T gaussian_cdf(T x) noexcept
+	{
+		return static_cast<T>(0.5) * (static_cast<T>(1.0) + std::erf(x / std::sqrt(2.0)));
+	}
 }
 
 namespace ag
@@ -54,54 +60,29 @@ namespace ag
 		return result;
 	}
 
-	AutoTuner::AutoTuner(int positions) :
-			m_positions( { 50, 100, 200, 400, 800, 1600, 3200, 6400 }),
-			m_stats(m_positions.size())
+	Measurement::Measurement(int paramValue) noexcept :
+			m_param_value(paramValue)
 	{
-		for (size_t i = 0; i < m_positions.size(); i++)
-			m_stats[i].value = 100.0f / (1.0f + std::abs(positions - m_positions[i]));
 	}
-	void AutoTuner::reset() noexcept
+	int Measurement::getParamValue() const noexcept
 	{
-		for (size_t i = 0; i < m_positions.size(); i++)
-			m_stats[i].visits = 1;
+		return m_param_value;
 	}
-	void AutoTuner::update(int positions, float speed) noexcept
+	void Measurement::update(int x, float y) noexcept
 	{
-		for (size_t i = 0; i < m_positions.size(); i++)
-			if (m_positions[i] == positions)
-			{
-				m_stats[i].visits++;
-				const float tmp = 1.0f / std::min(5, m_stats[i].visits);
-				m_stats[i].value += (speed - m_stats[i].value) * tmp;
-				return;
-			}
+		if (m_values.size() >= 10)
+			m_values.erase(m_values.begin());
+		m_values.push_back(std::pair<int, float>( { x, y }));
 	}
-	int AutoTuner::select() const noexcept
+	std::pair<float, float> Measurement::predict(int x) const noexcept
 	{
-		float max_value = std::numeric_limits<float>::lowest();
-		int sum_visits = 0;
-		for (size_t i = 0; i < m_stats.size(); i++)
+		if (m_values.size() < 3)
+			return std::pair<float, float>( { 0.0f, 1.0e6f });
+		else
 		{
-			max_value = std::max(max_value, m_stats[i].value);
-			sum_visits += m_stats[i].visits;
+			LinearRegression<int, float> linreg(m_values);
+			return linreg.predict(x);
 		}
-
-		float best_value = std::numeric_limits<float>::lowest();
-		int best_index = -1;
-		for (size_t i = 0; i < m_stats.size(); i++)
-		{
-			const float Q = m_stats[i].value / max_value;
-			const float U = (sum_visits == 0) ? 0.0f : std::sqrt(std::log(sum_visits) / (1.0f + m_stats[i].visits));
-			std::cout << m_positions[i] << "    " << m_stats[i].value << "    " << m_stats[i].visits << "    " << Q + U << std::endl;
-			if ((Q + U) > best_value)
-			{
-				best_value = Q + U;
-				best_index = i;
-			}
-		}
-		std::cout << std::endl;
-		return m_positions.at(best_index);
 	}
 
 	VCFSolver::VCFSolver(GameConfig gameConfig, int maxPositions) :
@@ -110,10 +91,10 @@ namespace ag
 			game_config(gameConfig),
 			feature_extractor(gameConfig),
 			hashtable(gameConfig.rows * gameConfig.cols, 4096),
-			automatic_tuner(max_positions)
+			lower_measurement(max_positions),
+			upper_measurement(tuning_step * max_positions)
 	{
 	}
-
 	void VCFSolver::solve(SearchTask &task, int level)
 	{
 		stats.setup.startTimer();
@@ -174,11 +155,66 @@ namespace ag
 			task.setReady();
 		}
 	}
-
 	void VCFSolver::tune(float speed)
 	{
-		automatic_tuner.update(max_positions, speed);
-		max_positions = automatic_tuner.select();
+		std::cout << max_positions << " positions, speed = " << speed << std::endl;
+		if (max_positions == lower_measurement.getParamValue())
+		{
+			lower_measurement.update(step_counter, speed);
+			max_positions = upper_measurement.getParamValue();
+		}
+		else
+		{
+			upper_measurement.update(step_counter, speed);
+			max_positions = lower_measurement.getParamValue();
+		}
+
+		step_counter++;
+
+		std::pair<float, float> lower_mean_and_stddev = lower_measurement.predict(step_counter);
+		std::pair<float, float> upper_mean_and_stddev = upper_measurement.predict(step_counter);
+
+		float mean = lower_mean_and_stddev.first - upper_mean_and_stddev.first;
+		float stddev = lower_mean_and_stddev.second + upper_mean_and_stddev.second;
+
+		float probability = 1.0f - gaussian_cdf(mean / stddev);
+
+		std::cout << "lower " << lower_mean_and_stddev.first << " +/- " << lower_mean_and_stddev.second << std::endl;
+		std::cout << "upper " << upper_mean_and_stddev.first << " +/- " << upper_mean_and_stddev.second << std::endl;
+		std::cout << mean << " " << stddev << " " << probability << std::endl;
+		std::cout << std::endl;
+
+		if (probability > 0.9f) // there is 90% chance that higher value of 'max_positions' gives higher speed
+		{
+			if (lower_measurement.getParamValue() * tuning_step <= 6400)
+			{
+				const int new_max_pos = tuning_step * lower_measurement.getParamValue();
+				lower_measurement = Measurement(new_max_pos);
+				upper_measurement = Measurement(tuning_step * new_max_pos);
+			}
+			max_positions = lower_measurement.getParamValue();
+		}
+		if (probability < 0.1f) // there is 10% chance that higher value of 'max_positions' gives higher speed
+		{
+			if (lower_measurement.getParamValue() / tuning_step >= 50)
+			{
+				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
+				lower_measurement = Measurement(new_max_pos);
+				upper_measurement = Measurement(tuning_step * new_max_pos);
+			}
+			max_positions = lower_measurement.getParamValue();
+		}
+//		switch (dir)
+//		{
+//			case -1:
+//				max_positions /= 2;
+//				break;
+//			case 1:
+//				max_positions *= 2;
+//				break;
+//			default:
+//				break;
+//		}
 	}
 	SolverStats VCFSolver::getStats() const
 	{
@@ -187,7 +223,9 @@ namespace ag
 	void VCFSolver::clearStats()
 	{
 		stats = SolverStats();
-		automatic_tuner.reset();
+		lower_measurement = Measurement(max_positions);
+		upper_measurement = Measurement(tuning_step * max_positions);
+		step_counter = 0;
 	}
 	/*
 	 * private
