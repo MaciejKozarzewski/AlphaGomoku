@@ -38,7 +38,7 @@ namespace ag
 
 		size_t nb_of_states = json["nb_of_states"];
 		for (size_t i = 0; i < nb_of_states; i++)
-			search_data.push_back(SearchData(binary_data, offset));
+			addSearchData(SearchData(binary_data, offset));
 	}
 
 	GameConfig Game::getConfig() const noexcept
@@ -114,6 +114,7 @@ namespace ag
 	void Game::addSearchData(const SearchData &state)
 	{
 		search_data.push_back(state);
+		use_count.push_back(0);
 	}
 	void Game::resolveOutcome()
 	{
@@ -191,7 +192,7 @@ namespace ag
 			index = randomizeState();
 		use_count[index]++;
 
-		return search_data[index];
+		return search_data.at(index);
 	}
 	SearchData& Game::getSample(int index)
 	{

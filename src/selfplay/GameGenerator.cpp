@@ -139,7 +139,7 @@ namespace ag
 	}
 	void GameGenerator::make_move()
 	{
-		Node root_node = tree.getInfo( { });
+		const Node root_node = tree.getInfo( { });
 //		std::cout << "after search\n";
 //		std::cout << tree.getMemory() / 1024 << "kB\n";
 //		std::cout << tree.getNodeCacheStats().toString() << '\n';
@@ -185,19 +185,17 @@ namespace ag
 		perform_full_search = (randInt(positions_skip) == 0);
 
 		search.cleanup(tree);
-		if (perform_full_search)
-			tree.setBoard(board, signToMove, true); // force remove root node
-		else
+//		if (perform_full_search)
+//			tree.setBoard(board, signToMove, true); // force remove root node
+//		else
 			tree.setBoard(board, signToMove, false); // root node can be left in the tree
-//		std::cout << "before search\n";
-//		std::cout << tree.getNodeCacheStats().toString() << '\n';
 
 		tree.setEdgeSelector(PuctSelector(search.getConfig().exploration_constant, 0.5f));
 
 		SolverGenerator base_generator(search.getConfig().expansion_prior_treshold, search.getConfig().max_children);
-		if (perform_full_search)
-			tree.setEdgeGenerator(NoisyGenerator(getNoiseMatrix(board), search.getConfig().noise_weight, base_generator));
-		else
+//		if (perform_full_search)
+//			tree.setEdgeGenerator(NoisyGenerator(getNoiseMatrix(board), search.getConfig().noise_weight, base_generator));
+//		else
 			tree.setEdgeGenerator(base_generator);
 	}
 	void GameGenerator::clear_node_cache()
@@ -205,7 +203,6 @@ namespace ag
 		matrix<Sign> invalid_board(game.rows(), game.cols());
 		invalid_board.fill(Sign::CIRCLE);
 		tree.setBoard(invalid_board, Sign::CIRCLE);
-//		tree.freeMemory();
 	}
 	int GameGenerator::nb_of_simulations() const noexcept
 	{

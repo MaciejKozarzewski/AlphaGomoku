@@ -54,6 +54,11 @@ namespace ag
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		return buffer_data.size();
 	}
+	void GameBuffer::add(const GameBuffer &other)
+	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		this->buffer_data.insert(this->buffer_data.end(), other.buffer_data.begin(), other.buffer_data.end());
+	}
 	void GameBuffer::addToBuffer(const Game &game)
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
@@ -88,13 +93,13 @@ namespace ag
 			json[i] = buffer_data[i].serialize(so);
 
 		FileSaver fs(path);
-		fs.save(json, so, -1, true);
+		fs.save(json, so, -1, false);
 		fs.close();
 	}
 	void GameBuffer::load(const std::string &path)
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
-		FileLoader fl(path, true);
+		FileLoader fl(path, false);
 		size_t size = fl.getJson().size();
 		for (size_t i = 0; i < size; i++)
 			buffer_data.push_back(Game(fl.getJson()[i], fl.getBinaryData()));
@@ -140,101 +145,6 @@ namespace ag
 		for (size_t i = 0; i < buffer_data.size(); i++)
 			result += buffer_data[i].generatePGN(fullGameHistory);
 		return result;
-	}
-
-	PositionBuffer::PositionBuffer(const std::string &path)
-	{
-		load(path);
-	}
-	void PositionBuffer::clear() noexcept
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		buffer_data.clear();
-	}
-	int PositionBuffer::size() const noexcept
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		return buffer_data.size();
-	}
-	void PositionBuffer::addToBuffer(const SearchData &position)
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		buffer_data.push_back(position);
-	}
-	const SearchData& PositionBuffer::getFromBuffer(int index) const
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		return buffer_data.at(index);
-	}
-	SearchData& PositionBuffer::getFromBuffer(int index)
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		return buffer_data.at(index);
-	}
-	void PositionBuffer::removeFromBuffer(int index)
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		buffer_data.erase(buffer_data.begin() + index);
-	}
-	void PositionBuffer::removeRange(int from, int to)
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		buffer_data.erase(buffer_data.begin() + from, buffer_data.begin() + to);
-	}
-	void PositionBuffer::save(const std::string &path) const
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		SerializedObject so;
-		so.save<int64_t>(buffer_data.size());
-		for (size_t i = 0; i < buffer_data.size(); i++)
-			buffer_data[i].serialize(so);
-
-		FileSaver fs(path);
-		fs.save(Json(), so, -1, true);
-		fs.close();
-	}
-	void PositionBuffer::load(const std::string &path)
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		FileLoader fl(path, true);
-		int64_t number_of_positions = fl.getBinaryData().load<int64_t>(0);
-
-		size_t offset = sizeof(number_of_positions);
-		for (int64_t i = 0; i < number_of_positions; i++)
-			buffer_data.push_back(SearchData(fl.getBinaryData(), offset));
-	}
-	GameBufferStats PositionBuffer::getStats() const noexcept
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		GameBufferStats stats;
-		stats.played_games = buffer_data.size();
-		stats.positions = buffer_data.size();
-		for (size_t i = 0; i < buffer_data.size(); i++)
-		{
-			switch (buffer_data[i].getOutcome())
-			{
-				default:
-					break;
-				case GameOutcome::CROSS_WIN:
-					stats.cross_win++;
-					break;
-				case GameOutcome::DRAW:
-					stats.draws++;
-					break;
-				case GameOutcome::CIRCLE_WIN:
-					stats.circle_win++;
-					break;
-			}
-		}
-		return stats;
-	}
-	bool PositionBuffer::isCorrect() const noexcept
-	{
-		std::lock_guard<std::mutex> lock(buffer_mutex);
-		for (size_t i = 0; i < buffer_data.size(); i++)
-			if (buffer_data[i].isCorrect() == false)
-				return false;
-		return true;
 	}
 
 } /* namespace ag */

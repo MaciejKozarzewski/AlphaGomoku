@@ -53,6 +53,7 @@ namespace ag
 			throw std::runtime_error("File '" + path + "' could not be opened");
 		file.read(loaded_data.data(), filesize);
 		file.close();
+
 		if (uncompress == true)
 			loaded_data = ZipWrapper::uncompress(loaded_data);
 		split_point = std::min(loaded_data.size(), find_split_point());

@@ -81,12 +81,42 @@ namespace ag
 
 		return edge->getMove();
 	}
+	SearchData Player::getSearchData() const
+	{
+		const Node root_node = tree.getInfo( { });
+		matrix<float> policy(game_config.rows, game_config.cols);
+		matrix<ProvenValue> proven_values(game_config.rows, game_config.cols);
+		matrix<Value> action_values(game_config.rows, game_config.cols);
+		for (int i = 0; i < root_node.numberOfEdges(); i++)
+		{
+			Move m = root_node.getEdge(i).getMove();
+			policy.at(m.row, m.col) = root_node.getEdge(i).getVisits();
+			proven_values.at(m.row, m.col) = root_node.getEdge(i).getProvenValue();
+			action_values.at(m.row, m.col) = root_node.getEdge(i).getValue();
+		}
+		normalize(policy);
 
-	EvaluationGame::EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening) :
+		BestEdgeSelector selector;
+		Edge *edge = selector.select(&root_node);
+		Move move = edge->getMove();
+
+		SearchData result(policy.rows(), policy.cols());
+		result.setBoard(tree.getBoard());
+		result.setActionProvenValues(proven_values);
+		result.setPolicy(policy);
+		result.setActionValues(action_values);
+		result.setMinimaxValue(root_node.getValue());
+		result.setProvenValue(root_node.getProvenValue());
+		result.setMove(move);
+		return result;
+	}
+
+	EvaluationGame::EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening, bool saveData) :
 			game_buffer(gameBuffer),
 			game(gameConfig),
 			request(gameConfig.rules),
-			use_opening(useOpening)
+			use_opening(useOpening),
+			save_data(saveData)
 	{
 	}
 	void EvaluationGame::clear()
@@ -199,6 +229,8 @@ namespace ag
 			get_player().expandBackup();
 			if (get_player().isSearchOver())
 			{
+				if (save_data)
+					game.addSearchData(get_player().getSearchData());
 				game.makeMove(get_player().getMove());
 				if (game.isOver())
 				{

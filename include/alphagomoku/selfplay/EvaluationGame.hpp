@@ -45,6 +45,7 @@ namespace ag
 			bool isSearchOver();
 			void scheduleSingleTask(SearchTask &task);
 			Move getMove() const noexcept;
+			SearchData getSearchData() const;
 	};
 
 	class EvaluationGame
@@ -65,6 +66,7 @@ namespace ag
 			GameState state = GAME_NOT_STARTED;
 			int opening_trials = 0;
 			bool use_opening = false;
+			bool save_data = false;
 
 			std::vector<Move> opening;
 			bool has_stored_opening = false;
@@ -72,7 +74,7 @@ namespace ag
 			std::unique_ptr<Player> first_player;
 			std::unique_ptr<Player> second_player;
 		public:
-			EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening);
+			EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening, bool saveData);
 			void clear();
 			void setFirstPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
 			void setSecondPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);

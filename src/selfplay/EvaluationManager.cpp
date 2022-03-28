@@ -17,7 +17,7 @@ namespace ag
 			evaluators(selfplayOptions.games_per_thread)
 	{
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i] = std::make_unique<EvaluationGame>(gameOptions, game_buffer, selfplayOptions.use_opening);
+			evaluators[i] = std::make_unique<EvaluationGame>(gameOptions, game_buffer, selfplayOptions.use_opening, selfplayOptions.save_data);
 	}
 	void EvaluatorThread::setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
 	{
@@ -130,7 +130,7 @@ namespace ag
 			time_counter++;
 			if (time_counter % 60 == 0 or this->numberOfGames() >= game_counter)
 			{
-				std::cout << this->numberOfGames() << " games played...\n";
+				std::cout << this->numberOfGames() << " games played..." << std::endl;
 				time_counter = 0;
 				game_counter += numberOfGames / 4;
 			}

@@ -140,6 +140,7 @@ namespace ag
 	SelfplayConfig::SelfplayConfig(const Json &options) :
 			use_opening(get_value<bool>(options, "use_opening")),
 			use_symmetries(get_value<bool>(options, "use_symmetries")),
+			save_data(get_value<bool>(options, "save_data", true)),
 			games_per_iteration(get_value<int>(options, "games_per_iteration")),
 			games_per_thread(get_value<int>(options, "games_per_thread")),
 			simulations_min(options["simulations_min"]),
@@ -157,6 +158,7 @@ namespace ag
 		Json result;
 		result["use_opening"] = use_opening;
 		result["use_symmetries"] = use_symmetries;
+		result["save_data"] = save_data;
 		result["games_per_iteration"] = games_per_iteration;
 		result["games_per_thread"] = games_per_thread;
 		result["simulations_min"] = simulations_min.toJson();

@@ -40,6 +40,7 @@ namespace ag
 
 			void clear() noexcept;
 			int size() const noexcept;
+			void add(const GameBuffer &other);
 			void addToBuffer(const Game &game);
 			const Game& getFromBuffer(int index) const;
 			Game& getFromBuffer(int index);
@@ -55,29 +56,6 @@ namespace ag
 			std::string generatePGN(bool fullGameHistory = false);
 	};
 
-	class PositionBuffer
-	{
-		private:
-			mutable std::mutex buffer_mutex;
-			std::vector<SearchData> buffer_data;
-		public:
-			PositionBuffer() = default;
-			PositionBuffer(const std::string &path);
-
-			void clear() noexcept;
-			int size() const noexcept;
-			void addToBuffer(const SearchData &position);
-			const SearchData& getFromBuffer(int index) const;
-			SearchData& getFromBuffer(int index);
-			void removeFromBuffer(int index);
-			void removeRange(int from, int to);
-
-			void save(const std::string &path) const;
-			void load(const std::string &path);
-
-			GameBufferStats getStats() const noexcept;
-			bool isCorrect() const noexcept;
-	};
-}
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_SELFPLAY_GAMEBUFFER_HPP_ */

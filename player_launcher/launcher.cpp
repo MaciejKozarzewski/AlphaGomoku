@@ -6,15 +6,19 @@
  */
 
 #include <alphagomoku/utils/Logger.hpp>
+#include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/version.hpp>
 #include <iostream>
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
+#include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/player/ProgramManager.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable_v2.hpp>
+
+#include <libml/utils/ZipWrapper.hpp>
 
 #include <numeric>
 
@@ -357,7 +361,7 @@ void test_search()
 			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-			/*        a b c d e f g h i j k l m n o          */);        // @formatter:on
+			/*        a b c d e f g h i j k l m n o          */);                                     // @formatter:on
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l         */
@@ -573,6 +577,46 @@ void test_search()
 //	std::cout << tree.getNodeCacheStats().toString() << '\n';
 }
 
+void time_manager()
+{
+	std::string path = "C:\\Users\\Maciek\\Desktop\\test_tm\\";
+	MasterLearningConfig config(FileLoader(path + "config.json").getJson());
+
+	GeneratorManager manager(config.game_config, config.generation_config);
+	manager.generate(path + "network.bin", 1000, 0);
+
+	const GameBuffer &buffer = manager.getGameBuffer();
+	buffer.save(path + "buffer.bin");
+
+//	GameBuffer buffer(path + "buffer.bin");
+
+	Json stats(JsonType::Array);
+	matrix<Sign> board(config.game_config.rows, config.game_config.cols);
+
+	for (int i = 0; i < buffer.size(); i++)
+	{
+		buffer.getFromBuffer(i).getSample(0).getBoard(board);
+		int nb_moves = Board::numberOfMoves(board);
+		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+		{
+			Value value = buffer.getFromBuffer(i).getSample(j).getMinimaxValue();
+			ProvenValue pv = buffer.getFromBuffer(i).getSample(j).getProvenValue();
+
+			Json entry;
+			entry["move"] = nb_moves + j;
+			entry["winrate"] = value.win;
+			entry["drawrate"] = value.draw;
+			entry["proven value"] = toString(pv);
+			stats[i][j] = entry;
+//			std::cout << entry.dump() << std::endl;
+		}
+	}
+
+	FileSaver fs(path + "stats.json");
+	fs.save(stats, SerializedObject());
+	std::cout << "END" << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
 //	FeatureTable freestyle(GameRules::FREESTYLE);
@@ -603,7 +647,7 @@ int main(int argc, char *argv[])
 
 //	std::cout << (int) max(threat1, threat2).for_cross << '\n';
 //	FeatureTable ft2(GameRules::FREESTYLE);
-	test_search();
+//	time_manager();
 
 	return 0;
 //	for (int i = 20; i <= 10240; i *= 4)

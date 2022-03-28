@@ -166,7 +166,7 @@ namespace ag
 		cache_stats /= static_cast<int>(generators.size());
 		std::cout << evaluator_stats.toString();
 		std::cout << search_stats.toString();
-		std::cout << cache_stats.toString() << '\n';
+		std::cout << cache_stats.toString() << std::endl;
 	}
 
 } /* namespace ag */
