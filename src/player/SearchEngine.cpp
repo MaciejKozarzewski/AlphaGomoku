@@ -140,7 +140,7 @@ namespace ag
 				if (isStopConditionFulfilled())
 					break;
 			}
-			search.tune();
+//			search.tune();
 			std::lock_guard lock(search_mutex);
 			if (is_running == false)
 				break;

@@ -15,8 +15,8 @@ namespace ag
 	struct Version
 	{
 			static const int major = 5;
-			static const int minor = 2;
-			static const int revision = 9;
+			static const int minor = 3;
+			static const int revision = 0;
 	};
 	class ProgramInfo
 	{

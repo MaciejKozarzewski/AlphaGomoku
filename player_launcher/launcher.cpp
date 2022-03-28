@@ -579,14 +579,14 @@ void test_search()
 
 void time_manager()
 {
-	std::string path = "C:\\Users\\Maciek\\Desktop\\test_tm\\";
+	std::string path = "/home/maciek/Desktop/test_tm/";
 	MasterLearningConfig config(FileLoader(path + "config.json").getJson());
 
 	GeneratorManager manager(config.game_config, config.generation_config);
-	manager.generate(path + "network.bin", 1000, 0);
+	manager.generate(path + "standard_10x128.bin", 10000, 0);
 
 	const GameBuffer &buffer = manager.getGameBuffer();
-	buffer.save(path + "buffer.bin");
+	buffer.save(path + "buffer_1000.bin");
 
 //	GameBuffer buffer(path + "buffer.bin");
 
@@ -608,11 +608,10 @@ void time_manager()
 			entry["drawrate"] = value.draw;
 			entry["proven value"] = toString(pv);
 			stats[i][j] = entry;
-//			std::cout << entry.dump() << std::endl;
 		}
 	}
 
-	FileSaver fs(path + "stats.json");
+	FileSaver fs(path + "stats_1000.json");
 	fs.save(stats, SerializedObject());
 	std::cout << "END" << std::endl;
 }
@@ -648,8 +647,8 @@ int main(int argc, char *argv[])
 //	std::cout << (int) max(threat1, threat2).for_cross << '\n';
 //	FeatureTable ft2(GameRules::FREESTYLE);
 //	time_manager();
+//	return 0;
 
-	return 0;
 //	for (int i = 20; i <= 10240; i *= 4)
 //	test_proven_positions2(20);
 //	test_proven_positions2(50);

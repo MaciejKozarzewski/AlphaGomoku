@@ -51,7 +51,6 @@ namespace ag
 	{
 		if (state == GAME_NOT_STARTED)
 		{
-//			std::cout << "\n\n\nNEW GAME STARTS\n\n\n";
 			game.beginGame();
 			clear_node_cache();
 			if (use_opening)
@@ -185,17 +184,17 @@ namespace ag
 		perform_full_search = (randInt(positions_skip) == 0);
 
 		search.cleanup(tree);
-//		if (perform_full_search)
-//			tree.setBoard(board, signToMove, true); // force remove root node
-//		else
+		if (perform_full_search)
+			tree.setBoard(board, signToMove, true); // force remove root node
+		else
 			tree.setBoard(board, signToMove, false); // root node can be left in the tree
 
 		tree.setEdgeSelector(PuctSelector(search.getConfig().exploration_constant, 0.5f));
 
 		SolverGenerator base_generator(search.getConfig().expansion_prior_treshold, search.getConfig().max_children);
-//		if (perform_full_search)
-//			tree.setEdgeGenerator(NoisyGenerator(getNoiseMatrix(board), search.getConfig().noise_weight, base_generator));
-//		else
+		if (perform_full_search)
+			tree.setEdgeGenerator(NoisyGenerator(getNoiseMatrix(board), search.getConfig().noise_weight, base_generator));
+		else
 			tree.setEdgeGenerator(base_generator);
 	}
 	void GameGenerator::clear_node_cache()

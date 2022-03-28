@@ -744,11 +744,11 @@ int main(int argc, char *argv[])
 //	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/train_buffer/", 100);
 //	return 0;
 
-	std::string path = "/home/maciek/alphagomoku/run2022_15x15s/";
-//	ArgumentParser ap;
-//	ap.addArgument("path", [&](const std::string &arg)
-//	{	path = arg;});
-//	ap.parseArguments(argc, argv);
+	std::string path;
+	ArgumentParser ap;
+	ap.addArgument("path", [&](const std::string &arg)
+	{	path = arg;});
+	ap.parseArguments(argc, argv);
 	if (path.empty())
 	{
 		std::cout << "Path is empty, exiting" << std::endl;
@@ -758,7 +758,7 @@ int main(int argc, char *argv[])
 	if (std::filesystem::exists(path + "/config.json"))
 	{
 		TrainingManager tm(path);
-		for (int i = 0; i < 200; i++)
+		for (int i = 0; i < 1; i++)
 			tm.runIterationRL();
 	}
 	else

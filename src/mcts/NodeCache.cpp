@@ -119,7 +119,7 @@ namespace ag
 
 	NodeCache::CompressedBoard::CompressedBoard(const matrix<Sign> &board) noexcept
 	{
-		assert(board.rows() < static_cast<int>(data.size()) && board.cols() < 32);
+		assert(board.rows() <= static_cast<int>(data.size()) && board.cols() < 32);
 		for (int i = 0; i < board.rows(); i++)
 		{
 			uint64_t tmp = 0ull;
@@ -132,7 +132,7 @@ namespace ag
 	}
 	bool NodeCache::CompressedBoard::operator==(const matrix<Sign> &board) const noexcept
 	{
-		assert(board.rows() < static_cast<int>(data.size()) && board.cols() < 32);
+		assert(board.rows() <= static_cast<int>(data.size()) && board.cols() < 32);
 		for (int i = 0; i < board.rows(); i++)
 		{
 			uint64_t tmp = data[i];

@@ -178,12 +178,6 @@ namespace ag
 
 			if (engine_controller != nullptr)
 				engine_controller->control(output_queue);
-//			if (search_future.valid())
-//			{
-//				std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
-//				if (search_status == std::future_status::ready)
-//					search_future.get();
-//			}
 
 			protocol->processOutput(output_sender);
 		}
