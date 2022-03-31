@@ -11,11 +11,41 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/Logger.hpp>
+#include <alphagomoku/utils/file_util.hpp>
 
 #include <libml/hardware/Device.hpp>
 #include <libml/utils/json.hpp>
 
 #include <algorithm>
+#include <filesystem>
+
+namespace
+{
+	std::vector<std::vector<ag::Move>> load_opening_book(const std::string &path)
+	{
+		//		Logger::write("Placing 3 initial stones");
+		if (std::filesystem::exists(path) == false)
+			throw std::logic_error("No swap2 opening book");
+		else
+		{
+			ag::FileLoader fl(path);
+			const Json &json = fl.getJson();
+
+			std::vector<std::vector<ag::Move>> result;
+			for (int i = 0; i < json.size(); i++)
+			{
+				std::vector<ag::Move> tmp;
+				for (int j = 0; j < json[i].size(); j++)
+				{
+					ag::Move m(json["row"].getInt(), json["col"].getInt(), ag::signFromString(json["sign"].getString()));
+					tmp.push_back(m);
+				}
+				result.push_back(tmp);
+			}
+			return result;
+		}
+	}
+}
 
 namespace ag
 {
@@ -45,6 +75,7 @@ namespace ag
 	}
 
 	EngineSettings::EngineSettings(const Json &config) :
+			swap2_openings(load_opening_book(config["swap2_openings_file"].getString())),
 			game_config(GameRules::FREESTYLE, 0, 0),
 			tree_config(config["tree_options"]),
 			search_config(config["search_options"]),
@@ -233,6 +264,10 @@ namespace ag
 	{
 		return path_to_networks.find(game_config.rules)->second;
 	}
+	const std::vector<std::vector<Move>>& EngineSettings::getSwap2Openings() const
+	{
+		return swap2_openings;
+	}
 	const GameConfig& EngineSettings::getGameConfig() const noexcept
 	{
 		std::lock_guard lock(mutex);
@@ -301,7 +336,7 @@ namespace ag
 	float EngineSettings::getStyleFactor() const noexcept
 	{
 		std::lock_guard lock(mutex);
-		return 0.5f * static_cast<int>(search_config.style_factor);
+		return 0.25f * static_cast<int>(search_config.style_factor);
 	}
 	bool EngineSettings::isInAnalysisMode() const noexcept
 	{

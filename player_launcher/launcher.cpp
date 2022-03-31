@@ -361,7 +361,7 @@ void test_search()
 			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-			/*        a b c d e f g h i j k l m n o          */);                                     // @formatter:on
+			/*        a b c d e f g h i j k l m n o          */);                                      // @formatter:on
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l         */

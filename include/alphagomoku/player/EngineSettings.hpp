@@ -19,6 +19,7 @@ class Json;
 namespace ag
 {
 	struct Option;
+	class Move;
 	enum class GameRules;
 } /* namespace ag */
 
@@ -48,6 +49,7 @@ namespace ag
 
 			mutable std::mutex mutex;
 			std::map<GameRules, std::string> path_to_networks;
+			std::vector<std::vector<Move>> swap2_openings;
 
 			GameConfig game_config;
 			TreeConfig tree_config;
@@ -77,6 +79,7 @@ namespace ag
 			SetOptionOutcome setOption(const Option &option) noexcept;
 
 			std::string getPathToNetwork() const;
+			const std::vector<std::vector<Move>>& getSwap2Openings() const;
 			const GameConfig& getGameConfig() const noexcept;
 			const TreeConfig& getTreeConfig() const noexcept;
 			const SearchConfig& getSearchConfig() const noexcept;

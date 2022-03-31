@@ -253,7 +253,11 @@ namespace ag
 							+ " from command line with parameter '--benchmark'");
 			exit(0);
 		}
-		createConfig(benchmark_results);
+		Json cfg = createConfig(benchmark_results);
+		FileSaver fs(argument_parser.getLaunchPath() + "config.json");
+		fs.save(cfg, SerializedObject(), 2);
+		output_sender.send("Created new configuration file.");
+		exit(0);
 	}
 	bool ProgramManager::load_config(const std::string &path)
 	{
@@ -285,6 +289,8 @@ namespace ag
 		launch_path += "networks" + path_separator;
 		config["networks"]["freestyle"] = launch_path + static_cast<std::string>(config["networks"]["freestyle"]);
 		config["networks"]["standard"] = launch_path + static_cast<std::string>(config["networks"]["standard"]);
+		// TODO later add processing of path to renju network
+		// TODO later add processing of path to caro network
 	}
 
 	void ProgramManager::setup_protocol()

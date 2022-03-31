@@ -22,7 +22,7 @@ namespace ag
 {
 	/* implemented in "configuration.cpp" */
 	Json createDefaultConfig();
-	void createConfig(const Json &benchmarkResults);
+	Json createConfig(const Json &benchmarkResults);
 
 	/* implemented in "benchmark.cpp" */
 	Json run_benchmark(const std::string &path_to_network, const OutputSender &output_sender);

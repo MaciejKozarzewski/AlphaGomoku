@@ -8,6 +8,7 @@
 #include <alphagomoku/game/Move.hpp>
 
 #include <stdexcept>
+#include <cassert>
 
 namespace
 {
