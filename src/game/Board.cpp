@@ -59,7 +59,7 @@ namespace
 	}
 	std::string to_string(Value v)
 	{
-		return to_string(v.win + 0.5f * v.draw);
+		return to_string(v.getExpectation());
 	}
 
 	std::string pretty_print_top_row(int columns, int spacingLeft = 1, int spacingRight = 0)

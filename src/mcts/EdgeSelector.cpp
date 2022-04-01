@@ -98,11 +98,9 @@ namespace ag
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			if (edge->isProven() == false)
 			{
-				float Q = parent_value;
-				if (edge->getVisits() > 0)
-					Q = getQ(edge, style_factor) * getVloss(edge);
-				float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
-				float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
+				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVloss(edge) : parent_value;
+				const float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
+				const float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
 
 				if (Q + U + P > bestValue)
 				{
@@ -133,7 +131,7 @@ namespace ag
 			float bestValue = std::numeric_limits<float>::lowest();
 			for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			{
-				float Q = getBalance(edge) * getVloss(edge);
+				const float Q = getBalance(edge) * getVloss(edge);
 				if (Q > bestValue)
 				{
 					selected = edge;
@@ -163,7 +161,7 @@ namespace ag
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 		{
-			float Q = getQ(edge, style_factor) + 1.0e6f * getProvenQ(edge);
+			const float Q = getQ(edge, style_factor) + 1.0e6f * getProvenQ(edge);
 			if (Q > bestValue)
 			{
 				selected = edge;

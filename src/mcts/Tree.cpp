@@ -73,10 +73,6 @@ namespace
 		}
 	}
 
-	bool is_terminal(const Edge *edge) noexcept
-	{
-		return edge->isProven() and edge->isLeaf();
-	}
 	bool is_information_leak(const Edge *edge, const Node *node) noexcept
 	{
 		constexpr float leak_threshold = 0.01f;

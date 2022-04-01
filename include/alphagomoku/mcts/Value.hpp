@@ -57,6 +57,10 @@ namespace ag
 					loss(l)
 			{
 			}
+			float getExpectation() const noexcept
+			{
+				return win + 0.5f * draw;
+			}
 			Value getInverted() const noexcept
 			{
 				return Value(loss, draw, win);

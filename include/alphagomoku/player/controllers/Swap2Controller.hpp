@@ -12,6 +12,11 @@
 
 namespace ag
 {
+	class Move;
+}
+
+namespace ag
+{
 	class Swap2Controller: public EngineController
 	{
 		private:
@@ -25,12 +30,15 @@ namespace ag
 				EVALUATE_5_STONES
 			};
 			ControllerState state = ControllerState::CHECK_BOARD;
-			std::vector<std::string> opening_book;
+			Move first_balancing_move;
+			Move second_balancing_move;
 		public:
 			Swap2Controller(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine);
 			void control(MessageQueue &outputQueue);
 		private:
-			void load_opening_book();
+			void start_search(bool balancing);
+			void stop_search();
+			Move get_balancing_move();
 	};
 } /* namespace ag */
 

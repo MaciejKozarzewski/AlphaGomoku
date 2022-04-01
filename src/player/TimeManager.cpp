@@ -58,5 +58,10 @@ namespace ag
 		std::lock_guard lock(mutex);
 		return std::min(settings.getTimeForTurn(), (TIME_FRACTION * settings.getTimeLeft())) - settings.getProtocolLag();
 	}
+	double TimeManager::getTimeForOpening(const EngineSettings &settings)
+	{
+		std::lock_guard lock(mutex);
+		return std::min(settings.getTimeForTurn(), (SWAP2_FRACTION * settings.getTimeLeft())) - settings.getProtocolLag();
+	}
 } /* namespace ag */
 
