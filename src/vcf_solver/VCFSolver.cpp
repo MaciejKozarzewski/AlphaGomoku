@@ -13,28 +13,6 @@
 
 namespace
 {
-	int square(int x) noexcept
-	{
-		return x * x;
-	}
-	int distance(ag::Move lhs, ag::Move rhs) noexcept
-	{
-		return square(lhs.row - rhs.row) + square(lhs.col - rhs.col);
-	}
-	bool get_rand_bool() noexcept
-	{
-		static const std::array<bool, 256> table = []()
-		{
-			std::array<bool, 256> result;
-			for (size_t i = 0; i < result.size(); i++)
-				result[i] = rand() & 1;
-			return result;
-		}();
-		static size_t index = -1;
-
-		index = (index + 1) % table.size();
-		return table[index];
-	}
 	template<typename T>
 	T gaussian_cdf(T x) noexcept
 	{
