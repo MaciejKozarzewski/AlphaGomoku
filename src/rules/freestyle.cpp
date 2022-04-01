@@ -35,6 +35,8 @@ namespace ag
 			cross = 0;\
 			circle++;\
 			break;\
+		default:\
+			break;\
 	}\
 	if (cross >= ROW_TO_WIN)\
 		return GameOutcome::CROSS_WIN;\

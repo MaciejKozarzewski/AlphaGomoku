@@ -41,6 +41,8 @@ namespace ag
 			cross = 0;\
 			circle++;\
 			break;\
+		default:\
+			break;\
 	}
 #define CHECK_END\
 	if (cross == ROW_TO_WIN)\

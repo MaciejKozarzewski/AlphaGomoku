@@ -60,22 +60,25 @@ namespace ag
 	{
 		if (cross_five.was_evaluated)
 			return cross_five.value;
-
+		return false;
 	}
 	bool Line::is_cross_open_four() noexcept
 	{
 		if (cross_open_four.was_evaluated)
 			return cross_open_four.value;
+		return false;
 	}
 	bool Line::is_cross_four() noexcept
 	{
 		if (cross_four.was_evaluated)
 			return cross_four.value;
+		return false;
 	}
 	bool Line::is_cross_open_three() noexcept
 	{
 		if (cross_open_three.was_evaluated)
 			return cross_open_three.value;
+		return false;
 	}
 
 	std::string Line::toString() const
