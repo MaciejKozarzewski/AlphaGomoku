@@ -94,6 +94,8 @@ namespace ag
 	{
 		stats = SearchStats();
 		vcf_solver.clearStats();
+		last_tuning_point.time = getTime();
+		last_tuning_point.node_count = stats.nb_node_count;
 	}
 	SearchStats Search::getStats() const noexcept
 	{
