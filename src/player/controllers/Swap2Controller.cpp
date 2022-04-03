@@ -29,12 +29,10 @@ namespace ag
 					break;
 				case 3:
 					state = ControllerState::EVALUATE_FIRST_3_STONES;
-					time_manager.startTimer();
 					start_search(false);
 					break;
 				case 5:
 					state = ControllerState::EVALUATE_5_STONES;
-					time_manager.startTimer();
 					start_search(false);
 					break;
 			}
@@ -78,7 +76,6 @@ namespace ag
 						search_engine.setPosition(board, invertSign(first_balancing_move.sign));
 
 						// start search to find second balancing move
-						time_manager.startTimer();
 						start_search(true);
 						state = ControllerState::BALANCE_THE_OPENING;
 					}
@@ -126,6 +123,7 @@ namespace ag
 	 */
 	void Swap2Controller::start_search(bool balancing)
 	{
+		time_manager.startTimer();
 		SearchConfig cfg = engine_settings.getSearchConfig();
 		PuctSelector puct_selector(cfg.exploration_constant, engine_settings.getStyleFactor());
 		if (balancing)
