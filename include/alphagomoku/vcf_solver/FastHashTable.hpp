@@ -42,7 +42,7 @@ namespace ag
 		public:
 			FastHashTable(size_t boardSize, size_t initialSize = 1024) :
 					m_hashing_keys(2 * boardSize),
-					m_hashtable(round_to_power_of_2(initialSize)),
+					m_hashtable(roundToPowerOf2(initialSize)),
 					m_mask(m_hashtable.size() - 1)
 			{
 				for (size_t i = 0; i < m_hashing_keys.size(); i++)

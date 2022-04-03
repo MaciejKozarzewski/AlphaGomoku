@@ -8,7 +8,6 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 #include <inttypes.h>
-#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -90,10 +89,6 @@ namespace ag
 		return (get_random_int32() & 1) == 0;
 	}
 
-	double getTime()
-	{
-		return std::chrono::steady_clock::now().time_since_epoch().count() * 1.0e-9;
-	}
 	std::string currentDateTime()
 	{
 		time_t now = time(0);
@@ -178,6 +173,8 @@ namespace ag
 						break;
 					case Sign::CIRCLE:
 						result += " O";
+						break;
+					default:
 						break;
 				}
 			}

@@ -68,7 +68,7 @@ namespace ag
 
 	NodeCache::NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize, size_t bucketSize) :
 			edge_pool(bucketSize, boardHeight * boardWidth),
-			bins(round_to_power_of_2(initialCacheSize), nullptr),
+			bins(roundToPowerOf2(initialCacheSize), nullptr),
 			hashing(boardHeight, boardWidth),
 			bin_index_mask(bins.size() - 1u)
 	{
@@ -314,7 +314,7 @@ namespace ag
 	{
 		TimerGuard timer(stats.resize);
 
-		newSize = round_to_power_of_2(newSize);
+		newSize = roundToPowerOf2(newSize);
 		bin_index_mask = newSize - 1ull;
 		if (bins.size() == newSize)
 			return;

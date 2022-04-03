@@ -46,7 +46,7 @@ namespace ag
 		return x * x;
 	}
 	template<typename T>
-	T round_to_power_of_2(T x) noexcept
+	T roundToPowerOf2(T x) noexcept
 	{
 		T result = 1;
 		while (result <= x)
@@ -57,7 +57,10 @@ namespace ag
 	/*
 	 * \brief Returns current time in seconds.
 	 */
-	double getTime();
+	inline double getTime()
+	{
+		return std::chrono::steady_clock::now().time_since_epoch().count() * 1.0e-9;
+	}
 	std::string currentDateTime();
 
 	bool isBoardFull(const matrix<Sign> &board);
