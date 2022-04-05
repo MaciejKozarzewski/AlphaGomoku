@@ -8,8 +8,7 @@
 #ifndef ALPHAGOMOKU_PLAYER_ENGINECONTROLLER_HPP_
 #define ALPHAGOMOKU_PLAYER_ENGINECONTROLLER_HPP_
 
-#include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/game/Move.hpp>
+#include <string>
 
 namespace ag
 {

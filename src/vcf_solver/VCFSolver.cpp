@@ -380,7 +380,10 @@ namespace ag
 				}
 			}
 			else
+			{
+//				position_counter++; // TODO perhaps this should be added to avoid infinite search over cached positions?
 				iter->solved_value = solved_value_from_table; // cache hit
+			}
 			hashtable.updateHash(iter->move); // revert back to original hash
 
 			if (iter->solved_value == SolvedValue::WIN) // found winning move, can skip remaining nodes

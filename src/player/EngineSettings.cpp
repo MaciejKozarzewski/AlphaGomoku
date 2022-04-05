@@ -21,9 +21,12 @@
 
 namespace
 {
+	ag::Move json_to_move(const Json &json)
+	{
+		return ag::Move(json["row"].getInt(), json["col"].getInt(), ag::signFromString(json["sign"].getString()));
+	}
 	std::vector<std::vector<ag::Move>> load_opening_book(const std::string &path)
 	{
-		//		Logger::write("Placing 3 initial stones");
 		if (std::filesystem::exists(path) == false)
 			throw std::logic_error("No swap2 opening book");
 		else
@@ -36,10 +39,7 @@ namespace
 			{
 				std::vector<ag::Move> tmp;
 				for (int j = 0; j < json[i].size(); j++)
-				{
-					ag::Move m(json["row"].getInt(), json["col"].getInt(), ag::signFromString(json["sign"].getString()));
-					tmp.push_back(m);
-				}
+					tmp.push_back(json_to_move(json[i][j]));
 				result.push_back(tmp);
 			}
 			return result;

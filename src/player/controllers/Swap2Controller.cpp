@@ -124,7 +124,7 @@ namespace ag
 	void Swap2Controller::start_search(bool balancing)
 	{
 		time_manager.startTimer();
-		SearchConfig cfg = engine_settings.getSearchConfig();
+		const SearchConfig cfg = engine_settings.getSearchConfig();
 		PuctSelector puct_selector(cfg.exploration_constant, engine_settings.getStyleFactor());
 		if (balancing)
 		{

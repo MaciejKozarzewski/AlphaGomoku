@@ -9,11 +9,7 @@
 #define ALPHAGOMOKU_PLAYER_CONTROLLERS_SWAP2CONTROLLER_HPP_
 
 #include <alphagomoku/player/EngineController.hpp>
-
-namespace ag
-{
-	class Move;
-}
+#include <alphagomoku/game/Move.hpp>
 
 namespace ag
 {

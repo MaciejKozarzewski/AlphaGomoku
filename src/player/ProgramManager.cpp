@@ -14,9 +14,7 @@
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/protocols/ExtendedGomocupProtocol.hpp>
 
-#include <alphagomoku/player/controllers/MatchController.hpp>
-#include <alphagomoku/player/controllers/PonderingController.hpp>
-#include <alphagomoku/player/controllers/Swap2Controller.hpp>
+#include <alphagomoku/player/controllers/dispatcher.hpp>
 
 #include <filesystem>
 
@@ -232,7 +230,7 @@ namespace ag
 		{
 			output_sender.send(
 					"No benchmark file was found, create it by launching " + ProgramInfo::name() + " from command line with parameter '--benchmark'");
-			exit(0);
+			return;
 		}
 
 		Json benchmark_results;
@@ -243,7 +241,7 @@ namespace ag
 		} catch (std::exception &e)
 		{
 			output_sender.send("The benchmark file is invalid for some reason. Try deleting it and creating a new one.");
-			exit(-1);
+			return;
 		}
 
 		if (static_cast<std::string>(benchmark_results["version"]) != ProgramInfo::version())
@@ -251,13 +249,14 @@ namespace ag
 			output_sender.send(
 					"Existing benchmark file is for different version, create a new one by launching " + ProgramInfo::name()
 							+ " from command line with parameter '--benchmark'");
-			exit(0);
+			return;
 		}
 		Json cfg = createConfig(benchmark_results);
-		FileSaver fs(argument_parser.getLaunchPath() + "config.json");
-		fs.save(cfg, SerializedObject(), 2);
 		output_sender.send("Created new configuration file.");
-		exit(0);
+		output_sender.send(cfg.dump(2));
+
+		FileSaver fs(argument_parser.getLaunchPath() + "config.json");
+		fs.save(cfg, SerializedObject(), 2, false);
 	}
 	bool ProgramManager::load_config(const std::string &path)
 	{
@@ -332,6 +331,8 @@ namespace ag
 	{
 		if (static_cast<bool>(config["use_logging"]))
 		{
+			if (not std::filesystem::exists(argument_parser.getLaunchPath() + "logs"))
+				std::filesystem::create_directory(argument_parser.getLaunchPath() + "logs");
 			logfile = std::ofstream(argument_parser.getLaunchPath() + "logs" + path_separator + currentDateTime() + ".log");
 			Logger::enable();
 			Logger::redirectTo(logfile);
@@ -372,27 +373,19 @@ namespace ag
 		assert(tmp.size() >= 1);
 		assert(search_engine != nullptr);
 
-		if (tmp[0] == "clearhash") //it just pretends to be a controller but causes hash clear
+		if (tmp[0] == "clearhash") // it just pretends to be a controller but causes hash clear
 			return;
 
-		if (tmp[0] == "bestmove")
+		engine_controller = createController(tmp[0], *engine_settings, time_manager, *search_engine);
+		if (engine_controller != nullptr)
 		{
-			engine_controller = std::make_unique<MatchController>(*engine_settings, time_manager, *search_engine);
-			return;
+			std::string args = type;
+			args.erase(args.begin(), args.begin() + tmp[0].size());
+			std::cout << type << " >" << args << "<" << std::endl;
+			engine_controller->setup(args);
 		}
-		if (tmp[0] == "ponder")
-		{
-			engine_controller = std::make_unique<PonderingController>(*engine_settings, time_manager, *search_engine);
-			return;
-		}
-		if (tmp[0] == "swap2")
-		{
-			engine_controller = std::make_unique<Swap2Controller>(*engine_settings, time_manager, *search_engine);
-			return;
-		}
-
-		output_queue.push(Message(MessageType::ERROR, "unsupported controller type '" + type + "'"));
-		engine_controller = nullptr;
+		else
+			output_queue.push(Message(MessageType::ERROR, "unsupported controller type '" + type + "'"));
 	}
 	bool ProgramManager::is_game_config_correct() const
 	{

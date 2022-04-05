@@ -23,6 +23,6 @@ namespace ag
 	void EngineController::setup(const std::string &args)
 	{
 	}
-}
-/* namespace ag */
+
+} /* namespace ag */
 
