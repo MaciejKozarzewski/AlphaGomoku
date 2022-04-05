@@ -8,8 +8,7 @@
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
-#include <inttypes.h>
-#include <stddef.h>
+#include <cstddef>
 #include <chrono>
 #include <random>
 

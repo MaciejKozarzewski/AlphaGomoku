@@ -15,15 +15,16 @@
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
+
 #include <libml/Tensor.hpp>
 #include <libml/Shape.hpp>
 #include <libml/Scalar.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-
 #include <thread>
 #include <chrono>
 

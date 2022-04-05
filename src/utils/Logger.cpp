@@ -7,7 +7,7 @@
 
 #include <alphagomoku/utils/Logger.hpp>
 
-#include <assert.h>
+#include <cassert>
 
 namespace ag
 {

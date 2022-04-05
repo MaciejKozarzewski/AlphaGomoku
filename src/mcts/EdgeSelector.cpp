@@ -11,7 +11,6 @@
 #include <alphagomoku/utils/Logger.hpp>
 
 #include <cassert>
-#include <iostream>
 
 namespace
 {

@@ -14,7 +14,7 @@
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <libml/utils/json.hpp>
-#include <iostream>
+
 #include <filesystem>
 #include <string>
 #include <limits>

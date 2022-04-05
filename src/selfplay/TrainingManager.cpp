@@ -9,6 +9,7 @@
 #include <alphagomoku/selfplay/TrainingManager.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
+
 #include <string>
 #include <filesystem>
 

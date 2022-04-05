@@ -8,7 +8,7 @@
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 
-#include <assert.h>
+#include <cassert>
 
 namespace ag
 {

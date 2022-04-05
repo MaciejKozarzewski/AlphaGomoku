@@ -9,7 +9,7 @@
 #include <libml/hardware/Device.hpp>
 #include <libml/utils/json.hpp>
 
-#include <stddef.h>
+#include <cstddef>
 #include <cassert>
 #include <thread>
 #include <iostream>

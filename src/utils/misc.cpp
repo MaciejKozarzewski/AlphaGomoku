@@ -7,7 +7,8 @@
 
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
-#include <inttypes.h>
+
+#include <cinttypes>
 #include <cmath>
 #include <fstream>
 #include <iostream>

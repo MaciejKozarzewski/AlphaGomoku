@@ -29,12 +29,13 @@
 #include <libml/Scalar.hpp>
 #include <libml/Shape.hpp>
 #include <libml/Tensor.hpp>
+
+#include <alphagomoku/game/Board.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <string>
-
-#include <alphagomoku/game/Board.hpp>
 
 namespace ag
 {

@@ -11,6 +11,7 @@
 #include <alphagomoku/rules/renju.hpp>
 #include <alphagomoku/rules/caro.hpp>
 #include <alphagomoku/utils/misc.hpp>
+
 #include <stdexcept>
 
 namespace ag

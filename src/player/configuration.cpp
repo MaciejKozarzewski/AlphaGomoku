@@ -13,7 +13,6 @@
 #include <libml/hardware/Device.hpp>
 
 #include <filesystem>
-#include <iostream>
 
 namespace
 {

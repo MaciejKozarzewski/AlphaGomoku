@@ -11,8 +11,7 @@
 #include <libml/utils/json.hpp>
 #include <libml/utils/serialization.hpp>
 
-#include <stddef.h>
-#include <iostream>
+#include <cstddef>
 #include <stdexcept>
 
 namespace ag

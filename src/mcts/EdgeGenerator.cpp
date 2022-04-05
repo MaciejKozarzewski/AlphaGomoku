@@ -8,8 +8,6 @@
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
 
-#include <iostream>
-
 namespace
 {
 	using namespace ag;

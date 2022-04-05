@@ -8,8 +8,6 @@
 #include <alphagomoku/mcts/NodeCache.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
-#include <iostream>
-
 namespace ag
 {
 	NodeCacheStats::NodeCacheStats() :
