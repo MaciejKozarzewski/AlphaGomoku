@@ -44,13 +44,13 @@ namespace
 			std::vector<float> speed; // [samples / second]
 			HardwareConfiguration(const Json &json) :
 					device(ml::Device::fromString(json["device"])),
-					search_threads(static_cast<int>(json["search_threads"])),
-					omp_threads(static_cast<int>(json["omp_threads"]))
+					search_threads(json["search_threads"].getInt()),
+					omp_threads(json["omp_threads"].getInt())
 			{
 				for (int i = 0; i < json["batch"].size(); i++)
 				{
-					batch_size.push_back(static_cast<int>(json["batch"][i]));
-					speed.push_back(static_cast<double>(json["samples"][i]) / static_cast<double>(json["time"][i]));
+					batch_size.push_back(json["batch"][i].getInt());
+					speed.push_back(json["samples"][i].getDouble() / json["time"][i].getDouble());
 				}
 			}
 			void print() const
@@ -122,6 +122,7 @@ namespace ag
 				}
 			}
 			result["search_options"]["vcf_solver_max_positions"] = 200;
+			result["tree_options"]["initial_cache_size"] = 65536;
 			result["tree_options"]["bucket_size"] = 1000000;
 		}
 		else
@@ -135,6 +136,8 @@ namespace ag
 
 			max_batch_size = tmp.batch_size;
 			result["search_options"]["vcf_solver_max_positions"] = 1600;
+			result["tree_options"]["initial_cache_size"] = 8192;
+			result["tree_options"]["bucket_size"] = 100000;
 		}
 
 		result["search_threads"] = search_threads;

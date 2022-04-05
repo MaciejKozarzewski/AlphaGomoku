@@ -9,6 +9,7 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/Logger.hpp>
 
 #include <iostream>
 
@@ -114,8 +115,15 @@ namespace ag
 		const double fraction = 0.1;
 		const double sum = (1.0 - fraction) / (1.0 - std::pow(fraction, 1.0 / moves_left));
 
-		std::cout << "TimeManager::getTimeForTurn(" << moveNumber << ", " << eval.toString() << ") = " << moves_left << " (" << sum
-				<< "), elapsed time = " << (used_time + getTime() - start_time) << "s" << std::endl;
+		static double last_time = getTime();
+		if (getTime() - last_time > 1.0)
+		{
+			Logger::write(
+					"TimeManager::getTimeForTurn(" + std::to_string(moveNumber) + ", " + eval.toString() + ") = " + std::to_string(moves_left) + " ("
+							+ std::to_string(sum) + "), elapsed time = " + std::to_string(used_time + getTime() - start_time) + "s");
+			last_time = getTime();
+		}
+
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
 	}
 	double TimeManager::getTimeForOpening(const EngineSettings &settings)

@@ -12,6 +12,8 @@
 
 #include <libml/hardware/Device.hpp>
 
+#include <cassert>
+
 namespace
 {
 	std::string format_percents(double x)

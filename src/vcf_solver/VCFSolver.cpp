@@ -8,6 +8,7 @@
 #include <alphagomoku/vcf_solver/VCFSolver.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
 #include <alphagomoku/utils/LinearRegression.hpp>
+#include <alphagomoku/utils/Logger.hpp>
 
 #include <iostream>
 
@@ -155,6 +156,7 @@ namespace ag
 		float stddev = std::hypot(lower_mean_and_stddev.second, upper_mean_and_stddev.second);
 
 		float probability = 1.0f - gaussian_cdf(mean / stddev);
+		Logger::write("VCFSolver::tune(" + std::to_string(speed) + "), probability = " + std::to_string(probability));
 
 		if (probability > 0.95f) // there is 90% chance that higher value of 'max_positions' gives higher speed
 		{

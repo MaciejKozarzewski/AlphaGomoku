@@ -25,7 +25,7 @@ namespace ag
 	{
 	}
 	Game::Game(const Json &json, const SerializedObject &binary_data) :
-			current_board(static_cast<int>(json["rows"]), static_cast<int>(json["cols"])),
+			current_board(json["rows"].getInt(), json["cols"].getInt()),
 			use_count(current_board.size(), 0),
 			rules(rulesFromString(json["rules"])),
 			outcome(outcomeFromString(json["outcome"]))

@@ -12,9 +12,12 @@
 #include <alphagomoku/player/controllers/Swap2Controller.hpp>
 #include <alphagomoku/player/controllers/SwapController.hpp>
 
+#include <iostream>
+
 namespace ag
 {
-	std::unique_ptr<EngineController> createController(const std::string &type, const EngineSettings &settings, TimeManager &manager, SearchEngine &engine)
+	std::unique_ptr<EngineController> createController(const std::string &type, const EngineSettings &settings, TimeManager &manager,
+			SearchEngine &engine)
 	{
 		if (type == "bestmove")
 			return std::make_unique<MatchController>(settings, manager, engine);

@@ -243,38 +243,6 @@ namespace ag
 	{
 		return static_cast<int>(metadata["best_checkpoint"]);
 	}
-//	float TrainingManager::get_learning_rate() const
-//	{
-//		float result = 0.0f;
-//		for (auto iter = config.training_config.learning_rate_schedule.begin(); iter < config.training_config.learning_rate_schedule.end(); iter++)
-//			if (get_last_checkpoint() >= iter->first)
-//				result = iter->second;
-//		std::cout << "using learning rate = " << result << '\n';
-//		return result;
-//	}
-//	int TrainingManager::get_buffer_size() const
-//	{
-//		std::vector<std::pair<int, int>> sizes = config.training_config.buffer_size;
-//		if (get_last_checkpoint() <= sizes.front().first)
-//			return sizes.front().second;
-//		if (get_last_checkpoint() >= sizes.back().first)
-//			return sizes.back().second;
-//
-//		std::pair<int, int> prev, next;
-//		for (size_t i = 0; i < sizes.size(); i++)
-//			if (get_last_checkpoint() > sizes[i].first)
-//			{
-//				prev = sizes.at(i);
-//				next = sizes.at(i + 1);
-//			}
-//		double tmp1 = get_last_checkpoint() - prev.first;
-//		double tmp2 = next.first - prev.first;
-//		double tmp3 = next.second - prev.second;
-//		int result = std::max(1.0, 0.5 + prev.second + tmp1 / tmp2 * tmp3);
-//
-//		std::cout << "using buffer size = " << result << '\n';
-//		return result;
-//	}
 
 } /* namespace ag */
 

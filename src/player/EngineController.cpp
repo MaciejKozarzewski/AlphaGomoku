@@ -16,10 +16,6 @@ namespace ag
 			search_engine(engine)
 	{
 	}
-	EngineController::~EngineController()
-	{
-		search_engine.stopSearch();
-	}
 	void EngineController::setup(const std::string &args)
 	{
 	}

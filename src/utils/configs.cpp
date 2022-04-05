@@ -54,13 +54,13 @@ namespace ag
 	}
 
 	TreeConfig::TreeConfig(const Json &cfg) :
-			initial_cache_size(get_value<int>(cfg, "cache_size", Defaults::initial_cache_size)),
+			initial_cache_size(get_value<int>(cfg, "initial_cache_size", Defaults::initial_cache_size)),
 			bucket_size(get_value<int>(cfg, "bucket_size", Defaults::bucket_size))
 	{
 	}
 	Json TreeConfig::toJson() const
 	{
-		return Json( { { "cache_size", initial_cache_size }, { "bucket_size", bucket_size } });
+		return Json( { { "initial_cache_size", initial_cache_size }, { "bucket_size", bucket_size } });
 	}
 
 	SearchConfig::SearchConfig(const Json &cfg) :

@@ -34,7 +34,7 @@ namespace ag
 			EngineController(EngineController &&other) = delete;
 			EngineController& operator=(const EngineController &other) = delete;
 			EngineController& operator=(EngineController &&other) = delete;
-			virtual ~EngineController();
+			virtual ~EngineController() = default;
 
 			virtual void setup(const std::string &args);
 			virtual void control(MessageQueue &outputQueue) = 0;

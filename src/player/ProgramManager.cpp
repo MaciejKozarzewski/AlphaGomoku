@@ -92,21 +92,21 @@ namespace ag
 
 			while (input_queue.isEmpty() == false)
 			{
-				Message input_message = input_queue.pop();
+				const Message input_message = input_queue.pop();
 				switch (input_message.getType())
 				{
 					case MessageType::START_PROGRAM:
 					{
 						if (game_counter > 0)
-						{
 							setup_logging();
-							game_counter++;
-						}
+						game_counter++;
+						set_position(std::vector<Move>()); // clear board
+						protocol->reset();
 						break;
 					}
 					case MessageType::SET_OPTION:
 					{
-						SetOptionOutcome outcome = engine_settings->setOption(input_message.getOption());
+						const SetOptionOutcome outcome = engine_settings->setOption(input_message.getOption());
 						switch (outcome)
 						{
 							case SetOptionOutcome::SUCCESS:
@@ -115,7 +115,7 @@ namespace ag
 								if (search_engine != nullptr)
 								{
 									if (search_engine->isSearchFinished())
-										search_engine.reset();
+										search_engine = nullptr;
 									else
 										output_queue.push(Message(MessageType::ERROR, "cannot set this option while the search is running"));
 								}
@@ -371,6 +371,7 @@ namespace ag
 	{
 		std::vector<std::string> tmp = split(type, ' ');
 		assert(tmp.size() >= 1);
+		assert(engine_settings != nullptr);
 		assert(search_engine != nullptr);
 
 		if (tmp[0] == "clearhash") // it just pretends to be a controller but causes hash clear
@@ -381,7 +382,6 @@ namespace ag
 		{
 			std::string args = type;
 			args.erase(args.begin(), args.begin() + tmp[0].size());
-			std::cout << type << " >" << args << "<" << std::endl;
 			engine_controller->setup(args);
 		}
 		else

@@ -52,6 +52,7 @@ namespace ag
 			bool is_running = false;
 		public:
 			SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators);
+			~SearchThread();
 			void start();
 			void stop() noexcept;
 			void join() const;

@@ -76,6 +76,11 @@ namespace ag
 			search(settings.getGameConfig(), settings.getSearchConfig())
 	{
 	}
+	SearchThread::~SearchThread()
+	{
+		stop();
+		join();
+	}
 	void SearchThread::start()
 	{
 		if (isRunning())
@@ -140,7 +145,7 @@ namespace ag
 				if (isStopConditionFulfilled())
 					break;
 			}
-//			search.tune();
+			search.tune();
 			std::lock_guard lock(search_mutex);
 			if (is_running == false)
 				break;
@@ -264,9 +269,9 @@ namespace ag
 		Logger::write(root_node.toString());
 		root_node.sortEdges();
 		Logger::write("BEST");
-		int children = std::min(10, root_node.numberOfEdges());
+		const int children = std::min(10, root_node.numberOfEdges());
 		for (int i = 0; i < children; i++)
-			Logger::write(root_node.getEdge(i).toString());
+			Logger::write(root_node.getEdge(i).getMove().toString() + " : " + root_node.getEdge(i).toString());
 
 		std::string result = "  ";
 		for (int i = 0; i < board.cols(); i++)
