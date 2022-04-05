@@ -49,31 +49,6 @@ namespace
 
 namespace ag
 {
-	std::string toString(EngineStyle es)
-	{
-		switch (es)
-		{
-			case EngineStyle::DEFENSIVE:
-				return "DEFENSIVE";
-			case EngineStyle::CLASSIC:
-				return "CLASSIC";
-			case EngineStyle::OFFENSIVE:
-				return "OFFENSIVE";
-			default:
-				return "unknown style";
-		}
-	}
-	EngineStyle engineStyleFromString(const std::string &str)
-	{
-		if (str == "DEFENSIVE" or str == "defensive")
-			return EngineStyle::DEFENSIVE;
-		if (str == "CLASSIC" or str == "classic")
-			return EngineStyle::CLASSIC;
-		if (str == "OFFENSIVE" or str == "offensive")
-			return EngineStyle::OFFENSIVE;
-		throw std::logic_error("unknown style '" + str + "'");
-	}
-
 	EngineSettings::EngineSettings(const Json &config) :
 			swap2_openings(load_opening_book(config["swap2_openings_file"].getString())),
 			game_config(GameRules::FREESTYLE, 0, 0),
@@ -227,7 +202,7 @@ namespace ag
 			}
 			if (option.name == "style")
 			{
-				search_config.style_factor = static_cast<int>(engineStyleFromString(option.value));
+				search_config.style_factor = std::stoi(option.value);
 				return SetOptionOutcome::SUCCESS;
 			}
 

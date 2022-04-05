@@ -55,9 +55,6 @@ namespace ag
 
 			Threat best() const noexcept
 			{
-//				ThreatType cross = get_best_threat(horizontal.for_cross, vertical.for_cross, diagonal.for_cross, antidiagonal.for_cross);
-//				ThreatType circle = get_best_threat(horizontal.for_circle, vertical.for_circle, diagonal.for_circle, antidiagonal.for_circle);
-//				return Threat(cross, circle);
 				return max(max(horizontal, vertical), max(diagonal, antidiagonal));
 			}
 			Threat get(Direction dir) const noexcept
@@ -91,29 +88,6 @@ namespace ag
 						return antidiagonal;
 				}
 			}
-		private:
-//			ThreatType get_best_threat(ThreatType dir1, ThreatType dir2, ThreatType dir3, ThreatType dir4) const noexcept
-//			{
-//				static const std::array<ThreatType, 256> table = get_best_threat_table();
-//				return table[(int) dir1 + 4 * (int) dir2 + 16 * (int) dir3 + 64 * (int) dir4];
-//			}
-//			std::array<ThreatType, 256> get_best_threat_table() const noexcept
-//			{
-//				std::array<ThreatType, 256> result;
-//				for (int dir1 = 0; dir1 < 4; dir1++)
-//					for (int dir2 = 0; dir2 < 4; dir2++)
-//						for (int dir3 = 0; dir3 < 4; dir3++)
-//							for (int dir4 = 0; dir4 < 4; dir4++)
-//							{
-//								int max_val = std::max(std::max(dir1, dir2), std::max(dir3, dir4));
-//								int fork = (dir1 == 1) + (dir2 == 1) + (dir3 == 1) + (dir4 == 1);
-//								if (fork >= 2)
-//									max_val = std::max(max_val, 2); // a fork counts as open four
-//								int index = dir1 + 4 * dir2 + 16 * dir3 + 64 * dir4;
-//								result[index] = static_cast<ThreatType>(max_val);
-//							}
-//				return result;
-//			}
 	};
 
 	class FeatureExtractor_v2

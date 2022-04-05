@@ -235,24 +235,6 @@ namespace
 				throw std::logic_error("unknown rule");
 		}
 	}
-
-//	Threat find_4x4_fork(const ThreatGroup &t) noexcept
-//	{
-//		int cross = 0, circle = 0;
-//		auto check_direction = [&](Threat t)
-//		{	cross += (t.for_cross == ThreatType::HALF_OPEN_FOUR);
-//			circle += (t.for_circle == ThreatType::HALF_OPEN_FOUR);
-//		};
-//		check_direction(t.horizontal);
-//		check_direction(t.vertical);
-//		check_direction(t.diagonal);
-//		check_direction(t.antidiagonal);
-//
-//		Threat result;
-//		result.for_cross = (cross >= 2) ? ThreatType::OPEN_FOUR : ThreatType::NONE;
-//		result.for_circle = (circle >= 2) ? ThreatType::OPEN_FOUR : ThreatType::NONE;
-//		return result;
-//	}
 }
 
 namespace ag

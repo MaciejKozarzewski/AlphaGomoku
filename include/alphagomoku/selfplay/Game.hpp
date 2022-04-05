@@ -15,7 +15,7 @@
 #include <alphagomoku/selfplay/SearchData.hpp>
 
 #include <vector>
-#include <inttypes.h>
+#include <cinttypes>
 
 class Json;
 class SerializedObject;

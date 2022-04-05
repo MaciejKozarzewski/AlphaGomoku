@@ -15,7 +15,7 @@
 #include <alphagomoku/utils/configs.hpp>
 
 #include <vector>
-#include <inttypes.h>
+#include <cinttypes>
 
 class SerializedObject;
 namespace ag

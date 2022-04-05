@@ -11,7 +11,8 @@
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/GameGenerator.hpp>
-#include <inttypes.h>
+
+#include <cinttypes>
 #include <string>
 #include <future>
 

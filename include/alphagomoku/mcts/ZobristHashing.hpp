@@ -11,8 +11,9 @@
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/game/Move.hpp>
+
 #include <vector>
-#include <inttypes.h>
+#include <cinttypes>
 
 namespace ag
 {

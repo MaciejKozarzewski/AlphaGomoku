@@ -17,8 +17,7 @@
 
 namespace ag
 {
-	enum class GameOutcome
-	;
+	enum class GameOutcome;
 } /* namespace ag */
 
 namespace ag
@@ -101,6 +100,7 @@ namespace ag
 
 	Value convertOutcome(GameOutcome outcome, Sign signToMove);
 	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove);
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_VALUE_HPP_ */

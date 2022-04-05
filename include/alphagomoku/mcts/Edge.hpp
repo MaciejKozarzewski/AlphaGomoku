@@ -11,7 +11,7 @@
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/game/Move.hpp>
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <cstring>
 #include <cassert>
 

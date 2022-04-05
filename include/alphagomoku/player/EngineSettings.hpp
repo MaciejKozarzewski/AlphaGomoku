@@ -10,7 +10,7 @@
 
 #include <alphagomoku/utils/configs.hpp>
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <vector>
 #include <map>
 #include <mutex>
@@ -25,15 +25,6 @@ namespace ag
 
 namespace ag
 {
-	enum class EngineStyle
-	{
-		DEFENSIVE, /**< search maximizes probability of not losing */
-		CLASSIC, /**< search maximizes expectation outcome */
-		OFFENSIVE /**< search maximizes probability of winning */
-	};
-	std::string toString(EngineStyle es);
-	EngineStyle engineStyleFromString(const std::string &str);
-
 	enum class SetOptionOutcome
 	{
 		SUCCESS,

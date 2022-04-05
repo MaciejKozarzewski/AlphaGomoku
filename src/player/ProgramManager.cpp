@@ -284,10 +284,10 @@ namespace ag
 	void ProgramManager::setup_paths_in_config()
 	{
 		std::string launch_path = argument_parser.getLaunchPath();
-		config["swap2_openings_file"] = launch_path + static_cast<std::string>(config["swap2_openings_file"]);
+		config["swap2_openings_file"] = launch_path + config["swap2_openings_file"].getString();
 		launch_path += "networks" + path_separator;
-		config["networks"]["freestyle"] = launch_path + static_cast<std::string>(config["networks"]["freestyle"]);
-		config["networks"]["standard"] = launch_path + static_cast<std::string>(config["networks"]["standard"]);
+		config["networks"]["freestyle"] = launch_path + config["networks"]["freestyle"].getString();
+		config["networks"]["standard"] = launch_path + config["networks"]["standard"].getString();
 		// TODO later add processing of path to renju network
 		// TODO later add processing of path to caro network
 	}

@@ -13,8 +13,8 @@
 #include <alphagomoku/mcts/Value.hpp>
 #include <string>
 #include <memory>
-#include <assert.h>
-#include <inttypes.h>
+#include <cassert>
+#include <cinttypes>
 #include <math.h>
 #include <cstring>
 

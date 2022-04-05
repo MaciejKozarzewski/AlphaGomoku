@@ -16,7 +16,7 @@
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <memory>
 #include <mutex>
 #include <utility>

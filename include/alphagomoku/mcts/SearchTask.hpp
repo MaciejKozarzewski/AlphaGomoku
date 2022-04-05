@@ -11,6 +11,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/mcts/Node.hpp>
+
 #include <cassert>
 #include <string>
 #include <vector>

@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_UTILS_MATRIX_HPP_
 
 #include <vector>
-#include <assert.h>
+#include <cassert>
 #include <memory>
 
 namespace ag
@@ -138,8 +138,8 @@ namespace ag
 			{
 				return not (lhs == rhs);
 			}
-
 	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_UTILS_MATRIX_HPP_ */

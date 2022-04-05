@@ -8,13 +8,12 @@
 #ifndef ALPHAGOMOKU_RULES_LINE_HPP_
 #define ALPHAGOMOKU_RULES_LINE_HPP_
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <string>
 
 namespace ag
 {
-	enum class GameRules
-	;
+	enum class GameRules;
 } /* namespace ag */
 
 namespace ag

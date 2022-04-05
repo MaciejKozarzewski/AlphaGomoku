@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_UTILS_STATISTICS_HPP_
 #define ALPHAGOMOKU_UTILS_STATISTICS_HPP_
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <chrono>
 #include <cassert>
 #include <string>

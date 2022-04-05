@@ -17,7 +17,7 @@
 #include <alphagomoku/vcf_solver/VCFSolver.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <string>
 #include <vector>
 

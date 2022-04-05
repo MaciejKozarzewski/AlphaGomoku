@@ -8,7 +8,6 @@
 #ifndef ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 #define ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 
-#include <alphagomoku/utils/ThreadPool.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/Search.hpp>

@@ -11,7 +11,7 @@
 #include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <string>
 #include <future>
 

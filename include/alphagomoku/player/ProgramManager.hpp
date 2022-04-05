@@ -14,6 +14,7 @@
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/player/EngineController.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <future>
