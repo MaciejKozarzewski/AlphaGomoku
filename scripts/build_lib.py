@@ -68,7 +68,7 @@ class LibBuilder:
         if self._platform == 'windows' and self._use_cuda:
             if self._main_compiler == 'gcc':
                 tmp += ' -I\"' + self._path_to_cuda + 'include/\"'
-                tmp += ' -I\"../contrib/mingw64/include/\"'
+                tmp += ' -I\"../extern/mingw64/include/\"'
             if self._main_compiler == 'msvc':
                 tmp += ' /I\"' + self._path_to_cuda + 'include/\"'
         if self._platform == 'linux' and self._use_cuda:
@@ -137,13 +137,11 @@ class LibBuilder:
             command += ' \"../extern/libml/bin/cpu_libml.a\"'
         if self._platform == 'windows':
             if self._main_compiler == 'gcc':
-                command += ' \"../extern/openblas/libopenblas.a\"'
-                command += ' \"../extern/mingw64/lib/libz.a\"'
+                command += ' \"C:\\mingw64\\lib\\libopenblas.a\" \"C:\\mingw64\\lib\\libgfortran.a\" \"C:\\mingw64\\lib\\libquadmath.a\" \"C:\\mingw64\\lib\\libz.a\"'
             else:
                 command += ' \"../extern/openblas/libopenblas.dll.a\"'
         else:
             command += ' -lopenblas -lz'
-#            command += ' \"../contrib/blis/libblis.a\" -lz'
         return command
 
     def _add_cuda_libraries(self) -> str:
@@ -201,7 +199,7 @@ class LibBuilder:
         if self._build_target == 'test':
             command += self.build_test()
         else:
-            command += ' \"../training_launcher/launcher.cpp\"'
+            command += ' \"../player_launcher/launcher.cpp\"'
 
         command += self._includes() + self._optimizations() + self._math_flags() + self._libraries_path() + self._add_libraries()
         if self._use_cuda:
