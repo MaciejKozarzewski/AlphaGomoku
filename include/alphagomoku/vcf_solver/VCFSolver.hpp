@@ -129,7 +129,7 @@ namespace ag
 			bool static_solve_block_4(SearchTask &task);
 
 			void recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth = 0);
-			void recursive_solve_2(InternalNode &node, bool isAttackingSide, int depth = 0);
+			void recursive_solve_2(InternalNode &node, bool isAttackingSide);
 
 			const std::vector<Move>& get_attacker_threats(ThreatType tt) noexcept;
 			const std::vector<Move>& get_defender_threats(ThreatType tt) noexcept;

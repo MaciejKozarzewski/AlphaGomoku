@@ -431,7 +431,7 @@ namespace ag
 		node_counter -= node.number_of_children;
 	}
 
-	void VCFSolver::recursive_solve_2(InternalNode &node, bool isAttackingSide, int depth)
+	void VCFSolver::recursive_solve_2(InternalNode &node, bool isAttackingSide)
 	{
 		position_counter += 1.0;
 //		feature_extractor.print();
@@ -510,9 +510,8 @@ namespace ag
 
 		node.solved_value = SolvedValue::UNSOLVED;
 
-		int loss_counter = 0;
+		int num_losing_children = 0;
 		bool has_win_child = false;
-		bool has_unproven_child = false;
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
 //			if (iter != node.children)
@@ -521,7 +520,7 @@ namespace ag
 //				feature_extractor.printAllThreats();
 //			}
 //			std::cout << "positions checked = " << position_counter << std::endl;
-//			std::cout << "depth = " << depth << " : state of all children:" << std::endl;
+//			std::cout << "state of all children:" << std::endl;
 //			for (int i = 0; i < node.number_of_children; i++)
 //				std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
 //			std::cout << "now checking " << iter->move.toString() << std::endl;
@@ -533,13 +532,13 @@ namespace ag
 				if (position_counter < max_positions)
 				{
 					feature_extractor.addMove(iter->move);
-					recursive_solve_2(*iter, not isAttackingSide, depth + 1);
+					recursive_solve_2(*iter, not isAttackingSide);
 					feature_extractor.undoMove(iter->move);
 				}
 			}
 			else
 			{
-				position_counter += 0.0625;
+				position_counter += 0.0625; // the position counter is increased to avoid infinite search over cached states
 				iter->solved_value = solved_value_from_table; // cache hit
 			}
 			hashtable.updateHash(iter->move); // revert back to original hash
@@ -552,17 +551,16 @@ namespace ag
 			else
 			{
 				if (iter->solved_value == SolvedValue::LOSS) // child node is losing
-					loss_counter++;
+					num_losing_children++;
 				else // UNKNOWN or UNSOLVED
 				{
-					has_unproven_child = true;
 					if (not isAttackingSide) // if this is defensive side, it must prove all its child nodes as losing
 						break; // so the function can exit now, as there will be at least one unproven node (current one)
 				}
 			}
 		}
 
-//		std::cout << "depth = " << depth << " : state of all children:\n";
+//		std::cout << "state of all children:\n";
 //		for (int i = 0; i < node.number_of_children; i++)
 //			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
 
@@ -570,15 +568,10 @@ namespace ag
 			node.solved_value = SolvedValue::LOSS;
 		else
 		{
-			if (has_unproven_child and not isAttackingSide)
-				node.solved_value = SolvedValue::UNSOLVED;
+			if (num_losing_children == node.number_of_children)
+				node.solved_value = SolvedValue::WIN;
 			else
-			{
-				if (loss_counter == node.number_of_children)
-					node.solved_value = SolvedValue::WIN;
-				else
-					node.solved_value = SolvedValue::UNSOLVED;
-			}
+				node.solved_value = SolvedValue::UNSOLVED;
 		}
 		hashtable.insert(hashtable.getHash(), node.solved_value);
 		delete_node_stack(node);
