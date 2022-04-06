@@ -459,7 +459,7 @@ namespace ag
 					}
 
 					const std::vector<Move> &attacker_half_open_four = get_attacker_threats(ThreatType::HALF_OPEN_FOUR);
-					if (attacker_open_four.size() == 0) // attacker has no threats to make
+					if (attacker_half_open_four.size() == 0) // attacker has no threats to make
 					{
 						node.solved_value = SolvedValue::UNSOLVED;
 						return;
@@ -595,6 +595,7 @@ namespace ag
 	void VCFSolver::create_node_stack(InternalNode &node, int numberOfNodes) noexcept
 	{
 		assert(node_counter + numberOfNodes <= static_cast<int>(nodes_buffer.size()));
+//		std::cout << "reserving " << numberOfNodes << " nodes for this level" << std::endl;
 		node.number_of_children = numberOfNodes;
 		node.children = nodes_buffer.data() + node_counter;
 		node_counter += numberOfNodes;
