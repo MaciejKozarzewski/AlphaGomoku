@@ -12,6 +12,8 @@
 
 #include <libml/hardware/Device.hpp>
 
+#include <cassert>
+
 namespace ag
 {
 

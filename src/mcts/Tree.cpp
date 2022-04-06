@@ -324,7 +324,7 @@ namespace ag
 		Node *node = root_node;
 		while (node != nullptr and counter < moves.size())
 		{
-			Move seeked_move = moves[counter];
+			const Move seeked_move = moves[counter];
 			auto iter = std::find_if(node->begin(), node->end(), [seeked_move](const Edge &edge)
 			{	return edge.getMove().row == seeked_move.row and edge.getMove().col == seeked_move.col;});
 			if (iter == node->end())

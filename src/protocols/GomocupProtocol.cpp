@@ -309,7 +309,7 @@ namespace ag
 		}
 		if (tmp[1] == "evaluate")
 		{
-			Move m = moveFromString(tmp[2], Sign::NONE);
+			const Move m = moveFromString(tmp[2], Sign::NONE);
 			input_queue.push(Message(MessageType::INFO_MESSAGE, std::vector<Move>( { m })));
 			return;
 		}
