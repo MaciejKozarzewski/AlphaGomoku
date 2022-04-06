@@ -14,6 +14,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <cassert>
 
 namespace
 {
@@ -373,7 +374,7 @@ namespace ag
 		for (size_t i = 0; i < circle_open_four.size(); i++)
 			std::cout << circle_open_four[i].toString() << " : " << ag::toString(ThreatType::OPEN_FOUR) << '\n';
 		for (size_t i = 0; i < circle_half_open_four.size(); i++)
-			std::cout << circle_half_open_four[i].toString() << " : " << ag::toString(ThreatType::HALF_OPEN_FOUR) << '\n';
+			std::cout << circle_half_open_four[i].toString() << " : " << ag::toString(ThreatType::HALF_OPEN_FOUR) << std::endl;
 	}
 	void FeatureExtractor_v2::print() const
 	{
@@ -398,7 +399,7 @@ namespace ag
 				}
 			std::cout << '\n';
 		}
-		std::cout << '\n';
+		std::cout << std::endl;
 	}
 
 	void FeatureExtractor_v2::addMove(Move move) noexcept
@@ -418,6 +419,7 @@ namespace ag
 		}
 
 		update_threats(move.row, move.col);
+		assert(signAt(move.row, move.col) == move.sign);
 	}
 	void FeatureExtractor_v2::undoMove(Move move) noexcept
 	{
@@ -436,6 +438,7 @@ namespace ag
 		}
 
 		update_threats(move.row, move.col);
+		assert(signAt(move.row, move.col) == Sign::NONE);
 	}
 	/*
 	 * private

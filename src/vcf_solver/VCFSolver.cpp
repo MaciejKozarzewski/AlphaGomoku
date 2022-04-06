@@ -11,6 +11,7 @@
 #include <alphagomoku/utils/Logger.hpp>
 
 #include <iostream>
+#include <cassert>
 
 namespace
 {
@@ -66,7 +67,7 @@ namespace ag
 
 	VCFSolver::VCFSolver(GameConfig gameConfig, int maxPositions) :
 			max_positions(maxPositions),
-			nodes_buffer(10000),
+			nodes_buffer(gameConfig.rows * (gameConfig.cols - 1) / 2),
 			game_config(gameConfig),
 			feature_extractor(gameConfig),
 			hashtable(gameConfig.rows * gameConfig.cols, 4096),
@@ -121,13 +122,14 @@ namespace ag
 		node_counter = 1; // prepare node stack
 		nodes_buffer.front().init(0, 0, invertSign(sign_to_move)); // prepare node stack
 
-		recursive_solve(nodes_buffer.front(), false);
+//		recursive_solve(nodes_buffer.front(), false);
+		recursive_solve_2(nodes_buffer.front(), true);
 
 //		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
 //				<< position_counter << " positions, total = " << total_positions << "\n";
 		if (nodes_buffer.front().solved_value == SolvedValue::LOSS)
 		{
-			for (auto iter = nodes_buffer[0].children; iter < nodes_buffer[0].children + nodes_buffer[0].number_of_children; iter++)
+			for (auto iter = nodes_buffer.front().begin(); iter < nodes_buffer.front().end(); iter++)
 				if (iter->solved_value == SolvedValue::WIN)
 					task.addProvenEdge(Move(sign_to_move, iter->move), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
@@ -160,7 +162,7 @@ namespace ag
 
 		if (probability > 0.95f) // there is 90% chance that higher value of 'max_positions' gives higher speed
 		{
-			if (lower_measurement.getParamValue() * tuning_step <= 6400)
+			if (lower_measurement.getParamValue() * tuning_step <= 12800)
 			{
 				const int new_max_pos = tuning_step * lower_measurement.getParamValue();
 				lower_measurement = Measurement(new_max_pos);
@@ -296,11 +298,11 @@ namespace ag
 		}
 		return false;
 	}
-	void VCFSolver::recursive_solve(InternalNode &node, bool mustProveAllChildren)
+	void VCFSolver::recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth)
 	{
-		position_counter++;
-//		print();
-//		printAllThreats();
+		position_counter += 1.0;
+//		feature_extractor.print();
+//		feature_extractor.printAllThreats();
 
 		const Sign sign_to_move = invertSign(node.move.sign);
 		const std::vector<Move> &own_five = feature_extractor.getThreats(ThreatType::FIVE, sign_to_move);
@@ -316,12 +318,12 @@ namespace ag
 			case 0:
 			{
 				const std::vector<Move> &own_open_four = feature_extractor.getThreats(ThreatType::OPEN_FOUR, sign_to_move);
-				const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
 				if (own_open_four.size() > 0) // if side to move can make an open four but the opponent has no fives, mark this node as loss
 				{
 					node.solved_value = SolvedValue::LOSS;
 					return;
 				}
+				const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
 				node.number_of_children = static_cast<int>(own_half_open_four.size());
 				break;
 			}
@@ -362,13 +364,14 @@ namespace ag
 		{
 //			if (iter != node.children)
 //			{
-//				print();
-//				printAllThreats();
+//				feature_extractor.print();
+//				feature_extractor.printAllThreats();
 //			}
-//			std::cout << "depth = " << depth << " : state of all children:\n";
+//			std::cout << "positions checked = " << position_counter << std::endl;
+//			std::cout << "depth = " << depth << " : state of all children:" << std::endl;
 //			for (int i = 0; i < node.number_of_children; i++)
-//				std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << '\n';
-//			std::cout << "now checking " << iter->move.toString() << '\n';
+//				std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
+//			std::cout << "now checking " << iter->move.toString() << std::endl;
 
 			hashtable.updateHash(iter->move);
 			const SolvedValue solved_value_from_table = hashtable.get(hashtable.getHash());
@@ -377,13 +380,13 @@ namespace ag
 				if (position_counter < max_positions)
 				{
 					feature_extractor.addMove(iter->move);
-					recursive_solve(*iter, not mustProveAllChildren);
+					recursive_solve(*iter, not mustProveAllChildren, depth + 1);
 					feature_extractor.undoMove(iter->move);
 				}
 			}
 			else
 			{
-//				position_counter++; // TODO perhaps this should be added to avoid infinite search over cached positions?
+				position_counter += 0.0625;
 				iter->solved_value = solved_value_from_table; // cache hit
 			}
 			hashtable.updateHash(iter->move); // revert back to original hash
@@ -408,7 +411,7 @@ namespace ag
 
 //		std::cout << "depth = " << depth << " : state of all children:\n";
 //		for (int i = 0; i < node.number_of_children; i++)
-//			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << '\n';
+//			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
 
 		if (has_win_child)
 			node.solved_value = SolvedValue::LOSS;
@@ -425,6 +428,180 @@ namespace ag
 			}
 		}
 		hashtable.insert(hashtable.getHash(), node.solved_value);
+		node_counter -= node.number_of_children;
+	}
+
+	void VCFSolver::recursive_solve_2(InternalNode &node, bool isAttackingSide, int depth)
+	{
+		position_counter += 1.0;
+//		feature_extractor.print();
+//		feature_extractor.printAllThreats();
+
+		const Sign sign_to_move = invertSign(node.move.sign);
+		if (isAttackingSide)
+		{
+			const std::vector<Move> &attacker_five = get_attacker_threats(ThreatType::FIVE);
+			if (attacker_five.size() > 0) // if attacker can make a five, mark this node as loss
+			{
+				node.solved_value = SolvedValue::LOSS;
+				return;
+			}
+			const std::vector<Move> &defender_five = get_defender_threats(ThreatType::FIVE);
+			switch (defender_five.size())
+			{
+				case 0:
+				{
+					const std::vector<Move> &attacker_open_four = get_attacker_threats(ThreatType::OPEN_FOUR);
+					if (attacker_open_four.size() > 0) // if attacker can make an open four but defender has no fives, mark this node as loss
+					{
+						node.solved_value = SolvedValue::LOSS;
+						return;
+					}
+
+					const std::vector<Move> &attacker_half_open_four = get_attacker_threats(ThreatType::HALF_OPEN_FOUR);
+					if (attacker_open_four.size() == 0) // attacker has no threats to make
+					{
+						node.solved_value = SolvedValue::UNSOLVED;
+						return;
+					}
+
+					create_node_stack(node, attacker_half_open_four.size());
+					size_t children_counter = 0;
+					for (auto iter = attacker_half_open_four.begin(); iter < attacker_half_open_four.end(); iter++, children_counter++)
+						node.children[children_counter].init(iter->row, iter->col, sign_to_move);
+					break;
+				}
+				case 1:
+				{
+					create_node_stack(node, 1);
+					node.children[0].init(defender_five.front().row, defender_five.front().col, sign_to_move);
+					break;
+				}
+				default:
+				{
+					node.solved_value = SolvedValue::WIN; // if defender can make multiple fives, mark this node as win
+					return;
+				}
+			}
+		}
+		else
+		{
+			const std::vector<Move> &attacker_five = get_attacker_threats(ThreatType::FIVE);
+			switch (attacker_five.size())
+			{
+				case 0: // attacker lost initiative
+				{
+					node.solved_value = SolvedValue::UNSOLVED;
+					return;
+				}
+				case 1: // single forced move
+				{
+					create_node_stack(node, 1);
+					node.children[0].init(attacker_five.front().row, attacker_five.front().col, sign_to_move);
+					break;
+				}
+				default: // attacker can make multiple fives, mark this node as win
+				{
+					node.solved_value = SolvedValue::WIN;
+					return;
+				}
+			}
+		}
+
+		node.solved_value = SolvedValue::UNSOLVED;
+
+		int loss_counter = 0;
+		bool has_win_child = false;
+		bool has_unproven_child = false;
+		for (auto iter = node.begin(); iter < node.end(); iter++)
+		{
+//			if (iter != node.children)
+//			{
+//				feature_extractor.print();
+//				feature_extractor.printAllThreats();
+//			}
+//			std::cout << "positions checked = " << position_counter << std::endl;
+//			std::cout << "depth = " << depth << " : state of all children:" << std::endl;
+//			for (int i = 0; i < node.number_of_children; i++)
+//				std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
+//			std::cout << "now checking " << iter->move.toString() << std::endl;
+
+			hashtable.updateHash(iter->move);
+			const SolvedValue solved_value_from_table = hashtable.get(hashtable.getHash());
+			if (solved_value_from_table == SolvedValue::UNKNOWN) // not found
+			{
+				if (position_counter < max_positions)
+				{
+					feature_extractor.addMove(iter->move);
+					recursive_solve_2(*iter, not isAttackingSide, depth + 1);
+					feature_extractor.undoMove(iter->move);
+				}
+			}
+			else
+			{
+				position_counter += 0.0625;
+				iter->solved_value = solved_value_from_table; // cache hit
+			}
+			hashtable.updateHash(iter->move); // revert back to original hash
+
+			if (iter->solved_value == SolvedValue::WIN) // found winning move, can skip remaining nodes
+			{
+				has_win_child = true;
+				break;
+			}
+			else
+			{
+				if (iter->solved_value == SolvedValue::LOSS) // child node is losing
+					loss_counter++;
+				else // UNKNOWN or UNSOLVED
+				{
+					has_unproven_child = true;
+					if (not isAttackingSide) // if this is defensive side, it must prove all its child nodes as losing
+						break; // so the function can exit now, as there will be at least one unproven node (current one)
+				}
+			}
+		}
+
+//		std::cout << "depth = " << depth << " : state of all children:\n";
+//		for (int i = 0; i < node.number_of_children; i++)
+//			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
+
+		if (has_win_child)
+			node.solved_value = SolvedValue::LOSS;
+		else
+		{
+			if (has_unproven_child and not isAttackingSide)
+				node.solved_value = SolvedValue::UNSOLVED;
+			else
+			{
+				if (loss_counter == node.number_of_children)
+					node.solved_value = SolvedValue::WIN;
+				else
+					node.solved_value = SolvedValue::UNSOLVED;
+			}
+		}
+		hashtable.insert(hashtable.getHash(), node.solved_value);
+		delete_node_stack(node);
+	}
+
+	const std::vector<Move>& VCFSolver::get_attacker_threats(ThreatType tt) noexcept
+	{
+		return feature_extractor.getThreats(tt, feature_extractor.getSignToMove());
+	}
+	const std::vector<Move>& VCFSolver::get_defender_threats(ThreatType tt) noexcept
+	{
+		return feature_extractor.getThreats(tt, invertSign(feature_extractor.getSignToMove()));
+	}
+	void VCFSolver::create_node_stack(InternalNode &node, int numberOfNodes) noexcept
+	{
+		assert(node_counter + numberOfNodes <= static_cast<int>(nodes_buffer.size()));
+		node.number_of_children = numberOfNodes;
+		node.children = nodes_buffer.data() + node_counter;
+		node_counter += numberOfNodes;
+	}
+	void VCFSolver::delete_node_stack(InternalNode &node) noexcept
+	{
+		assert(node_counter >= node.number_of_children);
 		node_counter -= node.number_of_children;
 	}
 

@@ -35,6 +35,7 @@ namespace ag
 			input_listener(std::cin),
 			output_sender(std::cout)
 	{
+		time_manager.startTimer();
 		create_arguments();
 	}
 
@@ -86,6 +87,8 @@ namespace ag
 		engine_settings = std::make_unique<EngineSettings>(config);
 		setup_protocol();
 
+		time_manager.stopTimer();
+		Logger::write("Initialized in " + std::to_string(time_manager.getElapsedTime()));
 		while (is_running)
 		{
 			process_input_from_user();
@@ -346,6 +349,7 @@ namespace ag
 			time_manager.startTimer(); // the time of initialization of the search engine should be included in the time of the first move
 			search_engine = std::make_unique<SearchEngine>(*engine_settings);
 			time_manager.stopTimer();
+			Logger::write("Set up engine in " + std::to_string(time_manager.getElapsedTime()));
 		}
 		else
 		{

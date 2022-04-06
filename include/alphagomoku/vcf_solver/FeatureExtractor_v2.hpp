@@ -14,6 +14,8 @@
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
 
+#include <cassert>
+
 namespace ag
 {
 	class SearchTask;

@@ -29,6 +29,21 @@ namespace ag
 		LOSS,
 		WIN
 	};
+	inline std::string toString(SolvedValue sv)
+	{
+		switch (sv)
+		{
+			default:
+			case SolvedValue::UNKNOWN:
+				return "UNKNOWN";
+			case SolvedValue::UNSOLVED:
+				return "UNSOLVED";
+			case SolvedValue::LOSS:
+				return "LOSS";
+			case SolvedValue::WIN:
+				return "WIN";
+		}
+	}
 
 	struct SolverStats
 	{
@@ -67,11 +82,21 @@ namespace ag
 						number_of_children = 0;
 						solved_value = SolvedValue::UNKNOWN;
 					}
+					InternalNode* begin() noexcept
+					{
+						assert(children != nullptr);
+						return children;
+					}
+					InternalNode* end() noexcept
+					{
+						assert(children != nullptr);
+						return children + number_of_children;
+					}
 			};
 
 			int max_positions; // maximum number of positions that will be searched
 
-			int position_counter = 0;
+			double position_counter = 0.0;
 			int node_counter = 0;
 			std::vector<InternalNode> nodes_buffer;
 
@@ -103,7 +128,13 @@ namespace ag
 			bool static_solve_3ply_win(SearchTask &task);
 			bool static_solve_block_4(SearchTask &task);
 
-			void recursive_solve(InternalNode &node, bool mustProveAllChildren);
+			void recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth = 0);
+			void recursive_solve_2(InternalNode &node, bool isAttackingSide, int depth = 0);
+
+			const std::vector<Move>& get_attacker_threats(ThreatType tt) noexcept;
+			const std::vector<Move>& get_defender_threats(ThreatType tt) noexcept;
+			void create_node_stack(InternalNode &node, int numberOfNodes) noexcept;
+			void delete_node_stack(InternalNode &node) noexcept;
 	};
 
 } /* namespace ag */
