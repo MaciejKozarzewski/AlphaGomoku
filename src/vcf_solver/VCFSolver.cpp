@@ -20,6 +20,11 @@ namespace
 	{
 		return static_cast<T>(0.5) * (static_cast<T>(1.0) + std::erf(x / std::sqrt(2.0)));
 	}
+	int get_max_nodes(ag::GameConfig cfg) noexcept
+	{
+		const int size = cfg.rows * cfg.cols;
+		return size * (size - 1) / 2;
+	}
 }
 
 namespace ag
@@ -67,7 +72,7 @@ namespace ag
 
 	VCFSolver::VCFSolver(GameConfig gameConfig, int maxPositions) :
 			max_positions(maxPositions),
-			nodes_buffer(gameConfig.rows * (gameConfig.cols - 1) / 2),
+			nodes_buffer(get_max_nodes(gameConfig)),
 			game_config(gameConfig),
 			feature_extractor(gameConfig),
 			hashtable(gameConfig.rows * gameConfig.cols, 4096),

@@ -92,13 +92,13 @@ namespace ag
 			json[i] = buffer_data[i].serialize(so);
 
 		FileSaver fs(path);
-		fs.save(json, so, -1, false);
+		fs.save(json, so, -1, true);
 		fs.close();
 	}
 	void GameBuffer::load(const std::string &path)
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
-		FileLoader fl(path, false);
+		FileLoader fl(path, true);
 		size_t size = fl.getJson().size();
 		for (size_t i = 0; i < size; i++)
 			buffer_data.push_back(Game(fl.getJson()[i], fl.getBinaryData()));

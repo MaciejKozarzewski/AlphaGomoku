@@ -76,9 +76,9 @@ class LibBuilder:
         return tmp
 
     def _misc_options(self) -> str:
-        tmp = ''
+        tmp = ' -msse4.1'
         if self._platform == 'windows' and self._main_compiler == 'gcc':
-            tmp += ' -mxsave -msse4.1'
+            tmp += ' -mxsave'
         return tmp
 
     def _compile_single_file(self, path: str, filename: str) -> list:

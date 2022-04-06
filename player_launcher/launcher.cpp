@@ -152,9 +152,9 @@ void test_proven_positions(int pos)
 //	device_config.batch_size = 32;
 //	device_config.device = ml::Device::cuda(1);
 
-//	GameBuffer buffer("/home/maciek/alphagomoku/freestyle_20x20/valid_buffer/buffer_100.bin");
-//	GameBuffer buffer("/home/maciek/alphagomoku/standard_15x15/valid_buffer/buffer_100.bin");
-	GameBuffer buffer("C:\\buffer_37.bin");
+//	GameBuffer buffer("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_50.bin");
+	GameBuffer buffer("/home/maciek/alphagomoku/run2022_15x15s/train_buffer/buffer_100.bin");
+//	GameBuffer buffer("C:\\buffer_37.bin");
 
 	SolverSearch solver(game_config, search_config.vcf_solver_max_positions);
 //	NNSearch mcgs(game_config, tree_config, search_config, device_config);
@@ -583,10 +583,10 @@ void time_manager()
 	MasterLearningConfig config(FileLoader(path + "config.json").getJson());
 
 	GeneratorManager manager(config.game_config, config.generation_config);
-	manager.generate(path + "standard_10x128.bin", 10000, 0);
+	manager.generate(path + "freestyle_10x128.bin", 10000, 0);
 
 	const GameBuffer &buffer = manager.getGameBuffer();
-	buffer.save(path + "buffer_1000.bin");
+	buffer.save(path + "buffer_1000f.bin");
 
 //	GameBuffer buffer(path + "buffer.bin");
 
@@ -611,7 +611,7 @@ void time_manager()
 		}
 	}
 
-	FileSaver fs(path + "stats_1000.json");
+	FileSaver fs(path + "stats_1000f.json");
 	fs.save(stats, SerializedObject());
 	std::cout << "END" << std::endl;
 }

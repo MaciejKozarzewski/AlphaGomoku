@@ -22,7 +22,6 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
-#include <alphagomoku/utils/ThreadPool.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/ObjectPool.hpp>
@@ -559,20 +558,20 @@ void find_proven_positions(const std::string &path, int index)
 
 void test_evaluate()
 {
-	MasterLearningConfig config(FileLoader("/home/maciek/alphagomoku/config.json").getJson());
+	MasterLearningConfig config(FileLoader("/home/maciek/alphagomoku/run2022_15x15s2/config.json").getJson());
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-	cfg.simulations_min = 3200;
-	cfg.simulations_max = 3200;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/test7_12x12_standard/checkpoint/network_38.bin", "test7");
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/test9_12x12_standard/checkpoint/network_40.bin", "test9");
+	cfg.simulations_min = 1000;
+	cfg.simulations_max = 1000;
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/run2022_15x15s2/checkpoint/network_51_opt.bin", "retrain2021");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/run2022_15x15s/checkpoint/network_124_opt.bin", "train2022");
 
 	manager.generate(1000);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/test7_test9_2.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/test_2021vs2022.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -691,7 +690,13 @@ void test_expand()
 
 int main(int argc, char *argv[])
 {
+	TrainingManager tm("/home/maciek/alphagomoku/small_20x20f/", "/home/maciek/alphagomoku/run2022_20x20f/");
+	for (int i = 0; i < 22; i++)
+		tm.runIterationSL();
+	return 0;
 
+//	test_evaluate();
+//	return 0;
 //	GameConfig game_config(GameRules::STANDARD, 15, 15);
 //	TrainingConfig training_config;
 //	training_config.blocks = 10;
@@ -749,6 +754,7 @@ int main(int argc, char *argv[])
 	ap.addArgument("path", [&](const std::string &arg)
 	{	path = arg;});
 	ap.parseArguments(argc, argv);
+
 	if (path.empty())
 	{
 		std::cout << "Path is empty, exiting" << std::endl;
@@ -758,7 +764,7 @@ int main(int argc, char *argv[])
 	if (std::filesystem::exists(path + "/config.json"))
 	{
 		TrainingManager tm(path);
-		for (int i = 0; i < 1; i++)
+		for (int i = 0; i < 200; i++)
 			tm.runIterationRL();
 	}
 	else
