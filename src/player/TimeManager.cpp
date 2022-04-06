@@ -18,11 +18,16 @@ namespace
 	ag::MovesLeftEstimator get_freestyle_estimator()
 	{
 		std::vector<std::pair<int, float>> c0;
-		c0.push_back( { 0, 25 });
-		c0.push_back( { 400, 25 });
+		c0.push_back( { 0, 60 });
+		c0.push_back( { 20, 53 });
+		c0.push_back( { 350, 50 });
+		c0.push_back( { 400, 0 });
 
 		std::vector<std::pair<int, float>> c2;
-		c2.push_back( { 0, 0 });
+		c2.push_back( { 0, 200 });
+		c2.push_back( { 20, 180 });
+		c2.push_back( { 349, 180 });
+		c2.push_back( { 350, 0 });
 		c2.push_back( { 400, 0 });
 
 		return ag::MovesLeftEstimator(c0, c2);
@@ -109,10 +114,10 @@ namespace ag
 		const MovesLeftEstimator &estimator = moves_left_estimators.find(settings.getGameConfig().rules)->second;
 		const double moves_left = estimator.get(moveNumber, eval);
 
-//		const double fraction = 0.99;
+//		const double fraction = 0.96;
 //		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
-		const double fraction = 0.1;
+		const double fraction = 0.05;
 		const double sum = (1.0 - fraction) / (1.0 - std::pow(fraction, 1.0 / moves_left));
 
 		static double last_time = getTime();
