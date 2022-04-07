@@ -49,6 +49,10 @@ namespace ag
 			m_param_value(paramValue)
 	{
 	}
+	void Measurement::clear() noexcept
+	{
+		m_values.clear();
+	}
 	int Measurement::getParamValue() const noexcept
 	{
 		return m_param_value;
@@ -68,6 +72,13 @@ namespace ag
 			LinearRegression<int, float> linreg(m_values);
 			return linreg.predict(x);
 		}
+	}
+	std::string Measurement::toString() const
+	{
+		std::string result = "Measurements for param = " + std::to_string(m_param_value) + "\n";
+		for (size_t i = 0; i < m_values.size(); i++)
+			result += std::to_string(i) + " : " + std::to_string(m_values[i].first) + ", " + std::to_string(m_values[i].second) + "\n";
+		return result;
 	}
 
 	VCFSolver::VCFSolver(GameConfig gameConfig, int maxPositions) :
@@ -143,6 +154,10 @@ namespace ag
 	}
 	void VCFSolver::tune(float speed)
 	{
+//		Logger::write("VCFSolver::tune(" + std::to_string(speed) + ")");
+//		Logger::write("Before new measurement");
+//		Logger::write(lower_measurement.toString());
+//		Logger::write(upper_measurement.toString());
 		if (max_positions == lower_measurement.getParamValue())
 		{
 			lower_measurement.update(step_counter, speed);
@@ -154,31 +169,42 @@ namespace ag
 			max_positions = lower_measurement.getParamValue();
 		}
 
+//		Logger::write("After new measurement");
+//		Logger::write(lower_measurement.toString());
+//		Logger::write(upper_measurement.toString());
+
 		step_counter++;
 
 		std::pair<float, float> lower_mean_and_stddev = lower_measurement.predict(step_counter);
 		std::pair<float, float> upper_mean_and_stddev = upper_measurement.predict(step_counter);
 
+//		Logger::write("Predicted");
+//		Logger::write("Lower : " + std::to_string(lower_mean_and_stddev.first) + " +/-" + std::to_string(lower_mean_and_stddev.second));
+//		Logger::write("Upper : " + std::to_string(upper_mean_and_stddev.first) + " +/-" + std::to_string(upper_mean_and_stddev.second));
+
 		float mean = lower_mean_and_stddev.first - upper_mean_and_stddev.first;
 		float stddev = std::hypot(lower_mean_and_stddev.second, upper_mean_and_stddev.second);
+//		Logger::write("mean = " + std::to_string(mean) + ", stddev = " + std::to_string(stddev));
 
 		float probability = 1.0f - gaussian_cdf(mean / stddev);
-		Logger::write("VCFSolver::tune(" + std::to_string(speed) + "), probability = " + std::to_string(probability));
+//		Logger::write("probability = " + std::to_string(probability));
 
-		if (probability > 0.95f) // there is 90% chance that higher value of 'max_positions' gives higher speed
+		if (probability > 0.95f) // there is 95% chance that higher value of 'max_positions' gives higher speed
 		{
-			if (lower_measurement.getParamValue() * tuning_step <= 12800)
+			if (lower_measurement.getParamValue() * tuning_step <= 6400)
 			{
+//				Logger::write("VCFSolver::tune() increasing positions");
 				const int new_max_pos = tuning_step * lower_measurement.getParamValue();
 				lower_measurement = Measurement(new_max_pos);
 				upper_measurement = Measurement(tuning_step * new_max_pos);
 			}
 			max_positions = lower_measurement.getParamValue();
 		}
-		if (probability < 0.05f) // there is 10% chance that higher value of 'max_positions' gives higher speed
+		if (probability < 0.05f) // there is 5% chance that higher value of 'max_positions' gives higher speed
 		{
 			if (lower_measurement.getParamValue() / tuning_step >= 50)
 			{
+//				Logger::write("VCFSolver::tune() decreasing positions");
 				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
 				lower_measurement = Measurement(new_max_pos);
 				upper_measurement = Measurement(tuning_step * new_max_pos);
@@ -193,9 +219,10 @@ namespace ag
 	void VCFSolver::clearStats()
 	{
 		stats = SolverStats();
-		lower_measurement = Measurement(max_positions);
-		upper_measurement = Measurement(tuning_step * max_positions);
+		lower_measurement.clear();
+		upper_measurement.clear();
 		step_counter = 0;
+//		Logger::write("VCFSolver::clearStats() using " + std::to_string(max_positions) + " positions");
 	}
 	/*
 	 * private
@@ -438,7 +465,6 @@ namespace ag
 
 	void VCFSolver::recursive_solve_2(InternalNode &node, bool isAttackingSide)
 	{
-		position_counter += 1.0;
 //		feature_extractor.print();
 //		feature_extractor.printAllThreats();
 
@@ -534,6 +560,7 @@ namespace ag
 			const SolvedValue solved_value_from_table = hashtable.get(hashtable.getHash());
 			if (solved_value_from_table == SolvedValue::UNKNOWN) // not found
 			{
+				position_counter += 1.0;
 				if (position_counter < max_positions)
 				{
 					feature_extractor.addMove(iter->move);

@@ -61,9 +61,11 @@ namespace ag
 			int m_param_value;
 		public:
 			Measurement(int paramValue) noexcept;
+			void clear() noexcept;
 			int getParamValue() const noexcept;
 			void update(int x, float y) noexcept;
 			std::pair<float, float> predict(int x) const noexcept;
+			std::string toString() const;
 	};
 
 	class VCFSolver
