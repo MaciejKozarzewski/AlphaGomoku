@@ -80,6 +80,7 @@ namespace ag
 				std::swap(this->visits, other.visits);
 				std::swap(this->proven_value, other.proven_value);
 				std::swap(this->number_of_edges, other.number_of_edges);
+				std::swap(this->depth, other.depth);
 				std::swap(this->sign_to_move, other.sign_to_move);
 				std::swap(this->is_owning, other.is_owning);
 				return *this;

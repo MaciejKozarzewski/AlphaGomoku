@@ -29,7 +29,7 @@ namespace ag
 
 		if (state == ControllerState::SEARCH)
 		{
-			SearchSummary summary = search_engine.getSummary( { }, false);
+			const SearchSummary summary = search_engine.getSummary( { }, false);
 			if (time_manager.getElapsedTime() > time_manager.getTimeForTurn(engine_settings, summary.node.getDepth(), summary.node.getValue())
 					or search_engine.isSearchFinished())
 			{

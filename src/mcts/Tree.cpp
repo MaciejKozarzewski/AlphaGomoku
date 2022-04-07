@@ -239,11 +239,11 @@ namespace ag
 		Node *node_to_add = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in the cache
 		if (node_to_add == nullptr) // not found in the cache
 		{
-			const int64_t number_of_moves = static_cast<int64_t>(task.getEdges().size());
-			assert(number_of_moves > 0);
+			const int64_t number_of_edges = static_cast<int64_t>(task.getEdges().size());
+			assert(number_of_edges > 0);
 
-			node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove(), number_of_moves);
-			for (int64_t i = 0; i < number_of_moves; i++)
+			node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove(), number_of_edges);
+			for (int64_t i = 0; i < number_of_edges; i++)
 				node_to_add->getEdge(i) = task.getEdges()[i];
 			node_to_add->updateValue(task.getValue());
 			update_proven_value(node_to_add);
