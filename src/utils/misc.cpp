@@ -9,6 +9,7 @@
 #include <alphagomoku/rules/game_rules.hpp>
 
 #include <cinttypes>
+#include <cassert>
 #include <cmath>
 #include <fstream>
 #include <iostream>
