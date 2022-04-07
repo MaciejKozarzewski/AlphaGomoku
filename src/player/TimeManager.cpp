@@ -114,18 +114,16 @@ namespace ag
 		const MovesLeftEstimator &estimator = moves_left_estimators.find(settings.getGameConfig().rules)->second;
 		const double moves_left = estimator.get(moveNumber, eval);
 
-//		const double fraction = 0.96;
-//		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
-
-		const double fraction = 0.05;
-		const double sum = (1.0 - fraction) / (1.0 - std::pow(fraction, 1.0 / moves_left));
+		const double fraction = 1.0 - 0.1 * std::pow(2.0, -moveNumber / 50.0);
+		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
 		static double last_time = getTime();
 		if (getTime() - last_time > 1.0)
 		{
 			Logger::write(
 					"TimeManager::getTimeForTurn(" + std::to_string(moveNumber) + ", " + eval.toString() + ") = " + std::to_string(moves_left) + " ("
-							+ std::to_string(sum) + "), elapsed time = " + std::to_string(used_time + getTime() - start_time) + "s");
+							+ std::to_string(sum) + "), elapsed time = " + std::to_string(used_time + getTime() - start_time) + "/"
+							+ std::to_string(settings.getTimeLeft() / sum) + "s");
 			last_time = getTime();
 		}
 
