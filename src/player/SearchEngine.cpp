@@ -116,42 +116,48 @@ namespace ag
 	}
 	void SearchThread::run()
 	{
-		search.clearStats();
-
-		{ /* artificial scope for lock */
-			TreeLock lock(tree);
-			if (isStopConditionFulfilled())
-				return;
-		}
-
-		while (true)
+		try
 		{
+			search.clearStats();
+
 			{ /* artificial scope for lock */
 				TreeLock lock(tree);
-				search.select(tree);
-			}
-			search.solve();
-
-			NNEvaluator &evaluator = evaluator_pool.get();
-			search.scheduleToNN(evaluator);
-			evaluator.evaluateGraph();
-			evaluator_pool.release(evaluator);
-
-			search.generateEdges(tree); // this step doesn't require locking the tree
-			{ /* artificial scope for lock */
-				TreeLock lock(tree);
-				search.expand(tree);
-				search.backup(tree);
 				if (isStopConditionFulfilled())
+					return;
+			}
+
+			while (true)
+			{
+				{ /* artificial scope for lock */
+					TreeLock lock(tree);
+					search.select(tree);
+				}
+				search.solve();
+
+				NNEvaluator &evaluator = evaluator_pool.get();
+				search.scheduleToNN(evaluator);
+				evaluator.evaluateGraph();
+				evaluator_pool.release(evaluator);
+
+				search.generateEdges(tree); // this step doesn't require locking the tree
+				{ /* artificial scope for lock */
+					TreeLock lock(tree);
+					search.expand(tree);
+					search.backup(tree);
+					if (isStopConditionFulfilled())
+						break;
+				}
+				search.tune(); // FIXME tuning is currently disabled
+				std::lock_guard lock(search_mutex);
+				if (is_running == false)
 					break;
 			}
-			search.tune();
-			std::lock_guard lock(search_mutex);
-			if (is_running == false)
-				break;
+			TreeLock lock(tree);
+			search.cleanup(tree);
+		} catch (std::exception &e)
+		{
+			Logger::write(std::string("SearchThread::run() threw ") + e.what());
 		}
-		TreeLock lock(tree);
-		search.cleanup(tree);
 	}
 	SearchStats SearchThread::getSearchStats() const noexcept
 	{
