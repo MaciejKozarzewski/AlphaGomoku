@@ -261,7 +261,7 @@ namespace ag
 	int64_t EngineSettings::getMaxMemory() const noexcept
 	{
 		std::lock_guard lock(mutex);
-		return max_memory;
+		return max_memory - 150 * 1024 * 1024; // assuming 150MB offset for all objects other than the Tree
 	}
 	float EngineSettings::getStyleFactor() const noexcept
 	{
