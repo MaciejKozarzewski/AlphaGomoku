@@ -161,11 +161,13 @@ namespace ag
 		{
 			lower_measurement.update(step_counter, speed);
 			max_positions = upper_measurement.getParamValue();
+//			Logger::write("using upper " + std::to_string(max_positions));
 		}
 		else
 		{
 			upper_measurement.update(step_counter, speed);
 			max_positions = lower_measurement.getParamValue();
+//			Logger::write("using lower " + std::to_string(max_positions));
 		}
 
 //		Logger::write("After new measurement");
@@ -188,41 +190,43 @@ namespace ag
 		float probability = 1.0f - gaussian_cdf(mean / stddev);
 //		Logger::write("probability = " + std::to_string(probability));
 
-		if (probability > 0.95f) // there is 95% chance that higher value of 'max_positions' gives higher speed
+		if (probability > 0.95f) // there is more than 95% chance that higher value of 'max_positions' gives higher speed
 		{
 			if (lower_measurement.getParamValue() * tuning_step <= 6400)
 			{
-//				Logger::write("VCFSolver::tune() increasing positions");
 				const int new_max_pos = tuning_step * lower_measurement.getParamValue();
 				lower_measurement = Measurement(new_max_pos);
 				upper_measurement = Measurement(tuning_step * new_max_pos);
+				max_positions = lower_measurement.getParamValue();
+				Logger::write(
+						"VCFSolver increasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
 			}
-			max_positions = lower_measurement.getParamValue();
 		}
-		if (probability < 0.05f) // there is 5% chance that higher value of 'max_positions' gives higher speed
+		if (probability < 0.05f) // there is less than 5% chance that higher value of 'max_positions' gives higher speed
 		{
-			if (lower_measurement.getParamValue() / tuning_step >= 50)
+			if (lower_measurement.getParamValue() / tuning_step >= 100)
 			{
-//				Logger::write("VCFSolver::tune() decreasing positions");
 				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
 				lower_measurement = Measurement(new_max_pos);
 				upper_measurement = Measurement(tuning_step * new_max_pos);
+				max_positions = lower_measurement.getParamValue();
+				Logger::write(
+						"VCFSolver decreasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
 			}
-			max_positions = lower_measurement.getParamValue();
 		}
 	}
 	SolverStats VCFSolver::getStats() const
 	{
-		std::cout << position_counter << " positions" << std::endl;
 		return stats;
 	}
 	void VCFSolver::clearStats()
 	{
 		stats = SolverStats();
+		max_positions = lower_measurement.getParamValue();
 		lower_measurement.clear();
 		upper_measurement.clear();
 		step_counter = 0;
-//		Logger::write("VCFSolver::clearStats() using " + std::to_string(max_positions) + " positions");
+		Logger::write("VCFSolver is using " + std::to_string(max_positions) + " positions");
 	}
 	/*
 	 * private

@@ -28,7 +28,6 @@ namespace
 		c2.push_back( { 20, 180 });
 		c2.push_back( { 349, 180 });
 		c2.push_back( { 350, 0 });
-		c2.push_back( { 400, 0 });
 
 		return ag::MovesLeftEstimator(c0, c2);
 	}
@@ -117,15 +116,15 @@ namespace ag
 		const double fraction = 1.0 - 0.08 * std::pow(2.0, -moveNumber / 50.0);
 		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
-		static double last_time = getTime();
-		if (getTime() - last_time > 1.0)
-		{
-			Logger::write(
-					"TimeManager::getTimeForTurn(" + std::to_string(moveNumber) + ", " + eval.toString() + ") = " + std::to_string(moves_left) + " ("
-							+ std::to_string(sum) + "), elapsed time = " + std::to_string(used_time + getTime() - start_time) + "/"
-							+ std::to_string(settings.getTimeLeft() / sum) + "s");
-			last_time = getTime();
-		}
+//		static double last_time = getTime();
+//		if (getTime() - last_time > 1.0)
+//		{
+//			Logger::write(
+//					"TimeManager::getTimeForTurn(" + std::to_string(moveNumber) + ", " + eval.toString() + ") = " + std::to_string(moves_left) + " ("
+//							+ std::to_string(sum) + "), elapsed time = " + std::to_string(used_time + getTime() - start_time) + "/"
+//							+ std::to_string(settings.getTimeLeft() / sum) + "s");
+//			last_time = getTime();
+//		}
 
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
 	}
