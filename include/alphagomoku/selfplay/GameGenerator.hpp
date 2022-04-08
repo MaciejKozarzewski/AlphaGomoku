@@ -67,6 +67,7 @@ namespace ag
 			void prepare_search(const matrix<Sign> &board, Sign signToMove);
 			void clear_node_cache();
 			int nb_of_simulations() const noexcept;
+			bool is_tree_proven() const noexcept;
 	};
 
 } /* namespace ag */

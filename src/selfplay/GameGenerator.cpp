@@ -92,7 +92,7 @@ namespace ag
 			search.expand(tree);
 			search.backup(tree);
 
-			if (tree.getSimulationCount() > nb_of_simulations() or tree.isProven())
+			if (tree.getSimulationCount() > nb_of_simulations() or is_tree_proven())
 			{
 				make_move();
 				if (game.isOver())
@@ -209,6 +209,12 @@ namespace ag
 			return simulations_max;
 		else
 			return simulations_min;
+	}
+	bool GameGenerator::is_tree_proven() const noexcept
+	{
+		const Node root_node = tree.getInfo(std::vector<Move>());
+		return std::all_of(root_node.begin(), root_node.end(), [](const Edge &edge)
+		{	return edge.isProven();});
 	}
 
 } /* namespace ag */
