@@ -128,7 +128,7 @@ namespace ag
 			bool static_solve_1ply_draw(SearchTask &task);
 			bool static_solve_block_5(SearchTask &task);
 			bool static_solve_3ply_win(SearchTask &task);
-			bool static_solve_block_4(SearchTask &task);
+			void static_solve_block_4(SearchTask &task);
 
 			void recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth = 0);
 			void recursive_solve_2(InternalNode &node, bool isAttackingSide);

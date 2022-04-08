@@ -115,9 +115,7 @@ namespace ag
 			success = static_solve_3ply_win(task);
 			if (success)
 				return;
-			success = static_solve_block_4(task);
-			if (success)
-				return;
+			static_solve_block_4(task);
 		}
 
 		if (level <= 1)
@@ -214,6 +212,7 @@ namespace ag
 	}
 	SolverStats VCFSolver::getStats() const
 	{
+		std::cout << position_counter << " positions" << std::endl;
 		return stats;
 	}
 	void VCFSolver::clearStats()
@@ -273,23 +272,25 @@ namespace ag
 	{
 		const Sign sign_to_move = feature_extractor.getSignToMove();
 		const std::vector<Move> &opponent_five = feature_extractor.getThreats(ThreatType::FIVE, invertSign(sign_to_move));
-		if (opponent_five.size() > 0) // opponent can make a five
+		switch (opponent_five.size())
 		{
-			if (opponent_five.size() > 1)
+			case 0:
+				return false;
+			case 1:
+			{
+				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
+					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
+				return true;
+			}
+			default:
 			{
 				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
 					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::LOSS);
 				task.setValue(Value(0.0f, 0.0, 1.0f));
 				task.setReady(); // the state is provably losing, there is no need to further evaluate it
+				return true;
 			}
-			else
-			{
-				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
-					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
-			}
-			return true;
 		}
-		return false;
 	}
 	bool VCFSolver::static_solve_3ply_win(SearchTask &task)
 	{
@@ -305,7 +306,7 @@ namespace ag
 		}
 		return false;
 	}
-	bool VCFSolver::static_solve_block_4(SearchTask &task)
+	void VCFSolver::static_solve_block_4(SearchTask &task)
 	{
 		const Sign sign_to_move = feature_extractor.getSignToMove();
 		const std::vector<Move> &own_half_open_four = feature_extractor.getThreats(ThreatType::HALF_OPEN_FOUR, sign_to_move);
@@ -326,9 +327,7 @@ namespace ag
 				if (not is_already_added) // move must not be added twice
 					task.addProvenEdge(move_to_be_added, ProvenValue::UNKNOWN);
 			}
-			return true;
 		}
-		return false;
 	}
 	void VCFSolver::recursive_solve(InternalNode &node, bool mustProveAllChildren, int depth)
 	{
