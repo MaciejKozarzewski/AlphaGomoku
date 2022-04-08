@@ -7,6 +7,8 @@
 
 #include <alphagomoku/mcts/SearchTask.hpp>
 
+#include <cassert>
+
 namespace ag
 {
 	SearchTask::SearchTask(GameRules rules) :

@@ -92,7 +92,7 @@ namespace ag
 			search.expand(tree);
 			search.backup(tree);
 
-			if (tree.getSimulationCount() > nb_of_simulations() or is_tree_proven())
+			if (tree.getSimulationCount() > nb_of_simulations() or tree.isProven())
 			{
 				make_move();
 				if (game.isOver())
