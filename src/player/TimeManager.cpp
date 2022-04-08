@@ -114,7 +114,7 @@ namespace ag
 		const MovesLeftEstimator &estimator = moves_left_estimators.find(settings.getGameConfig().rules)->second;
 		const double moves_left = estimator.get(moveNumber, eval);
 
-		const double fraction = 1.0 - 0.1 * std::pow(2.0, -moveNumber / 50.0);
+		const double fraction = 1.0 - 0.08 * std::pow(2.0, -moveNumber / 50.0);
 		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
 		static double last_time = getTime();
