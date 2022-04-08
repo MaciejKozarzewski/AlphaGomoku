@@ -143,6 +143,7 @@ namespace ag
 //				<< position_counter << " positions, total = " << total_positions << "\n";
 		if (nodes_buffer.front().solved_value == SolvedValue::LOSS)
 		{
+			task.getEdges().clear(); // delete any edges that could have been added in 'static_solve_block_4()'
 			for (auto iter = nodes_buffer.front().begin(); iter < nodes_buffer.front().end(); iter++)
 				if (iter->solved_value == SolvedValue::WIN)
 					task.addProvenEdge(Move(sign_to_move, iter->move), ProvenValue::WIN);
