@@ -81,9 +81,9 @@ namespace ag
 		assert(index >= 0 && index < input_on_cpu->firstDim());
 		std::memcpy(policy_target->data<float>( { index, 0 }), policy.data(), policy.sizeInBytes());
 		// TODO add processing of action values
-		value_target->set(value.win, { index, 0 });
+		value_target->set(value.win, { index, 2 });
 		value_target->set(value.draw, { index, 1 });
-		value_target->set(value.loss, { index, 2 });
+		value_target->set(value.loss, { index, 0 });
 	}
 	void AGNetwork::unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const
 	{

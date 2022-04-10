@@ -25,7 +25,7 @@ namespace ag
 		switch (sign)
 		{
 			default:
-				return Sign::NONE;
+				return sign;
 			case Sign::CROSS:
 				return Sign::CIRCLE;
 			case Sign::CIRCLE:
