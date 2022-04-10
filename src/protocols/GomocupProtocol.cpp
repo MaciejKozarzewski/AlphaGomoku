@@ -325,6 +325,7 @@ namespace ag
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::START_PROGRAM));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp[1] }));
@@ -358,6 +359,7 @@ namespace ag
 		listener.consumeLine("BEGIN");
 
 		list_of_moves.clear();
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
@@ -365,6 +367,7 @@ namespace ag
 	{
 		listener.consumeLine("BOARD");
 		list_of_moves = parse_list_of_moves(listener, "DONE");
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
@@ -376,6 +379,7 @@ namespace ag
 		Move m = moveFromString(tmp[1], get_sign_to_move());
 
 		list_of_moves.push_back(m);
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
@@ -397,6 +401,7 @@ namespace ag
 			else
 			{
 				list_of_moves.pop_back();
+				input_queue.push(Message(MessageType::STOP_SEARCH));
 				input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 				output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 			}

@@ -303,6 +303,8 @@ namespace ag
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", "-1" }));
 		else
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", tmp[1] }));
+
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "ponder"));
 	}
@@ -328,6 +330,8 @@ namespace ag
 		std::vector<std::string> tmp = split(line, ' ');
 		assert(tmp.size() == 2u);
 		list_of_moves = parse_list_of_moves(listener, "DONE");
+
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "balance " + tmp[1]));
 	}
@@ -339,6 +343,7 @@ namespace ag
 			for (int c = 0; c < columns; c++)
 				tmp.push_back(Move(Sign::CIRCLE, r, c)); // creating impossible board with all circles (could also be all crosses)
 
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, tmp)); // Node cache deletes states that are provably not possible given current board state. Given an impossible board state, all nodes will be cleared.
 		input_queue.push(Message(MessageType::START_SEARCH, "clearhash")); // launching search with special controller that will pass this board to the engine, causing tree reset.
 	}
@@ -381,6 +386,7 @@ namespace ag
 			}
 		}
 
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "swap"));
 	}
@@ -413,6 +419,7 @@ namespace ag
 				}
 			}
 		}
+		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "swap2"));
 	}
