@@ -46,7 +46,8 @@ namespace
 	class Feature
 	{
 		private:
-			std::vector<Sign> m_data;
+			uint32_t m_feature = 0;
+			uint32_t m_length = 0;
 		public:
 			static constexpr int length(GameRules rules) noexcept
 			{
@@ -64,116 +65,99 @@ namespace
 			}
 
 			Feature() = default;
-			Feature(size_t len) :
-					m_data(len, Sign::NONE)
+			Feature(int len) :
+					m_feature(0),
+					m_length(len)
 			{
 			}
-			Feature(size_t len, uint32_t feature) :
+			Feature(int len, uint32_t feature) :
 					Feature(len)
 			{
-				decode(feature);
+				m_feature = feature;
 			}
 			Feature(const std::string &str) :
-					m_data(str.size(), Sign::NONE)
+					Feature(str.size())
 			{
-				for (size_t i = 0; i < m_data.size(); i++)
-					m_data[i] = signFromText(str[i]);
+				for (uint32_t i = 0; i < m_length; i++)
+					set(i, signFromText(str[i]));
 			}
 			bool isValid() const noexcept
 			{
-				if (center() != Sign::NONE)
+				if (getCenter() != Sign::NONE)
 					return false;
-				for (size_t i = 0; i < m_data.size() / 2; i++)
-					if (m_data[i] != Sign::ILLEGAL and m_data[i + 1] == Sign::ILLEGAL)
+				for (uint32_t i = 0; i < m_length / 2; i++)
+					if (get(i) != Sign::ILLEGAL and get(i + 1) == Sign::ILLEGAL)
 						return false;
-				for (size_t i = 1 + m_data.size() / 2; i < m_data.size(); i++)
-					if (m_data[i - 1] == Sign::ILLEGAL and m_data[i] != Sign::ILLEGAL)
+				for (uint32_t i = 1 + m_length / 2; i < m_length; i++)
+					if (get(i - 1) == Sign::ILLEGAL and get(i) != Sign::ILLEGAL)
 						return false;
 				return true;
 			}
 			void invert() noexcept
 			{
-				for (size_t i = 0; i < m_data.size(); i++)
-					m_data[i] = invertSign(m_data[i]);
+				for (uint32_t i = 0; i < m_length; i++)
+					set(i, invertSign(get(i)));
 			}
 			void flip() noexcept
 			{
-				std::reverse(m_data.begin(), m_data.end());
+				m_feature = ((m_feature >> 2) & 0x33333333) | ((m_feature & 0x33333333) << 2);
+				m_feature = ((m_feature >> 4) & 0x0F0F0F0F) | ((m_feature & 0x0F0F0F0F) << 4);
+				m_feature = ((m_feature >> 8) & 0x00FF00FF) | ((m_feature & 0x00FF00FF) << 8);
+				m_feature = (m_feature >> 16) | (m_feature << 16);
+				m_feature >>= (32u - 2 * m_length);
 			}
-			Sign center() const noexcept
+			Sign get(int index) const noexcept
 			{
-				return m_data[m_data.size() / 2];
+				assert(index >= 0 && index < m_length);
+				return static_cast<Sign>((m_feature >> (2 * index)) & 3);
 			}
-			Sign& center() noexcept
+			void set(int index, Sign sign) noexcept
 			{
-				return m_data[m_data.size() / 2];
+				assert(index >= 0 && index < m_length);
+				m_feature &= (~(3 << (2 * index)));
+				m_feature |= (static_cast<uint32_t>(sign) << (2 * index));
 			}
-			Sign operator[](size_t index) const noexcept
+			Sign getCenter() const noexcept
 			{
-				assert(index < m_data.size());
-				return m_data[index];
+				return get(m_length / 2);
 			}
-			Sign& operator[](size_t index) noexcept
+			void setCenter(Sign sign) noexcept
 			{
-				assert(index < m_data.size());
-				return m_data[index];
+				set(m_length / 2, sign);
 			}
 			void decode(uint32_t feature) noexcept
 			{
-				for (size_t i = 0; i < m_data.size(); i++, feature /= 4)
-					m_data[i] = static_cast<Sign>(feature & 3);
+				m_feature = feature;
 			}
 			uint32_t encode() const noexcept
 			{
-				uint32_t result = 0;
-				for (size_t i = 0; i < m_data.size(); i++)
-					result |= (static_cast<int>(m_data[i]) << (2 * i));
-				return result;
+				return m_feature;
 			}
 			std::string toString() const
 			{
 				std::string result;
-				for (size_t i = 0; i < m_data.size(); i++)
-					result += text(m_data[i]);
+				for (size_t i = 0; i < m_length; i++)
+					result += text(get(i));
 				return result;
 			}
 			size_t size() const noexcept
 			{
-				return m_data.size();
+				return m_length;
 			}
 			void shiftLeft(size_t n) noexcept
 			{
-				if (n > size())
-					std::fill(m_data.begin(), m_data.end(), Sign::NONE);
-				else
-				{
-					size_t i = 0;
-					for (; i < m_data.size() - n; i++)
-						m_data[i] = m_data[i + n];
-					std::fill(m_data.begin() + i, m_data.end(), Sign::NONE);
-				}
+				m_feature >>= (2 * n); // this is intentionally inverted, as the features are read from left to right
 			}
 			void shiftRight(size_t n) noexcept
 			{
-				if (n > size())
-					std::fill(m_data.begin(), m_data.end(), Sign::NONE);
-				else
-				{
-					for (size_t i = m_data.size() - 1; i >= n; i--)
-						m_data[i] = m_data[i - n];
-					std::fill(m_data.begin(), m_data.begin() + n, Sign::NONE);
-				}
+				const uint32_t mask = (1 << (2 * m_length)) - 1;
+				m_feature = (m_feature << (2 * n)) & mask; // this is intentionally inverted, as the features are read from left to right
 			}
 			void mergeWith(const Feature &other) noexcept
 			{
 				assert(this->size() == other.size());
-				for (size_t i = 0; i < m_data.size(); i++)
-				{
-					assert(m_data[i] == other[i] || (m_data[i] == Sign::NONE || other[i] == Sign::NONE));
-					m_data[i] = static_cast<Sign>(static_cast<int>(m_data[i]) | static_cast<int>(other[i]));
-				}
+				m_feature |= other.m_feature;
 			}
-
 	};
 
 	class MatchingRule
@@ -234,7 +218,7 @@ namespace
 				{
 					bool is_a_match = true;
 					for (size_t j = 0; j < m_allowed_values.size(); j++)
-						is_a_match &= m_allowed_values[j][static_cast<int>(f[i + j])];
+						is_a_match &= m_allowed_values[j][static_cast<int>(f.get(i + j))];
 					if (is_a_match)
 						return true;
 				}
@@ -485,7 +469,7 @@ namespace ag
 {
 
 	FeatureTable_v3::FeatureTable_v3(GameRules rules) :
-			feature_length(Feature::length(rules))
+			features(power(4, Feature::length(rules)))
 	{
 		double t0 = getTime();
 		init_features(rules);
@@ -493,36 +477,80 @@ namespace ag
 		init_update_mask(rules);
 		double t2 = getTime();
 		std::cout << (t1 - t0) << " " << (t2 - t1) << std::endl;
+
+		size_t count_cross[7] = { 0, 0, 0, 0, 0, 0, 0 };
+		size_t count_circle[7] = { 0, 0, 0, 0, 0, 0, 0 };
+
+		for (size_t i = 0; i < features.size(); i++)
+		{
+			count_cross[static_cast<int>(getFeatureType(i).for_cross)]++;
+			count_circle[static_cast<int>(getFeatureType(i).for_circle)]++;
+		}
+
+		for (int i = 0; i < 7; i++)
+			std::cout << i << " : " << count_cross[i] << " " << count_circle[i] << '\n';
+
+		Feature base_line(Feature::length(rules));
+		size_t total_count = 0;
+		size_t empty_count = 0;
+		size_t update_count = 0;
+		for (size_t i = 0; i < features.size(); i++)
+		{
+			base_line.decode(i);
+			if (base_line.isValid())
+			{
+				total_count += base_line.size();
+				int empty = 0;
+				for (size_t j = 0; j < base_line.size(); j++)
+					empty += static_cast<int>(base_line.get(j) == Sign::NONE);
+				empty_count += empty;
+
+				FeatureEncoding enc = getFeatureType(i);
+				empty = 1;
+				for (size_t j = 0; j < base_line.size() - 1; j++)
+					empty += static_cast<int>(enc.mustBeUpdated(j));
+				update_count += empty;
+			}
+		}
+		std::cout << update_count << '\n' << empty_count << '\n' << total_count << "\n\n";
 	}
 	/*
 	 * private
 	 */
 	void FeatureTable_v3::init_features(GameRules rules)
 	{
+		std::vector<bool> was_processed(features.size());
+
 		const ThreatClassifier for_cross(rules, Sign::CROSS);
 		const ThreatClassifier for_circle(rules, Sign::CIRCLE);
-
-		features.resize(power(4, Feature::length(rules)));
 
 		Feature line(Feature::length(rules));
 
 		for (size_t i = 0; i < features.size(); i++)
-		{
-			line.decode(i);
-			if (line.isValid())
+			if (was_processed[i] == false)
 			{
-				FeatureEncoding feature;
-				line.center() = Sign::CROSS;
-				feature.for_cross = for_cross(line);
-				line.center() = Sign::CIRCLE;
-				feature.for_circle = for_circle(line);
-				line.center() = Sign::NONE;
-				features[i] = feature.encode();
+				line.decode(i);
+				if (line.isValid())
+				{
+					FeatureEncoding feature;
+					line.setCenter(Sign::CROSS);
+					feature.for_cross = for_cross(line);
+					line.setCenter(Sign::CIRCLE);
+					feature.for_circle = for_circle(line);
+					line.setCenter(Sign::NONE);
+
+					features[i] = feature.encode();
+					was_processed[i] = true;
+					line.flip();
+					features[line.encode()] = feature.encode();
+					was_processed[line.encode()] = true;
+				}
 			}
-		}
 	}
 	void FeatureTable_v3::init_update_mask(GameRules rules)
 	{
+		std::vector<bool> was_processed(features.size());
+
 		const int feature_length = Feature::length(rules);
 		const int side_length = feature_length / 2;
 		Feature base_line(feature_length);
@@ -531,14 +559,14 @@ namespace ag
 		for (size_t i = 0; i < features.size(); i++)
 		{
 			base_line.decode(i);
-
-			FeatureEncoding feature = getFeatureType(i);
-			if (base_line.isValid())
+			if (was_processed[i] == false and base_line.isValid())
 			{
+				FeatureEncoding feature = getFeatureType(i);
 				for (int spot_index = 0; spot_index < feature_length; spot_index++)
 					if (spot_index != side_length)
 					{
 						const int free_spots = std::abs(side_length - spot_index);
+						const int combinations = power(4, free_spots);
 
 						base_line.decode(i);
 						if (spot_index < side_length)
@@ -547,21 +575,20 @@ namespace ag
 							base_line.shiftLeft(free_spots);
 
 						bool must_be_updated = false;
-						if (base_line.center() == Sign::NONE)
-							for (int j = 0; j < power(4, free_spots); j++)
+						if (base_line.getCenter() == Sign::NONE)
+							for (int j = 0; j < combinations; j++)
 							{
 								secondary_line.decode(j);
 								if (spot_index > side_length)
-									secondary_line.flip();
+									secondary_line.shiftRight(feature_length - free_spots);
 								secondary_line.mergeWith(base_line);
 								if (secondary_line.isValid())
 								{
-									const uint32_t encoding = secondary_line.encode();
-									const uint32_t shift = 2 * (secondary_line.size() - 1 - spot_index);
-
-									const FeatureEncoding original = getFeatureType(encoding);
-									const FeatureEncoding cross_altered = getFeatureType(encoding | (static_cast<uint32_t>(Sign::CROSS) << shift));
-									const FeatureEncoding circle_altered = getFeatureType(encoding | (static_cast<uint32_t>(Sign::CIRCLE) << shift));
+									const FeatureEncoding original = getFeatureType(secondary_line.encode());
+									secondary_line.set(feature_length - 1 - spot_index, Sign::CROSS);
+									const FeatureEncoding cross_altered = getFeatureType(secondary_line.encode());
+									secondary_line.set(feature_length - 1 - spot_index, Sign::CIRCLE);
+									const FeatureEncoding circle_altered = getFeatureType(secondary_line.encode());
 
 									if (original.for_cross != cross_altered.for_cross or original.for_circle != cross_altered.for_circle
 											or original.for_cross != circle_altered.for_cross or original.for_circle != circle_altered.for_circle)
@@ -574,32 +601,19 @@ namespace ag
 						const int dst_index = spot_index - static_cast<int>(spot_index > side_length); // center spot must be omitted
 						feature.setUpdateMask(dst_index, must_be_updated);
 					}
-			}
-			features[i] = feature.encode();
-		}
+				features[i] = feature.encode();
+				was_processed[i] = true;
+				base_line.decode(i);
 
-		size_t total_count = 0;
-		size_t empty_count = 0;
-		size_t update_count = 0;
-		for (size_t i = 0; i < features.size(); i++)
-		{
-			base_line.decode(i);
-			if (base_line.isValid())
-			{
-				total_count += base_line.size();
-				int empty = 0;
-				for (size_t j = 0; j < base_line.size(); j++)
-					empty += static_cast<int>(base_line[j] == Sign::NONE);
-				empty_count += empty;
-
-				FeatureEncoding enc = getFeatureType(i);
-				empty = 1;
-				for (size_t j = 0; j < base_line.size() - 1; j++)
-					empty += static_cast<int>(enc.mustBeUpdated(j));
-				update_count += empty;
+				base_line.flip();
+				FeatureEncoding tmp(feature);
+				for (int k = 0; k < feature_length - 1; k++) // flip update mask
+					tmp.setUpdateMask(k, feature.mustBeUpdated(feature_length - 2 - k));
+				features[base_line.encode()] = tmp.encode();
+				was_processed[base_line.encode()] = true;
 			}
 		}
-		std::cout << update_count << std::endl << empty_count << std::endl << total_count << std::endl;
 	}
+
 } /* namespace ag */
 

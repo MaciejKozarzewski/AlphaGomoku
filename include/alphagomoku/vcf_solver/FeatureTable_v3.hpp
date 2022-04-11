@@ -58,6 +58,7 @@ namespace ag
 			void setUpdateMask(int index, bool b) noexcept
 			{
 				assert(index >= 0 && index < 10);
+				update_mask &= (~(1 << index));
 				update_mask |= (static_cast<uint16_t>(b) << index);
 			}
 	};
@@ -65,7 +66,6 @@ namespace ag
 	class FeatureTable_v3
 	{
 		private:
-			int feature_length;
 			std::vector<uint16_t> features;
 		public:
 			FeatureTable_v3(GameRules rules);
