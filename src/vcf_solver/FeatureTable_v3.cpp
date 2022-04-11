@@ -471,48 +471,48 @@ namespace ag
 	FeatureTable_v3::FeatureTable_v3(GameRules rules) :
 			features(power(4, Feature::length(rules)))
 	{
-		double t0 = getTime();
+//		double t0 = getTime();
 		init_features(rules);
-		double t1 = getTime();
+//		double t1 = getTime();
 		init_update_mask(rules);
-		double t2 = getTime();
-		std::cout << (t1 - t0) << " " << (t2 - t1) << std::endl;
-
-		size_t count_cross[7] = { 0, 0, 0, 0, 0, 0, 0 };
-		size_t count_circle[7] = { 0, 0, 0, 0, 0, 0, 0 };
-
-		for (size_t i = 0; i < features.size(); i++)
-		{
-			count_cross[static_cast<int>(getFeatureType(i).for_cross)]++;
-			count_circle[static_cast<int>(getFeatureType(i).for_circle)]++;
-		}
-
-		for (int i = 0; i < 7; i++)
-			std::cout << i << " : " << count_cross[i] << " " << count_circle[i] << '\n';
-
-		Feature base_line(Feature::length(rules));
-		size_t total_count = 0;
-		size_t empty_count = 0;
-		size_t update_count = 0;
-		for (size_t i = 0; i < features.size(); i++)
-		{
-			base_line.decode(i);
-			if (base_line.isValid())
-			{
-				total_count += base_line.size();
-				int empty = 0;
-				for (size_t j = 0; j < base_line.size(); j++)
-					empty += static_cast<int>(base_line.get(j) == Sign::NONE);
-				empty_count += empty;
-
-				FeatureEncoding enc = getFeatureType(i);
-				empty = 1;
-				for (size_t j = 0; j < base_line.size() - 1; j++)
-					empty += static_cast<int>(enc.mustBeUpdated(j));
-				update_count += empty;
-			}
-		}
-		std::cout << update_count << '\n' << empty_count << '\n' << total_count << "\n\n";
+//		double t2 = getTime();
+//		std::cout << (t1 - t0) << " " << (t2 - t1) << std::endl;
+//
+//		size_t count_cross[7] = { 0, 0, 0, 0, 0, 0, 0 };
+//		size_t count_circle[7] = { 0, 0, 0, 0, 0, 0, 0 };
+//
+//		for (size_t i = 0; i < features.size(); i++)
+//		{
+//			count_cross[static_cast<int>(getFeatureType(i).for_cross)]++;
+//			count_circle[static_cast<int>(getFeatureType(i).for_circle)]++;
+//		}
+//
+//		for (int i = 0; i < 7; i++)
+//			std::cout << i << " : " << count_cross[i] << " " << count_circle[i] << '\n';
+//
+//		Feature base_line(Feature::length(rules));
+//		size_t total_count = 0;
+//		size_t empty_count = 0;
+//		size_t update_count = 0;
+//		for (size_t i = 0; i < features.size(); i++)
+//		{
+//			base_line.decode(i);
+//			if (base_line.isValid())
+//			{
+//				total_count += base_line.size();
+//				int empty = 0;
+//				for (size_t j = 0; j < base_line.size(); j++)
+//					empty += static_cast<int>(base_line.get(j) == Sign::NONE);
+//				empty_count += empty;
+//
+//				FeatureEncoding enc = getFeatureType(i);
+//				empty = 1;
+//				for (size_t j = 0; j < base_line.size() - 1; j++)
+//					empty += static_cast<int>(enc.mustBeUpdated(j));
+//				update_count += empty;
+//			}
+//		}
+//		std::cout << update_count << '\n' << empty_count << '\n' << total_count << "\n\n";
 	}
 	/*
 	 * private

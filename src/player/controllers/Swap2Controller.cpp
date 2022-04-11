@@ -101,8 +101,7 @@ namespace ag
 							Board::putMove(board, first_balancing_move);
 							search_engine.setPosition(board, invertSign(first_balancing_move.sign));
 
-							// start search to find second balancing move
-							start_search(1);
+							start_search(1); // start search to find second balancing move
 						}
 						else
 						{
@@ -130,15 +129,13 @@ namespace ag
 				{ // choosing both moves at once
 					first_balancing_move = get_balancing_move(summary_at_root);
 					log_balancing_move("First", first_balancing_move);
+
 					const SearchSummary summary2 = search_engine.getSummary( { first_balancing_move }, false);
 					second_balancing_move = get_balancing_move(summary2);
-					log_balancing_move("Second", second_balancing_move);
 				}
 				else
-				{
 					second_balancing_move = get_balancing_move(summary_at_root);
-					log_balancing_move("Second", second_balancing_move);
-				}
+				log_balancing_move("Second", second_balancing_move);
 
 				std::vector<Move> response = { first_balancing_move, second_balancing_move };
 				outputQueue.push(Message(MessageType::BEST_MOVE, response));
