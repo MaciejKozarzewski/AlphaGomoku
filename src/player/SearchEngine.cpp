@@ -59,7 +59,6 @@ namespace ag
 		NNEvaluatorStats result;
 		for (size_t i = 0; i < evaluators.size(); i++)
 			result += evaluators[i]->getStats();
-		result /= evaluators.size();
 		return result;
 	}
 	void NNEvaluatorPool::clearStats() noexcept
@@ -147,7 +146,7 @@ namespace ag
 					if (isStopConditionFulfilled())
 						break;
 				}
-				search.tune(); // FIXME tuning is currently disabled
+				search.tune();
 				std::lock_guard lock(search_mutex);
 				if (is_running == false)
 					break;
@@ -352,7 +351,6 @@ namespace ag
 		SearchStats search_stats;
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_stats += search_threads[i]->getSearchStats();
-		search_stats /= search_threads.size();
 
 		Logger::write("\n" + evaluator_stats.toString());
 		Logger::write(search_stats.toString());
