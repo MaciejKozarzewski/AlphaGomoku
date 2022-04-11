@@ -75,6 +75,20 @@ namespace ag
 			void generate(SearchTask &task) const;
 	};
 
+	/**
+	 * \brief Generator that adds all edges..
+	 */
+	class BalancedGenerator: public EdgeGenerator
+	{
+		private:
+			const int balance_depth;
+			std::unique_ptr<EdgeGenerator> base_generator;
+		public:
+			BalancedGenerator(int balanceDepth, const EdgeGenerator &baseGenerator);
+			BalancedGenerator* clone() const;
+			void generate(SearchTask &task) const;
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_EDGEGENERATOR_HPP_ */

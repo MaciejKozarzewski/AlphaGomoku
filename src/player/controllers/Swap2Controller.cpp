@@ -135,15 +135,20 @@ namespace ag
 	{
 		time_manager.startTimer();
 		const SearchConfig cfg = engine_settings.getSearchConfig();
-		PuctSelector puct_selector(cfg.exploration_constant, engine_settings.getStyleFactor());
+		PuctSelector selector(cfg.exploration_constant, engine_settings.getStyleFactor());
+		SolverGenerator generator(cfg.expansion_prior_treshold, cfg.max_children);
 		if (balancing)
 		{
 			const int depth = Board::numberOfMoves(search_engine.getBoard());
-			search_engine.setEdgeSelector(BalancedSelector(depth + 1, puct_selector));
+			search_engine.setEdgeSelector(BalancedSelector(depth + 1, selector));
+			search_engine.setEdgeGenerator(BalancedGenerator(depth + 1, generator));
 		}
 		else
-			search_engine.setEdgeSelector(puct_selector);
-		search_engine.setEdgeGenerator(SolverGenerator(cfg.expansion_prior_treshold, cfg.max_children));
+		{
+			search_engine.setEdgeSelector(selector);
+			search_engine.setEdgeGenerator(generator);
+		}
+
 		search_engine.startSearch();
 	}
 	void Swap2Controller::stop_search()
