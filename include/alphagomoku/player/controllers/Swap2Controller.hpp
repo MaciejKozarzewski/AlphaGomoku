@@ -32,9 +32,8 @@ namespace ag
 			Swap2Controller(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine);
 			void control(MessageQueue &outputQueue);
 		private:
-			void start_search(bool balancing);
+			void start_search(int balancingDepth);
 			void stop_search();
-			Move get_balancing_move();
 	};
 } /* namespace ag */
 

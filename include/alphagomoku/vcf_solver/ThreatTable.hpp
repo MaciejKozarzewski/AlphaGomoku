@@ -33,18 +33,18 @@ namespace ag
 			ThreatType_v3 for_cross = ThreatType_v3::NONE;
 			ThreatType_v3 for_circle = ThreatType_v3::NONE;
 
-			Threat_v3() = default;
+			Threat_v3() noexcept = default;
 			Threat_v3(uint8_t encoding) :
 					for_cross(static_cast<ThreatType_v3>(encoding & 15)),
 					for_circle(static_cast<ThreatType_v3>((encoding >> 4) & 15))
 			{
 			}
-			Threat_v3(ThreatType_v3 tt) :
+			Threat_v3(ThreatType_v3 tt) noexcept :
 					for_cross(tt),
 					for_circle(tt)
 			{
 			}
-			Threat_v3(ThreatType_v3 cross, ThreatType_v3 circle) :
+			Threat_v3(ThreatType_v3 cross, ThreatType_v3 circle) noexcept :
 					for_cross(cross),
 					for_circle(circle)
 			{

@@ -541,7 +541,7 @@ namespace ag
 
 					features[i] = feature.encode();
 					was_processed[i] = true;
-					line.flip();
+					line.flip(); // the features are symmetrical so we can update both at the same time
 					features[line.encode()] = feature.encode();
 					was_processed[line.encode()] = true;
 				}
@@ -563,7 +563,7 @@ namespace ag
 			{
 				FeatureEncoding feature = getFeatureType(i);
 				for (int spot_index = 0; spot_index < feature_length; spot_index++)
-					if (spot_index != side_length)
+					if (spot_index != side_length) // omitting central spot as it always must be updated anyway
 					{
 						const int free_spots = std::abs(side_length - spot_index);
 						const int combinations = power(4, free_spots);
@@ -605,7 +605,7 @@ namespace ag
 				was_processed[i] = true;
 				base_line.decode(i);
 
-				base_line.flip();
+				base_line.flip(); // update mask is symmetrical so we can update both at the same time
 				FeatureEncoding tmp(feature);
 				for (int k = 0; k < feature_length - 1; k++) // flip update mask
 					tmp.setUpdateMask(k, feature.mustBeUpdated(feature_length - 2 - k));

@@ -7,12 +7,6 @@
 
 #include <alphagomoku/vcf_solver/ThreatTable.hpp>
 
-#include <iostream>
-#include <algorithm>
-#include <vector>
-#include <array>
-#include <cstring>
-
 namespace
 {
 	using namespace ag;
