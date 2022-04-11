@@ -141,15 +141,38 @@ namespace
 			{
 				return m_data.size();
 			}
-//			void shiftLeft(size_t n) noexcept
-//			{
-//				if (n > size())
-//					std::fill_n(m_data.begin(), m_data.end(), Sign::NONE);
-//				else
-//				{
-//				for(size_t i=0;i<)
-//			}
-//		}
+			void shiftLeft(size_t n) noexcept
+			{
+				if (n > size())
+					std::fill(m_data.begin(), m_data.end(), Sign::NONE);
+				else
+				{
+					size_t i = 0;
+					for (; i < m_data.size() - n; i++)
+						m_data[i] = m_data[i + n];
+					std::fill(m_data.begin() + i, m_data.end(), Sign::NONE);
+				}
+			}
+			void shiftRight(size_t n) noexcept
+			{
+				if (n > size())
+					std::fill(m_data.begin(), m_data.end(), Sign::NONE);
+				else
+				{
+					for (size_t i = m_data.size() - 1; i >= n; i--)
+						m_data[i] = m_data[i - n];
+					std::fill(m_data.begin(), m_data.begin() + n, Sign::NONE);
+				}
+			}
+			void mergeWith(const Feature &other) noexcept
+			{
+				assert(this->size() == other.size());
+				for (size_t i = 0; i < m_data.size(); i++)
+				{
+					assert(m_data[i] == other[i] || (m_data[i] == Sign::NONE || other[i] == Sign::NONE));
+					m_data[i] = static_cast<Sign>(static_cast<int>(m_data[i]) | static_cast<int>(other[i]));
+				}
+			}
 
 	};
 
@@ -479,12 +502,11 @@ namespace ag
 		const ThreatClassifier for_cross(rules, Sign::CROSS);
 		const ThreatClassifier for_circle(rules, Sign::CIRCLE);
 
-		const size_t number_of_features = 1 << (2 * Feature::length(rules));
-		features.resize(number_of_features);
+		features.resize(power(4, Feature::length(rules)));
 
 		Feature line(Feature::length(rules));
 
-		for (size_t i = 0; i < number_of_features; i++)
+		for (size_t i = 0; i < features.size(); i++)
 		{
 			line.decode(i);
 			if (line.isValid())
@@ -506,14 +528,9 @@ namespace ag
 		Feature base_line(feature_length);
 		Feature secondary_line(feature_length);
 
-		size_t total_count = 0;
-		size_t empty_count = 0;
-		size_t update_count = 0;
-
 		for (size_t i = 0; i < features.size(); i++)
 		{
 			base_line.decode(i);
-//			std::cout << base_line.toString() << std::endl << std::endl;
 
 			FeatureEncoding feature = getFeatureType(i);
 			if (base_line.isValid())
@@ -522,73 +539,65 @@ namespace ag
 					if (spot_index != side_length)
 					{
 						const int free_spots = std::abs(side_length - spot_index);
-//						std::cout << spot_index << " " << free_spots << std::endl;
+
+						base_line.decode(i);
+						if (spot_index < side_length)
+							base_line.shiftRight(free_spots);
+						else
+							base_line.shiftLeft(free_spots);
+
 						bool must_be_updated = false;
-						for (int j = 0; j < power(4, free_spots); j++)
-						{
-							secondary_line.decode(j);
-							if (secondary_line.isValid())
+						if (base_line.center() == Sign::NONE)
+							for (int j = 0; j < power(4, free_spots); j++)
 							{
-								uint32_t original_feature = base_line.encode();
-								base_line.center() = Sign::CROSS;
-								uint32_t cross_altered = base_line.encode();
-								base_line.center() = Sign::CIRCLE;
-								uint32_t circle_altered = base_line.encode();
-								base_line.center() = Sign::NONE;
-
-								if (spot_index < side_length)
+								secondary_line.decode(j);
+								if (spot_index > side_length)
+									secondary_line.flip();
+								secondary_line.mergeWith(base_line);
+								if (secondary_line.isValid())
 								{
-									original_feature = j | (original_feature << (2 * free_spots));
-									cross_altered = j | (cross_altered << (2 * free_spots));
-									circle_altered = j | (circle_altered << (2 * free_spots));
-								}
-								else
-								{
-									original_feature = (j << (2 * (feature_length - free_spots))) | (original_feature >> (2 * free_spots));
-									cross_altered = (j << (2 * (feature_length - free_spots))) | (cross_altered >> (2 * free_spots));
-									circle_altered = (j << (2 * (feature_length - free_spots))) | (circle_altered >> (2 * free_spots));
-								}
-								original_feature &= (features.size() - 1);
-								cross_altered &= (features.size() - 1);
-								circle_altered &= (features.size() - 1);
+									const uint32_t encoding = secondary_line.encode();
+									const uint32_t shift = 2 * (secondary_line.size() - 1 - spot_index);
 
-//							std::cout << original_feature << " " << cross_altered << " " << circle_altered << std::endl;
+									const FeatureEncoding original = getFeatureType(encoding);
+									const FeatureEncoding cross_altered = getFeatureType(encoding | (static_cast<uint32_t>(Sign::CROSS) << shift));
+									const FeatureEncoding circle_altered = getFeatureType(encoding | (static_cast<uint32_t>(Sign::CIRCLE) << shift));
 
-								if (j == 0)
-								{
-									secondary_line.decode(original_feature);
-									empty_count += static_cast<size_t>(secondary_line.center() == Sign::NONE);
-								}
-
-								const FeatureEncoding original = getFeatureType(original_feature);
-								const FeatureEncoding cross = getFeatureType(cross_altered);
-								const FeatureEncoding circle = getFeatureType(circle_altered);
-
-//							std::cout << secondary_line.toString() << std::endl;
-//							secondary_line.decode(cross_altered);
-//							std::cout << secondary_line.toString() << std::endl;
-//							secondary_line.decode(circle_altered);
-//							std::cout << secondary_line.toString() << std::endl;
-//							std::cout << (int) original.for_cross << " " << (int) original.for_circle << std::endl;
-//							std::cout << (int) cross.for_cross << " " << (int) cross.for_circle << std::endl;
-//							std::cout << (int) circle.for_cross << " " << (int) circle.for_circle << std::endl;
-
-								if (original.for_cross != cross.for_cross or original.for_cross != circle.for_cross
-										or original.for_circle != cross.for_circle or original.for_circle != circle.for_circle)
-								{
-									must_be_updated = true;
-									break;
+									if (original.for_cross != cross_altered.for_cross or original.for_circle != cross_altered.for_circle
+											or original.for_cross != circle_altered.for_cross or original.for_circle != circle_altered.for_circle)
+									{
+										must_be_updated = true;
+										break;
+									}
 								}
 							}
-						}
 						const int dst_index = spot_index - static_cast<int>(spot_index > side_length); // center spot must be omitted
 						feature.setUpdateMask(dst_index, must_be_updated);
-
-						update_count += static_cast<size_t>(must_be_updated);
-						total_count++;
 					}
 			}
 			features[i] = feature.encode();
+		}
+
+		size_t total_count = 0;
+		size_t empty_count = 0;
+		size_t update_count = 0;
+		for (size_t i = 0; i < features.size(); i++)
+		{
+			base_line.decode(i);
+			if (base_line.isValid())
+			{
+				total_count += base_line.size();
+				int empty = 0;
+				for (size_t j = 0; j < base_line.size(); j++)
+					empty += static_cast<int>(base_line[j] == Sign::NONE);
+				empty_count += empty;
+
+				FeatureEncoding enc = getFeatureType(i);
+				empty = 1;
+				for (size_t j = 0; j < base_line.size() - 1; j++)
+					empty += static_cast<int>(enc.mustBeUpdated(j));
+				update_count += empty;
+			}
 		}
 		std::cout << update_count << std::endl << empty_count << std::endl << total_count << std::endl;
 	}
