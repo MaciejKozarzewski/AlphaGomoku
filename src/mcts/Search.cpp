@@ -122,12 +122,13 @@ namespace ag
 				tree.cancelVirtualLoss(current_task);
 				active_task_count--;
 				stats.nb_duplicate_nodes++;
-				break;
+				break; // in theory the search can be continued but some neural network evaluations would be wasted
 			}
 			if (out == SelectOutcome::INFORMATION_LEAK)
 			{
 				stats.nb_information_leaks++;
-				tree.backup(current_task);
+				tree.correctInformationLeak(current_task);
+				tree.cancelVirtualLoss(current_task);
 				active_task_count--;
 			}
 		}

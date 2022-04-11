@@ -8,6 +8,8 @@
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
 
+#include <cassert>
+
 namespace
 {
 	using namespace ag;
@@ -219,6 +221,40 @@ namespace ag
 		}
 		else
 			base_generator->generate(task);
+	}
+
+	BalancedGenerator::BalancedGenerator(int balanceDepth, const EdgeGenerator &baseGenerator) :
+			balance_depth(balanceDepth),
+			base_generator(std::unique_ptr<EdgeGenerator>(baseGenerator.clone()))
+	{
+	}
+	BalancedGenerator* BalancedGenerator::clone() const
+	{
+		return new BalancedGenerator(balance_depth, *base_generator);
+	}
+	void BalancedGenerator::generate(SearchTask &task) const
+	{
+		assert(task.isReady());
+
+		if (task.getLastPair().node->getDepth() < balance_depth)
+		{
+			for (int row = 0; row < task.getBoard().rows(); row++)
+				for (int col = 0; col < task.getBoard().cols(); col++)
+					if (task.getBoard().at(row, col) == Sign::NONE)
+						task.addEdge(Move(row, col, task.getSignToMove()));
+
+			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+			{
+				check_terminal_conditions(task, *edge);
+				assign_policy_and_Q(task, *edge);
+			}
+
+			renormalize_edges(task.getEdges());
+			assert(task.getEdges().size() > 0);
+		}
+		else
+			base_generator->generate(task);
+
 	}
 
 } /* namespace ag */

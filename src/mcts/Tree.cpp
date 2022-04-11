@@ -73,16 +73,15 @@ namespace
 		}
 	}
 
-	bool is_information_leak(const Edge *edge, const Node *node) noexcept
+	bool has_information_leak(const Edge *edge) noexcept
 	{
 		constexpr float leak_threshold = 0.01f;
 		assert(edge != nullptr);
-		assert(edge->getNode() == node); // ensure that they are linked
-		if (node == nullptr)
-			return false; // the edge is a leaf so there is no information leak
-		if (edge->getProvenValue() != invert(node->getProvenValue()))
+		if (edge->isLeaf())
+			return false;
+		if (edge->getProvenValue() != invert(edge->getNode()->getProvenValue()))
 			return true;
-		if ((edge->getValue() - node->getValue().getInverted()).abs() >= leak_threshold)
+		if ((edge->getValue() - edge->getNode()->getValue().getInverted()).abs() >= leak_threshold)
 			return true;
 		return false;
 	}
@@ -92,12 +91,10 @@ namespace
 		assert(edge->isLeaf() == false);
 		edge->setProvenValue(invert(edge->getNode()->getProvenValue()));
 	}
-	bool update_proven_value(Node *node) noexcept
+	void update_proven_value(Node *node) noexcept
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		if (node->isProven())
-			return true; // if node is already proven there is no need to analyze its edges
 
 		bool has_draw_child = false;
 		int unknown_count = 0;
@@ -107,7 +104,7 @@ namespace
 			if (edge->getProvenValue() == ProvenValue::WIN)
 			{
 				node->setProvenValue(ProvenValue::WIN);
-				return true;
+				return;
 			}
 			if (edge->getProvenValue() == ProvenValue::DRAW)
 				has_draw_child = true;
@@ -119,9 +116,6 @@ namespace
 			else
 				node->setProvenValue(ProvenValue::LOSS);
 		}
-		else
-			return false;
-		return true;
 	}
 }
 
@@ -187,6 +181,14 @@ namespace ag
 		else
 			return root_node->isProven();
 	}
+	bool Tree::hasAllMovesProven() const noexcept
+	{
+		if (root_node == nullptr)
+			return false;
+		else
+			return std::all_of(root_node->begin(), root_node->end(), [](const Edge &edge)
+			{	return edge.isProven();});
+	}
 	bool Tree::hasSingleNonLosingMove() const noexcept
 	{
 		if (root_node == nullptr)
@@ -216,13 +218,11 @@ namespace ag
 				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
 				if (node != nullptr) // if found in the cache
 					edge->setNode(node); // link that edge to the found node
+				// if not found in the cache it means that the edge is really a leaf
 			}
 
-			if (is_information_leak(edge, node))
-			{
-				correct_information_leak(task);
+			if (has_information_leak(edge))
 				return SelectOutcome::INFORMATION_LEAK;
-			}
 		}
 		max_depth = std::max(max_depth, task.visitedPathLength());
 		return SelectOutcome::REACHED_LEAF;
@@ -239,11 +239,11 @@ namespace ag
 		Node *node_to_add = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in the cache
 		if (node_to_add == nullptr) // not found in the cache
 		{
-			const int64_t number_of_edges = static_cast<int64_t>(task.getEdges().size());
+			const int number_of_edges = task.getEdges().size();
 			assert(number_of_edges > 0);
 
 			node_to_add = node_cache.insert(task.getBoard(), task.getSignToMove(), number_of_edges);
-			for (int64_t i = 0; i < number_of_edges; i++)
+			for (int i = 0; i < number_of_edges; i++)
 				node_to_add->getEdge(i) = task.getEdges()[i];
 			node_to_add->updateValue(task.getValue());
 			update_proven_value(node_to_add);
@@ -257,12 +257,12 @@ namespace ag
 		}
 		else
 		{
-			// this can happen if the same state was encountered from different paths within the same batch
-			if (task.visitedPathLength() > 0) // in a rare case root node was expanded by some other thread
-			{
+			// this can happen if the same state was encountered from different paths
+			if (task.visitedPathLength() > 0) // in a rare case it could be that the root node has been expanded by some other thread
+			{ // but if not
 				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
-				if (is_information_leak(task.getLastEdge(), node_to_add))
-					correct_information_leak(task);
+				if (has_information_leak(task.getLastEdge()))
+					correctInformationLeak(task);
 			}
 			return ExpandOutcome::ALREADY_EXPANDED;
 		}
@@ -290,12 +290,33 @@ namespace ag
 		{
 			NodeEdgePair pair = task.getPair(i);
 			update_proven_value(pair.edge);
-			bool continue_updating = update_proven_value(pair.node);
-			if (continue_updating == false)
+			update_proven_value(pair.node);
+			if (pair.node->isProven() == false)
+				break; // if the node is not proven it will not change the tree above
+		}
+	}
+	void Tree::correctInformationLeak(const SearchTask &task)
+	{
+		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
+		{
+			NodeEdgePair pair = task.getPair(i);
+			if (has_information_leak(pair.edge))
+			{
+				const Value current_edge_value = pair.edge->getValue();
+				const Value target_edge_value = pair.edge->getNode()->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
+
+				const Value correction = (target_edge_value - current_edge_value) * pair.edge->getVisits() + target_edge_value;
+
+				pair.edge->updateValue(correction);
+				pair.node->updateValue(correction);
+				update_proven_value(pair.edge);
+				update_proven_value(pair.node);
+			}
+			else
 				break;
 		}
 	}
-	void Tree::cancelVirtualLoss(SearchTask &task) noexcept
+	void Tree::cancelVirtualLoss(const SearchTask &task) noexcept
 	{
 		for (int i = 0; i < task.visitedPathLength(); i++)
 			task.getPair(i).edge->decreaseVirtualLoss();
@@ -355,25 +376,6 @@ namespace ag
 	void Tree::freeMemory()
 	{
 		node_cache.freeUnusedMemory();
-	}
-	/*
-	 * private
-	 */
-	void Tree::correct_information_leak(SearchTask &task) const
-	{
-		assert(task.visitedPathLength() > 0);
-
-		Edge *edge = task.getLastEdge();
-		Node *node = edge->getNode();
-		assert(node != nullptr);
-		Value edgeQ = edge->getValue();
-		Value nodeQ = node->getValue().getInverted(); // edgeQ should be equal to 1 - nodeQ
-
-//		Value v = (nodeQ - edgeQ) * edge->getVisits() + nodeQ;
-		Value v = (nodeQ - edgeQ) * std::min(Edge::update_threshold, edge->getVisits()) + nodeQ; // TODO
-		task.setValue(v.getInverted()); // the leak is between the current node and the edge that leads to it
-		task.getLastEdge()->setProvenValue(invert(node->getProvenValue()));
-		task.setReady();
 	}
 
 } /* namespace ag */

@@ -72,13 +72,15 @@ namespace ag
 			int getSimulationCount() const noexcept;
 			int getMaximumDepth() const noexcept;
 			bool isProven() const noexcept;
+			bool hasAllMovesProven() const noexcept;
 			bool hasSingleNonLosingMove() const noexcept;
 
 			SelectOutcome select(SearchTask &task);
 			void generateEdges(SearchTask &task) const;
 			ExpandOutcome expand(SearchTask &task);
 			void backup(const SearchTask &task);
-			void cancelVirtualLoss(SearchTask &task) noexcept;
+			void correctInformationLeak(const SearchTask &task);
+			void cancelVirtualLoss(const SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 
 			const matrix<Sign>& getBoard() const noexcept;
@@ -88,11 +90,6 @@ namespace ag
 			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
 			void freeMemory();
-		private:
-			/*
-			 * \brief Calculates proper value if an information leak was found
-			 */
-			void correct_information_leak(SearchTask &task) const;
 	};
 
 	class TreeLock

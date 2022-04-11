@@ -201,10 +201,12 @@ namespace ag
 			void updateValue(Value eval) noexcept
 			{
 				visits++;
-//				const float tmp = 1.0f / static_cast<float>(visits);
-				const float tmp = 1.0f / std::min(Edge::update_threshold, visits);
+				const float tmp = 1.0f / static_cast<float>(visits);
 				win_rate += (eval.win - win_rate) * tmp;
 				draw_rate += (eval.draw - draw_rate) * tmp;
+				assert(win_rate >= -0.001f && win_rate <= 1.001f);
+				assert(draw_rate >= -0.001f && draw_rate <= 1.001f);
+				assert((win_rate + draw_rate) <= 1.001f);
 			}
 			void setProvenValue(ProvenValue pv) noexcept
 			{
@@ -219,6 +221,7 @@ namespace ag
 			{
 				sign_to_move = s;
 			}
+
 			std::string toString() const;
 			void sortEdges() const;
 	};

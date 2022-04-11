@@ -34,7 +34,6 @@ namespace ag
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 			int16_t virtual_loss = 0;
 		public:
-			static constexpr int update_threshold = 2147483647;
 
 			Edge() noexcept = default;
 			Edge(Move m) noexcept :
@@ -108,10 +107,12 @@ namespace ag
 			void updateValue(Value eval) noexcept
 			{
 				visits++;
-//				const float tmp = 1.0f / static_cast<float>(visits);
-				const float tmp = 1.0f / std::min(update_threshold, visits);
+				const float tmp = 1.0f / static_cast<float>(visits);
 				win_rate += (eval.win - win_rate) * tmp;
 				draw_rate += (eval.draw - draw_rate) * tmp;
+				assert(win_rate >= -0.001f && win_rate <= 1.001f);
+				assert(draw_rate >= -0.001f && draw_rate <= 1.001f);
+				assert((win_rate + draw_rate) <= 1.001f);
 			}
 			void setMove(Move m) noexcept
 			{
@@ -135,6 +136,7 @@ namespace ag
 			{
 				virtual_loss = 0;
 			}
+
 			std::string toString() const;
 			Edge copyInfo() const noexcept;
 	};
