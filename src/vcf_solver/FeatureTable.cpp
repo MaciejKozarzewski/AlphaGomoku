@@ -39,6 +39,18 @@ namespace
 			result |= (static_cast<int>(line[j]) << (2 * j));
 		return result;
 	}
+	bool is_valid(const std::vector<Sign> &line) noexcept
+	{
+		if (line[line.size() / 2] != Sign::NONE)
+			return false;
+		for (size_t i = 0; i < line.size() / 2; i++)
+			if (line[i] != Sign::ILLEGAL and line[i + 1] == Sign::ILLEGAL)
+				return false;
+		for (size_t i = 1 + line.size() / 2; i < line.size(); i++)
+			if (line[i - 1] == Sign::ILLEGAL and line[i] != Sign::ILLEGAL)
+				return false;
+		return true;
+	}
 
 	std::string feature_to_string(const std::vector<Sign> &line)
 	{
@@ -135,7 +147,7 @@ namespace ag
 		{
 			decode_feature(feature, i);
 			Threat result;
-			if (feature[feature.size() / 2] == Sign::NONE)
+			if (is_valid(feature))
 			{
 				feature[feature.size() / 2] = Sign::CROSS;
 				if (is_five_for_cross(feature, rules))
