@@ -18,10 +18,12 @@ namespace ag
 	class TimedStat
 	{
 		private:
+			using time_point = std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds>;
+
 			std::string m_name;
-			double m_timer_start = 0.0;
-			double m_total_time = 0.0;
-			uint64_t m_total_count = 0;
+			time_point m_timer_start;
+			int64_t m_total_time = 0;
+			int64_t m_total_count = 0;
 			bool m_is_measuring = false;
 			bool m_is_paused = false;
 		public:
@@ -34,13 +36,9 @@ namespace ag
 			{
 				return m_name;
 			}
-			double getTimerStart() const noexcept
-			{
-				return m_timer_start;
-			}
 			double getTotalTime() const noexcept
 			{
-				return m_total_time;
+				return m_total_time * 1.0e-9;
 			}
 			uint64_t getTotalCount() const noexcept
 			{
@@ -55,9 +53,9 @@ namespace ag
 				return m_is_paused;
 			}
 
-			static double getTime() noexcept
+			static time_point getTime() noexcept
 			{
-				return std::chrono::steady_clock::now().time_since_epoch().count() * 1.0e-9;
+				return std::chrono::steady_clock::now();
 			}
 
 			/**
@@ -67,7 +65,7 @@ namespace ag
 			{
 				m_is_measuring = false;
 				m_is_paused = false;
-				m_total_time = 0.0;
+				m_total_time = 0;
 				m_total_count = 0;
 			}
 			/**
@@ -86,7 +84,7 @@ namespace ag
 			void pauseTimer() noexcept
 			{
 				assert(isMeasuring());
-				m_total_time += getTime() - m_timer_start;
+				m_total_time += std::chrono::duration<int64_t, std::nano>(getTime() - m_timer_start).count();
 				m_is_paused = true;
 			}
 			/**
@@ -104,7 +102,7 @@ namespace ag
 			void stopTimer() noexcept
 			{
 				assert(isMeasuring());
-				m_total_time += getTime() - m_timer_start;
+				m_total_time += std::chrono::duration<int64_t, std::nano>(getTime() - m_timer_start).count();
 				m_total_count++;
 				m_is_measuring = false;
 			}
