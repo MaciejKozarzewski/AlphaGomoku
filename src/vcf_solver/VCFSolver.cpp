@@ -148,7 +148,7 @@ namespace ag
 				if (iter->solved_value == SolvedValue::WIN)
 					task.addProvenEdge(Move(sign_to_move, iter->move), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.setReady();
+			task.markAsReady();
 		}
 	}
 	void VCFSolver::tune(float speed)
@@ -204,7 +204,7 @@ namespace ag
 		}
 		if (probability < 0.05f) // there is less than 5% chance that higher value of 'max_positions' gives higher speed
 		{
-			if (lower_measurement.getParamValue() / tuning_step >= 100)
+			if (lower_measurement.getParamValue() / tuning_step >= 50)
 			{
 				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
 				lower_measurement = Measurement(new_max_pos);
@@ -250,7 +250,7 @@ namespace ag
 			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
 				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.setReady();
+			task.markAsReady();
 			return true;
 		}
 		return false;
@@ -268,7 +268,7 @@ namespace ag
 						m = Move(sign_to_move, row, col);
 			task.addProvenEdge(m, ProvenValue::DRAW);
 			task.setValue(Value(0.0f, 1.0, 0.0f));
-			task.setReady();
+			task.markAsReady();
 			return true;
 		}
 		return false;
@@ -292,7 +292,7 @@ namespace ag
 				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
 					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::LOSS);
 				task.setValue(Value(0.0f, 0.0, 1.0f));
-				task.setReady(); // the state is provably losing, there is no need to further evaluate it
+				task.markAsReady(); // the state is provably losing, there is no need to further evaluate it
 				return true;
 			}
 		}
@@ -306,7 +306,7 @@ namespace ag
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
 				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN); // it is a win in 3 plys
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.setReady();
+			task.markAsReady();
 			return true;
 		}
 		return false;

@@ -31,7 +31,21 @@ namespace ag
 	};
 
 	std::string toString(ProvenValue pv);
-	ProvenValue invert(ProvenValue pv) noexcept;
+	constexpr inline ProvenValue invert(ProvenValue pv) noexcept
+	{
+		switch (pv)
+		{
+			default:
+			case ProvenValue::UNKNOWN:
+				return ProvenValue::UNKNOWN;
+			case ProvenValue::LOSS:
+				return ProvenValue::WIN;
+			case ProvenValue::DRAW:
+				return ProvenValue::DRAW;
+			case ProvenValue::WIN:
+				return ProvenValue::LOSS;
+		}
+	}
 
 	struct Value
 	{
@@ -84,6 +98,11 @@ namespace ag
 			{
 				return Value(lhs.win + rhs.win, lhs.draw + rhs.draw, lhs.loss + rhs.loss);
 			}
+			friend Value& operator+=(Value &lhs, const Value &rhs) noexcept
+			{
+				lhs = lhs + rhs;
+				return lhs;
+			}
 			friend Value operator-(const Value &lhs, const Value &rhs) noexcept
 			{
 				return Value(lhs.win - rhs.win, lhs.draw - rhs.draw, lhs.loss - rhs.loss);
@@ -91,6 +110,11 @@ namespace ag
 			friend Value operator*(const Value &lhs, float rhs) noexcept
 			{
 				return Value(lhs.win * rhs, lhs.draw * rhs, lhs.loss * rhs);
+			}
+			friend Value& operator*=(Value &lhs, float rhs) noexcept
+			{
+				lhs = lhs * rhs;
+				return lhs;
 			}
 			float abs() const noexcept
 			{

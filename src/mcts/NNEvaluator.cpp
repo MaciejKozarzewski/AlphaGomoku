@@ -164,7 +164,7 @@ namespace ag
 				network.unpackOutput(i, task_queue[i].ptr->getPolicy(), task_queue[i].ptr->getActionValues(), value);
 				task_queue[i].ptr->setValue(value);
 			}
-			task_queue[i].ptr->setReady();
+			task_queue[i].ptr->markAsReady();
 		}
 	}
 }

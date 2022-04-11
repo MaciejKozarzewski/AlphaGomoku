@@ -267,7 +267,7 @@ namespace ag
 			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
 				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.setReady();
+			task.markAsReady();
 			return; // it is a win in 1 ply
 		}
 		if (root_depth + 1 == game_config.rows * game_config.cols) // this is the last move before the board is full
@@ -279,7 +279,7 @@ namespace ag
 						m = Move(sign_to_move, row, col);
 			task.addProvenEdge(m, ProvenValue::DRAW);
 			task.setValue(Value(0.0f, 1.0, 0.0f));
-			task.setReady();
+			task.markAsReady();
 			return; // it is a draw
 		}
 		if (level <= 0)
@@ -293,7 +293,7 @@ namespace ag
 				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
 					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::LOSS);
 				task.setValue(Value(0.0f, 0.0, 1.0f));
-				task.setReady(); // the state is provably losing, there is no need to further evaluate it
+				task.markAsReady(); // the state is provably losing, there is no need to further evaluate it
 			}
 			else
 			{
@@ -309,7 +309,7 @@ namespace ag
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
 				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN); // it is a win in 3 plys
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.setReady();
+			task.markAsReady();
 			return;
 		}
 
@@ -358,7 +358,7 @@ namespace ag
 				if (iter->solved_value == SolvedValue::SOLVED_WIN)
 					task.addProvenEdge(Move(sign_to_move, iter->move), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.setReady();
+			task.markAsReady();
 		}
 	}
 	ProvenValue FeatureExtractor::solve(matrix<float> &policy, std::vector<std::pair<uint16_t, float>> &moveList)
