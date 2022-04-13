@@ -7,74 +7,94 @@
 
 #include <alphagomoku/vcf_solver/ThreatTable.hpp>
 
+#include <array>
+#include <algorithm>
+
 namespace
 {
 	using namespace ag;
 
-	FeatureTypeGroup make_feature_type_group(int f0, int f1, int f2, int f3) noexcept
+	std::array<FeatureType, 4> make_feature_type_group(int f0, int f1, int f2, int f3) noexcept
 	{
-		FeatureTypeGroup result;
+		std::array<FeatureType, 4> result;
 		result[0] = static_cast<FeatureType>(f0);
 		result[1] = static_cast<FeatureType>(f1);
 		result[2] = static_cast<FeatureType>(f2);
 		result[3] = static_cast<FeatureType>(f3);
 		return result;
 	}
+	int count(std::array<FeatureType, 4> group, FeatureType ft) noexcept
+	{
+		return std::count(group.begin(), group.end(), ft);
+	}
+	bool contains(std::array<FeatureType, 4> group, FeatureType ft) noexcept
+	{
+		return count(group, ft) > 0;
+	}
 
-	bool is_five(const FeatureTypeGroup &ftg) noexcept
+	bool is_five(std::array<FeatureType, 4> group) noexcept
 	{
-		return ftg.count(FeatureType::FIVE) > 0;
+		return count(group, FeatureType::FIVE) > 0;
 	}
-	bool is_overline(const FeatureTypeGroup &ftg) noexcept
+	bool is_overline(std::array<FeatureType, 4> group) noexcept
 	{
-		return ftg.count(FeatureType::OVERLINE) > 0;
+		return count(group, FeatureType::OVERLINE) > 0;
 	}
-	bool is_fork_3x3(const FeatureTypeGroup &ftg) noexcept
+	bool is_fork_3x3(std::array<FeatureType, 4> group) noexcept
 	{
-		return ftg.count(FeatureType::OPEN_3) >= 2;
+		return count(group, FeatureType::OPEN_3) >= 2;
 	}
-	bool is_fork_4x3(const FeatureTypeGroup &ftg) noexcept
+	bool is_fork_4x3(std::array<FeatureType, 4> group) noexcept
 	{
-		const int sum3 = ftg.count(FeatureType::OPEN_3);
-		const int sum4 = ftg.count(FeatureType::OPEN_4) + ftg.count(FeatureType::HALF_OPEN_4);
+		const int sum3 = count(group, FeatureType::OPEN_3);
+		const int sum4 = count(group, FeatureType::OPEN_4) + count(group, FeatureType::HALF_OPEN_4);
 		return sum3 >= 1 and sum4 >= 1;
 	}
-	bool is_fork_4x4(const FeatureTypeGroup &ftg) noexcept
+	bool is_fork_4x4(std::array<FeatureType, 4> group) noexcept
 	{
-		const int sum4 = ftg.count(FeatureType::OPEN_4) + ftg.count(FeatureType::HALF_OPEN_4);
-		return ftg.count(FeatureType::FORK_4x4) > 0 or sum4 >= 2;
+		const int sum4 = count(group, FeatureType::OPEN_4) + count(group, FeatureType::HALF_OPEN_4);
+		return count(group, FeatureType::FORK_4x4) > 0 or sum4 >= 2;
 	}
 
-	Threat_v3 get_threat(const FeatureTypeGroup &ftg, GameRules rules) noexcept
+	Threat_v3 get_threat(std::array<FeatureType, 4> group, GameRules rules) noexcept
 	{
-		if (is_five(ftg)) // win in 1
-			return Threat_v3(ThreatType_v3::FIVE);
-		if (ftg.contains(FeatureType::OPEN_4)) // win in 3
-			return Threat_v3(ThreatType_v3::OPEN_4);
+		if (is_five(group)) // win in 1
+			return Threat_v3(ThreatType_v3::FIVE); // five is never forbidden, even in renju
 
 		if (rules == GameRules::RENJU)
 		{
-			if (is_overline(ftg)) // win in 1
+			if (is_overline(group)) // win in 1
 				return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::FIVE);
-			if (is_fork_4x4(ftg)) // win in 3
+			if (contains(group, FeatureType::OPEN_4)) // win in 3
+			{
+				if (is_fork_4x4(group) or is_fork_3x3(group))
+					return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::OPEN_4); // rare case when at the same spot there is open four and a fork (in different directions)
+				else
+					return Threat_v3(ThreatType_v3::OPEN_4);
+			}
+			if (is_fork_4x4(group)) // win in 3
 				return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::FORK_4x4);
-			if (is_fork_4x3(ftg)) // win in 5
+			if (contains(group, FeatureType::HALF_OPEN_4))
+				return Threat_v3(ThreatType_v3::HALF_OPEN_4);
+			if (is_fork_4x3(group)) // win in 5
 				return Threat_v3(ThreatType_v3::FORK_4x3, ThreatType_v3::FORK_4x3); // TODO this requires recursive check for non-trivial 4x3 forks
-			if (is_fork_3x3(ftg)) // win in 5
-				return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::FORK_4x4);
+			if (is_fork_3x3(group)) // win in 5
+				return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::FORK_3x3);
 		}
 		else
 		{
-			if (is_fork_4x4(ftg)) // win in 3
+			if (contains(group, FeatureType::OPEN_4)) // win in 3
+				return Threat_v3(ThreatType_v3::OPEN_4);
+			if (is_fork_4x4(group)) // win in 3
 				return Threat_v3(ThreatType_v3::FORK_4x4);
-			if (is_fork_4x3(ftg)) // win in 5
+			if (contains(group, FeatureType::HALF_OPEN_4))
+				return Threat_v3(ThreatType_v3::HALF_OPEN_4);
+			if (is_fork_4x3(group)) // win in 5
 				return Threat_v3(ThreatType_v3::FORK_4x3);
-			if (is_fork_3x3(ftg)) // win in 5
-				return Threat_v3(ThreatType_v3::FORK_4x4);
+			if (is_fork_3x3(group)) // win in 5
+				return Threat_v3(ThreatType_v3::FORK_3x3);
 		}
-		if (ftg.contains(FeatureType::HALF_OPEN_4))
-			return Threat_v3(ThreatType_v3::HALF_OPEN_4);
-		if (ftg.contains(FeatureType::OPEN_3))
+		if (contains(group, FeatureType::OPEN_3))
 			return Threat_v3(ThreatType_v3::OPEN_3);
 		return Threat_v3(ThreatType_v3::NONE);
 	}
@@ -82,6 +102,31 @@ namespace
 
 namespace ag
 {
+	std::string toString(ThreatType_v3 t)
+	{
+		switch (t)
+		{
+			default:
+			case ThreatType_v3::NONE:
+				return "NONE";
+			case ThreatType_v3::OPEN_3:
+				return "OPEN_3";
+			case ThreatType_v3::HALF_OPEN_4:
+				return "HALF_OPEN_4";
+			case ThreatType_v3::OPEN_4:
+				return "OPEN_4";
+			case ThreatType_v3::FIVE:
+				return "FIVE";
+			case ThreatType_v3::FORBIDDEN:
+				return "FORBIDDEN";
+			case ThreatType_v3::FORK_3x3:
+				return "FORK_3x3";
+			case ThreatType_v3::FORK_4x3:
+				return "FORK_4x3";
+			case ThreatType_v3::FORK_4x4:
+				return "FORK_4x4";
+		}
+	}
 
 	ThreatTable::ThreatTable(GameRules rules) :
 			threats(8 * 8 * 8 * 8)
@@ -98,9 +143,9 @@ namespace ag
 				for (int f2 = 0; f2 < 7; f2++)
 					for (int f3 = 0; f3 < 7; f3++)
 					{
-						const FeatureTypeGroup ftg = make_feature_type_group(f0, f1, f2, f3);
+						const std::array<FeatureType, 4> group = make_feature_type_group(f0, f1, f2, f3);
 						const uint32_t index = f0 + (f1 << 3) + (f2 << 6) + (f3 << 9);
-						const Threat_v3 t = get_threat(ftg, rules);
+						const Threat_v3 t = get_threat(group, rules);
 						threats[index] = t.encode();
 					}
 	}

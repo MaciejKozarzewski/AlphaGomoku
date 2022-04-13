@@ -11,6 +11,7 @@
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
 
+#include <array>
 #include <cassert>
 
 namespace ag
@@ -22,8 +23,14 @@ namespace ag
 		HALF_OPEN_4,
 		OPEN_4,
 		FORK_4x4,
-		FIVE, // actually it is a winning pattern, so for some rules it means 'five but not overline'
+		FIVE, // actually, it is a winning pattern so for some rules it means 'five but not overline'
 		OVERLINE
+	};
+
+	struct FeatureTypeGroup
+	{
+			std::array<FeatureType, 4> for_cross;
+			std::array<FeatureType, 4> for_circle;
 	};
 
 	struct FeatureEncoding

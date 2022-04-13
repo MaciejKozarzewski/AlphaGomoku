@@ -22,7 +22,7 @@ namespace ag
 
 namespace ag
 {
-	enum class SolvedValue : uint8_t
+	enum class SolvedValue : int8_t
 	{
 		UNKNOWN,
 		UNSOLVED,

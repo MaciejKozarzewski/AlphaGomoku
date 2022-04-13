@@ -217,6 +217,7 @@ namespace ag
 	}
 	SolverStats VCFSolver::getStats() const
 	{
+		feature_extractor.print_stats();
 		return stats;
 	}
 	void VCFSolver::clearStats()

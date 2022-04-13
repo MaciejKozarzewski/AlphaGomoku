@@ -246,7 +246,11 @@ namespace ag
 			pad(get_padding(gameConfig.rules)),
 			internal_board(gameConfig.rows + 2 * pad, gameConfig.cols + 2 * pad),
 			features(internal_board.rows(), internal_board.cols()),
-			threats(gameConfig.rows, gameConfig.cols)
+			threats(gameConfig.rows, gameConfig.cols),
+			features_init("features init  "),
+			threats_init("threats init   "),
+			features_update("features update"),
+			threats_update("threats update ")
 	{
 		internal_board.fill(3);
 		cross_five.reserve(64);
@@ -404,6 +408,7 @@ namespace ag
 
 	void FeatureExtractor_v2::addMove(Move move) noexcept
 	{
+		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -417,12 +422,16 @@ namespace ag
 			default:
 				break;
 		}
+		features_update.stopTimer();
 
+		threats_update.startTimer();
 		update_threats(move.row, move.col);
+		threats_update.stopTimer();
 		assert(signAt(move.row, move.col) == move.sign);
 	}
 	void FeatureExtractor_v2::undoMove(Move move) noexcept
 	{
+		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -436,9 +445,20 @@ namespace ag
 			default:
 				break;
 		}
+		features_update.stopTimer();
 
+		threats_update.startTimer();
 		update_threats(move.row, move.col);
+		threats_update.stopTimer();
 		assert(signAt(move.row, move.col) == Sign::NONE);
+	}
+	void FeatureExtractor_v2::print_stats() const
+	{
+		std::cout << features_init.toString() << '\n';
+		std::cout << "features class  = N/A\n";
+		std::cout << threats_init.toString() << '\n';
+		std::cout << features_update.toString() << '\n';
+		std::cout << threats_update.toString() << '\n';
 	}
 	/*
 	 * private
@@ -449,6 +469,7 @@ namespace ag
 	}
 	void FeatureExtractor_v2::calc_all_features() noexcept
 	{
+		features_init.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -468,9 +489,11 @@ namespace ag
 			default:
 				break;
 		}
+		features_init.stopTimer();
 	}
 	void FeatureExtractor_v2::get_threat_lists()
 	{
+		threats_init.startTimer();
 		cross_five.clear();
 		cross_open_four.clear();
 		cross_half_open_four.clear();
@@ -495,6 +518,7 @@ namespace ag
 				}
 				else
 					threats.at(row, col) = ThreatGroup();
+		threats_init.stopTimer();
 	}
 	void FeatureExtractor_v2::update_threats(int row, int col)
 	{

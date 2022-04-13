@@ -112,6 +112,11 @@ namespace ag
 			std::vector<Move> circle_open_four;
 			std::vector<Move> circle_half_open_four;
 
+			TimedStat features_init;
+			TimedStat threats_init;
+			TimedStat features_update;
+			TimedStat threats_update;
+
 		public:
 			FeatureExtractor_v2(GameConfig gameConfig);
 
