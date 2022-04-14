@@ -611,12 +611,13 @@ namespace ag
 
 	void FeatureExtractor::print_stats() const
 	{
-		for (size_t i = 0; i < statistics.size(); i++)
-			if (statistics[i].calls > 0)
-			{
-				std::cout << "depth = " << i << " : " << statistics[i].hits << "/" << statistics[i].calls << ", positions "
-						<< statistics[i].positions_hit << "/" << (statistics[i].positions_hit + statistics[i].positions_miss) << std::endl;
-			}
+		std::cout << "total positions = " << total_positions << '\n';
+//		for (size_t i = 0; i < statistics.size(); i++)
+//			if (statistics[i].calls > 0)
+//			{
+//				std::cout << "depth = " << i << " : " << statistics[i].hits << "/" << statistics[i].calls << ", positions "
+//						<< statistics[i].positions_hit << "/" << (statistics[i].positions_hit + statistics[i].positions_miss) << std::endl;
+//			}
 	}
 
 	/*

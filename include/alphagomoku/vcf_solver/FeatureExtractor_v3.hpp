@@ -35,7 +35,7 @@ namespace ag
 				for (size_t i = 1; i < threats.size(); i++) // do not reserve for 'NONE' threat
 					threats[i].reserve(64);
 			}
-			const std::vector<Move>& get(ThreatType_v3 threat) noexcept
+			const std::vector<Move>& get(ThreatType_v3 threat) const noexcept
 			{
 				assert(static_cast<size_t>(threat) < threats.size());
 				return threats[static_cast<size_t>(threat)];
@@ -88,6 +88,9 @@ namespace ag
 			TimedStat features_update;
 			TimedStat threats_update;
 
+			std::vector<uint64_t> feature_value_statistics;
+			std::vector<uint8_t> feature_value_table;
+
 			const FeatureTable_v3 *feature_table = nullptr;
 			const ThreatTable *threat_table = nullptr;
 
@@ -117,6 +120,7 @@ namespace ag
 					return circle_threats;
 			}
 
+			int8_t getValueAt(Sign sign, int row, int col) const noexcept;
 			uint32_t getRawFeatureAt(int row, int col, Direction dir) const noexcept;
 			FeatureType getFeatureTypeAt(Sign sign, int row, int col, Direction dir) const noexcept;
 			ThreatType_v3 getThreatAt(Sign sign, int row, int col) const noexcept;
@@ -128,6 +132,8 @@ namespace ag
 
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
+			void updateValueStatistics(Move move) noexcept;
+			uint8_t getValue(Move move) const noexcept;
 
 			void print_stats() const;
 		private:

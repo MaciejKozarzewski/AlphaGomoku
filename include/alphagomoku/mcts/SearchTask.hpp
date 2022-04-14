@@ -149,6 +149,7 @@ namespace ag
 				value = v;
 			}
 
+			void addProvenEdges(const std::vector<Move> &moves, Sign sign, ProvenValue pv);
 			void addProvenEdge(Move move, ProvenValue pv);
 			void addEdge(Move move);
 			void addEdge(const Edge &other)

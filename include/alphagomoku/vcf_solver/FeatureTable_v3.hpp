@@ -22,7 +22,7 @@ namespace ag
 		OPEN_3,
 		HALF_OPEN_4,
 		OPEN_4,
-		FORK_4x4,
+		DOUBLE_4,
 		FIVE, // actually, it is a winning pattern so for some rules it means 'five but not overline'
 		OVERLINE
 	};

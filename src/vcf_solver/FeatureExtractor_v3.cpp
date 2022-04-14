@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <numeric>
 #include <cstring>
 #include <cassert>
 
@@ -266,6 +267,9 @@ namespace ag
 			threats_init("threats init   "),
 			features_update("features update"),
 			threats_update("threats update "),
+//			feature_value_statistics(2 * (1 << (2 * 5))),
+			feature_value_statistics(2 * (1 << (2 * 7))),
+			feature_value_table(feature_value_statistics.size()),
 			feature_table(&get_feature_table(gameConfig.rules)),
 			threat_table(&get_threat_table(gameConfig.rules))
 	{
@@ -295,6 +299,15 @@ namespace ag
 		threats_init.startTimer();
 		get_threat_lists();
 		threats_init.stopTimer();
+
+		if (features_init.getTotalCount() % 1000 == 0)
+		{
+			uint64_t max_count = 0;
+			for (size_t i = 0; i < feature_value_statistics.size(); i++)
+				max_count = std::max(max_count, feature_value_statistics[i]);
+			for (size_t i = 0; i < feature_value_statistics.size(); i++)
+				feature_value_table[i] = (63 * feature_value_statistics[i]) / std::max(1ul, max_count);
+		}
 	}
 
 	void FeatureExtractor_v3::printRawFeature(int row, int col) const
@@ -361,8 +374,8 @@ namespace ag
 					case FeatureType::OPEN_4:
 						std::cout << "OPEN_4";
 						break;
-					case FeatureType::FORK_4x4:
-						std::cout << "FORK_4x4";
+					case FeatureType::DOUBLE_4:
+						std::cout << "DOUBLE_4";
 						break;
 					case FeatureType::FIVE:
 						std::cout << "FIVE";
@@ -518,6 +531,33 @@ namespace ag
 			}
 		threats_update.stopTimer();
 	}
+	void FeatureExtractor_v3::updateValueStatistics(Move move) noexcept
+	{
+		const FeatureTypeGroup &ftg = feature_types.at(move.row, move.col);
+		const std::array<FeatureType, 4> group = (move.sign == Sign::CROSS) ? ftg.for_cross : ftg.for_circle;
+		for (int dir = 0; dir < 4; dir++)
+			if (group[dir] == FeatureType::NONE) // update only directions other than those that have threats
+			{
+				uint32_t raw_feature = getRawFeatureAt(move.row, move.col, static_cast<Direction>(dir));
+//				raw_feature = (raw_feature >> (2 * pad - 4)) & 975;
+				raw_feature = (raw_feature >> (2 * pad - 6)) & 16191;
+				assert(raw_feature < feature_value_statistics.size());
+				feature_value_statistics[2 * raw_feature + static_cast<int>(move.sign) - 1]++;
+			}
+	}
+	uint8_t FeatureExtractor_v3::getValue(Move move) const noexcept
+	{
+		uint8_t result = 0;
+		for (int dir = 0; dir < 4; dir++)
+		{
+			uint32_t raw_feature = getRawFeatureAt(move.row, move.col, static_cast<Direction>(dir));
+//			raw_feature = (raw_feature >> (2 * pad - 4)) & 975;
+			raw_feature = (raw_feature >> (2 * pad - 6)) & 16191;
+			assert(raw_feature < feature_value_table.size());
+			result += feature_value_table[2 * raw_feature + static_cast<int>(move.sign) - 1];
+		}
+		return result;
+	}
 	void FeatureExtractor_v3::print_stats() const
 	{
 		std::cout << features_init.toString() << '\n';
@@ -525,6 +565,25 @@ namespace ag
 		std::cout << threats_init.toString() << '\n';
 		std::cout << features_update.toString() << '\n';
 		std::cout << threats_update.toString() << '\n';
+
+//		for (size_t i = 0; i < feature_value_table.size() / 2; i++)
+//			if ((i & 48) == 0)
+//			{
+//				size_t feature = i;
+//				for (int j = 0; j < 5; j++, feature >>= 2)
+//					std::cout << text(static_cast<Sign>(feature & 3));
+//				std::cout << " : " << (int) feature_value_table[2 * i] << " : " << (int) feature_value_table[2 * i + 1] << '\n';
+//			}
+
+//		size_t total_count = std::accumulate(feature_value_statistics.begin(), feature_value_statistics.end(), 0ull);
+//		for (size_t i = 0; i < feature_value_statistics.size(); i++)
+//			if ((i & 48) == 0)
+//			{
+//				size_t feature = i;
+//				for (int j = 0; j < 5; j++, feature >>= 2)
+//					std::cout << text(static_cast<Sign>(feature & 3));
+//				std::cout << " : " << 100.0 * feature_value_statistics[i] / total_count << '\n';
+//			}
 	}
 	/*
 	 * private
@@ -629,11 +688,10 @@ namespace ag
 		feature_types.at(row, col).for_circle[direction] = new_feature_type.for_circle;
 
 		const Threat_v3 old_threat = threat_types.at(row, col); // check what was the best threat at (row, col) before updating
-
 		const Threat_v3 new_threat = threat_table->getThreat(feature_types.at(row, col)); // find new threat type according to the newly updated feature types
 		threat_types.at(row, col) = new_threat;
 
-		// update list of threats for cross and circle if necessary
+		// update list of threats for cross and circle (if necessary)
 		if (old_threat.for_cross != new_threat.for_cross)
 		{
 			cross_threats.remove(old_threat.for_cross, Move(row, col));

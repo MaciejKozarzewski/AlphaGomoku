@@ -455,7 +455,7 @@ namespace
 				if (is_open_four(f))
 					return FeatureType::OPEN_4;
 				if (is_double_four(f))
-					return FeatureType::FORK_4x4;
+					return FeatureType::DOUBLE_4;
 				if (is_half_open_four(f))
 					return FeatureType::HALF_OPEN_4;
 				if (is_open_three(f))
@@ -475,6 +475,7 @@ namespace ag
 		init_features(rules);
 //		double t1 = getTime();
 		init_update_mask(rules);
+
 //		double t2 = getTime();
 //		std::cout << (t1 - t0) << " " << (t2 - t1) << std::endl;
 //

@@ -53,7 +53,7 @@ namespace
 	bool is_fork_4x4(std::array<FeatureType, 4> group) noexcept
 	{
 		const int sum4 = count(group, FeatureType::OPEN_4) + count(group, FeatureType::HALF_OPEN_4);
-		return count(group, FeatureType::FORK_4x4) > 0 or sum4 >= 2;
+		return count(group, FeatureType::DOUBLE_4) > 0 or sum4 >= 2;
 	}
 
 	Threat_v3 get_threat(std::array<FeatureType, 4> group, GameRules rules) noexcept
@@ -63,23 +63,21 @@ namespace
 
 		if (rules == GameRules::RENJU)
 		{
-			if (is_overline(group)) // win in 1
+			if (is_overline(group)) // forbidden or win in 1
 				return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::FIVE);
-			if (contains(group, FeatureType::OPEN_4)) // win in 3
+			if (contains(group, FeatureType::OPEN_4)) // potentially win in 3
 			{
 				if (is_fork_4x4(group) or is_fork_3x3(group))
-					return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::OPEN_4); // rare case when at the same spot there is open four and a fork (in different directions)
+					return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
 				else
 					return Threat_v3(ThreatType_v3::OPEN_4);
 			}
-			if (is_fork_4x4(group)) // win in 3
+			if (is_fork_4x4(group)) // forbidden or win in 3
 				return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::FORK_4x4);
-			if (contains(group, FeatureType::HALF_OPEN_4))
-				return Threat_v3(ThreatType_v3::HALF_OPEN_4);
 			if (is_fork_4x3(group)) // win in 5
-				return Threat_v3(ThreatType_v3::FORK_4x3, ThreatType_v3::FORK_4x3); // TODO this requires recursive check for non-trivial 4x3 forks
-			if (is_fork_3x3(group)) // win in 5
-				return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::FORK_3x3);
+				return Threat_v3(ThreatType_v3::FORK_4x3, ThreatType_v3::FORK_4x3);
+			if (is_fork_3x3(group)) // forbidden or win in 5
+				return Threat_v3(ThreatType_v3::FORBIDDEN, ThreatType_v3::FORK_3x3);  // TODO this requires recursive check for non-trivial 3x3 forks
 		}
 		else
 		{
@@ -87,13 +85,13 @@ namespace
 				return Threat_v3(ThreatType_v3::OPEN_4);
 			if (is_fork_4x4(group)) // win in 3
 				return Threat_v3(ThreatType_v3::FORK_4x4);
-			if (contains(group, FeatureType::HALF_OPEN_4))
-				return Threat_v3(ThreatType_v3::HALF_OPEN_4);
 			if (is_fork_4x3(group)) // win in 5
 				return Threat_v3(ThreatType_v3::FORK_4x3);
 			if (is_fork_3x3(group)) // win in 5
 				return Threat_v3(ThreatType_v3::FORK_3x3);
 		}
+		if (contains(group, FeatureType::HALF_OPEN_4))
+			return Threat_v3(ThreatType_v3::HALF_OPEN_4);
 		if (contains(group, FeatureType::OPEN_3))
 			return Threat_v3(ThreatType_v3::OPEN_3);
 		return Threat_v3(ThreatType_v3::NONE);
@@ -109,22 +107,22 @@ namespace ag
 			default:
 			case ThreatType_v3::NONE:
 				return "NONE";
+			case ThreatType_v3::FORBIDDEN:
+				return "FORBIDDEN";
 			case ThreatType_v3::OPEN_3:
 				return "OPEN_3";
 			case ThreatType_v3::HALF_OPEN_4:
 				return "HALF_OPEN_4";
-			case ThreatType_v3::OPEN_4:
-				return "OPEN_4";
-			case ThreatType_v3::FIVE:
-				return "FIVE";
-			case ThreatType_v3::FORBIDDEN:
-				return "FORBIDDEN";
 			case ThreatType_v3::FORK_3x3:
 				return "FORK_3x3";
 			case ThreatType_v3::FORK_4x3:
 				return "FORK_4x3";
 			case ThreatType_v3::FORK_4x4:
 				return "FORK_4x4";
+			case ThreatType_v3::OPEN_4:
+				return "OPEN_4";
+			case ThreatType_v3::FIVE:
+				return "FIVE";
 		}
 	}
 

@@ -54,11 +54,15 @@ namespace ag
 		assert(q != nullptr);
 		std::memcpy(reinterpret_cast<float*>(action_values.data()), q, action_values.sizeInBytes());
 	}
+	void SearchTask::addProvenEdges(const std::vector<Move> &moves, Sign sign, ProvenValue pv)
+	{
+		for (size_t i = 0; i < moves.size(); i++)
+			this->addProvenEdge(Move(sign, moves[i]), pv);
+	}
 	void SearchTask::addProvenEdge(Move move, ProvenValue pv)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(proven_edges.begin(), proven_edges.end(), [move](const Edge &edge)
-		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(proven_edges.begin(), proven_edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;
@@ -69,8 +73,7 @@ namespace ag
 	void SearchTask::addEdge(Move move)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge)
-		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		edges.push_back(Edge(move));

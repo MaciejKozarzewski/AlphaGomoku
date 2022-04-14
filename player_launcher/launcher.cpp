@@ -7,8 +7,8 @@
 
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/file_util.hpp>
+#include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/version.hpp>
-#include <iostream>
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/game/Board.hpp>
@@ -18,9 +18,11 @@
 #include <alphagomoku/vcf_solver/FeatureExtractor_v2.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor_v3.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable_v3.hpp>
+#include <alphagomoku/vcf_solver/VCFSolver_v3.hpp>
 
 #include <libml/utils/ZipWrapper.hpp>
 
+#include <iostream>
 #include <numeric>
 #include <functional>
 
@@ -44,11 +46,11 @@ std::string get_BOARD_command(const matrix<Sign> &board, Sign signToMove)
 	return result + "DONE\n";
 }
 
+template<class SolverType>
 class SolverSearch
 {
 		SearchTask m_task;
-		VCFSolver m_vcf_solver;
-//		FeatureExtractor m_vcf_solver;
+		SolverType m_vcf_solver;
 	public:
 		SolverSearch(GameConfig gameConfig, int maxPositions) :
 				m_task(gameConfig.rules),
@@ -61,11 +63,12 @@ class SolverSearch
 		{
 			m_task.reset(board, signToMove);
 			m_vcf_solver.solve(m_task, 2);
+//			std::cout << m_task.toString() << '\n';
 			return m_task.isReady();
 		}
 		void printStats()
 		{
-			std::cout << m_vcf_solver.getStats().toString() << '\n';
+			m_vcf_solver.print_stats();
 		}
 };
 
@@ -137,8 +140,8 @@ class NNSearch
 
 void test_feature_extractor()
 {
-//	GameConfig game_config(GameRules::FREESTYLE, 20);
-	GameConfig game_config(GameRules::STANDARD, 15);
+	GameConfig game_config(GameRules::FREESTYLE, 20);
+//	GameConfig game_config(GameRules::STANDARD, 15);
 
 	GameBuffer buffer;
 #ifdef NDEBUG
@@ -146,7 +149,8 @@ void test_feature_extractor()
 #else
 	for (int i = 0; i < 1; i++)
 #endif
-		buffer.load("/home/maciek/alphagomoku/run2022_15x15s2/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/home/maciek/alphagomoku/run2022_15x15s2/train_buffer/buffer_" + std::to_string(i) + ".bin");
+		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
 	FeatureExtractor_v2 extractor_old(game_config);
@@ -168,7 +172,7 @@ void test_feature_extractor()
 			sample.getBoard(board);
 			extractor_new.setBoard(board, sample.getMove().sign);
 			extractor_old.setBoard(board, sample.getMove().sign);
-			for (int k = 0; k < 50; k++)
+			for (int k = 0; k < 100; k++)
 			{
 				int x = randInt(game_config.rows);
 				int y = randInt(game_config.cols);
@@ -186,46 +190,46 @@ void test_feature_extractor()
 					board.at(x, y) = Sign::NONE;
 				}
 			}
-			extractor_new2.setBoard(board, sample.getMove().sign);
-			for (int x = 0; x < game_config.rows; x++)
-				for (int y = 0; y < game_config.cols; y++)
-				{
-					for (int dir = 0; dir < 4; dir++)
-					{
-						if (extractor_new2.getRawFeatureAt(x, y, static_cast<Direction>(dir))
-								!= extractor_new.getRawFeatureAt(x, y, static_cast<Direction>(dir)))
-						{
-							std::cout << "Raw feature mismatch\n";
-							std::cout << "Single step\n";
-							extractor_new2.printRawFeature(x, y);
-							std::cout << "incremental\n";
-							extractor_new.printRawFeature(x, y);
-							exit(-1);
-						}
-						if (extractor_new2.getFeatureTypeAt(Sign::CROSS, x, y, static_cast<Direction>(dir))
-								!= extractor_new.getFeatureTypeAt(Sign::CROSS, x, y, static_cast<Direction>(dir))
-								or extractor_new2.getFeatureTypeAt(Sign::CIRCLE, x, y, static_cast<Direction>(dir))
-										!= extractor_new.getFeatureTypeAt(Sign::CIRCLE, x, y, static_cast<Direction>(dir)))
-						{
-							std::cout << "Feature type mismatch\n";
-							std::cout << "Single step\n";
-							extractor_new2.printRawFeature(x, y);
-							std::cout << "incremental\n";
-							extractor_new.printRawFeature(x, y);
-							exit(-1);
-						}
-					}
-					if (extractor_new2.getThreatAt(Sign::CROSS, x, y) != extractor_new.getThreatAt(Sign::CROSS, x, y)
-							or extractor_new2.getThreatAt(Sign::CIRCLE, x, y) != extractor_new.getThreatAt(Sign::CIRCLE, x, y))
-					{
-						std::cout << "Threat type mismatch\n";
-						std::cout << "Single step\n";
-						extractor_new2.printRawFeature(x, y);
-						std::cout << "incremental\n";
-						extractor_new.printRawFeature(x, y);
-						exit(-1);
-					}
-				}
+//			extractor_new2.setBoard(board, sample.getMove().sign);
+//			for (int x = 0; x < game_config.rows; x++)
+//				for (int y = 0; y < game_config.cols; y++)
+//				{
+//					for (int dir = 0; dir < 4; dir++)
+//					{
+//						if (extractor_new2.getRawFeatureAt(x, y, static_cast<Direction>(dir))
+//								!= extractor_new.getRawFeatureAt(x, y, static_cast<Direction>(dir)))
+//						{
+//							std::cout << "Raw feature mismatch\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.printRawFeature(x, y);
+//							std::cout << "incremental\n";
+//							extractor_new.printRawFeature(x, y);
+//							exit(-1);
+//						}
+//						if (extractor_new2.getFeatureTypeAt(Sign::CROSS, x, y, static_cast<Direction>(dir))
+//								!= extractor_new.getFeatureTypeAt(Sign::CROSS, x, y, static_cast<Direction>(dir))
+//								or extractor_new2.getFeatureTypeAt(Sign::CIRCLE, x, y, static_cast<Direction>(dir))
+//										!= extractor_new.getFeatureTypeAt(Sign::CIRCLE, x, y, static_cast<Direction>(dir)))
+//						{
+//							std::cout << "Feature type mismatch\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.printRawFeature(x, y);
+//							std::cout << "incremental\n";
+//							extractor_new.printRawFeature(x, y);
+//							exit(-1);
+//						}
+//					}
+//					if (extractor_new2.getThreatAt(Sign::CROSS, x, y) != extractor_new.getThreatAt(Sign::CROSS, x, y)
+//							or extractor_new2.getThreatAt(Sign::CIRCLE, x, y) != extractor_new.getThreatAt(Sign::CIRCLE, x, y))
+//					{
+//						std::cout << "Threat type mismatch\n";
+//						std::cout << "Single step\n";
+//						extractor_new2.printRawFeature(x, y);
+//						std::cout << "incremental\n";
+//						extractor_new.printRawFeature(x, y);
+//						exit(-1);
+//					}
+//				}
 		}
 	}
 //	extractor_new2.print();
@@ -242,41 +246,80 @@ void test_proven_positions(int pos)
 //	GameConfig game_config(GameRules::FREESTYLE, 20);
 	GameConfig game_config(GameRules::STANDARD, 15);
 
-	TreeConfig tree_config;
-	tree_config.bucket_size = 1000000;
-
-	SearchConfig search_config;
-	search_config.max_batch_size = 32;
-	search_config.expansion_prior_treshold = 1.0e-4f;
-	search_config.max_children = 30;
-	search_config.vcf_solver_level = 2;
-	search_config.vcf_solver_max_positions = pos;
-
 	GameBuffer buffer;
+#ifdef NDEBUG
 	for (int i = 0; i < 17; i++)
+#else
+	for (int i = 0; i < 1; i++)
+#endif
 		buffer.load("/home/maciek/alphagomoku/run2022_15x15s2/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
-	SolverSearch solver(game_config, search_config.vcf_solver_max_positions);
+	SolverSearch<FeatureExtractor> solver_v1(game_config, pos);
+	SolverSearch<VCFSolver> solver_v2(game_config, pos);
+	SolverSearch<VCFSolver_v3> solver_v3(game_config, 2 * pos);
 
 	matrix<Sign> board(game_config.rows, game_config.cols);
-	int count = 0;
+	int total_samples = 0;
+	int v1_solved = 0, v2_solved = 0, v3_solved = 0;
+
+	int v2_solved_v3_not = 0;
+	int v3_solved_v2_not = 0;
+
 	for (int i = 0; i < buffer.size(); i++)
+//	for (int i = 285; i <= 285; i++)
 	{
 		if (i % (buffer.size() / 10) == 0)
 			std::cout << i << " / " << buffer.size() << '\n';
 
 		buffer.getFromBuffer(i).getSample(0).getBoard(board);
+		total_samples += buffer.getFromBuffer(i).getNumberOfSamples();
 		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+//		for (int j = 2; j <= 2; j++)
 		{
 			const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
 			sample.getBoard(board);
-			const bool is_solved = solver.solve(board, sample.getMove().sign);
-			count += is_solved;
+//			augment(board, randInt(8));
+//			board.at(2, 2) = Sign::CROSS;
+//			board.at(3, 2) = Sign::CIRCLE;
+			const Sign sign_to_move = sample.getMove().sign;
+
+			bool is_solved_v1 = solver_v1.solve(board, sign_to_move);
+			v1_solved += is_solved_v1;
+
+			bool is_solved_v2 = solver_v2.solve(board, sign_to_move);
+			v2_solved += is_solved_v2;
+//			std::cout << "\n\n------------------------------------------------------------\n\n";
+
+			bool is_solved_v3 = solver_v3.solve(board, sign_to_move);
+			v3_solved += is_solved_v3;
+
+			if (is_solved_v2 and not is_solved_v3)
+			{
+//				std::cout << i << " " << j << '\n';
+//				std::cout << Board::toString(board, true);
+				v2_solved_v3_not++;
+//				break;
+			}
+			if (is_solved_v3 and not is_solved_v2)
+				v3_solved_v2_not++;
 		}
 	}
-	std::cout << "solved " << count << " positions" << std::endl;
-	solver.printStats();
+	std::cout << "FeatureExtractor\n";
+	std::cout << "solved " << v1_solved << " samples (" << 100.0f * v1_solved / total_samples << "%)\n";
+	solver_v1.printStats();
+
+	std::cout << "\nVCFSolver\n";
+	std::cout << "solved " << v2_solved << " samples (" << 100.0f * v2_solved / total_samples << "%)\n";
+	solver_v2.printStats();
+
+	std::cout << "VCFSolver_v3\n";
+	std::cout << "solved " << v3_solved << " samples (" << 100.0f * v3_solved / total_samples << "%)\n";
+	solver_v3.printStats();
+
+	std::cout << "v2 solved, while v3 not " << v2_solved_v3_not << '\n';
+	std::cout << "v3 solved, while v2 not " << v3_solved_v2_not << '\n';
 }
 
 void test_search()
@@ -364,7 +407,7 @@ void test_search()
 			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-			/*        a b c d e f g h i j k l m n o          */);                                                                    // @formatter:on
+			/*        a b c d e f g h i j k l m n o          */);                                                                                                         // @formatter:on
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l         */
@@ -625,8 +668,8 @@ int main(int argc, char *argv[])
 //	FeatureTable_v3 table2(GameRules::STANDARD);
 //	FeatureTable_v3 table3(GameRules::RENJU);
 //	FeatureTable_v3 table4(GameRules::CARO);
-//	test_proven_positions(1000);
-	test_feature_extractor();
+	test_proven_positions(1000);
+//	test_feature_extractor();
 //	time_manager();
 	return 0;
 

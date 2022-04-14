@@ -42,6 +42,15 @@ namespace ag
 		result += setup.toString() + '\n';
 		result += static_solve.toString() + '\n';
 		result += recursive_solve.toString() + '\n';
+		if (setup.getTotalCount() > 0)
+		{
+			result += "total positions = " + std::to_string(total_positions) + " : "
+					+ std::to_string(total_positions / recursive_solve.getTotalCount()) + '\n';
+			result += "static solved    " + std::to_string(static_hits) + " / " + std::to_string(setup.getTotalCount()) + " ("
+					+ std::to_string(100.0 * static_hits / setup.getTotalCount()) + "%)\n";
+			result += "recursive solved " + std::to_string(recursive_hits) + " / " + std::to_string(setup.getTotalCount()) + " ("
+					+ std::to_string(100.0 * recursive_hits / setup.getTotalCount()) + "%)\n";
+		}
 		return result;
 	}
 
@@ -138,11 +147,13 @@ namespace ag
 
 //		recursive_solve(nodes_buffer.front(), false);
 		recursive_solve_2(nodes_buffer.front(), true);
+		stats.total_positions += position_counter;
 
 //		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
 //				<< position_counter << " positions, total = " << total_positions << "\n";
 		if (nodes_buffer.front().solved_value == SolvedValue::LOSS)
 		{
+			stats.recursive_hits++;
 			task.getProvenEdges().clear(); // delete any edges that could have been added in 'static_solve_block_4()'
 			for (auto iter = nodes_buffer.front().begin(); iter < nodes_buffer.front().end(); iter++)
 				if (iter->solved_value == SolvedValue::WIN)
@@ -217,7 +228,6 @@ namespace ag
 	}
 	SolverStats VCFSolver::getStats() const
 	{
-		feature_extractor.print_stats();
 		return stats;
 	}
 	void VCFSolver::clearStats()
@@ -228,6 +238,11 @@ namespace ag
 		upper_measurement.clear();
 		step_counter = 0;
 		Logger::write("VCFSolver is using " + std::to_string(max_positions) + " positions");
+	}
+	void VCFSolver::print_stats() const
+	{
+		feature_extractor.print_stats();
+		std::cout << stats.toString() << '\n';
 	}
 	/*
 	 * private
@@ -252,6 +267,7 @@ namespace ag
 				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
 			task.markAsReady();
+			stats.static_hits++;
 			return true;
 		}
 		return false;
@@ -270,6 +286,7 @@ namespace ag
 			task.addProvenEdge(m, ProvenValue::DRAW);
 			task.setValue(Value(0.0f, 1.0, 0.0f));
 			task.markAsReady();
+			stats.static_hits++;
 			return true;
 		}
 		return false;
@@ -294,6 +311,7 @@ namespace ag
 					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::LOSS);
 				task.setValue(Value(0.0f, 0.0, 1.0f));
 				task.markAsReady(); // the state is provably losing, there is no need to further evaluate it
+				stats.static_hits++;
 				return true;
 			}
 		}
@@ -308,6 +326,7 @@ namespace ag
 				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN); // it is a win in 3 plys
 			task.setValue(Value(1.0f, 0.0, 0.0f));
 			task.markAsReady();
+			stats.static_hits++;
 			return true;
 		}
 		return false;

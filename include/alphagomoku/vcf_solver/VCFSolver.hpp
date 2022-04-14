@@ -25,9 +25,10 @@ namespace ag
 	enum class SolvedValue : int8_t
 	{
 		UNKNOWN,
-		UNSOLVED,
 		LOSS,
-		WIN
+		DRAW,
+		WIN,
+		UNSOLVED
 	};
 	inline std::string toString(SolvedValue sv)
 	{
@@ -40,6 +41,8 @@ namespace ag
 				return "UNSOLVED";
 			case SolvedValue::LOSS:
 				return "LOSS";
+			case SolvedValue::DRAW:
+				return "DRAW";
 			case SolvedValue::WIN:
 				return "WIN";
 		}
@@ -50,6 +53,9 @@ namespace ag
 			TimedStat setup;
 			TimedStat static_solve;
 			TimedStat recursive_solve;
+			int64_t static_hits = 0;
+			int64_t recursive_hits = 0;
+			int64_t total_positions = 0;
 
 			SolverStats();
 			std::string toString() const;
@@ -121,6 +127,8 @@ namespace ag
 
 			SolverStats getStats() const;
 			void clearStats();
+
+			void print_stats() const;
 		private:
 			void add_move(Move move) noexcept;
 			void undo_move(Move move) noexcept;
