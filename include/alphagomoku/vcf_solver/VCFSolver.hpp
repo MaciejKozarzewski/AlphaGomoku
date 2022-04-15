@@ -15,6 +15,8 @@
 #include <alphagomoku/vcf_solver/FastHashTable.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor_v2.hpp>
 
+#include <cassert>
+
 namespace ag
 {
 	class SearchTask;
@@ -28,7 +30,8 @@ namespace ag
 		LOSS,
 		DRAW,
 		WIN,
-		UNSOLVED
+		UNSOLVED,
+		CHECK_LATER
 	};
 	inline std::string toString(SolvedValue sv)
 	{
