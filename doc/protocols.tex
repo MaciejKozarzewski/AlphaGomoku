@@ -281,10 +281,12 @@ Sets amount of time that is added after each move (see Fischer time controls \ci
 Controls the style of the search. Allowed values are:
 \begin{enumerate}[leftmargin=7.5em]
 	\item[\text{$[x]=0$}]{defensive - AG will try to maximize the probability of not losing, $P_{win} + P_{draw}$.}
-	\item[\text{$[x]=1$}]{classic - AG will try to maximize the expectation outcome, $P_{win} + \frac{1}{2}P_{draw}$.
+	\item[\text{$[x]=1$}]{AG will try to maximize $P_{win} + \frac{1}{4}P_{draw}$.}
+	\item[\text{$[x]=2$}]{classic - AG will try to maximize the expectation outcome, $P_{win} + \frac{1}{2}P_{draw}$.
 	
 	\textbf{Note:} In general, this is the strongest setting.}
-	\item[\text{$[x]=2$}]{offensive - AG will try to maximize the probability of winning, $P_{win}$.}
+	\item[\text{$[x]=3$}]{AG will try to maximize $P_{win} + \frac{3}{4}P_{draw}$.}
+	\item[\text{$[x]=4$}]{offensive - AG will try to maximize the probability of winning, $P_{win}$.}
 \end{enumerate}
 
 \subsubsection{INFO auto{\_}pondering [x]}
@@ -401,6 +403,8 @@ After the opening stage, the stones on the board will be treated as an opening f
 
 \subsection{SHOWFORBID}
 \label{cmd_showforbid}
+\textbf{Note:} Currently not implemented in AG.
+
 This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it returns all forbidden moves according to renju rule. The engine will respond with \texttt{FORBID} followed by the list of moves separated by spaces. For example\\
 \texttt{SHOWFORBID}\\
 \texttt{[C1],[R1],[S1]} \\
@@ -417,6 +421,8 @@ If the rule is not renju or there are no forbidden moves on board, engine should
 
 \subsection{BALANCE [n]}
 \label{cmd_balance}
+\textbf{Note:} Currently not implemented in AG.
+
 This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it searches for [n] moves that create the most balanced position (balanced position is such where neither player has an advantage). For example\\
 \texttt{BALANCE 2} \\
 \texttt{[C1],[R1],2} \\
