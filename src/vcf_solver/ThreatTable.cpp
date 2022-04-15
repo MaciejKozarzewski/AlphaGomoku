@@ -34,11 +34,11 @@ namespace
 
 	bool is_five(std::array<FeatureType, 4> group) noexcept
 	{
-		return count(group, FeatureType::FIVE) > 0;
+		return contains(group, FeatureType::FIVE);
 	}
 	bool is_overline(std::array<FeatureType, 4> group) noexcept
 	{
-		return count(group, FeatureType::OVERLINE) > 0;
+		return contains(group, FeatureType::OVERLINE);
 	}
 	bool is_fork_3x3(std::array<FeatureType, 4> group) noexcept
 	{
@@ -53,7 +53,7 @@ namespace
 	bool is_fork_4x4(std::array<FeatureType, 4> group) noexcept
 	{
 		const int sum4 = count(group, FeatureType::OPEN_4) + count(group, FeatureType::HALF_OPEN_4);
-		return count(group, FeatureType::DOUBLE_4) > 0 or sum4 >= 2;
+		return contains(group, FeatureType::DOUBLE_4) or sum4 >= 2;
 	}
 
 	Threat_v3 get_threat(std::array<FeatureType, 4> group, GameRules rules) noexcept

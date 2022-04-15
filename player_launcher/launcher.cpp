@@ -15,11 +15,11 @@
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/player/ProgramManager.hpp>
+#include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor_v2.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor_v3.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable_v3.hpp>
-#include <alphagomoku/vcf_solver/VCFSolver_v3.hpp>
-
+#include <alphagomoku/vcf_solver/VCTSolver.hpp>
 #include <libml/utils/ZipWrapper.hpp>
 
 #include <iostream>
@@ -258,7 +258,7 @@ void test_proven_positions(int pos)
 
 	SolverSearch<FeatureExtractor> solver_v1(game_config, pos);
 	SolverSearch<VCFSolver> solver_v2(game_config, pos);
-	SolverSearch<VCFSolver_v3> solver_v3(game_config, 2 * pos);
+	SolverSearch<VCTSolver> solver_v3(game_config, pos);
 
 	matrix<Sign> board(game_config.rows, game_config.cols);
 	int total_samples = 0;
@@ -268,7 +268,7 @@ void test_proven_positions(int pos)
 	int v3_solved_v2_not = 0;
 
 	for (int i = 0; i < buffer.size(); i++)
-//	for (int i = 285; i <= 285; i++)
+//	for (int i = 86; i <= 86; i++)
 	{
 		if (i % (buffer.size() / 10) == 0)
 			std::cout << i << " / " << buffer.size() << '\n';
@@ -276,21 +276,27 @@ void test_proven_positions(int pos)
 		buffer.getFromBuffer(i).getSample(0).getBoard(board);
 		total_samples += buffer.getFromBuffer(i).getNumberOfSamples();
 		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
-//		for (int j = 2; j <= 2; j++)
+//		for (int j = 1; j <= 1; j++)
 		{
 			const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
 			sample.getBoard(board);
 //			augment(board, randInt(8));
-//			board.at(2, 2) = Sign::CROSS;
-//			board.at(3, 2) = Sign::CIRCLE;
+//			board.at(2, 9) = Sign::CROSS;
+//			board.at(3, 8) = Sign::CIRCLE;
+//			board.at(4, 8) = Sign::CROSS;
+//			board.at(4, 5) = Sign::CIRCLE;
+//			board.at(4, 10) = Sign::CROSS;
+//			board.at(4, 9) = Sign::CIRCLE;
+//			board.at(6, 6) = Sign::CROSS;
+//			board.at(7, 6) = Sign::CIRCLE;
 			const Sign sign_to_move = sample.getMove().sign;
 
-			bool is_solved_v1 = solver_v1.solve(board, sign_to_move);
-			v1_solved += is_solved_v1;
+//			bool is_solved_v1 = solver_v1.solve(board, sign_to_move);
+//			v1_solved += is_solved_v1;
 
 			bool is_solved_v2 = solver_v2.solve(board, sign_to_move);
 			v2_solved += is_solved_v2;
-//			std::cout << "\n\n------------------------------------------------------------\n\n";
+//			std::cout << "\n\n\n------------------------------------------------------------\n\n\n";
 
 			bool is_solved_v3 = solver_v3.solve(board, sign_to_move);
 			v3_solved += is_solved_v3;
@@ -303,7 +309,12 @@ void test_proven_positions(int pos)
 //				break;
 			}
 			if (is_solved_v3 and not is_solved_v2)
+			{
+//				std::cout << i << " " << j << '\n';
+//				std::cout << Board::toString(board, true);
 				v3_solved_v2_not++;
+//				break;
+			}
 		}
 	}
 	std::cout << "FeatureExtractor\n";
@@ -318,8 +329,8 @@ void test_proven_positions(int pos)
 	std::cout << "solved " << v3_solved << " samples (" << 100.0f * v3_solved / total_samples << "%)\n";
 	solver_v3.printStats();
 
-	std::cout << "v2 solved, while v3 not " << v2_solved_v3_not << '\n';
-	std::cout << "v3 solved, while v2 not " << v3_solved_v2_not << '\n';
+	std::cout << "v2 solved, while v3 didn't " << v2_solved_v3_not << '\n';
+	std::cout << "v3 solved, while v2 didn't " << v3_solved_v2_not << '\n';
 }
 
 void test_search()
@@ -337,7 +348,7 @@ void test_search()
 	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 30;
 	search_config.vcf_solver_level = 2;
-	search_config.vcf_solver_max_positions = 400;
+	search_config.vcf_solver_max_positions = 200;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
@@ -347,9 +358,9 @@ void test_search()
 	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
-//	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku511/networks/standard_10x128.bin");
+	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku531/networks/standard_10x128.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
-	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_75_opt.bin");
+//	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_75_opt.bin");
 
 	Sign sign_to_move;
 	matrix<Sign> board(15, 15);
@@ -369,7 +380,7 @@ void test_search()
 //			/*  9 */" _ _ _ _ _ _ _ X O O O X _ _ _\n"/*  9 */
 //			/* 10 */" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"/* 10 */
 //			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"/* 12 */
 //			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
 //			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
 //			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
@@ -389,25 +400,25 @@ void test_search()
 //			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
 //			" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n");
 
-// @formatter:off
-	board = Board::fromString(
-			/*        a b c d e f g h i j k l m n o          */
-			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-			/*  7 */" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n" /*  7 */
-			/*  8 */" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /*  8 */
-			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-			/*        a b c d e f g h i j k l m n o          */);                                                                                                         // @formatter:on
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o          */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
+//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
+//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
+//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
+//			/*  7 */" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n" /*  7 */
+//			/*  8 */" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+//			/*        a b c d e f g h i j k l m n o          */);                                                                                                             // @formatter:on
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l         */
@@ -442,7 +453,110 @@ void test_search()
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
 
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
+//			/*  5 */" _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" _ _ _ O X O O O _ _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ X O X X _ _ _ _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ X _ _ _ X _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */);      // @formatter:on
+//	sign_to_move = Sign::CIRCLE;
+
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" O X X X X _ X _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" O X X O _ O X _ _ _ _ _ _ _ _\n"/*  4 */
+//			/*  5 */" X _ _ O X _ _ _ _ _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" O _ _ _ O _ _ _ _ _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" X _ _ _ O O _ _ _ _ _ _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
+//			/*  9 */" O _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */);         // @formatter:on
+//	sign_to_move = Sign::CIRCLE;
+
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ X _ _ O _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" O X X X X _ X _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" O X _ O X _ _ _ _ _ _ _ _ _ _\n"/*  4 */
+//			/*  5 */" X X O _ X _ X _ _ _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" O O X O O _ O _ _ _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" X _ _ _ O _ _ _ _ _ _ _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
+//			/*  9 */" O _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
+//	sign_to_move = Sign::CIRCLE;
+
+// @formatter:off
+	board = Board::fromString(
+			/*        a b c d e f g h i j k l m n o         */
+			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+			/*  1 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+			/*  2 */" X O O O O X _ _ _ _ _ _ _ _ _\n"/*  2 */
+			/*  3 */" _ X O X X O X _ _ _ _ _ _ _ _\n"/*  3 */
+			/*  4 */" _ _ X O O O _ _ _ _ _ _ _ _ _\n"/*  4 */
+			/*  5 */" _ _ _ O _ X _ _ _ _ _ _ _ _ _\n"/*  5 */
+			/*  6 */" _ _ X O X X _ _ _ _ _ _ _ _ _\n"/*  6 */
+			/*  7 */" _ _ _ O O _ _ _ _ _ _ _ _ _ _\n"/*  7 */
+			/*  8 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
+			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
+			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
+			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
 	sign_to_move = Sign::CROSS;
+
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ _ _ O O _ _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ O _ O X X X _ _\n"/*  3 */
+//			/*  4 */" _ _ _ _ _ _ X O X X _ O X _ _\n"/*  4 */
+//			/*  5 */" _ _ _ _ _ _ _ X X O O O O X _\n"/*  5 */
+//			/*  6 */" _ _ _ _ _ O _ _ O O X O X X _\n"/*  6 */
+//			/*  7 */" _ _ _ _ _ _ O _ X X X O _ O _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ _ X _ _ O _ X _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ O X O O _ X O _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ O X _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ X O X X X O\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ X _ X _ O _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
+//	sign_to_move = Sign::CIRCLE;
 
 //	std::cout << get_BOARD_command(board, sign_to_move);
 //	return;
@@ -469,7 +583,7 @@ void test_search()
 //
 //	sign_to_move = Sign::CROSS;
 
-	FeatureExtractor extractor(game_config);
+	FeatureExtractor_v3 extractor(game_config);
 	extractor.setBoard(board, sign_to_move);
 	extractor.printAllThreats();
 
@@ -513,7 +627,7 @@ void test_search()
 	info.sortEdges();
 	std::cout << info.toString() << '\n';
 	for (int i = 0; i < info.numberOfEdges(); i++)
-		std::cout << info.getEdge(i).toString() << '\n';
+		std::cout << info.getEdge(i).getMove().toString() << " : " << info.getEdge(i).toString() << '\n';
 	std::cout << '\n';
 
 	matrix<float> policy(game_config.rows, game_config.cols);
@@ -579,20 +693,20 @@ void test_search()
 	}
 	std::cout << result;
 
-//	tree.setEdgeSelector(BestEdgeSelector());
-//	SearchTask task(game_config.rules);
-//	tree.select(task);
-//	tree.cancelVirtualLoss(task);
-//
-//	for (int i = 0; i < task.visitedPathLength(); i++)
-//	{
-//		if (i < 10 and task.visitedPathLength() >= 10)
-//			std::cout << " ";
-//		if (i < 100 and task.visitedPathLength() >= 100)
-//			std::cout << " ";
-//		std::cout << i << " : " << task.getPair(i).edge->toString() << '\n';
-//	}
-//
+	tree.setEdgeSelector(BestEdgeSelector());
+	SearchTask task(game_config.rules);
+	tree.select(task);
+	tree.cancelVirtualLoss(task);
+
+	for (int i = 0; i < task.visitedPathLength(); i++)
+	{
+		if (i < 10 and task.visitedPathLength() >= 10)
+			std::cout << " ";
+		if (i < 100 and task.visitedPathLength() >= 100)
+			std::cout << " ";
+		std::cout << i << " : " << task.getPair(i).edge->getMove().toString() << " : " << task.getPair(i).edge->toString() << '\n';
+	}
+
 //	Board::putMove(board, Move(Sign::CIRCLE, 0, 0));
 //	Board::putMove(board, Move(Sign::CROSS, 0, 1));
 //
@@ -668,7 +782,8 @@ int main(int argc, char *argv[])
 //	FeatureTable_v3 table2(GameRules::STANDARD);
 //	FeatureTable_v3 table3(GameRules::RENJU);
 //	FeatureTable_v3 table4(GameRules::CARO);
-	test_proven_positions(1000);
+//	test_proven_positions(1000);
+	test_search();
 //	test_feature_extractor();
 //	time_manager();
 	return 0;

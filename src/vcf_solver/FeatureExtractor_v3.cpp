@@ -288,25 +288,33 @@ namespace ag
 			std::memcpy(internal_board.data(pad + row) + pad, board.data(row), sizeof(Sign) * board.cols());
 
 		root_depth = Board::numberOfMoves(board);
-		features_init.startTimer();
+//		features_init.startTimer();
 		calculate_raw_features();
-		features_init.stopTimer();
+//		features_init.stopTimer();
 
-		features_class.startTimer();
+//		features_class.startTimer();
 		classify_feature_types();
-		features_class.stopTimer();
+//		features_class.stopTimer();
 
-		threats_init.startTimer();
+//		threats_init.startTimer();
 		get_threat_lists();
-		threats_init.stopTimer();
+//		threats_init.stopTimer();
 
 		if (features_init.getTotalCount() % 1000 == 0)
 		{
-			uint64_t max_count = 0;
-			for (size_t i = 0; i < feature_value_statistics.size(); i++)
-				max_count = std::max(max_count, feature_value_statistics[i]);
-			for (size_t i = 0; i < feature_value_statistics.size(); i++)
-				feature_value_table[i] = (63 * feature_value_statistics[i]) / std::max(1ul, max_count);
+			uint64_t max_count_x = 0, max_count_o = 0;
+			for (int i = 0; i < game_config.rows * game_config.cols; i++)
+			{
+				max_count_x = std::max(max_count_x, feature_value_statistics[2 * i]);
+				max_count_o = std::max(max_count_o, feature_value_statistics[2 * i + 1]);
+			}
+			for (int i = 0; i < game_config.rows * game_config.cols; i++)
+			{
+				feature_value_table[2 * i] = (255 * feature_value_statistics[2 * i]) / std::max(1ul, max_count_x);
+				feature_value_table[2 * i + 1] = (255 * feature_value_statistics[2 * i + 1]) / std::max(1ul, max_count_o);
+			}
+//			for (size_t i = 0; i < feature_value_statistics.size(); i++)
+//				feature_value_table[i] = (63 * feature_value_statistics[i]) / std::max(1ul, max_count);
 		}
 	}
 
@@ -426,42 +434,85 @@ namespace ag
 		std::cout << "Threats-for-circle----------\n";
 		circle_threats.print();
 	}
-	void FeatureExtractor_v3::print() const
+	void FeatureExtractor_v3::print(Move lastMove) const
 	{
 		std::cout << "sign to move = " << sign_to_move << '\n';
 		for (int i = 0; i < internal_board.rows(); i++)
 		{
 			for (int j = 0; j < internal_board.cols(); j++)
+			{
+				if (lastMove.sign != Sign::NONE)
+				{
+					if ((i - pad) == lastMove.row && (j - pad) == lastMove.col)
+						std::cout << '>';
+					else
+					{
+						if ((i - pad) == lastMove.row && (j - pad) == lastMove.col + 1)
+							std::cout << '<';
+						else
+							std::cout << ' ';
+					}
+				}
+				else
+					std::cout << ' ';
 				switch (internal_board.at(i, j))
 				{
 					case 0:
-						std::cout << "_ ";
+						std::cout << "_";
 						break;
 					case 1:
-						std::cout << "X ";
+						std::cout << "X";
 						break;
 					case 2:
-						std::cout << "O ";
+						std::cout << "O";
 						break;
 					case 3:
-						std::cout << "| ";
+						std::cout << "|";
 						break;
 				}
+			}
+			if (lastMove.sign != Sign::NONE)
+			{
+				if ((i - pad) == lastMove.row && internal_board.cols() - 1 == lastMove.col)
+					std::cout << '<';
+				else
+					std::cout << ' ';
+			}
 			std::cout << '\n';
 		}
+//		for (int i = 0; i < internal_board.rows(); i++)
+//		{
+//			for (int j = 0; j < internal_board.cols(); j++)
+//				switch (internal_board.at(i, j))
+//				{
+//					case 0:
+//						std::cout << "_ ";
+//						break;
+//					case 1:
+//						std::cout << "X ";
+//						break;
+//					case 2:
+//						std::cout << "O ";
+//						break;
+//					case 3:
+//						std::cout << "| ";
+//						break;
+//				}
+//			std::cout << '\n';
+//		}
 		std::cout << std::endl;
 	}
 
 	void FeatureExtractor_v3::addMove(Move move) noexcept
 	{
 		assert(signAt(move.row, move.col) == Sign::NONE); // move must be made on empty spot
-		threats_update.startTimer();
+//		threats_update.startTimer();
 		update_central_spot(move.row, move.col, +1);
-		threats_update.pauseTimer();
+//		threats_update.pauseTimer();
 
 		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(move.sign);
 
-		features_update.startTimer();
+//		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -475,9 +526,9 @@ namespace ag
 			default:
 				break;
 		}
-		features_update.stopTimer();
+//		features_update.stopTimer();
 
-		threats_update.resumeTimer();
+//		threats_update.resumeTimer();
 		for (int i = -pad; i <= pad; i++)
 			if (i != 0) // central spot must have been updated anyway, so it is not included in the lookup table
 			{
@@ -491,14 +542,14 @@ namespace ag
 				if (central_spot_encoding[ANTIDIAGONAL].mustBeUpdated(idx))
 					update_feature_types_and_threats(move.row + i, move.col - i, ANTIDIAGONAL);
 			}
-		threats_update.stopTimer();
+//		threats_update.stopTimer();
 	}
 	void FeatureExtractor_v3::undoMove(Move move) noexcept
 	{
 		assert(signAt(move.row, move.col) == move.sign); // board must contain the move to be undone
 		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(Sign::NONE);
 
-		features_update.startTimer();
+//		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -512,9 +563,9 @@ namespace ag
 			default:
 				break;
 		}
-		features_update.stopTimer();
+//		features_update.stopTimer();
 
-		threats_update.startTimer();
+//		threats_update.startTimer();
 		update_central_spot(move.row, move.col, -1);
 		for (int i = -pad; i <= pad; i++)
 			if (i != 0) // central spot must have been updated anyway, so it is not included in the lookup table
@@ -529,35 +580,42 @@ namespace ag
 				if (central_spot_encoding[ANTIDIAGONAL].mustBeUpdated(idx))
 					update_feature_types_and_threats(move.row + i, move.col - i, ANTIDIAGONAL);
 			}
-		threats_update.stopTimer();
+//		threats_update.stopTimer();
 	}
-	void FeatureExtractor_v3::updateValueStatistics(Move move) noexcept
-	{
-		const FeatureTypeGroup &ftg = feature_types.at(move.row, move.col);
-		const std::array<FeatureType, 4> group = (move.sign == Sign::CROSS) ? ftg.for_cross : ftg.for_circle;
-		for (int dir = 0; dir < 4; dir++)
-			if (group[dir] == FeatureType::NONE) // update only directions other than those that have threats
-			{
-				uint32_t raw_feature = getRawFeatureAt(move.row, move.col, static_cast<Direction>(dir));
-//				raw_feature = (raw_feature >> (2 * pad - 4)) & 975;
-				raw_feature = (raw_feature >> (2 * pad - 6)) & 16191;
-				assert(raw_feature < feature_value_statistics.size());
-				feature_value_statistics[2 * raw_feature + static_cast<int>(move.sign) - 1]++;
-			}
-	}
-	uint8_t FeatureExtractor_v3::getValue(Move move) const noexcept
-	{
-		uint8_t result = 0;
-		for (int dir = 0; dir < 4; dir++)
-		{
-			uint32_t raw_feature = getRawFeatureAt(move.row, move.col, static_cast<Direction>(dir));
-//			raw_feature = (raw_feature >> (2 * pad - 4)) & 975;
-			raw_feature = (raw_feature >> (2 * pad - 6)) & 16191;
-			assert(raw_feature < feature_value_table.size());
-			result += feature_value_table[2 * raw_feature + static_cast<int>(move.sign) - 1];
-		}
-		return result;
-	}
+//	void FeatureExtractor_v3::updateValueStatistics(Move move) noexcept
+//	{
+//		const int idx = move.row * game_config.cols + move.col;
+//		feature_value_statistics[2 * idx + static_cast<int>(move.sign) - 1]++;
+//		return;
+//
+//		const FeatureTypeGroup &ftg = feature_types.at(move.row, move.col);
+//		const std::array<FeatureType, 4> group = (move.sign == Sign::CROSS) ? ftg.for_cross : ftg.for_circle;
+//		for (int dir = 0; dir < 4; dir++)
+//			if (group[dir] == FeatureType::NONE) // update only directions other than those that have threats
+//			{
+//				uint32_t raw_feature = getRawFeatureAt(move.row, move.col, static_cast<Direction>(dir));
+////				raw_feature = (raw_feature >> (2 * pad - 4)) & 975;
+//				raw_feature = (raw_feature >> (2 * pad - 6)) & 16191;
+//				assert(raw_feature < feature_value_statistics.size());
+//				feature_value_statistics[2 * raw_feature + static_cast<int>(move.sign) - 1]++;
+//			}
+//	}
+//	uint8_t FeatureExtractor_v3::getValue(Move move) const noexcept
+//	{
+//		const int idx = move.row * game_config.cols + move.col;
+//		return feature_value_table[2 * idx + static_cast<int>(move.sign) - 1];
+//
+//		uint8_t result = 0;
+//		for (int dir = 0; dir < 4; dir++)
+//		{
+//			uint32_t raw_feature = getRawFeatureAt(move.row, move.col, static_cast<Direction>(dir));
+////			raw_feature = (raw_feature >> (2 * pad - 4)) & 975;
+//			raw_feature = (raw_feature >> (2 * pad - 6)) & 16191;
+//			assert(raw_feature < feature_value_table.size());
+//			result += feature_value_table[2 * raw_feature + static_cast<int>(move.sign) - 1];
+//		}
+//		return result;
+//	}
 	void FeatureExtractor_v3::print_stats() const
 	{
 		std::cout << features_init.toString() << '\n';

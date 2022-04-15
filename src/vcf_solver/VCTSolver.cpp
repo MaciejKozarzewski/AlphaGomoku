@@ -1,14 +1,14 @@
 /*
- * VCFSolver_v3.cpp
+ * VCTSolver.cpp
  *
  *  Created on: Apr 13, 2022
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/vcf_solver/VCFSolver_v3.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
 #include <alphagomoku/utils/LinearRegression.hpp>
 #include <alphagomoku/utils/Logger.hpp>
+#include <alphagomoku/vcf_solver/VCTSolver.hpp>
 
 #include <iostream>
 #include <cassert>
@@ -27,12 +27,23 @@ namespace
 		const int size = cfg.rows * cfg.cols;
 		return size * (size - 1) / 2;
 	}
+	void add_edges_but_exclude_duplicates(SearchTask &task, const std::vector<Move> &moves, Sign signToMove)
+	{
+		for (auto iter = moves.begin(); iter < moves.end(); iter++)
+		{
+			Move move_to_be_added(signToMove, *iter);
+			bool is_already_added = std::any_of(task.getProvenEdges().begin(), task.getProvenEdges().end(), [move_to_be_added](const Edge &edge)
+			{	return edge.getMove() == move_to_be_added;}); // find if such move has been added in any of two loops above
+			if (not is_already_added) // move must not be added twice
+				task.addProvenEdge(move_to_be_added, ProvenValue::UNKNOWN);
+		}
+	}
 }
 
 namespace ag
 {
 
-	VCFSolver_v3::VCFSolver_v3(GameConfig gameConfig, int maxPositions) :
+	VCTSolver::VCTSolver(GameConfig gameConfig, int maxPositions) :
 			number_of_moves_for_draw(gameConfig.rows * gameConfig.cols),
 			max_positions(maxPositions),
 			nodes_buffer(get_max_nodes(gameConfig)),
@@ -40,13 +51,15 @@ namespace ag
 			feature_extractor(gameConfig),
 			hashtable(gameConfig.rows * gameConfig.cols, 4096),
 			lower_measurement(max_positions),
-			upper_measurement(tuning_step * max_positions)
+			upper_measurement(tuning_step * max_positions),
+			hint_table(gameConfig.rows, gameConfig.cols)
 	{
 	}
-	void VCFSolver_v3::solve(SearchTask &task, int level)
+	void VCTSolver::solve(SearchTask &task, int level)
 	{
 		stats.setup.startTimer();
 		feature_extractor.setBoard(task.getBoard(), task.getSignToMove());
+		hint_table.fill(0);
 		stats.setup.stopTimer();
 
 		{ // artificial scope for timer guard
@@ -59,7 +72,7 @@ namespace ag
 			}
 		}
 
-		if (level < 2)
+		if (level <= 1)
 			return;
 
 		int available_attacks = 0;
@@ -76,7 +89,8 @@ namespace ag
 
 		node_counter = 1; // prepare node stack
 		InternalNode &root_node = nodes_buffer.front();
-		root_node.init(0, 0, invertSign(sign_to_move), SolvedValue::UNKNOWN); // prepare node stack
+		const Move last_move = (task.getLastEdge() == nullptr) ? Move(0, 0, invertSign(sign_to_move)) : task.getLastEdge()->getMove();
+		root_node.init(last_move.row, last_move.col, last_move.sign); // prepare node stack
 
 		position_counter = 0;
 		recursive_solve(nodes_buffer.front(), true);
@@ -92,7 +106,7 @@ namespace ag
 			task.markAsReady();
 		}
 	}
-	void VCFSolver_v3::tune(float speed)
+	void VCTSolver::tune(float speed)
 	{
 //		Logger::write("VCFSolver::tune(" + std::to_string(speed) + ")");
 //		Logger::write("Before new measurement");
@@ -145,7 +159,7 @@ namespace ag
 		}
 		if (probability < 0.05f) // there is less than 5% chance that higher value of 'max_positions' gives higher speed
 		{
-			if (lower_measurement.getParamValue() / tuning_step >= 50)
+			if (lower_measurement.getParamValue() / tuning_step >= 100)
 			{
 				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
 				lower_measurement = Measurement(new_max_pos);
@@ -156,11 +170,11 @@ namespace ag
 			}
 		}
 	}
-	SolverStats VCFSolver_v3::getStats() const
+	SolverStats VCTSolver::getStats() const
 	{
 		return stats;
 	}
-	void VCFSolver_v3::clearStats()
+	void VCTSolver::clearStats()
 	{
 		stats = SolverStats();
 		max_positions = lower_measurement.getParamValue();
@@ -169,7 +183,7 @@ namespace ag
 		step_counter = 0;
 		Logger::write("VCFSolver is using " + std::to_string(max_positions) + " positions");
 	}
-	void VCFSolver_v3::print_stats() const
+	void VCTSolver::print_stats() const
 	{
 		feature_extractor.print_stats();
 		std::cout << stats.toString() << '\n';
@@ -177,17 +191,7 @@ namespace ag
 	/*
 	 * private
 	 */
-	void VCFSolver_v3::add_move(Move move) noexcept
-	{
-		feature_extractor.addMove(move);
-		hashtable.updateHash(move);
-	}
-	void VCFSolver_v3::undo_move(Move move) noexcept
-	{
-		feature_extractor.undoMove(move);
-		hashtable.updateHash(move);
-	}
-	void VCFSolver_v3::static_solve(SearchTask &task, int level)
+	void VCTSolver::static_solve(SearchTask &task, int level)
 	{
 		const Sign sign_to_move = feature_extractor.getSignToMove();
 
@@ -212,7 +216,7 @@ namespace ag
 			return;
 		}
 		if (level < 1)
-			return;
+			return; // only game end conditions will be checked
 		const std::vector<Move> &defender_five = get_defender_threats(ThreatType_v3::FIVE);
 		switch (defender_five.size())
 		{
@@ -230,13 +234,13 @@ namespace ag
 					return;
 				}
 
-				const std::vector<Move> &attacker_fork_4x3 = get_attacker_threats(ThreatType_v3::FORK_4x3);
-
 				const std::vector<Move> &defender_half_open_4 = get_defender_threats(ThreatType_v3::HALF_OPEN_4);
 				const std::vector<Move> &defender_open_4 = get_defender_threats(ThreatType_v3::OPEN_4);
 				const std::vector<Move> &defender_fork_4x4 = get_defender_threats(ThreatType_v3::FORK_4x4);
-				if (defender_half_open_4.empty() and defender_open_4.empty() and defender_fork_4x4.empty()) // defender has no five and no four of any kind
+				const std::vector<Move> &defender_fork_4x3 = get_defender_threats(ThreatType_v3::FORK_4x3);
+				if (defender_half_open_4.empty() and defender_open_4.empty() and defender_fork_4x4.empty() and defender_fork_4x3.empty()) // defender cannot make a four of any kind
 				{
+					const std::vector<Move> &attacker_fork_4x3 = get_attacker_threats(ThreatType_v3::FORK_4x3);
 					const std::vector<Move> &attacker_fork_3x3 = get_attacker_threats(ThreatType_v3::FORK_3x3);
 					if (attacker_fork_4x3.size() > 0 or attacker_fork_3x3.size() > 0) // if attacker can make 4x3 or 3x3 fork, it is a win in 5 plys
 					{
@@ -247,23 +251,64 @@ namespace ag
 						return;
 					}
 				}
-				else // defender can make a four of any kind
+				if (defender_open_4.size() > 0 or defender_fork_4x4.size() > 0)
 				{
 					task.addProvenEdges(defender_open_4, sign_to_move, ProvenValue::UNKNOWN);
 					task.addProvenEdges(defender_fork_4x4, sign_to_move, ProvenValue::UNKNOWN);
-					task.addProvenEdges(defender_half_open_4, sign_to_move, ProvenValue::UNKNOWN);
+					task.addProvenEdges(defender_fork_4x3, sign_to_move, ProvenValue::UNKNOWN);
+					task.addProvenEdges(defender_half_open_4, sign_to_move, ProvenValue::UNKNOWN); // include half open fours just in case they are important (TODO maybe this could be improved)
 
 					const std::vector<Move> &attacker_half_open_4 = get_attacker_threats(ThreatType_v3::HALF_OPEN_4);
-					for (auto iter = attacker_half_open_4.begin(); iter < attacker_half_open_4.end(); iter++)
-					{
-						Move move_to_be_added(sign_to_move, *iter);
-						bool is_already_added = std::any_of(task.getProvenEdges().begin(), task.getProvenEdges().end(),
-								[move_to_be_added](const Edge &edge)
-								{	return edge.getMove() == move_to_be_added;}); // find if such move has been added in any of two loops above
-						if (not is_already_added) // move must not be added twice
-							task.addProvenEdge(move_to_be_added, ProvenValue::UNKNOWN);
-					}
+					const std::vector<Move> &attacker_fork_4x3 = get_attacker_threats(ThreatType_v3::FORK_4x3);
+					add_edges_but_exclude_duplicates(task, attacker_half_open_4, sign_to_move);
+					add_edges_but_exclude_duplicates(task, attacker_fork_4x3, sign_to_move);
 				}
+//				else
+//				{
+//					for (int row = 0; row < game_config.rows; row++)
+//						for (int col = 0; col < game_config.cols; col++)
+//							if (feature_extractor.signAt(row, col) == Sign::NONE)
+//							{
+//								feature_extractor.addMove(Move(row, col, sign_to_move));
+//								if (get_defender_threats(ThreatType_v3::FIVE).size() > 0 or get_defender_threats(ThreatType_v3::OPEN_4).size() > 0
+//										or get_defender_threats(ThreatType_v3::FORK_4x4).size() > 0)
+//								{
+//
+//								}
+//
+//								feature_extractor.undoMove(Move(row, col, sign_to_move));
+//							}
+//				}
+
+//				const std::vector<Move> &defender_half_open_4 = get_defender_threats(ThreatType_v3::HALF_OPEN_4);
+//				const std::vector<Move> &defender_open_4 = get_defender_threats(ThreatType_v3::OPEN_4);
+//				const std::vector<Move> &defender_fork_4x4 = get_defender_threats(ThreatType_v3::FORK_4x4);
+//				const std::vector<Move> &defender_fork_4x3 = get_defender_threats(ThreatType_v3::FORK_4x3);
+//				if (defender_open_4.size() > 0 or defender_fork_4x4.size() > 0 or defender_fork_4x3.size() > 0) // defender can make open four or 4x4 or 4x3 fork (potential win in 3 plys)
+//				{
+//					task.addProvenEdges(defender_open_4, sign_to_move, ProvenValue::UNKNOWN);
+//					task.addProvenEdges(defender_fork_4x4, sign_to_move, ProvenValue::UNKNOWN);
+//					task.addProvenEdges(defender_fork_4x3, sign_to_move, ProvenValue::UNKNOWN);
+//					task.addProvenEdges(defender_half_open_4, sign_to_move, ProvenValue::UNKNOWN); // include half open fours just in case they are important (TODO maybe this could be improved)
+//
+//					const std::vector<Move> &attacker_half_open_4 = get_attacker_threats(ThreatType_v3::HALF_OPEN_4);
+//					const std::vector<Move> &attacker_fork_4x3 = get_attacker_threats(ThreatType_v3::FORK_4x3);
+//					add_edges_but_exclude_duplicates(task, attacker_half_open_4, sign_to_move);
+//					add_edges_but_exclude_duplicates(task, attacker_fork_4x3, sign_to_move);
+//				}
+//				else
+//				{
+//					const std::vector<Move> &attacker_fork_4x3 = get_attacker_threats(ThreatType_v3::FORK_4x3);
+//					const std::vector<Move> &attacker_fork_3x3 = get_attacker_threats(ThreatType_v3::FORK_3x3);
+//					if ((attacker_fork_4x3.size() > 0 or attacker_fork_3x3.size() > 0) and defender_half_open_4.empty()) // if attacker can make 4x3 or 3x3 fork, it is a win in 5 plys
+//					{
+//						task.addProvenEdges(attacker_fork_4x3, sign_to_move, ProvenValue::WIN);
+//						task.addProvenEdges(attacker_fork_3x3, sign_to_move, ProvenValue::WIN);
+//						task.setValue(Value(1.0f, 0.0, 0.0f));
+//						task.markAsReady();
+//						return;
+//					}
+//				}
 				break;
 			}
 			case 1: // defender can make one five
@@ -280,8 +325,9 @@ namespace ag
 			}
 		}
 	}
-	void VCFSolver_v3::prepare_moves_for_attacker(InternalNode &node)
+	void VCTSolver::prepare_moves_for_attacker(InternalNode &node)
 	{
+		assert(node.number_of_children == 0);
 		const std::vector<Move> &attacker_five = get_attacker_threats(ThreatType_v3::FIVE);
 		if (attacker_five.size() > 0) // if attacker can make a five, it is a win in 1 ply
 		{
@@ -308,33 +354,38 @@ namespace ag
 				const std::vector<Move> &defender_half_open_4 = get_defender_threats(ThreatType_v3::HALF_OPEN_4);
 				const std::vector<Move> &defender_open_4 = get_defender_threats(ThreatType_v3::OPEN_4);
 				const std::vector<Move> &defender_fork_4x4 = get_defender_threats(ThreatType_v3::FORK_4x4);
-				if (attacker_fork_4x3.size() > 0 or attacker_fork_3x3.size() > 0)
-				{
-					if (defender_half_open_4.empty() and defender_open_4.empty() and defender_fork_4x4.empty()) // defender cannot make a four of any kind
+				const std::vector<Move> &defender_fork_4x3 = get_defender_threats(ThreatType_v3::FORK_4x3);
+
+				if (defender_half_open_4.empty() and defender_open_4.empty() and defender_fork_4x4.empty() and defender_fork_4x3.empty())
+				{ // defender cannot make a four of any kind
+					if (attacker_fork_4x3.size() > 0 or attacker_fork_3x3.size() > 0)
 					{
 						node.solved_value = SolvedValue::LOSS; // if attacker can make 4x3 or 3x3 fork, it is a win in 5 plys
 						return;
 					}
-					else // defender can make a four of some kind
+					else // check attacks involving open threes
 					{
-						add_children_nodes(node, attacker_fork_4x3, SolvedValue::UNKNOWN, true); // check if a 4x3 fork can be converted to a win (depends on defensive moves)
+						const std::vector<Move> &attacker_open_3 = get_attacker_threats(ThreatType_v3::OPEN_3);
+						add_children_nodes(node, attacker_open_3, 0);
 					}
 				}
+				else // defender can make a four of some kind
+				{
+					add_children_nodes(node, attacker_fork_4x3, 3); // check if a 4x3 fork can be converted to a win (depends on defensive moves)
+					add_children_nodes(node, attacker_fork_3x3, 2); // check if a 3x3 fork can be converted to a win (depends on defensive moves)
+				}
 				const std::vector<Move> &attacker_half_open_4 = get_attacker_threats(ThreatType_v3::HALF_OPEN_4);
-//				const std::vector<Move> &attacker_open_3 = get_attacker_threats(ThreatType_v3::OPEN_3);
-				add_children_nodes(node, attacker_half_open_4, SolvedValue::UNKNOWN, true);
-				add_children_nodes(node, attacker_fork_3x3, SolvedValue::UNKNOWN, true);
-//				add_children_nodes(node, attacker_open_3, SolvedValue::UNKNOWN, true);
+				add_children_nodes(node, attacker_half_open_4, 1);
 
 				if (node.number_of_children == 0)
-					node.solved_value = SolvedValue::UNSOLVED;
+					node.solved_value = SolvedValue::UNSOLVED; // attacker has no threats to make
 				else
 					node.solved_value = SolvedValue::UNKNOWN;
 				break;
 			}
 			case 1: // defender can make one five
 			{
-				add_children_nodes(node, defender_five, SolvedValue::UNKNOWN);
+				add_children_nodes(node, defender_five);
 				node.solved_value = SolvedValue::UNKNOWN;
 				break;
 			}
@@ -345,25 +396,40 @@ namespace ag
 			}
 		}
 	}
-	void VCFSolver_v3::prepare_moves_for_defender(InternalNode &node)
+	void VCTSolver::prepare_moves_for_defender(InternalNode &node)
 	{
+		assert(get_defender_threats(ThreatType_v3::FIVE).empty());
 		const std::vector<Move> &attacker_five = get_attacker_threats(ThreatType_v3::FIVE);
 		switch (attacker_five.size())
 		{
 			case 0:
 			{
 				const std::vector<Move> &attacker_open_4 = get_attacker_threats(ThreatType_v3::OPEN_4);
+				const std::vector<Move> &attacker_fork_4x4 = get_attacker_threats(ThreatType_v3::FORK_4x4);
+				if (attacker_open_4.size() > 0 or attacker_fork_4x4.size() > 0) // the attacker can make an open four or 4x4 fork
+				{
+					const std::vector<Move> &defender_half_open_4 = get_defender_threats(ThreatType_v3::HALF_OPEN_4);
+					const std::vector<Move> &defender_open_4 = get_defender_threats(ThreatType_v3::OPEN_4);
+					const std::vector<Move> &defender_fork_4x4 = get_defender_threats(ThreatType_v3::FORK_4x4);
+					const std::vector<Move> &defender_fork_4x3 = get_defender_threats(ThreatType_v3::FORK_4x3);
 
-				const std::vector<Move> &defender_half_open_4 = get_defender_threats(ThreatType_v3::HALF_OPEN_4);
-				const std::vector<Move> &defender_open_4 = get_defender_threats(ThreatType_v3::OPEN_4);
-				const std::vector<Move> &defender_fork_4x4 = get_defender_threats(ThreatType_v3::FORK_4x4);
-				const std::vector<Move> &defender_five = get_defender_threats(ThreatType_v3::FIVE);
-
-				if (defender_half_open_4.empty() and defender_open_4.empty() and defender_fork_4x4.empty() and defender_five.empty()
-						and attacker_open_4.size() > 0)
-				{ // defender cannot make neither five nor a four of any kind while the attacker can make an open four
-					add_children_nodes(node, attacker_open_4, SolvedValue::UNKNOWN, true);
-					node.solved_value = SolvedValue::UNKNOWN;
+					if (defender_half_open_4.empty() and defender_open_4.empty() and defender_fork_4x4.empty() and defender_fork_4x3.empty())
+					{ // defender cannot make a four of any kind
+						add_children_nodes(node, attacker_open_4);
+						add_children_nodes(node, attacker_fork_4x4);
+//						feature_extractor.print(node.move);
+//						feature_extractor.printAllThreats();
+//						std::cout << "state of all children:" << std::endl;
+//						for (int i = 0; i < node.number_of_children; i++)
+//							std::cout << i << " : " << node.children[i].move.toString() << " : " << node.children[i].move.text() << " = "
+//									<< toString(node.children[i].solved_value) << " " << get_node_value(node.children[i]) << std::endl;
+//						if (node.number_of_children <= 2)
+						node.solved_value = SolvedValue::UNKNOWN; // still single defensive move
+//						else
+//							node.solved_value = SolvedValue::UNSOLVED; // too many defensive moves
+					}
+					else
+						node.solved_value = SolvedValue::UNSOLVED; // attacker lost initiative
 				}
 				else
 					node.solved_value = SolvedValue::UNSOLVED; // attacker lost initiative
@@ -371,7 +437,7 @@ namespace ag
 			}
 			case 1: // single forced move
 			{
-				add_children_nodes(node, attacker_five, SolvedValue::UNKNOWN);
+				add_children_nodes(node, attacker_five);
 				node.solved_value = SolvedValue::UNKNOWN;
 				break;
 			}
@@ -382,9 +448,9 @@ namespace ag
 			}
 		}
 	}
-	void VCFSolver_v3::recursive_solve(InternalNode &node, bool isAttackingSide)
+	void VCTSolver::recursive_solve(InternalNode &node, bool isAttackingSide)
 	{
-//		feature_extractor.print();
+//		feature_extractor.print(node.move);
 //		feature_extractor.printAllThreats();
 
 		node.children = nodes_buffer.data() + node_counter;
@@ -392,38 +458,79 @@ namespace ag
 		if (isAttackingSide)
 			prepare_moves_for_attacker(node);
 		else
+		{
 			prepare_moves_for_defender(node);
+//			if (node.solved_value == SolvedValue::CHECK_LATER)
+//				return;
+		}
+
+//		std::sort(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
+//		{	return (lhs.move.row * game_config.cols + lhs.move.col) < (rhs.move.row * game_config.cols + rhs.move.col);});
+
+//		std::sort(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
+//		{	return lhs.prior_value > rhs.prior_value;});
+
+		std::sort(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
+		{
+			const int lhs_value = lhs.move.row * game_config.cols + lhs.move.col - 1024 * lhs.prior_value;
+			const int rhs_value = rhs.move.row * game_config.cols + rhs.move.col - 1024 * rhs.prior_value;
+			return lhs_value < rhs_value;
+		});
 
 		if (node.solved_value == SolvedValue::UNKNOWN)
 		{
 			assert(node.number_of_children > 0);
+
 			int num_losing_children = 0;
 			bool has_win_child = false;
-			for (auto iter = node.begin(); iter < node.end(); iter++)
+			for (int i = 0; i < node.number_of_children; i++)
 			{
+				InternalNode *iter = nullptr;
+//				if (isAttackingSide)
+//					iter = std::max_element(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
+//					{	return get_node_value(lhs) < get_node_value(rhs);}); // pick best element to check as next node
+//				else
+//				iter = node.begin() + i;
+
+//				if (isAttackingSide)
+				{
+					iter = node.begin() + i;
+					assert(iter->solved_value == SolvedValue::UNKNOWN);
+				}
+//				else
+//				{
+//					iter = std::max_element(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
+//					{	return get_node_value(lhs) < get_node_value(rhs);}); // pick best element to check as next node
+//					assert(iter->solved_value == SolvedValue::UNKNOWN || iter->solved_value == SolvedValue::CHECK_LATER);
+//					if (iter->solved_value == SolvedValue::CHECK_LATER)
+//						iter->solved_value = SolvedValue::UNKNOWN;
+//				}
+
 //				if (iter != node.children)
 //				{
-//					feature_extractor.print();
+//					feature_extractor.print(node.move);
 //					feature_extractor.printAllThreats();
 //				}
-//				std::cout << "positions checked = " << position_counter << std::endl;
+//				std::cout << "positions checked = " << position_counter << "/" << max_positions << std::endl;
 //				std::cout << "state of all children:" << std::endl;
 //				for (int i = 0; i < node.number_of_children; i++)
-//					std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << " "
-//							<< (int) node.children[i].prior_value << std::endl;
+//					std::cout << i << " : " << node.children[i].move.toString() << " : " << node.children[i].move.text() << " = "
+//							<< toString(node.children[i].solved_value) << " " << (int) node.children[i].prior_value << std::endl;
 //				std::cout << "---now checking " << iter->move.toString() << std::endl;
 
 				hashtable.updateHash(iter->move);
 				const SolvedValue solved_value_from_table = hashtable.get(hashtable.getHash());
 				if (solved_value_from_table == SolvedValue::UNKNOWN) // not found
 				{
-					position_counter += 1.0;
 					if (position_counter < max_positions)
 					{
+						position_counter += 1.0;
 						feature_extractor.addMove(iter->move);
 						recursive_solve(*iter, not isAttackingSide);
 						feature_extractor.undoMove(iter->move);
 					}
+					else
+						iter->solved_value = SolvedValue::UNSOLVED;
 				}
 				else
 				{
@@ -441,8 +548,9 @@ namespace ag
 				{
 					if (iter->solved_value == SolvedValue::LOSS) // child node is losing
 						num_losing_children++;
-					else // UNKNOWN, DRAW or UNSOLVED
+					else // DRAW or UNSOLVED
 					{
+						assert(iter->solved_value != SolvedValue::UNKNOWN);
 						if (not isAttackingSide) // if this is defensive side, it must prove all its child nodes as losing
 							break; // so the function can exit now, as there will be at least one unproven node (current one)
 					}
@@ -462,44 +570,73 @@ namespace ag
 				else
 					node.solved_value = SolvedValue::UNSOLVED;
 			}
+			delete_children_nodes(node);
 		}
 		hashtable.insert(hashtable.getHash(), node.solved_value);
-		delete_children_nodes(node);
-//		if (node.solved_value == SolvedValue::LOSS) // node represents a move on the winning path
-//			feature_extractor.updateValueStatistics(node.move);
+
+//		if (isAttackingSide)
+//			update_hint_table(node);
 	}
 
-	const std::vector<Move>& VCFSolver_v3::get_attacker_threats(ThreatType_v3 tt) const noexcept
+	const std::vector<Move>& VCTSolver::get_attacker_threats(ThreatType_v3 tt) const noexcept
 	{
 		return feature_extractor.getThreatHistogram(feature_extractor.getSignToMove()).get(tt);
 	}
-	const std::vector<Move>& VCFSolver_v3::get_defender_threats(ThreatType_v3 tt) const noexcept
+	const std::vector<Move>& VCTSolver::get_defender_threats(ThreatType_v3 tt) const noexcept
 	{
 		return feature_extractor.getThreatHistogram(invertSign(feature_extractor.getSignToMove())).get(tt);
 	}
-	void VCFSolver_v3::add_children_nodes(InternalNode &node, const std::vector<Move> &moves, SolvedValue sv, bool sort) noexcept
+	void VCTSolver::add_children_nodes(InternalNode &node, const std::vector<Move> &moves, int8_t prior) noexcept
 	{
 		assert(node_counter + moves.size() <= nodes_buffer.size());
 		node_counter += moves.size();
 
 		const Sign sign_to_move = invertSign(node.move.sign);
 		for (size_t i = 0; i < moves.size(); i++)
-			node.children[node.number_of_children + i].init(moves[i].row, moves[i].col, sign_to_move, sv);
+			node.children[node.number_of_children + i].init(moves[i].row, moves[i].col, sign_to_move, prior);
 
-		if (sort)
-		{
-			// TODO add sorting newly added nodes -> sort(node.end(), node.end() + moves.size())
-//			for (size_t i = 0; i < moves.size(); i++)
-//				node.children[node.number_of_children + i].prior_value = feature_extractor.getValue(node.children[node.number_of_children + i].move);
-//			std::sort(node.end(), node.end() + moves.size(), [](const InternalNode &lhs, const InternalNode &rhs)
-//			{	return lhs.prior_value > rhs.prior_value;});
-		}
 		node.number_of_children += moves.size();
 	}
-	void VCFSolver_v3::delete_children_nodes(InternalNode &node) noexcept
+	void VCTSolver::delete_children_nodes(InternalNode &node) noexcept
 	{
 		assert(node_counter >= static_cast<size_t>(node.number_of_children));
 		node_counter -= node.number_of_children;
+	}
+	void VCTSolver::update_hint_table(const InternalNode &node) noexcept
+	{
+		const int row = node.move.row;
+		const int col = node.move.col;
+		switch (node.solved_value)
+		{
+			case SolvedValue::UNKNOWN:
+				break;
+			case SolvedValue::LOSS:
+				hint_table.at(row, col) = std::min(32767, hint_table.at(row, col) + 10);
+				break;
+			case SolvedValue::DRAW:
+				hint_table.at(row, col) = std::max(-32768, hint_table.at(row, col) - 1);
+				break;
+			case SolvedValue::WIN:
+				hint_table.at(row, col) = std::max(-32768, hint_table.at(row, col) - 2);
+				break;
+			case SolvedValue::UNSOLVED:
+				hint_table.at(row, col) = std::max(-32768, hint_table.at(row, col) - 3);
+				break;
+		}
+	}
+	int VCTSolver::get_node_value(const InternalNode &node) const noexcept
+	{
+		switch (node.solved_value)
+		{
+			case SolvedValue::UNSOLVED:
+				return std::numeric_limits<int>::lowest();
+			case SolvedValue::CHECK_LATER:
+				return std::numeric_limits<int>::lowest() / 2;
+			default:
+				return 0;
+		}
+//		return (node.solved_value == SolvedValue::UNKNOWN) ? hint_table.at(node.move.row, node.move.col) : std::numeric_limits<int>::lowest();
+//		return (node.solved_value == SolvedValue::UNKNOWN) ? hint_table.at(node.move.row, node.move.col) : std::numeric_limits<int>::lowest();
 	}
 
 } /* namespace ag */

@@ -62,7 +62,8 @@ namespace ag
 	void SearchTask::addProvenEdge(Move move, ProvenValue pv)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(proven_edges.begin(), proven_edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(proven_edges.begin(), proven_edges.end(), [move](const Edge &edge)
+		{	return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;
@@ -73,7 +74,8 @@ namespace ag
 	void SearchTask::addEdge(Move move)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge)
+		{	return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		edges.push_back(Edge(move));
@@ -99,7 +101,7 @@ namespace ag
 		{
 			result += "Proven moves:\n";
 			for (size_t i = 0; i < proven_edges.size(); i++)
-				result += proven_edges[i].toString() + '\n';
+				result += proven_edges[i].getMove().toString() + " : " + proven_edges[i].toString() + '\n';
 		}
 		if (edges.size() > 0)
 		{

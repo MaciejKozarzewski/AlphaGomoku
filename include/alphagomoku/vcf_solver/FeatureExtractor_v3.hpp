@@ -128,12 +128,22 @@ namespace ag
 			void printRawFeature(int row, int col) const;
 			void printThreat(int row, int col) const;
 			void printAllThreats() const;
-			void print() const;
+			void print(Move lastMove = Move()) const;
 
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
-			void updateValueStatistics(Move move) noexcept;
-			uint8_t getValue(Move move) const noexcept;
+			void updateValueStatistics(Move move) noexcept
+			{
+				const int idx = move.row * game_config.cols + move.col;
+				feature_value_statistics[2 * idx + static_cast<int>(move.sign) - 1]++;
+			}
+			uint8_t getValue(Move move) const noexcept
+			{
+				const int idx = move.row * game_config.cols + move.col;
+				return feature_value_table[2 * idx + static_cast<int>(move.sign) - 1];
+			}
+//			void updateValueStatistics(Move move) noexcept;
+//			uint8_t getValue(Move move) const noexcept;
 
 			void print_stats() const;
 		private:

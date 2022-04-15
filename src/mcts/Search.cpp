@@ -80,6 +80,7 @@ namespace ag
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
+			vct_solver(gameOptions, searchOptions.vcf_solver_max_positions),
 			vcf_solver(gameOptions, searchOptions.vcf_solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
@@ -93,7 +94,8 @@ namespace ag
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
-		vcf_solver.clearStats();
+		vct_solver.clearStats();
+//		vcf_solver.clearStats();
 		last_tuning_point.time = getTime();
 		last_tuning_point.node_count = stats.nb_node_count;
 	}
@@ -138,7 +140,8 @@ namespace ag
 		for (int i = 0; i < active_task_count; i++)
 		{
 			TimerGuard timer(stats.evaluate);
-			vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level);
+			vct_solver.solve(search_tasks[i], search_config.vcf_solver_level);
+//			vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level);
 		}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
@@ -193,7 +196,8 @@ namespace ag
 		{
 			const double speed = evaluated_nodes / elapsed_time;
 			if (stats.nb_node_count > 1)
-				vcf_solver.tune(speed);
+				vct_solver.tune(speed);
+//				vcf_solver.tune(speed);
 			last_tuning_point.time = getTime();
 			last_tuning_point.node_count = stats.nb_node_count;
 		}

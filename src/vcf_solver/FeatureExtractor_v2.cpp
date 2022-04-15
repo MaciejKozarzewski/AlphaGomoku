@@ -380,35 +380,78 @@ namespace ag
 		for (size_t i = 0; i < circle_half_open_four.size(); i++)
 			std::cout << circle_half_open_four[i].toString() << " : " << ag::toString(ThreatType::HALF_OPEN_FOUR) << std::endl;
 	}
-	void FeatureExtractor_v2::print() const
+	void FeatureExtractor_v2::print(Move lastMove) const
 	{
 		std::cout << "sign to move = " << sign_to_move << '\n';
 		for (int i = 0; i < internal_board.rows(); i++)
 		{
 			for (int j = 0; j < internal_board.cols(); j++)
+			{
+				if (lastMove.sign != Sign::NONE)
+				{
+					if ((i - pad) == lastMove.row && (j - pad) == lastMove.col)
+						std::cout << '>';
+					else
+					{
+						if ((i - pad) == lastMove.row && (j - pad) == lastMove.col + 1)
+							std::cout << '<';
+						else
+							std::cout << ' ';
+					}
+				}
+				else
+					std::cout << ' ';
 				switch (internal_board.at(i, j))
 				{
 					case 0:
-						std::cout << "_ ";
+						std::cout << "_";
 						break;
 					case 1:
-						std::cout << "X ";
+						std::cout << "X";
 						break;
 					case 2:
-						std::cout << "O ";
+						std::cout << "O";
 						break;
 					case 3:
-						std::cout << "| ";
+						std::cout << "|";
 						break;
 				}
+			}
+			if (lastMove.sign != Sign::NONE)
+			{
+				if ((i - pad) == lastMove.row && internal_board.cols() - 1 == lastMove.col)
+					std::cout << '<';
+				else
+					std::cout << ' ';
+			}
 			std::cout << '\n';
 		}
+//		for (int i = 0; i < internal_board.rows(); i++)
+//		{
+//			for (int j = 0; j < internal_board.cols(); j++)
+//				switch (internal_board.at(i, j))
+//				{
+//					case 0:
+//						std::cout << "_ ";
+//						break;
+//					case 1:
+//						std::cout << "X ";
+//						break;
+//					case 2:
+//						std::cout << "O ";
+//						break;
+//					case 3:
+//						std::cout << "| ";
+//						break;
+//				}
+//			std::cout << '\n';
+//		}
 		std::cout << std::endl;
 	}
 
 	void FeatureExtractor_v2::addMove(Move move) noexcept
 	{
-		features_update.startTimer();
+//		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -422,16 +465,16 @@ namespace ag
 			default:
 				break;
 		}
-		features_update.stopTimer();
+//		features_update.stopTimer();
 
-		threats_update.startTimer();
+//		threats_update.startTimer();
 		update_threats(move.row, move.col);
-		threats_update.stopTimer();
+//		threats_update.stopTimer();
 		assert(signAt(move.row, move.col) == move.sign);
 	}
 	void FeatureExtractor_v2::undoMove(Move move) noexcept
 	{
-		features_update.startTimer();
+//		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -445,11 +488,11 @@ namespace ag
 			default:
 				break;
 		}
-		features_update.stopTimer();
+//		features_update.stopTimer();
 
-		threats_update.startTimer();
+//		threats_update.startTimer();
 		update_threats(move.row, move.col);
-		threats_update.stopTimer();
+//		threats_update.stopTimer();
 		assert(signAt(move.row, move.col) == Sign::NONE);
 	}
 	void FeatureExtractor_v2::print_stats() const
@@ -469,7 +512,7 @@ namespace ag
 	}
 	void FeatureExtractor_v2::calc_all_features() noexcept
 	{
-		features_init.startTimer();
+//		features_init.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -489,11 +532,11 @@ namespace ag
 			default:
 				break;
 		}
-		features_init.stopTimer();
+//		features_init.stopTimer();
 	}
 	void FeatureExtractor_v2::get_threat_lists()
 	{
-		threats_init.startTimer();
+//		threats_init.startTimer();
 		cross_five.clear();
 		cross_open_four.clear();
 		cross_half_open_four.clear();
@@ -518,7 +561,7 @@ namespace ag
 				}
 				else
 					threats.at(row, col) = ThreatGroup();
-		threats_init.stopTimer();
+//		threats_init.stopTimer();
 	}
 	void FeatureExtractor_v2::update_threats(int row, int col)
 	{

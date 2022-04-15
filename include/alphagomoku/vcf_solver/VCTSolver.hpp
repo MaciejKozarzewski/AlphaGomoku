@@ -1,12 +1,12 @@
 /*
- * VCFSolver_v3.hpp
+ * VCTSolver_v3.hpp
  *
  *  Created on: Apr 13, 2022
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef INCLUDE_ALPHAGOMOKU_VCF_SOLVER_VCFSOLVER_V3_HPP_
-#define INCLUDE_ALPHAGOMOKU_VCF_SOLVER_VCFSOLVER_V3_HPP_
+#ifndef INCLUDE_ALPHAGOMOKU_VCF_SOLVER_VCTSOLVER_HPP_
+#define INCLUDE_ALPHAGOMOKU_VCF_SOLVER_VCTSOLVER_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/mcts/Value.hpp>
@@ -15,6 +15,8 @@
 #include <alphagomoku/vcf_solver/FastHashTable.hpp>
 #include <alphagomoku/vcf_solver/VCFSolver.hpp>
 #include <alphagomoku/vcf_solver/FeatureExtractor_v3.hpp>
+
+#include <cassert>
 
 namespace ag
 {
@@ -69,7 +71,7 @@ namespace ag
 //			std::string toString() const;
 //	};
 
-	class VCFSolver_v3
+	class VCTSolver
 	{
 		private:
 			struct InternalNode
@@ -78,13 +80,14 @@ namespace ag
 					Move move;
 					int16_t number_of_children = 0;
 					SolvedValue solved_value = SolvedValue::UNKNOWN;
-					uint8_t prior_value = 0;
-					void init(int row, int col, Sign sign, SolvedValue sv = SolvedValue::UNKNOWN) noexcept
+					int8_t prior_value = 0;
+					void init(int row, int col, Sign sign, int8_t prior = 0) noexcept
 					{
 						children = nullptr;
 						move = Move(row, col, sign);
 						number_of_children = 0;
-						solved_value = sv;
+						solved_value = SolvedValue::UNKNOWN;
+						prior_value = prior;
 					}
 					InternalNode* begin() noexcept
 					{
@@ -116,8 +119,10 @@ namespace ag
 			Measurement upper_measurement;
 
 			SolverStats stats;
+
+			matrix<int16_t> hint_table;
 		public:
-			VCFSolver_v3(GameConfig gameConfig, int maxPositions = 100);
+			VCTSolver(GameConfig gameConfig, int maxPositions = 100);
 
 			void solve(SearchTask &task, int level = 0);
 			void tune(float speed);
@@ -127,8 +132,6 @@ namespace ag
 
 			void print_stats() const;
 		private:
-			void add_move(Move move) noexcept;
-			void undo_move(Move move) noexcept;
 			void check_game_end_conditions(SearchTask &task);
 			void static_solve(SearchTask &task, int level);
 			void prepare_moves_for_attacker(InternalNode &node);
@@ -137,10 +140,12 @@ namespace ag
 
 			const std::vector<Move>& get_attacker_threats(ThreatType_v3 tt) const noexcept;
 			const std::vector<Move>& get_defender_threats(ThreatType_v3 tt) const noexcept;
-			void add_children_nodes(InternalNode &node, const std::vector<Move> &moves, SolvedValue sv, bool sort = false) noexcept;
+			void add_children_nodes(InternalNode &node, const std::vector<Move> &moves, int8_t prior = 0) noexcept;
 			void delete_children_nodes(InternalNode &node) noexcept;
+			void update_hint_table(const InternalNode &node) noexcept;
+			int get_node_value(const InternalNode &node) const noexcept;
 	};
 
 } /* namespace ag */
 
-#endif /* INCLUDE_ALPHAGOMOKU_VCF_SOLVER_VCFSOLVER_V3_HPP_ */
+#endif /* INCLUDE_ALPHAGOMOKU_VCF_SOLVER_VCTSOLVER_HPP_ */

@@ -44,8 +44,9 @@ namespace ag
 		result += recursive_solve.toString() + '\n';
 		if (setup.getTotalCount() > 0)
 		{
-			result += "total positions = " + std::to_string(total_positions) + " : "
-					+ std::to_string(total_positions / recursive_solve.getTotalCount()) + '\n';
+			if (recursive_solve.getTotalCount() > 0)
+				result += "total positions = " + std::to_string(total_positions) + " : "
+						+ std::to_string(total_positions / recursive_solve.getTotalCount()) + '\n';
 			result += "static solved    " + std::to_string(static_hits) + " / " + std::to_string(setup.getTotalCount()) + " ("
 					+ std::to_string(100.0 * static_hits / setup.getTotalCount()) + "%)\n";
 			result += "recursive solved " + std::to_string(recursive_hits) + " / " + std::to_string(setup.getTotalCount()) + " ("
@@ -489,7 +490,7 @@ namespace ag
 
 	void VCFSolver::recursive_solve_2(InternalNode &node, bool isAttackingSide)
 	{
-//		feature_extractor.print();
+//		feature_extractor.print(node.move);
 //		feature_extractor.printAllThreats();
 
 		const Sign sign_to_move = invertSign(node.move.sign);
@@ -562,6 +563,8 @@ namespace ag
 				}
 			}
 		}
+		std::sort(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
+		{	return (lhs.move.row * game_config.cols + lhs.move.col) < (rhs.move.row * game_config.cols + rhs.move.col);});
 
 		node.solved_value = SolvedValue::UNSOLVED;
 
@@ -571,7 +574,7 @@ namespace ag
 		{
 //			if (iter != node.children)
 //			{
-//				feature_extractor.print();
+//				feature_extractor.print(node.move);
 //				feature_extractor.printAllThreats();
 //			}
 //			std::cout << "positions checked = " << position_counter << std::endl;
@@ -594,7 +597,7 @@ namespace ag
 			}
 			else
 			{
-				position_counter += 0.0625; // the position counter is increased to avoid infinite search over cached states
+//				position_counter += 0.0625; // the position counter is increased to avoid infinite search over cached states
 				iter->solved_value = solved_value_from_table; // cache hit
 			}
 			hashtable.updateHash(iter->move); // revert back to original hash

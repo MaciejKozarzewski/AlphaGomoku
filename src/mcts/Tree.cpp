@@ -195,9 +195,10 @@ namespace ag
 			return false;
 		else
 		{
-			int non_losing_edges = std::count_if(root_node->begin(), root_node->end(), [](const Edge &edge)
-			{	return edge.getProvenValue() != ProvenValue::LOSS;});
-			return non_losing_edges == 1;
+			return root_node->numberOfEdges() == 1;
+//			int non_losing_edges = std::count_if(root_node->begin(), root_node->end(), [](const Edge &edge)
+//			{	return edge.getProvenValue() != ProvenValue::LOSS;});
+//			return non_losing_edges == 1;
 		}
 	}
 

@@ -156,7 +156,7 @@ namespace ag
 			void printFeature(int row, int col) const;
 			void printThreat(int row, int col) const;
 			void printAllThreats() const;
-			void print() const;
+			void print(Move lastMove = Move()) const;
 
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
