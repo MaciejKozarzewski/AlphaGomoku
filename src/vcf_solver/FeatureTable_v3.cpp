@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <map>
 #include <algorithm>
 #include <vector>
 #include <array>
@@ -467,6 +468,26 @@ namespace
 
 namespace ag
 {
+	std::string toString(FeatureType ft)
+	{
+		switch (ft)
+		{
+			case FeatureType::NONE:
+				return "NONE";
+			case FeatureType::OPEN_3:
+				return "OPEN_3";
+			case FeatureType::HALF_OPEN_4:
+				return "HALF_OPEN_4";
+			case FeatureType::OPEN_4:
+				return "OPEN_4";
+			case FeatureType::DOUBLE_4:
+				return "DOUBLE_4";
+			case FeatureType::FIVE:
+				return "FIVE";
+			case FeatureType::OVERLINE:
+				return "OVERLINE";
+		}
+	}
 
 	FeatureTable_v3::FeatureTable_v3(GameRules rules) :
 			features(power(4, Feature::length(rules)))
@@ -475,10 +496,10 @@ namespace ag
 		init_features(rules);
 //		double t1 = getTime();
 		init_update_mask(rules);
-
 //		double t2 = getTime();
+//		init_defensive_moves(rules);
 //		std::cout << (t1 - t0) << " " << (t2 - t1) << std::endl;
-//
+
 //		size_t count_cross[7] = { 0, 0, 0, 0, 0, 0, 0 };
 //		size_t count_circle[7] = { 0, 0, 0, 0, 0, 0, 0 };
 //
@@ -533,17 +554,16 @@ namespace ag
 				line.decode(i);
 				if (line.isValid())
 				{
-					FeatureEncoding feature;
 					line.setCenter(Sign::CROSS);
-					feature.for_cross = for_cross(line);
+					FeatureType cross = for_cross(line);
 					line.setCenter(Sign::CIRCLE);
-					feature.for_circle = for_circle(line);
+					FeatureType circle = for_circle(line);
 					line.setCenter(Sign::NONE);
 
-					features[i] = feature.encode();
+					features[i] = FeatureEncoding(cross, circle);
 					was_processed[i] = true;
 					line.flip(); // the features are symmetrical so we can update both at the same time
-					features[line.encode()] = feature.encode();
+					features[line.encode()] = FeatureEncoding(cross, circle);
 					was_processed[line.encode()] = true;
 				}
 			}
@@ -591,8 +611,8 @@ namespace ag
 									secondary_line.set(feature_length - 1 - spot_index, Sign::CIRCLE);
 									const FeatureEncoding circle_altered = getFeatureType(secondary_line.encode());
 
-									if (original.for_cross != cross_altered.for_cross or original.for_circle != cross_altered.for_circle
-											or original.for_cross != circle_altered.for_cross or original.for_circle != circle_altered.for_circle)
+									if (original.forCross() != cross_altered.forCross() or original.forCircle() != cross_altered.forCircle()
+											or original.forCross() != circle_altered.forCross() or original.forCircle() != circle_altered.forCircle())
 									{
 										must_be_updated = true;
 										break;
@@ -601,8 +621,11 @@ namespace ag
 							}
 						const int dst_index = spot_index - static_cast<int>(spot_index > side_length); // center spot must be omitted
 						feature.setUpdateMask(dst_index, must_be_updated);
+//						feature.setUpdateMask(spot_index, must_be_updated);
 					}
-				features[i] = feature.encode();
+//					else
+//						feature.setUpdateMask(spot_index, true);
+				features[i] = feature;
 				was_processed[i] = true;
 				base_line.decode(i);
 
@@ -610,11 +633,79 @@ namespace ag
 				FeatureEncoding tmp(feature);
 				for (int k = 0; k < feature_length - 1; k++) // flip update mask
 					tmp.setUpdateMask(k, feature.mustBeUpdated(feature_length - 2 - k));
-				features[base_line.encode()] = tmp.encode();
+//				for (int k = 0; k < feature_length; k++) // flip update mask
+//					tmp.setUpdateMask(k, feature.mustBeUpdated(feature_length - 1 - k));
+				features[base_line.encode()] = tmp;
 				was_processed[base_line.encode()] = true;
 			}
 		}
 	}
+	void FeatureTable_v3::init_defensive_moves(GameRules rules)
+	{
+		const int feature_length = Feature::length(rules);
+		const int side_length = feature_length / 2;
+		Feature base_line(feature_length);
+		Feature secondary_line(feature_length);
 
-} /* namespace ag */
+		std::unordered_map<uint32_t, int> unique_patterns;
+
+		for (size_t i = 0; i < features.size(); i++)
+		{
+			uint32_t mask_cross = 0u, mask_circle = 0u;
+			base_line.decode(i);
+			if (base_line.isValid())
+			{
+				FeatureEncoding feature = getFeatureType(i);
+				for (int spot_index = 0; spot_index < feature_length; spot_index++)
+					if (spot_index != side_length and base_line.get(spot_index) == Sign::NONE)
+					{
+						base_line.set(spot_index, Sign::CROSS);
+						const FeatureEncoding cross_refuted = getFeatureType(base_line.encode());
+						base_line.set(spot_index, Sign::CIRCLE);
+						const FeatureEncoding circle_refuted = getFeatureType(base_line.encode());
+						base_line.set(spot_index, Sign::NONE);
+
+						if (feature.forCircle() != cross_refuted.forCircle())
+							mask_cross |= (1 << spot_index);
+						if (feature.forCross() != circle_refuted.forCross())
+							mask_circle |= (1 << spot_index);
+					}
+
+				if (unique_patterns.find(mask_cross) == unique_patterns.end())
+					unique_patterns.insert( { mask_cross, 0 });
+				else
+					unique_patterns.find(mask_cross)->second++;
+
+				if (unique_patterns.find(mask_circle) == unique_patterns.end())
+					unique_patterns.insert( { mask_circle, 0 });
+				else
+					unique_patterns.find(mask_circle)->second++;
+
+//				base_line.setCenter(Sign::CIRCLE);
+//				std::cout << base_line.toString() << '\n';
+//				for (int k = 0; k < feature_length; k++)
+//					std::cout << ((mask_cross >> k) & 1);
+//				std::cout << '\n';
+//				base_line.setCenter(Sign::CROSS);
+//				std::cout << base_line.toString() << '\n';
+//				for (int k = 0; k < feature_length; k++)
+//					std::cout << ((mask_circle >> k) & 1);
+//				std::cout << '\n' << std::endl;
+
+			}
+		}
+
+		std::cout << toString(rules) << '\n';
+		for (auto iter = unique_patterns.begin(); iter != unique_patterns.end(); iter++)
+		{
+			uint32_t tmp = iter->first;
+			for (int k = 0; k < feature_length; k++)
+				std::cout << ((tmp >> k) & 1);
+			std::cout << '\n';
+		}
+		std::cout << std::endl;
+	}
+
+}
+/* namespace ag */
 

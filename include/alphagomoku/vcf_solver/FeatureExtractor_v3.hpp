@@ -152,6 +152,7 @@ namespace ag
 			void get_threat_lists();
 
 			void update_central_spot(int row, int col, int mode) noexcept;
+			void update_neighborhood(int row, int col) noexcept;
 			void update_feature_types_and_threats(int row, int col, int direction) noexcept;
 	};
 

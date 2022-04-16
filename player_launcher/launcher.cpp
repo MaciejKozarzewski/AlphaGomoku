@@ -140,8 +140,8 @@ class NNSearch
 
 void test_feature_extractor()
 {
-	GameConfig game_config(GameRules::FREESTYLE, 20);
-//	GameConfig game_config(GameRules::STANDARD, 15);
+//	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
 
 	GameBuffer buffer;
 #ifdef NDEBUG
@@ -149,8 +149,8 @@ void test_feature_extractor()
 #else
 	for (int i = 0; i < 1; i++)
 #endif
-//		buffer.load("/home/maciek/alphagomoku/run2022_15x15s2/train_buffer/buffer_" + std::to_string(i) + ".bin");
-		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
+		buffer.load("/home/maciek/alphagomoku/run2022_15x15s2/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
 	FeatureExtractor_v2 extractor_old(game_config);
@@ -190,46 +190,46 @@ void test_feature_extractor()
 					board.at(x, y) = Sign::NONE;
 				}
 			}
-//			extractor_new2.setBoard(board, sample.getMove().sign);
-//			for (int x = 0; x < game_config.rows; x++)
-//				for (int y = 0; y < game_config.cols; y++)
-//				{
-//					for (int dir = 0; dir < 4; dir++)
-//					{
-//						if (extractor_new2.getRawFeatureAt(x, y, static_cast<Direction>(dir))
-//								!= extractor_new.getRawFeatureAt(x, y, static_cast<Direction>(dir)))
-//						{
-//							std::cout << "Raw feature mismatch\n";
-//							std::cout << "Single step\n";
-//							extractor_new2.printRawFeature(x, y);
-//							std::cout << "incremental\n";
-//							extractor_new.printRawFeature(x, y);
-//							exit(-1);
-//						}
-//						if (extractor_new2.getFeatureTypeAt(Sign::CROSS, x, y, static_cast<Direction>(dir))
-//								!= extractor_new.getFeatureTypeAt(Sign::CROSS, x, y, static_cast<Direction>(dir))
-//								or extractor_new2.getFeatureTypeAt(Sign::CIRCLE, x, y, static_cast<Direction>(dir))
-//										!= extractor_new.getFeatureTypeAt(Sign::CIRCLE, x, y, static_cast<Direction>(dir)))
-//						{
-//							std::cout << "Feature type mismatch\n";
-//							std::cout << "Single step\n";
-//							extractor_new2.printRawFeature(x, y);
-//							std::cout << "incremental\n";
-//							extractor_new.printRawFeature(x, y);
-//							exit(-1);
-//						}
-//					}
-//					if (extractor_new2.getThreatAt(Sign::CROSS, x, y) != extractor_new.getThreatAt(Sign::CROSS, x, y)
-//							or extractor_new2.getThreatAt(Sign::CIRCLE, x, y) != extractor_new.getThreatAt(Sign::CIRCLE, x, y))
-//					{
-//						std::cout << "Threat type mismatch\n";
-//						std::cout << "Single step\n";
-//						extractor_new2.printRawFeature(x, y);
-//						std::cout << "incremental\n";
-//						extractor_new.printRawFeature(x, y);
-//						exit(-1);
-//					}
-//				}
+			extractor_new2.setBoard(board, sample.getMove().sign);
+			for (int x = 0; x < game_config.rows; x++)
+				for (int y = 0; y < game_config.cols; y++)
+				{
+					for (int dir = 0; dir < 4; dir++)
+					{
+						if (extractor_new2.getRawFeatureAt(x, y, static_cast<Direction>(dir))
+								!= extractor_new.getRawFeatureAt(x, y, static_cast<Direction>(dir)))
+						{
+							std::cout << "Raw feature mismatch\n";
+							std::cout << "Single step\n";
+							extractor_new2.printRawFeature(x, y);
+							std::cout << "incremental\n";
+							extractor_new.printRawFeature(x, y);
+							exit(-1);
+						}
+						if (extractor_new2.getFeatureTypeAt(Sign::CROSS, x, y, static_cast<Direction>(dir))
+								!= extractor_new.getFeatureTypeAt(Sign::CROSS, x, y, static_cast<Direction>(dir))
+								or extractor_new2.getFeatureTypeAt(Sign::CIRCLE, x, y, static_cast<Direction>(dir))
+										!= extractor_new.getFeatureTypeAt(Sign::CIRCLE, x, y, static_cast<Direction>(dir)))
+						{
+							std::cout << "Feature type mismatch\n";
+							std::cout << "Single step\n";
+							extractor_new2.printRawFeature(x, y);
+							std::cout << "incremental\n";
+							extractor_new.printRawFeature(x, y);
+							exit(-1);
+						}
+					}
+					if (extractor_new2.getThreatAt(Sign::CROSS, x, y) != extractor_new.getThreatAt(Sign::CROSS, x, y)
+							or extractor_new2.getThreatAt(Sign::CIRCLE, x, y) != extractor_new.getThreatAt(Sign::CIRCLE, x, y))
+					{
+						std::cout << "Threat type mismatch\n";
+						std::cout << "Single step\n";
+						extractor_new2.printRawFeature(x, y);
+						std::cout << "incremental\n";
+						extractor_new.printRawFeature(x, y);
+						exit(-1);
+					}
+				}
 		}
 	}
 //	extractor_new2.print();
@@ -335,7 +335,8 @@ void test_proven_positions(int pos)
 
 void test_search()
 {
-	GameConfig game_config(GameRules::STANDARD, 15);
+//	GameConfig game_config(GameRules::STANDARD, 15);
+	GameConfig game_config(GameRules::FREESTYLE, 20);
 
 	TreeConfig tree_config;
 	tree_config.bucket_size = 1000000;
@@ -348,17 +349,17 @@ void test_search()
 	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 30;
 	search_config.vcf_solver_level = 2;
-	search_config.vcf_solver_max_positions = 200;
+	search_config.vcf_solver_max_positions = 1600;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
 	device_config.omp_threads = 1;
-	device_config.device = ml::Device::cuda(0);
+	device_config.device = ml::Device::cpu();
 	NNEvaluator nn_evaluator(device_config);
-	nn_evaluator.useSymmetries(false);
+	nn_evaluator.useSymmetries(true);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
-	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku531/networks/standard_10x128.bin");
+	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku531/networks/freestyle_6x64.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
 //	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_75_opt.bin");
 
@@ -399,7 +400,7 @@ void test_search()
 //			" O _ _ O _ _ _ X X _ _ _ _ _ _\n"
 //			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
 //			" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n");
-
+//
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l m n o          */
@@ -452,7 +453,7 @@ void test_search()
 //			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
-
+//
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l m n o         */
@@ -473,7 +474,7 @@ void test_search()
 //			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
 //			/*        a b c d e f g h i j k l m n o         */);      // @formatter:on
 //	sign_to_move = Sign::CIRCLE;
-
+//
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l m n o         */
@@ -494,7 +495,7 @@ void test_search()
 //			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
 //			/*        a b c d e f g h i j k l m n o         */);         // @formatter:on
 //	sign_to_move = Sign::CIRCLE;
-
+//
 //// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l m n o         */
@@ -515,27 +516,48 @@ void test_search()
 //			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
 //			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
 //	sign_to_move = Sign::CIRCLE;
-
-// @formatter:off
-	board = Board::fromString(
-			/*        a b c d e f g h i j k l m n o         */
-			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-			/*  1 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-			/*  2 */" X O O O O X _ _ _ _ _ _ _ _ _\n"/*  2 */
-			/*  3 */" _ X O X X O X _ _ _ _ _ _ _ _\n"/*  3 */
-			/*  4 */" _ _ X O O O _ _ _ _ _ _ _ _ _\n"/*  4 */
-			/*  5 */" _ _ _ O _ X _ _ _ _ _ _ _ _ _\n"/*  5 */
-			/*  6 */" _ _ X O X X _ _ _ _ _ _ _ _ _\n"/*  6 */
-			/*  7 */" _ _ _ O O _ _ _ _ _ _ _ _ _ _\n"/*  7 */
-			/*  8 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
-			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
-			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
-			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
-	sign_to_move = Sign::CROSS;
+//
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" X O O O O X _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" _ X O X X O X _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" _ _ X O O O _ _ _ _ _ _ _ _ _\n"/*  4 */
+//			/*  5 */" _ _ _ O _ X _ _ _ _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" _ _ X O X X _ _ _ _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" _ _ _ O O _ _ _ _ _ _ _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
+//	sign_to_move = Sign::CROSS;
+//
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ O X _ _ _ _ _ O _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ X _ _ O X X _ X _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ X _ _ _ X _ _ O _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ O _ O O O O X _ _ _\n"/*  3 */
+//			/*  4 */" _ _ _ _ _ X _ O X _ _ O X _ _\n"/*  4 */
+//			/*  5 */" _ _ _ _ _ _ _ X X _ O X O O _\n"/*  5 */
+//			/*  6 */" _ _ _ _ _ _ _ O X X X _ _ _ _\n"/*  6 */
+//			/*  7 */" _ _ _ _ _ _ _ _ _ O _ O X _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
+//	sign_to_move = Sign::CIRCLE;
 
 //// @formatter:off
 //	board = Board::fromString(
@@ -557,10 +579,10 @@ void test_search()
 //			/* 14 */" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"/* 14 */
 //			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
 //	sign_to_move = Sign::CIRCLE;
-
+//
 //	std::cout << get_BOARD_command(board, sign_to_move);
 //	return;
-
+//
 //	// @formatter:off
 //	board = Board::fromString(
 //			/*        a b c d e f g h i j k l m n o          */
@@ -583,6 +605,114 @@ void test_search()
 //
 //	sign_to_move = Sign::CROSS;
 
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" _ _ _ O O_ _ _ _ _ _ _ _ _ _ \n"/*  4 */
+//			/*  5 */" _ O O X O _ _ _ _ _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" _ X O X X _ _ _ _ _ _ _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
+//	sign_to_move = Sign::CROSS;
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n"/*  4 */
+//			/*  5 */" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ X O O O _ _ _ _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ X _ X _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
+//	sign_to_move = Sign::CROSS;
+// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ O X X _ _ _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ _ _ _ O _ _ X _\n"/*  3 */
+//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ O _ X _\n"/*  4 */
+//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ X O O _\n"/*  5 */
+//			/*  6 */" _ _ _ _ _ _ _ _ _ X X _ _ X _\n"/*  6 */
+//			/*  7 */" _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
+//	sign_to_move = Sign::CIRCLE;
+
+//// @formatter:off
+//	board = Board::fromString(
+//			/*        a b c d e f g h i j k l m n o         */
+//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
+//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
+//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
+//			/*  6 */" _ _ _ _ _ O X X X _ _ _ _ _ _\n"/*  6 */
+//			/*  7 */" _ _ _ _ _ O O X O _ _ _ _ _ _\n"/*  7 */
+//			/*  8 */" _ _ _ _ _ O X X X O _ _ _ _ _\n"/*  8 */
+//			/*  9 */" _ _ _ _ _ O X O _ O _ _ _ _ _\n"/*  9 */
+//			/* 10 */" _ _ _ _ O X X X _ _ _ _ _ _ _\n"/* 10 */
+//			/* 11 */" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"/* 11 */
+//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
+//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
+//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
+//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
+//	sign_to_move = Sign::CROSS;
+
+// @formatter:off
+	board = Board::fromString( // sure loss if played Om12
+			/*        a b c d e f g h i j k l m n o p q r s t         */
+			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
+			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
+			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
+			/*  7 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
+			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
+			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
+			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"/*  5 */
+			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ O O O X _ X _ _\n"/*  6 */
+			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ ! _ _ X O _ _ _\n"/*  7 */
+			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O X _ O _\n"/*  8 */
+			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ X O O O X _ _\n"/*  9 */
+			/* 15 */" _ _ _ _ _ _ _ _ _ _ X _ O O O X _ X X _\n"/* 10 */
+			/* 16 */" _ _ _ _ _ _ _ _ _ _ _ _ X O X X X X O O\n"/* 11 */
+			/* 17 */" _ _ _ _ _ _ _ _ _ _ _ _ O O X O _ O _ _\n"/* 12 */
+			/* 18 */" _ _ _ _ _ _ _ _ _ _ _ X _ O X _ _ _ _ _\n"/* 13 */
+			/* 19 */" _ _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"/* 14 */
+			/*        a b c d e f g h i j k l m n o p q r s t         */); // @formatter:on
+	sign_to_move = Sign::CIRCLE;
+
 	FeatureExtractor_v3 extractor(game_config);
 	extractor.setBoard(board, sign_to_move);
 	extractor.printAllThreats();
@@ -593,14 +723,14 @@ void test_search()
 	tree.setEdgeGenerator(SolverGenerator(search_config.expansion_prior_treshold, search_config.max_children));
 
 	int next_step = 0;
-	for (int j = 0; j <= 10000; j++)
+	for (int j = 0; j <= 100000; j++)
 	{
-//		if (tree.getSimulationCount() >= next_step)
-//		{
-//			std::cout << tree.getSimulationCount() << " ..." << std::endl;
-//			next_step += 100;
-//		}
-		search.select(tree, 100000);
+		if (tree.getSimulationCount() >= next_step)
+		{
+			std::cout << tree.getSimulationCount() << " ..." << std::endl;
+			next_step += 10000;
+		}
+		search.select(tree, 1500);
 		search.solve();
 
 		search.scheduleToNN(nn_evaluator);
@@ -616,7 +746,7 @@ void test_search()
 	}
 	search.cleanup(tree);
 
-	tree.printSubtree(0, true, 10);
+	tree.printSubtree(1, true, 10);
 	std::cout << search.getStats().toString() << '\n';
 	std::cout << "memory = " << (tree.getMemory() >> 20) << "MB\n\n";
 	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';

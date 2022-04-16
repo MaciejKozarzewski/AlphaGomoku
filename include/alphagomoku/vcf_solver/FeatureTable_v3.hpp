@@ -26,6 +26,7 @@ namespace ag
 		FIVE, // actually, it is a winning pattern so for some rules it means 'five but not overline'
 		OVERLINE
 	};
+	std::string toString(FeatureType ft);
 
 	struct FeatureTypeGroup
 	{
@@ -36,54 +37,64 @@ namespace ag
 	struct FeatureEncoding
 	{
 		private:
-			uint16_t update_mask = 0u;
+			uint16_t m_data = 0u;
 		public:
-			FeatureType for_cross = FeatureType::NONE;
-			FeatureType for_circle = FeatureType::NONE;
-
 			FeatureEncoding() noexcept = default;
-			FeatureEncoding(uint16_t encoding) noexcept :
-					update_mask(encoding & 1023),
-					for_cross(static_cast<FeatureType>((encoding >> 10) & 7)),
-					for_circle(static_cast<FeatureType>((encoding >> 13) & 7))
-			{
-			}
 			FeatureEncoding(FeatureType cross, FeatureType circle) noexcept :
-					for_cross(cross),
-					for_circle(circle)
+					m_data(static_cast<uint16_t>(cross) | (static_cast<uint16_t>(circle) << 3))
 			{
 			}
-			uint16_t encode() const noexcept
+			FeatureType forCross() const noexcept
 			{
-				return (update_mask & 1023) | (static_cast<uint16_t>(for_cross) << 10) | (static_cast<uint16_t>(for_circle) << 13);
+				return static_cast<FeatureType>(m_data & 7);
+			}
+			FeatureType forCircle() const noexcept
+			{
+				return static_cast<FeatureType>((m_data >> 3) & 7);
 			}
 			bool mustBeUpdated(int index) const noexcept
 			{
-				assert(index >= 0 && index < 10);
-				return static_cast<bool>((update_mask >> index) & 1);
+				assert(index >= 0 && index < 11);
+				index += 6;
+				return static_cast<bool>((m_data >> index) & 1);
 			}
 			void setUpdateMask(int index, bool b) noexcept
 			{
-				assert(index >= 0 && index < 10);
-				update_mask &= (~(1 << index));
-				update_mask |= (static_cast<uint16_t>(b) << index);
+				assert(index >= 0 && index < 11);
+				index += 6;
+				m_data &= (~(1 << index));
+				m_data |= (static_cast<uint16_t>(b) << index);
+			}
+			bool isDefensiveMove(int index) const noexcept
+			{
+				assert(index >= 0 && index < 11);
+				index += 6 + 11;
+				return static_cast<bool>((m_data >> index) & 1);
+			}
+			void setDefensiveMove(int index, bool b) noexcept
+			{
+				assert(index >= 0 && index < 11);
+				index += 6 + 11;
+				m_data &= (~(1 << index));
+				m_data |= (static_cast<uint16_t>(b) << index);
 			}
 	};
 
 	class FeatureTable_v3
 	{
 		private:
-			std::vector<uint16_t> features;
+			std::vector<FeatureEncoding> features;
 		public:
 			FeatureTable_v3(GameRules rules);
 			FeatureEncoding getFeatureType(uint32_t feature) const noexcept
 			{
 				assert(feature < features.size());
-				return FeatureEncoding(features[feature]);
+				return features[feature];
 			}
 		private:
 			void init_features(GameRules rules);
 			void init_update_mask(GameRules rules);
+			void init_defensive_moves(GameRules rules);
 	};
 
 } /* namespace ag */

@@ -76,7 +76,7 @@ namespace ag
 			return;
 
 		int available_attacks = 0;
-		for (int i = static_cast<int>(ThreatType_v3::HALF_OPEN_4); i <= static_cast<int>(ThreatType_v3::FIVE); i++)
+		for (int i = static_cast<int>(ThreatType_v3::OPEN_3); i <= static_cast<int>(ThreatType_v3::FIVE); i++)
 			available_attacks += get_attacker_threats(static_cast<ThreatType_v3>(i)).size();
 		if (available_attacks == 0)
 			return;
@@ -154,19 +154,19 @@ namespace ag
 				upper_measurement = Measurement(tuning_step * new_max_pos);
 				max_positions = lower_measurement.getParamValue();
 				Logger::write(
-						"VCFSolver increasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
+						"VCTSolver increasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
 			}
 		}
 		if (probability < 0.05f) // there is less than 5% chance that higher value of 'max_positions' gives higher speed
 		{
-			if (lower_measurement.getParamValue() / tuning_step >= 100)
+			if (lower_measurement.getParamValue() / tuning_step >= 50)
 			{
 				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
 				lower_measurement = Measurement(new_max_pos);
 				upper_measurement = Measurement(tuning_step * new_max_pos);
 				max_positions = lower_measurement.getParamValue();
 				Logger::write(
-						"VCFSolver decreasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
+						"VCTSolver decreasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
 			}
 		}
 	}
@@ -181,7 +181,7 @@ namespace ag
 		lower_measurement.clear();
 		upper_measurement.clear();
 		step_counter = 0;
-		Logger::write("VCFSolver is using " + std::to_string(max_positions) + " positions");
+		Logger::write("VCTSolver is using " + std::to_string(max_positions) + " positions");
 	}
 	void VCTSolver::print_stats() const
 	{
@@ -263,52 +263,6 @@ namespace ag
 					add_edges_but_exclude_duplicates(task, attacker_half_open_4, sign_to_move);
 					add_edges_but_exclude_duplicates(task, attacker_fork_4x3, sign_to_move);
 				}
-//				else
-//				{
-//					for (int row = 0; row < game_config.rows; row++)
-//						for (int col = 0; col < game_config.cols; col++)
-//							if (feature_extractor.signAt(row, col) == Sign::NONE)
-//							{
-//								feature_extractor.addMove(Move(row, col, sign_to_move));
-//								if (get_defender_threats(ThreatType_v3::FIVE).size() > 0 or get_defender_threats(ThreatType_v3::OPEN_4).size() > 0
-//										or get_defender_threats(ThreatType_v3::FORK_4x4).size() > 0)
-//								{
-//
-//								}
-//
-//								feature_extractor.undoMove(Move(row, col, sign_to_move));
-//							}
-//				}
-
-//				const std::vector<Move> &defender_half_open_4 = get_defender_threats(ThreatType_v3::HALF_OPEN_4);
-//				const std::vector<Move> &defender_open_4 = get_defender_threats(ThreatType_v3::OPEN_4);
-//				const std::vector<Move> &defender_fork_4x4 = get_defender_threats(ThreatType_v3::FORK_4x4);
-//				const std::vector<Move> &defender_fork_4x3 = get_defender_threats(ThreatType_v3::FORK_4x3);
-//				if (defender_open_4.size() > 0 or defender_fork_4x4.size() > 0 or defender_fork_4x3.size() > 0) // defender can make open four or 4x4 or 4x3 fork (potential win in 3 plys)
-//				{
-//					task.addProvenEdges(defender_open_4, sign_to_move, ProvenValue::UNKNOWN);
-//					task.addProvenEdges(defender_fork_4x4, sign_to_move, ProvenValue::UNKNOWN);
-//					task.addProvenEdges(defender_fork_4x3, sign_to_move, ProvenValue::UNKNOWN);
-//					task.addProvenEdges(defender_half_open_4, sign_to_move, ProvenValue::UNKNOWN); // include half open fours just in case they are important (TODO maybe this could be improved)
-//
-//					const std::vector<Move> &attacker_half_open_4 = get_attacker_threats(ThreatType_v3::HALF_OPEN_4);
-//					const std::vector<Move> &attacker_fork_4x3 = get_attacker_threats(ThreatType_v3::FORK_4x3);
-//					add_edges_but_exclude_duplicates(task, attacker_half_open_4, sign_to_move);
-//					add_edges_but_exclude_duplicates(task, attacker_fork_4x3, sign_to_move);
-//				}
-//				else
-//				{
-//					const std::vector<Move> &attacker_fork_4x3 = get_attacker_threats(ThreatType_v3::FORK_4x3);
-//					const std::vector<Move> &attacker_fork_3x3 = get_attacker_threats(ThreatType_v3::FORK_3x3);
-//					if ((attacker_fork_4x3.size() > 0 or attacker_fork_3x3.size() > 0) and defender_half_open_4.empty()) // if attacker can make 4x3 or 3x3 fork, it is a win in 5 plys
-//					{
-//						task.addProvenEdges(attacker_fork_4x3, sign_to_move, ProvenValue::WIN);
-//						task.addProvenEdges(attacker_fork_3x3, sign_to_move, ProvenValue::WIN);
-//						task.setValue(Value(1.0f, 0.0, 0.0f));
-//						task.markAsReady();
-//						return;
-//					}
-//				}
 				break;
 			}
 			case 1: // defender can make one five
@@ -406,7 +360,7 @@ namespace ag
 			{
 				const std::vector<Move> &attacker_open_4 = get_attacker_threats(ThreatType_v3::OPEN_4);
 				const std::vector<Move> &attacker_fork_4x4 = get_attacker_threats(ThreatType_v3::FORK_4x4);
-				if (attacker_open_4.size() > 0 or attacker_fork_4x4.size() > 0) // the attacker can make an open four or 4x4 fork
+				if (attacker_open_4.size() > 0 or attacker_fork_4x4.size() > 0) // the attacker can make an open four or 4x4 fork (win in 3 plys)
 				{
 					const std::vector<Move> &defender_half_open_4 = get_defender_threats(ThreatType_v3::HALF_OPEN_4);
 					const std::vector<Move> &defender_open_4 = get_defender_threats(ThreatType_v3::OPEN_4);
@@ -417,16 +371,18 @@ namespace ag
 					{ // defender cannot make a four of any kind
 						add_children_nodes(node, attacker_open_4);
 						add_children_nodes(node, attacker_fork_4x4);
+						add_children_nodes(node, get_attacker_threats(ThreatType_v3::FORK_4x3));
+						add_children_nodes(node, get_attacker_threats(ThreatType_v3::HALF_OPEN_4));
 //						feature_extractor.print(node.move);
 //						feature_extractor.printAllThreats();
 //						std::cout << "state of all children:" << std::endl;
 //						for (int i = 0; i < node.number_of_children; i++)
 //							std::cout << i << " : " << node.children[i].move.toString() << " : " << node.children[i].move.text() << " = "
 //									<< toString(node.children[i].solved_value) << " " << get_node_value(node.children[i]) << std::endl;
-//						if (node.number_of_children <= 2)
-						node.solved_value = SolvedValue::UNKNOWN; // still single defensive move
-//						else
+//						if (node.number_of_children > 4)
 //							node.solved_value = SolvedValue::UNSOLVED; // too many defensive moves
+//						else
+							node.solved_value = SolvedValue::UNKNOWN; // can check them all
 					}
 					else
 						node.solved_value = SolvedValue::UNSOLVED; // attacker lost initiative

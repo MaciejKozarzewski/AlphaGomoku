@@ -163,7 +163,7 @@ namespace ag
 
 	uint64_t NodeCache::getMemory() const noexcept
 	{
-		return edge_pool.getMemory() + sizeof(Entry) * storedNodes() + sizeof(Entry*) * bins.size() + sizeof(Edge) * storedEdges();
+		return sizeof(Entry) * storedNodes() + sizeof(Entry*) * bins.size() + sizeof(Edge) * storedEdges();
 	}
 	int NodeCache::allocatedEdges() const noexcept
 	{

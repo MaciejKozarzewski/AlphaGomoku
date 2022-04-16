@@ -300,22 +300,22 @@ namespace ag
 		get_threat_lists();
 //		threats_init.stopTimer();
 
-		if (features_init.getTotalCount() % 1000 == 0)
-		{
-			uint64_t max_count_x = 0, max_count_o = 0;
-			for (int i = 0; i < game_config.rows * game_config.cols; i++)
-			{
-				max_count_x = std::max(max_count_x, feature_value_statistics[2 * i]);
-				max_count_o = std::max(max_count_o, feature_value_statistics[2 * i + 1]);
-			}
-			for (int i = 0; i < game_config.rows * game_config.cols; i++)
-			{
-				feature_value_table[2 * i] = (255 * feature_value_statistics[2 * i]) / std::max(1ul, max_count_x);
-				feature_value_table[2 * i + 1] = (255 * feature_value_statistics[2 * i + 1]) / std::max(1ul, max_count_o);
-			}
+//		if (features_init.getTotalCount() % 1000 == 0)
+//		{
+//			uint64_t max_count_x = 0, max_count_o = 0;
+//			for (int i = 0; i < game_config.rows * game_config.cols; i++)
+//			{
+//				max_count_x = std::max(max_count_x, feature_value_statistics[2 * i]);
+//				max_count_o = std::max(max_count_o, feature_value_statistics[2 * i + 1]);
+//			}
+//			for (int i = 0; i < game_config.rows * game_config.cols; i++)
+//			{
+//				feature_value_table[2 * i] = (255 * feature_value_statistics[2 * i]) / std::max(1ul, max_count_x);
+//				feature_value_table[2 * i + 1] = (255 * feature_value_statistics[2 * i + 1]) / std::max(1ul, max_count_o);
+//			}
 //			for (size_t i = 0; i < feature_value_statistics.size(); i++)
 //				feature_value_table[i] = (63 * feature_value_statistics[i]) / std::max(1ul, max_count);
-		}
+//		}
 	}
 
 	void FeatureExtractor_v3::printRawFeature(int row, int col) const
@@ -529,19 +529,7 @@ namespace ag
 //		features_update.stopTimer();
 
 //		threats_update.resumeTimer();
-		for (int i = -pad; i <= pad; i++)
-			if (i != 0) // central spot must have been updated anyway, so it is not included in the lookup table
-			{
-				const int idx = pad + i - static_cast<int>(i > 0); // omitting central spot
-				if (central_spot_encoding[HORIZONTAL].mustBeUpdated(idx))
-					update_feature_types_and_threats(move.row, move.col + i, HORIZONTAL);
-				if (central_spot_encoding[VERTICAL].mustBeUpdated(idx))
-					update_feature_types_and_threats(move.row + i, move.col, VERTICAL);
-				if (central_spot_encoding[DIAGONAL].mustBeUpdated(idx))
-					update_feature_types_and_threats(move.row + i, move.col + i, DIAGONAL);
-				if (central_spot_encoding[ANTIDIAGONAL].mustBeUpdated(idx))
-					update_feature_types_and_threats(move.row + i, move.col - i, ANTIDIAGONAL);
-			}
+		update_neighborhood(move.row, move.col);
 //		threats_update.stopTimer();
 	}
 	void FeatureExtractor_v3::undoMove(Move move) noexcept
@@ -567,19 +555,7 @@ namespace ag
 
 //		threats_update.startTimer();
 		update_central_spot(move.row, move.col, -1);
-		for (int i = -pad; i <= pad; i++)
-			if (i != 0) // central spot must have been updated anyway, so it is not included in the lookup table
-			{
-				const int idx = pad + i - static_cast<int>(i > 0); // omitting central spot
-				if (central_spot_encoding[HORIZONTAL].mustBeUpdated(idx))
-					update_feature_types_and_threats(move.row, move.col + i, HORIZONTAL);
-				if (central_spot_encoding[VERTICAL].mustBeUpdated(idx))
-					update_feature_types_and_threats(move.row + i, move.col, VERTICAL);
-				if (central_spot_encoding[DIAGONAL].mustBeUpdated(idx))
-					update_feature_types_and_threats(move.row + i, move.col + i, DIAGONAL);
-				if (central_spot_encoding[ANTIDIAGONAL].mustBeUpdated(idx))
-					update_feature_types_and_threats(move.row + i, move.col - i, ANTIDIAGONAL);
-			}
+		update_neighborhood(move.row, move.col);
 //		threats_update.stopTimer();
 	}
 //	void FeatureExtractor_v3::updateValueStatistics(Move move) noexcept
@@ -677,8 +653,8 @@ namespace ag
 					for (int dir = 0; dir < 4; dir++)
 					{
 						const FeatureEncoding tmp = feature_table->getFeatureType(getRawFeatureAt(row, col, static_cast<Direction>(dir)));
-						feature_types.at(row, col).for_cross[dir] = tmp.for_cross;
-						feature_types.at(row, col).for_circle[dir] = tmp.for_circle;
+						feature_types.at(row, col).for_cross[dir] = tmp.forCross();
+						feature_types.at(row, col).for_circle[dir] = tmp.forCircle();
 					}
 				}
 				else
@@ -726,8 +702,8 @@ namespace ag
 		{
 			for (int dir = 0; dir < 4; dir++)
 			{
-				feature_types.at(row, col).for_cross[dir] = central_spot_encoding[dir].for_cross;
-				feature_types.at(row, col).for_circle[dir] = central_spot_encoding[dir].for_circle;
+				feature_types.at(row, col).for_cross[dir] = central_spot_encoding[dir].forCross();
+				feature_types.at(row, col).for_circle[dir] = central_spot_encoding[dir].forCircle();
 			}
 			const Threat_v3 new_threat = threat_table->getThreat(feature_types.at(row, col));
 
@@ -736,14 +712,30 @@ namespace ag
 			circle_threats.add(new_threat.for_circle, Move(row, col));
 		}
 	}
+	void FeatureExtractor_v3::update_neighborhood(int row, int col) noexcept
+	{
+		for (int i = -pad; i <= pad; i++)
+			if (i != 0) // central spot must have been updated anyway, so it is not included in the lookup table
+			{
+				const int idx = pad + i - static_cast<int>(i > 0);
+				if (central_spot_encoding[HORIZONTAL].mustBeUpdated(idx))
+					update_feature_types_and_threats(row, col + i, HORIZONTAL);
+				if (central_spot_encoding[VERTICAL].mustBeUpdated(idx))
+					update_feature_types_and_threats(row + i, col, VERTICAL);
+				if (central_spot_encoding[DIAGONAL].mustBeUpdated(idx))
+					update_feature_types_and_threats(row + i, col + i, DIAGONAL);
+				if (central_spot_encoding[ANTIDIAGONAL].mustBeUpdated(idx))
+					update_feature_types_and_threats(row + i, col - i, ANTIDIAGONAL);
+			}
+	}
 	void FeatureExtractor_v3::update_feature_types_and_threats(int row, int col, int direction) noexcept
 	{
 		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
 
 		// find new feature type and update appropriate direction in the table
 		const FeatureEncoding new_feature_type = feature_table->getFeatureType(getRawFeatureAt(row, col, static_cast<Direction>(direction)));
-		feature_types.at(row, col).for_cross[direction] = new_feature_type.for_cross;
-		feature_types.at(row, col).for_circle[direction] = new_feature_type.for_circle;
+		feature_types.at(row, col).for_cross[direction] = new_feature_type.forCross();
+		feature_types.at(row, col).for_circle[direction] = new_feature_type.forCircle();
 
 		const Threat_v3 old_threat = threat_types.at(row, col); // check what was the best threat at (row, col) before updating
 		const Threat_v3 new_threat = threat_table->getThreat(feature_types.at(row, col)); // find new threat type according to the newly updated feature types
