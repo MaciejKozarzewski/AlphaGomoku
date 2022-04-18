@@ -48,7 +48,7 @@ namespace ag
 			bool is_ready = false; /**< flag indicating whether the task has been evaluated and can be used for edge generation */
 		public:
 			SearchTask(GameRules rules);
-			void reset(const matrix<Sign> &base, Sign signToMove) noexcept;
+			void set(const matrix<Sign> &base, Sign signToMove);
 
 			int visitedPathLength() const noexcept
 			{

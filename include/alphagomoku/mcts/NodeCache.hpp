@@ -11,8 +11,8 @@
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/utils/configs.hpp>
+#include <alphagomoku/utils/ObjectArrayPool.hpp>
 #include <alphagomoku/utils/statistics.hpp>
-#include <alphagomoku/utils/ObjectPool.hpp>
 
 namespace ag
 {
@@ -66,23 +66,25 @@ namespace ag
 					CompressedBoard board;
 			};
 
-			ObjectPool<Edge> edge_pool;
+			ObjectArrayPool<Edge> edge_pool;
+			std::vector<std::unique_ptr<Entry[]>> node_pool;
+
 			std::vector<Entry*> bins; // non-owning
 			Entry *buffer = nullptr; // non-owning
 			ZobristHashing hashing;
-			uint64_t bin_index_mask = 0u;
+			uint64_t bin_index_mask = 0;
+			size_t node_pool_bucket_size = 10000;
 
 			int64_t buffered_nodes = 0;
 
 			mutable NodeCacheStats stats;
 		public:
 			NodeCache() = default;
-			NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize, size_t bucketSize);
+			NodeCache(GameConfig gameConfig, TreeConfig treeConfig);
 			NodeCache(const NodeCache &other) = delete;
 			NodeCache(NodeCache &&other);
 			NodeCache& operator=(const NodeCache &other) = delete;
 			NodeCache& operator =(NodeCache &&other);
-			~NodeCache();
 
 			void clearStats() noexcept;
 			NodeCacheStats getStats() const noexcept;
@@ -115,7 +117,7 @@ namespace ag
 			 * \brief Inserts new entry to the cache.
 			 * The inserted entry must not be in cache.
 			 */
-			Node* insert(const matrix<Sign> &board, Sign signToMove, int numberOfEdges) noexcept;
+			Node* insert(const matrix<Sign> &board, Sign signToMove, int numberOfEdges);
 			/**
 			 * \brief Removes given board state from the cache, if it exists in the cache.
 			 * If not, the function does nothing.
@@ -125,12 +127,9 @@ namespace ag
 			 * \brief Changes the number of bins to 2^newSize.
 			 */
 			void resize(size_t newSize);
-			/**
-			 * \brief Deallocates all buffered entries.
-			 */
-			void freeUnusedMemory() noexcept;
 
 		private:
+			void allocate_more_entries();
 			NodeCache::Entry* get_new_entry();
 			void move_to_buffer(NodeCache::Entry *entry) noexcept;
 	};

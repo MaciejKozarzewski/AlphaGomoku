@@ -172,7 +172,7 @@ namespace ag
 
 			opening = ag::prepareOpening(game.getConfig(), 2);
 			game.loadOpening(opening);
-			request.reset(game.getBoard(), game.getSignToMove());
+			request.set(game.getBoard(), game.getSignToMove());
 			first_player->scheduleSingleTask(request);
 			is_request_scheduled = true;
 			return false;

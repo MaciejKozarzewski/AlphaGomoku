@@ -15,7 +15,7 @@ namespace ag
 			game_rules(rules)
 	{
 	}
-	void SearchTask::reset(const matrix<Sign> &base, Sign signToMove) noexcept
+	void SearchTask::set(const matrix<Sign> &base, Sign signToMove)
 	{
 		visited_path.clear();
 		proven_edges.clear();

@@ -122,7 +122,7 @@ namespace
 namespace ag
 {
 	Tree::Tree(TreeConfig treeOptions) :
-			config(treeOptions)
+			tree_config(treeOptions)
 	{
 	}
 	int64_t Tree::getMemory() const noexcept
@@ -136,7 +136,8 @@ namespace ag
 
 		if (not equalSize(base_board, newBoard))
 		{
-			node_cache = NodeCache(newBoard.rows(), newBoard.cols(), config.initial_cache_size, config.bucket_size);
+			GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
+			node_cache = NodeCache(game_config, tree_config);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
@@ -204,11 +205,12 @@ namespace ag
 
 	SelectOutcome Tree::select(SearchTask &task)
 	{
-		task.reset(base_board, sign_to_move);
+		assert(edge_selector != nullptr);
+		task.set(base_board, sign_to_move);
 		Node *node = root_node;
 		while (node != nullptr)
 		{
-			assert(edge_selector != nullptr);
+
 			Edge *edge = edge_selector->select(node);
 			task.append(node, edge);
 			edge->increaseVirtualLoss();
@@ -373,10 +375,6 @@ namespace ag
 	NodeCacheStats Tree::getNodeCacheStats() const noexcept
 	{
 		return node_cache.getStats();
-	}
-	void Tree::freeMemory()
-	{
-		node_cache.freeUnusedMemory();
 	}
 
 } /* namespace ag */

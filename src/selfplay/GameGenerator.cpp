@@ -131,7 +131,7 @@ namespace ag
 
 		std::vector<Move> opening = ag::prepareOpening(game.getConfig());
 		game.loadOpening(opening);
-		request.reset(game.getBoard(), game.getSignToMove());
+		request.set(game.getBoard(), game.getSignToMove());
 		nn_evaluator.addToQueue(request);
 		is_request_scheduled = true;
 		return false;

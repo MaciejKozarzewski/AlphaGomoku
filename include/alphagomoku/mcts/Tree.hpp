@@ -59,7 +59,7 @@ namespace ag
 			int max_depth = 0;
 			Sign sign_to_move = Sign::NONE;
 
-			TreeConfig config;
+			TreeConfig tree_config;
 		public:
 			Tree(TreeConfig treeOptions);
 			int64_t getMemory() const noexcept;
@@ -89,7 +89,6 @@ namespace ag
 			Node getInfo(const std::vector<Move> &moves) const;
 			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
-			void freeMemory();
 	};
 
 	class TreeLock

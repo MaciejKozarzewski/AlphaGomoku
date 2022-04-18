@@ -8,6 +8,8 @@
 #include <alphagomoku/mcts/NodeCache.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <cassert>
+
 namespace ag
 {
 	NodeCacheStats::NodeCacheStats() :
@@ -64,11 +66,12 @@ namespace ag
 		return *this;
 	}
 
-	NodeCache::NodeCache(int boardHeight, int boardWidth, size_t initialCacheSize, size_t bucketSize) :
-			edge_pool(bucketSize, boardHeight * boardWidth),
-			bins(roundToPowerOf2(initialCacheSize), nullptr),
-			hashing(boardHeight, boardWidth),
-			bin_index_mask(bins.size() - 1u)
+	NodeCache::NodeCache(GameConfig gameConfig, TreeConfig treeConfig) :
+			edge_pool(treeConfig.edge_bucket_size, gameConfig.rows * gameConfig.cols),
+			bins(roundToPowerOf2(treeConfig.initial_cache_size), nullptr),
+			hashing(gameConfig.rows, gameConfig.cols),
+			bin_index_mask(bins.size() - 1u),
+			node_pool_bucket_size(treeConfig.node_bucket_size)
 	{
 	}
 	NodeCache::NodeCache(NodeCache &&other) :
@@ -92,11 +95,6 @@ namespace ag
 		std::swap(this->buffered_nodes, other.buffered_nodes);
 		std::swap(this->stats, other.stats);
 		return *this;
-	}
-	NodeCache::~NodeCache()
-	{
-		clear();
-		freeUnusedMemory();
 	}
 
 	void NodeCache::clearStats() noexcept
@@ -133,10 +131,15 @@ namespace ag
 		assert(board.rows() <= static_cast<int>(data.size()) && board.cols() < 32);
 		for (int i = 0; i < board.rows(); i++)
 		{
-			uint64_t tmp = data[i];
-			for (int j = 0; j < board.cols(); j++, tmp = tmp >> 2)
-				if ((tmp & 3) != static_cast<uint64_t>(board.at(i, j)))
-					return false;
+			uint64_t tmp = 0ull;
+			for (int j = 0; j < board.cols(); j++)
+				tmp = tmp | (static_cast<uint64_t>(board.at(i, j)) << (2 * j));
+			if (tmp != data[i])
+				return false;
+//			uint64_t tmp = data[i];
+//			for (int j = 0; j < board.cols(); j++, tmp = tmp >> 2)
+//				if ((tmp & 3) != static_cast<uint64_t>(board.at(i, j)))
+//					return false;
 		}
 		return true;
 	}
@@ -255,7 +258,7 @@ namespace ag
 		}
 		return nullptr;
 	}
-	Node* NodeCache::insert(const matrix<Sign> &board, Sign signToMove, int numberOfEdges) noexcept
+	Node* NodeCache::insert(const matrix<Sign> &board, Sign signToMove, int numberOfEdges)
 	{
 		assert(seek(board, signToMove) == nullptr); // the board state must not be in the cache
 		if (loadFactor() >= 1.0)
@@ -348,38 +351,31 @@ namespace ag
 		}
 		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
 	}
-	void NodeCache::freeUnusedMemory() noexcept
-	{
-		while (buffer != nullptr)
-		{
-			Entry *next = buffer->next_entry;
-			delete buffer;
-			buffer = next;
-		}
-		buffered_nodes = 0;
-		stats.allocated_nodes = stats.stored_nodes;
-		assert(stats.stored_nodes + buffered_nodes == stats.allocated_nodes);
-	}
 	/*
 	 * private
 	 */
+	void NodeCache::allocate_more_entries()
+	{
+		assert(buffer == nullptr); // if buffer is not empty there is no need to allocate more entries
+
+		node_pool.push_back(std::make_unique<Entry[]>(node_pool_bucket_size));
+		stats.allocated_nodes += node_pool_bucket_size;
+		stats.stored_nodes += node_pool_bucket_size;
+
+		for (size_t i = 0; i < node_pool_bucket_size; i++)
+			move_to_buffer(node_pool.back().get() + i);
+	}
 	NodeCache::Entry* NodeCache::get_new_entry()
 	{
 		if (buffer == nullptr)
-		{
-			assert(buffered_nodes == 0);
-			stats.allocated_nodes++;
-			return new Entry();
-		}
-		else
-		{
-			assert(buffered_nodes > 0);
-			buffered_nodes--;
-			Entry *result = buffer;
-			buffer = result->next_entry;
-			result->next_entry = nullptr;
-			return result;
-		}
+			allocate_more_entries();
+
+		assert(buffered_nodes > 0);
+		buffered_nodes--;
+		Entry *result = buffer;
+		buffer = result->next_entry;
+		result->next_entry = nullptr;
+		return result;
 	}
 	void NodeCache::move_to_buffer(NodeCache::Entry *entry) noexcept
 	{
