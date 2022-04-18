@@ -73,7 +73,7 @@ namespace ag
 	{
 		listener.pushLine("INFO game_type ???");
 		protocol.processInput(listener);
-		EXPECT_TRUE(input_queue.pop().isEmpty());
+		EXPECT_TRUE(input_queue.isEmpty());
 	}
 	TEST_F(TestGomocupProtocol, INFO_rule)
 	{
@@ -81,8 +81,7 @@ namespace ag
 		listener.pushLine("INFO rule 1");
 		listener.pushLine("INFO rule 2");
 		listener.pushLine("INFO rule 4");
-		listener.pushLine("INFO rule 8");
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 4; i++)
 			protocol.processInput(listener);
 
 		Message msg = input_queue.pop();
@@ -95,24 +94,25 @@ namespace ag
 		EXPECT_EQ(msg.getOption().name, "rules");
 		EXPECT_EQ(msg.getOption().value, "STANDARD");
 
-		msg = input_queue.pop();
-		EXPECT_TRUE(msg.isEmpty());
+		EXPECT_TRUE(input_queue.isEmpty());
 
-		msg = input_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::SET_OPTION);
-		EXPECT_EQ(msg.getOption().name, "rules");
-		EXPECT_EQ(msg.getOption().value, "RENJU");
+		msg = output_queue.pop(); // error for rule = 2
+		EXPECT_EQ(msg.getType(), MessageType::ERROR);
 
-		msg = input_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::SET_OPTION);
-		EXPECT_EQ(msg.getOption().name, "rules");
-		EXPECT_EQ(msg.getOption().value, "CARO");
+		msg = output_queue.pop(); // error for rule = 4
+		EXPECT_EQ(msg.getType(), MessageType::ERROR);
+//		msg = input_queue.pop();
+//		EXPECT_EQ(msg.getType(), MessageType::SET_OPTION);
+//		EXPECT_EQ(msg.getOption().name, "rules");
+//		EXPECT_EQ(msg.getOption().value, "RENJU");
 	}
 	TEST_F(TestGomocupProtocol, INFO_evaluate)
 	{
 		listener.pushLine("INFO evaluate 0,0");
 		protocol.processInput(listener);
-		EXPECT_TRUE(input_queue.pop().isEmpty());
+
+		Message msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::INFO_MESSAGE);
 	}
 	TEST_F(TestGomocupProtocol, INFO_folder)
 	{
@@ -179,99 +179,17 @@ namespace ag
 		EXPECT_EQ(msg.getType(), MessageType::PLAIN_STRING);
 		EXPECT_EQ(msg.getString(), "OK");
 	}
-	TEST_F(TestGomocupProtocol, SWAP2BOARD_0_stones)
-	{
-		listener.pushLine("SWAP2BOARD");
-		listener.pushLine("DONE");
-		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
 
-		Message msg = input_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
-		EXPECT_EQ(msg.getListOfMoves().size(), 0u);
-
-		msg = input_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::START_SEARCH);
-		EXPECT_EQ(msg.getString(), "swap2");
-
-		std::ostringstream oss;
-		OutputSender sender(oss);
-		std::vector<Move> list_of_moves = { Move(0, 0, Sign::CROSS), Move(2, 3, Sign::CIRCLE), Move(1, 4, Sign::CROSS) };
-		output_queue.push(Message(MessageType::BEST_MOVE, list_of_moves));
-		protocol.processOutput(sender);
-		EXPECT_EQ(oss.str(), "0,0 3,2 4,1\n");
-	}
-	TEST_F(TestGomocupProtocol, SWAP2BOARD_3_stones)
-	{
-		listener.pushLine("SWAP2BOARD");
-		listener.pushLine("0,0");
-		listener.pushLine("3,2");
-		listener.pushLine("4,1");
-		listener.pushLine("DONE");
-		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
-
-		Message msg = input_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
-		EXPECT_EQ(msg.getListOfMoves().size(), 3u);
-		EXPECT_EQ(msg.getListOfMoves().at(0), Move(0, 0, Sign::CROSS));
-		EXPECT_EQ(msg.getListOfMoves().at(1), Move(2, 3, Sign::CIRCLE));
-		EXPECT_EQ(msg.getListOfMoves().at(2), Move(1, 4, Sign::CROSS));
-
-		msg = input_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::START_SEARCH);
-		EXPECT_EQ(msg.getString(), "swap2");
-
-		std::ostringstream oss;
-		OutputSender sender(oss);
-		std::vector<Move> list_of_moves = { Move(6, 5, Sign::CIRCLE), Move(5, 2, Sign::CROSS) };
-		output_queue.push(Message(MessageType::BEST_MOVE, list_of_moves));
-		output_queue.push(Message(MessageType::BEST_MOVE, "swap"));
-
-		protocol.processOutput(sender);
-		EXPECT_EQ(oss.str(), "5,6 2,5\nSWAP\n");
-	}
-	TEST_F(TestGomocupProtocol, SWAP2BOARD_5_stones)
-	{
-		listener.pushLine("SWAP2BOARD");
-		listener.pushLine("0,0");
-		listener.pushLine("3,2");
-		listener.pushLine("4,1");
-		listener.pushLine("5,6");
-		listener.pushLine("2,5");
-		listener.pushLine("DONE");
-		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
-
-		Message msg = input_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
-		EXPECT_EQ(msg.getListOfMoves().size(), 5u);
-		EXPECT_EQ(msg.getListOfMoves().at(0), Move(0, 0, Sign::CROSS));
-		EXPECT_EQ(msg.getListOfMoves().at(1), Move(2, 3, Sign::CIRCLE));
-		EXPECT_EQ(msg.getListOfMoves().at(2), Move(1, 4, Sign::CROSS));
-		EXPECT_EQ(msg.getListOfMoves().at(3), Move(6, 5, Sign::CIRCLE));
-		EXPECT_EQ(msg.getListOfMoves().at(4), Move(5, 2, Sign::CROSS));
-
-		msg = input_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::START_SEARCH);
-		EXPECT_EQ(msg.getString(), "swap2");
-
-		std::ostringstream oss;
-		OutputSender sender(oss);
-		std::vector<Move> list_of_moves = { Move(7, 7, Sign::CIRCLE) };
-		output_queue.push(Message(MessageType::BEST_MOVE, list_of_moves));
-		output_queue.push(Message(MessageType::BEST_MOVE, "swap"));
-
-		protocol.processOutput(sender);
-		EXPECT_EQ(oss.str(), "7,7\nSWAP\n");
-	}
 	TEST_F(TestGomocupProtocol, begin)
 	{
 		listener.pushLine("BEGIN");
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
+		EXPECT_EQ(input_queue.length(), 3);
 
 		Message msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::STOP_SEARCH);
+
+		msg = input_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
 		EXPECT_TRUE(msg.holdsListOfMoves());
 		EXPECT_EQ(msg.getListOfMoves().size(), 0u);
@@ -286,10 +204,13 @@ namespace ag
 		listener.pushLine("DONE");
 
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
+		EXPECT_EQ(input_queue.length(), 3);
 		EXPECT_EQ(output_queue.length(), 0);
 
 		Message msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::STOP_SEARCH);
+
+		msg = input_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
 		EXPECT_TRUE(msg.holdsListOfMoves());
 		EXPECT_EQ(msg.getListOfMoves().size(), 0u);
@@ -307,10 +228,13 @@ namespace ag
 		listener.pushLine("DONE");
 
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
+		EXPECT_EQ(input_queue.length(), 3);
 		EXPECT_EQ(output_queue.length(), 0);
 
 		Message msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::STOP_SEARCH);
+
+		msg = input_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
 		EXPECT_TRUE(msg.holdsListOfMoves());
 		EXPECT_EQ(msg.getListOfMoves().size(), 3u);
@@ -332,10 +256,13 @@ namespace ag
 		listener.pushLine("DONE");
 
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
+		EXPECT_EQ(input_queue.length(), 3);
 		EXPECT_EQ(output_queue.length(), 0);
 
 		Message msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::STOP_SEARCH);
+
+		msg = input_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
 		EXPECT_TRUE(msg.holdsListOfMoves());
 		EXPECT_EQ(msg.getListOfMoves().size(), 4u);
@@ -356,23 +283,20 @@ namespace ag
 		listener.pushLine("0,0,2"); // opponent stone
 		listener.pushLine("DONE");
 
-		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 0);
-		EXPECT_EQ(output_queue.length(), 1);
-
-		Message msg = output_queue.pop();
-		EXPECT_EQ(msg.getType(), MessageType::ERROR);
-		EXPECT_TRUE(msg.holdsString());
+		EXPECT_THROW(protocol.processInput(listener), ProtocolRuntimeException);
 	}
 	TEST_F(TestGomocupProtocol, turn)
 	{
 		listener.pushLine("TURN 2,3");
 
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
+		EXPECT_EQ(input_queue.length(), 3);
 		EXPECT_EQ(output_queue.length(), 0);
 
 		Message msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::STOP_SEARCH);
+
+		msg = input_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
 		EXPECT_TRUE(msg.holdsListOfMoves());
 		EXPECT_EQ(msg.getListOfMoves().size(), 1u);
@@ -390,8 +314,11 @@ namespace ag
 
 		listener.pushLine("TURN 8,7");
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
+		EXPECT_EQ(input_queue.length(), 3);
 		EXPECT_EQ(output_queue.length(), 0);
+
+		msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::STOP_SEARCH);
 
 		msg = input_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
@@ -413,17 +340,20 @@ namespace ag
 		listener.pushLine("5,6,2"); // opponent stone
 		listener.pushLine("DONE");
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 2);
+		EXPECT_EQ(input_queue.length(), 3);
 		EXPECT_EQ(output_queue.length(), 0);
 
 		input_queue.clear();
 
 		listener.pushLine("TAKEBACK 5,6");
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 1);
+		EXPECT_EQ(input_queue.length(), 2);
 		EXPECT_EQ(output_queue.length(), 1);
 
 		Message msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::STOP_SEARCH);
+
+		msg = input_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::SET_POSITION);
 		EXPECT_TRUE(msg.holdsListOfMoves());
 		EXPECT_EQ(msg.getListOfMoves().size(), 2u);

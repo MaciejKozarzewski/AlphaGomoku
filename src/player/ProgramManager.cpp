@@ -100,6 +100,8 @@ namespace ag
 				{
 					case MessageType::START_PROGRAM:
 					{
+						if (search_engine != nullptr)
+							search_engine->stopSearch();
 						if (game_counter > 0)
 							setup_logging();
 						game_counter++;
@@ -327,7 +329,17 @@ namespace ag
 		else
 		{
 			input_future = std::async(std::launch::async, [&]()
-			{	protocol->processInput(input_listener);});
+			{
+				try
+				{
+					protocol->processInput(input_listener);
+				}
+				catch(std::exception &e)
+				{
+					output_queue.push(Message(MessageType::ERROR, e.what()));
+					ag::Logger::write(e.what());
+				}
+			});
 		}
 	}
 	void ProgramManager::setup_logging()

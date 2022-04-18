@@ -81,7 +81,7 @@ namespace ag
 			mutable std::mutex sender_mutex;
 		public:
 			OutputSender(std::ostream &outputStream);
-			void send(const std::string &msg) const noexcept;
+			void send(const std::string &msg) const;
 	};
 
 	struct NoData
@@ -177,6 +177,19 @@ namespace ag
 	};
 	std::string toString(ProtocolType pt);
 	ProtocolType protocolFromString(const std::string &str);
+
+	class ProtocolRuntimeException: public std::runtime_error
+	{
+		public:
+			ProtocolRuntimeException(const char *msg) :
+					std::runtime_error(msg)
+			{
+			}
+			ProtocolRuntimeException(const std::string &msg) :
+					std::runtime_error(msg)
+			{
+			}
+	};
 
 	/**
 	 * @brief Class responsible for translating commands from GUI into set of messages for the search engine.

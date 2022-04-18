@@ -41,7 +41,9 @@ namespace ag
 			void CLEARHASH(InputListener &listener);
 			void PROTOCOLVERSION(InputListener &listener);
 
-			// opening rules
+			/*
+			 * opening rules
+			 */
 			void PROBOARD(InputListener &listener);
 			void LONGPROBOARD(InputListener &listener);
 			void SWAPBOARD(InputListener &listener);

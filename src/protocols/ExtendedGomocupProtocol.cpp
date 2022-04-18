@@ -181,9 +181,11 @@ namespace ag
 	{
 		std::string line = listener.peekLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
-		rows = std::stoi(tmp[1]);
-		columns = std::stoi(tmp[1]);
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		rows = std::stoi(tmp.at(1));
+		columns = std::stoi(tmp.at(1));
 
 		GomocupProtocol::START(listener);
 	}
@@ -191,11 +193,15 @@ namespace ag
 	{
 		std::string line = listener.peekLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
-		tmp = split(tmp[1], ',');
-		assert(tmp.size() == 2u);
-		rows = std::stoi(tmp[1]);
-		columns = std::stoi(tmp[0]);
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		tmp = split(tmp.at(1), ',');
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		rows = std::stoi(tmp.at(1));
+		columns = std::stoi(tmp.at(0));
 
 		GomocupProtocol::RECTSTART(listener);
 	}
@@ -203,75 +209,79 @@ namespace ag
 	{
 		std::string line = listener.peekLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() >= 3u);
-		if (tmp[1] == "evaluate")
+		if (tmp.size() < 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+		if (tmp.at(1) == "evaluate")
 		{
 			std::vector<Move> path;
 			for (size_t i = 2; i < tmp.size(); i++)
-				path.push_back(moveFromString(tmp[i], Sign::NONE));
+				path.push_back(moveFromString(tmp.at(i), Sign::NONE));
 			input_queue.push(Message(MessageType::INFO_MESSAGE, path));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "analysis_mode")
+		if (tmp.size() != 3u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		if (tmp.at(1) == "analysis_mode")
 		{
-			is_in_analysis_mode = static_cast<bool>(std::stoi(tmp[2]));
+			is_in_analysis_mode = static_cast<bool>(std::stoi(tmp.at(2)));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "max_depth")
+		if (tmp.at(1) == "max_depth")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_depth", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_depth", tmp.at(2) }));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "max_node")
+		if (tmp.at(1) == "max_node")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_nodes", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_nodes", tmp.at(2) }));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "time_increment")
+		if (tmp.at(1) == "time_increment")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_increment", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_increment", tmp.at(2) }));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "style")
+		if (tmp.at(1) == "style")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "style", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "style", tmp.at(2) }));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "auto_pondering")
+		if (tmp.at(1) == "auto_pondering")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "auto_pondering", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "auto_pondering", tmp.at(2) }));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "protocol_lag")
+		if (tmp.at(1) == "protocol_lag")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "protocol_lag", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "protocol_lag", tmp.at(2) }));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "thread_num")
+		if (tmp.at(1) == "thread_num")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "thread_num", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "thread_num", tmp.at(2) }));
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
-		if (tmp[1] == "rule")
+		if (tmp.at(1) == "rule")
 		{
-			switch (std::stoi(tmp[2]))
+			switch (std::stoi(tmp.at(2)))
 			{
 				case 4:
 					is_renju_rule = true;
 					return;
 				case 8:
 					is_renju_rule = false;
-//					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) })); TODO uncomment this one this rule is supported
-					output_queue.push(Message(MessageType::ERROR, "caro rule is not supported"));
+//					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) })); TODO uncomment this once this rule is supported
+					output_queue.push(Message(MessageType::ERROR, "Caro rule is not supported"));
 					listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 					return;
 				default:
@@ -285,15 +295,17 @@ namespace ag
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
-		Move new_move = moveFromString(tmp[1], get_sign_to_move());
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
 		if (std::find(list_of_moves.begin(), list_of_moves.end(), new_move) == list_of_moves.end()) // new move must not be in the list
 		{
 			list_of_moves.push_back(new_move);
 			output_queue.push(Message(MessageType::BEST_MOVE, new_move));
 		}
 		else
-			output_queue.push(Message(MessageType::ERROR, "Invalid move '" + tmp[1] + "'"));
+			output_queue.push(Message(MessageType::ERROR, "Invalid move '" + tmp.at(1) + "'"));
 	}
 	void ExtendedGomocupProtocol::PONDER(InputListener &listener)
 	{
@@ -302,7 +314,7 @@ namespace ag
 		if (tmp.size() == 1)
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", "-1" }));
 		else
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", tmp[1] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_pondering", tmp.at(1) }));
 
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
@@ -328,12 +340,14 @@ namespace ag
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
 		list_of_moves = parse_list_of_moves(listener, "DONE");
 
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
-		input_queue.push(Message(MessageType::START_SEARCH, "balance " + tmp[1]));
+		input_queue.push(Message(MessageType::START_SEARCH, "balance " + tmp.at(1)));
 	}
 	void ExtendedGomocupProtocol::CLEARHASH(InputListener &listener)
 	{
@@ -352,8 +366,9 @@ namespace ag
 		listener.consumeLine("PROTOCOLVERSION");
 		output_queue.push(Message(MessageType::PLAIN_STRING, "1,0"));
 	}
-
-	// opening rules
+	/*
+	 * opening rules
+	 */
 	void ExtendedGomocupProtocol::PROBOARD(InputListener &listener)
 	{
 		std::string line = listener.getLine();
@@ -380,10 +395,7 @@ namespace ag
 
 			std::string line4 = listener.getLine();
 			if (line4 != "DONE")
-			{
-				output_queue.push(Message(MessageType::ERROR, "incorrect SWAPBOARD command"));
-				return;
-			}
+				throw ProtocolRuntimeException("Expected 'DONE' at the end, got '" + line4 + "'");
 		}
 
 		input_queue.push(Message(MessageType::STOP_SEARCH));
@@ -413,10 +425,7 @@ namespace ag
 				list_of_moves.push_back(moveFromString(line5, Sign::CROSS));
 
 				if (line6 != "DONE")
-				{
-					output_queue.push(Message(MessageType::ERROR, "incorrect SWAP2BOARD command"));
-					return;
-				}
+					throw ProtocolRuntimeException("Expected 'DONE' at the end, got '" + line6 + "'");
 			}
 		}
 		input_queue.push(Message(MessageType::STOP_SEARCH));

@@ -556,7 +556,9 @@ namespace ag
 	ag::Move moveFromString(const std::string &str, ag::Sign sign)
 	{
 		std::vector<std::string> tmp = split(str, ',');
-		assert(tmp.size() == 2u);
+		if (tmp.size() != 2u)
+			throw std::runtime_error("Incorrect move '" + str + "' was passed");
+
 		// coordinates in Gomocup protocol are inverted relative to those used internally here
 		int row = std::stoi(tmp[1]);
 		int col = std::stoi(tmp[0]);

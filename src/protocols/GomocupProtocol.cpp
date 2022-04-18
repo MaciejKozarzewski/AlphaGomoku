@@ -202,10 +202,12 @@ namespace ag
 			std::string line = listener.getLine();
 			if (line == ending)
 				break;
-			auto tmp = split(line, ',');
-			assert(tmp.size() == 3u);
-			Move m(std::stoi(tmp[1]), std::stoi(tmp[0]));
-			switch (std::stoi(tmp[2]))
+			std::vector<std::string> tmp = split(line, ',');
+			if (tmp.size() != 3u)
+				throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+			Move m(std::stoi(tmp.at(1)), std::stoi(tmp.at(0)));
+			switch (std::stoi(tmp.at(2)))
 			{
 				case 1:
 					own_moves.push_back(m);
@@ -236,10 +238,7 @@ namespace ag
 				{	m.sign = Sign::CROSS;});
 			}
 			else
-			{
-				output_queue.push(Message(MessageType::ERROR, "invalid position"));
-				return std::vector<Move>(); // impossible situation, incorrectly specified board state
-			}
+				throw ProtocolRuntimeException("Invalid position");
 		}
 
 		std::vector<Move> result;
@@ -247,7 +246,6 @@ namespace ag
 		{
 			result.push_back(opp_moves.front());
 			opp_moves.erase(opp_moves.begin());
-			assert(own_moves.size() == opp_moves.size());
 		}
 		for (size_t i = 0; i < own_moves.size(); i++)
 		{
@@ -260,34 +258,36 @@ namespace ag
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 3u);
-		if (tmp[1] == "timeout_turn")
+		if (tmp.size() != 3u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		if (tmp.at(1) == "timeout_turn")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_turn", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_turn", tmp.at(2) }));
 			return;
 		}
-		if (tmp[1] == "timeout_match")
+		if (tmp.at(1) == "timeout_match")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_match", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_match", tmp.at(2) }));
 			return;
 		}
-		if (tmp[1] == "time_left")
+		if (tmp.at(1) == "time_left")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_left", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_left", tmp.at(2) }));
 			return;
 		}
-		if (tmp[1] == "max_memory")
+		if (tmp.at(1) == "max_memory")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_memory", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_memory", tmp.at(2) }));
 			return;
 		}
-		if (tmp[1] == "game_type")
+		if (tmp.at(1) == "game_type")
 		{
 			return;
 		}
-		if (tmp[1] == "rule")
+		if (tmp.at(1) == "rule")
 		{
-			switch (std::stoi(tmp[2]))
+			switch (std::stoi(tmp.at(2)))
 			{
 				case 0:
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::FREESTYLE) }));
@@ -296,56 +296,61 @@ namespace ag
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::STANDARD) }));
 					return;
 				case 2:
-					output_queue.push(Message(MessageType::ERROR, "continuous game is not supported"));
+					output_queue.push(Message(MessageType::ERROR, "Continuous game is not supported"));
 					return;
 				case 4:
 //					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) })); TODO uncomment this once this rule is supported
-					output_queue.push(Message(MessageType::ERROR, "renju rule is not supported"));
+					output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported"));
 					return;
 				default:
-					output_queue.push(Message(MessageType::ERROR, "invalid rule " + tmp[2]));
+					output_queue.push(Message(MessageType::ERROR, "Invalid rule " + tmp.at(2)));
 					return;
 			}
 		}
-		if (tmp[1] == "evaluate")
+		if (tmp.at(1) == "evaluate")
 		{
-			const Move m = moveFromString(tmp[2], Sign::NONE);
+			const Move m = moveFromString(tmp.at(2), Sign::NONE);
 			input_queue.push(Message(MessageType::INFO_MESSAGE, std::vector<Move>( { m })));
 			return;
 		}
-		if (tmp[1] == "folder")
+		if (tmp.at(1) == "folder")
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "folder", tmp[2] }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "folder", tmp.at(2) }));
 			return;
 		}
-		Logger::write("unknown option '" + tmp[1] + "'");
+		Logger::write("Unknown option '" + tmp.at(1) + "'");
 	}
 	void GomocupProtocol::START(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
-		input_queue.push(Message(MessageType::STOP_SEARCH));
-		input_queue.push(Message(MessageType::START_PROGRAM));
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp[1] }));
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		if (std::stoi(tmp[1]) == 15 or std::stoi(tmp[1]) == 20)
+		input_queue.push(Message(MessageType::START_PROGRAM));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(1) }));
+
+		if (std::stoi(tmp.at(1)) == 15 or std::stoi(tmp.at(1)) == 20)
 			output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 		else
-			output_queue.push(Message(MessageType::ERROR, "only 15x15 or 20x20 boards are supported"));
+			output_queue.push(Message(MessageType::ERROR, "Only 15x15 or 20x20 boards are supported"));
 	}
 	void GomocupProtocol::RECTSTART(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
-		tmp = split(tmp[1], ',');
-		assert(tmp.size() == 2u);
-		output_queue.push(Message(MessageType::ERROR, "rectangular boards are not supported"));
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		tmp = split(tmp.at(1), ',');
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		output_queue.push(Message(MessageType::ERROR, "Rectangular boards are not supported"));
 		/* if it was supported, below is how it should be implemented */
-//		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp[1] }));
-//		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp[0] }));
+//		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
+//		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(0) }));
 //		input_queue.push(Message(MessageType::START_PROGRAM));
 	}
 	void GomocupProtocol::RESTART(InputListener &listener)
@@ -375,9 +380,10 @@ namespace ag
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
-		Move m = moveFromString(tmp[1], get_sign_to_move());
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
+		Move m = moveFromString(tmp.at(1), get_sign_to_move());
 		list_of_moves.push_back(m);
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
@@ -387,17 +393,18 @@ namespace ag
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
-		assert(tmp.size() == 2u);
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
 		int number_of_moves = list_of_moves.size();
 		if (number_of_moves == 0)
-			output_queue.push(Message(MessageType::ERROR, "the board is empty"));
+			output_queue.push(Message(MessageType::ERROR, "The board is empty"));
 		else
 		{
 			Move last_move = list_of_moves.back();
-			Move m = moveFromString(tmp[1], last_move.sign);
+			Move m = moveFromString(tmp.at(1), last_move.sign);
 			if (last_move != m)
-				output_queue.push(Message(MessageType::ERROR, "can undo only last move which is " + moveToString(last_move)));
+				output_queue.push(Message(MessageType::ERROR, "Can undo only the last move which is " + moveToString(last_move)));
 			else
 			{
 				list_of_moves.pop_back();

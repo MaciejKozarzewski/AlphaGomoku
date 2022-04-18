@@ -54,7 +54,9 @@ namespace ag
 			if (input_stream == nullptr)
 			{
 				listener_cond.wait(lock, [this] // @suppress("Invalid arguments")
-				{	return this->input_queue.empty() == false;});
+						{
+							return this->input_queue.empty() == false;
+						});
 			}
 			else
 			{
@@ -85,7 +87,7 @@ namespace ag
 			output_stream(outputStream)
 	{
 	}
-	void OutputSender::send(const std::string &msg) const noexcept
+	void OutputSender::send(const std::string &msg) const
 	{
 		Logger::write("Answered : " + msg);
 		std::lock_guard lock(sender_mutex);
@@ -247,7 +249,8 @@ namespace ag
 	Message MessageQueue::pop()
 	{
 		std::lock_guard lock(queue_mutex);
-		assert(message_queue.size() > 0u);
+		if (message_queue.empty())
+			throw std::logic_error("MessageQueue::pop() : queue is empty");
 		Message result = message_queue.front();
 		message_queue.pop();
 		return result;
@@ -255,7 +258,8 @@ namespace ag
 	Message MessageQueue::peek() const
 	{
 		std::lock_guard lock(queue_mutex);
-		assert(message_queue.size() > 0u);
+		if (message_queue.empty())
+			throw std::logic_error("MessageQueue::peek() : queue is empty");
 		return message_queue.front();
 	}
 
