@@ -154,6 +154,20 @@ namespace ag
 		else
 			return invertSign(list_of_moves.back().sign);
 	}
+	void GomocupProtocol::add_new_move(Move move)
+	{
+		check_move_validity(move, list_of_moves);
+		list_of_moves.push_back(move);
+	}
+	void GomocupProtocol::check_move_validity(Move move, const std::vector<Move> &playedMoves) const
+	{
+		if (move.row < 0 or move.row >= rows or move.col < 0 or move.col >= columns)
+			throw ProtocolRuntimeException(
+					"Move " + moveToString(move) + " is outside of " + std::to_string(rows) + "x" + std::to_string(columns) + " board");
+		for (size_t i = 0; i < playedMoves.size(); i++)
+			if (playedMoves[i].row == move.row and playedMoves[i].col == move.col)
+				throw ProtocolRuntimeException("Spot " + moveToString(move) + " is already occupied");
+	}
 	std::string GomocupProtocol::parse_search_summary(const SearchSummary &summary) const
 	{
 		if (summary.node.getVisits() == 0)
@@ -207,6 +221,9 @@ namespace ag
 				throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
 			Move m(std::stoi(tmp.at(1)), std::stoi(tmp.at(0)));
+			check_move_validity(m, own_moves);
+			check_move_validity(m, opp_moves);
+
 			switch (std::stoi(tmp.at(2)))
 			{
 				case 1:
@@ -238,7 +255,7 @@ namespace ag
 				{	m.sign = Sign::CROSS;});
 			}
 			else
-				throw ProtocolRuntimeException("Invalid position");
+				throw ProtocolRuntimeException("Invalid position - too many stones either color");
 		}
 
 		std::vector<Move> result;
@@ -332,7 +349,11 @@ namespace ag
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(1) }));
 
 		if (std::stoi(tmp.at(1)) == 15 or std::stoi(tmp.at(1)) == 20)
+		{
+			rows = std::stoi(tmp.at(1));
+			columns = std::stoi(tmp.at(1));
 			output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
+		}
 		else
 			output_queue.push(Message(MessageType::ERROR, "Only 15x15 or 20x20 boards are supported"));
 	}
@@ -352,6 +373,8 @@ namespace ag
 //		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
 //		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(0) }));
 //		input_queue.push(Message(MessageType::START_PROGRAM));
+//		rows = std::stoi(tmp.at(1));
+//		columns = std::stoi(tmp.at(0));
 	}
 	void GomocupProtocol::RESTART(InputListener &listener)
 	{
@@ -383,8 +406,8 @@ namespace ag
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		Move m = moveFromString(tmp.at(1), get_sign_to_move());
-		list_of_moves.push_back(m);
+		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
+		add_new_move(new_move);
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
@@ -396,14 +419,14 @@ namespace ag
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		int number_of_moves = list_of_moves.size();
+		const int number_of_moves = list_of_moves.size();
 		if (number_of_moves == 0)
 			output_queue.push(Message(MessageType::ERROR, "The board is empty"));
 		else
 		{
-			Move last_move = list_of_moves.back();
-			Move m = moveFromString(tmp.at(1), last_move.sign);
-			if (last_move != m)
+			const Move last_move = list_of_moves.back();
+			const Move move_to_takeback = moveFromString(tmp.at(1), last_move.sign);
+			if (last_move != move_to_takeback)
 				output_queue.push(Message(MessageType::ERROR, "Can undo only the last move which is " + moveToString(last_move)));
 			else
 			{

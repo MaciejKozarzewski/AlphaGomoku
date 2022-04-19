@@ -18,8 +18,6 @@ namespace ag
 		private:
 			bool is_in_analysis_mode = false;
 			bool is_renju_rule = false;
-			int rows = 0;
-			int columns = 0;
 
 		public:
 			ExtendedGomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT);
@@ -29,8 +27,6 @@ namespace ag
 			void processInput(InputListener &listener);
 			void processOutput(OutputSender &sender);
 		private:
-			void START(InputListener &listener);
-			void RECTSTART(InputListener &listener);
 			void INFO(InputListener &listener);
 
 			void PLAY(InputListener &listener);

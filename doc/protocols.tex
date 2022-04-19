@@ -32,7 +32,7 @@ Upon receiving this command, engine sets the board size.
 
 \textbf{Note:} In AG, [size] can be either 15 or 20. For any other value AG will respond with an \texttt{ERROR} message. This is later checked in combination with \texttt{INFO rule} value where also an \texttt{ERROR} can be sent.
 
-\textbf{Note:} In contrary to the official protocol description, AG does not actually initialize itself here.
+\textbf{Note:} In contrary to the official protocol description, AG does not actually initialize itself here. \texttt{START} and \texttt{RESTART} commands just clear the board, while the former also sets board size.
 
 \textbf{Note:} If logging to file is enabled, a new file will be created for every \texttt{START} command.
 
@@ -105,7 +105,7 @@ Sets the memory limit in bytes.
 
 \textbf{Note:} If the memory limit is too low, AG may stop the search when it runs out of memory.
 
-\textbf{Note:} This setting cannot be changed during the search.
+\textbf{Note:} This setting can be increased freely at any time. But lowering memory limit is only possible when the search is not running and will mean re-creating entire search tree from scratch.
 
 \subsubsection{INFO game{\_}type [x]}
 \label{cmd_info_game_type}
@@ -191,6 +191,8 @@ Currently the only \texttt{MESSAGE} AG sends by itself, is the summary of the se
 
 \textbf{Note:} Minimal is always 1 and maximal is taken as the length of principal variation.}
 \item[\textbf{ev [x]}]{is the expectation outcome in {\%} (probability of $P_{win} + \frac{1}{2}P_{draw}$) or proven value - (U)nknown, (L)oss, (D)raw, (W)in.}
+\item[\textbf{winrate [x]}]{is the probability of winning the game in {\%}}
+\item[\textbf{drawrate [x]}]{is the probability of drawing the game in {\%}}
 \item[\textbf{n [x]}]{is the number of evaluated nodes.}
 \item[\textbf{n/s [x]}]{is the number of evaluated nodes per second (including cache hits).}
 \item[\textbf{tm [x]}]{is the time used for this turn (in milliseconds).}
@@ -198,7 +200,7 @@ Currently the only \texttt{MESSAGE} AG sends by itself, is the summary of the se
 \end{enumerate}
 
 Example:\\
-\texttt{MESSAGE} depth 1-14 ev 56.2 n 3381 n/s 932 tm 3627 pv Oe4 Xe3 Of4 Xg4 Oh5 Xc3 Od3 Xf2 Oc5 Xg3 Og2 Xe1 Oh4 Xb2 \\
+\texttt{MESSAGE} depth 1-45 ev 60.1 winrate 56.7 drawrate 6.9 n 288959 n/s 12487 tm 23140 pv Xf4 Of6 Xe6 Of5 Xc5 Oc4 Xh5 Og7 Xh8 \\
 
 Principal variation encoding format:
 \begin{enumerate}[leftmargin=7.5em]
@@ -281,11 +283,11 @@ Sets amount of time that is added after each move (see Fischer time controls \ci
 Controls the style of the search. Allowed values are:
 \begin{enumerate}[leftmargin=7.5em]
 	\item[\text{$[x]=0$}]{defensive - AG will try to maximize the probability of not losing, $P_{win} + P_{draw}$.}
-	\item[\text{$[x]=1$}]{AG will try to maximize $P_{win} + \frac{1}{4}P_{draw}$.}
+	\item[\text{$[x]=1$}]{AG will try to maximize $P_{win} + \frac{3}{4}P_{draw}$.}
 	\item[\text{$[x]=2$}]{classic - AG will try to maximize the expectation outcome, $P_{win} + \frac{1}{2}P_{draw}$.
 	
 	\textbf{Note:} In general, this is the strongest setting.}
-	\item[\text{$[x]=3$}]{AG will try to maximize $P_{win} + \frac{3}{4}P_{draw}$.}
+	\item[\text{$[x]=3$}]{AG will try to maximize $P_{win} + \frac{1}{4}P_{draw}$.}
 	\item[\text{$[x]=4$}]{offensive - AG will try to maximize the probability of winning, $P_{win}$.}
 \end{enumerate}
 
@@ -315,7 +317,7 @@ Some parameters have default values so the engine works even if no \texttt{INFO}
 \item{\textbf{max{\_}depth } = 2147483647 (effectively no limit)}
 \item{\textbf{max{\_}nodes} = 2147483647 (effectively no limit)}
 \item{\textbf{time{\_}increment} = 0 ("sudden death" \cite{suddendeath} type time controls)}
-\item{\textbf{style} = 1 (classic)}
+\item{\textbf{style} = 2 (classic)}
 \item{\textbf{auto{\_}pondering} = as loaded from configuration file}
 \item{\textbf{protocol{\_}lag} \text{$ \approx 400$} (0.4s - varies from version to version)}
 \item{\textbf{thread{\_}num} = as loaded from configuration file}

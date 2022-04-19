@@ -148,12 +148,13 @@ namespace ag
 			}
 			if (option.name == "max_memory")
 			{
+				const int64_t tmp = max_memory;
 				int64_t value = std::stoll(option.value);
 				if (value <= 0)
 					max_memory = 0.75 * ml::Device::cpu().memory() * 1024 * 1024;
 				else
 					max_memory = value;
-				return SetOptionOutcome::SUCCESS;
+				return (max_memory >= tmp) ? SetOptionOutcome::SUCCESS : SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE;
 			}
 			if (option.name == "style")
 			{

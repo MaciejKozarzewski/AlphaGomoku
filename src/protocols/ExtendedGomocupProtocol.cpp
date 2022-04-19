@@ -92,17 +92,6 @@ namespace ag
 			return;
 		}
 
-		if (startsWith(line, "START"))
-		{
-			this->START(listener);
-			return;
-		}
-		if (startsWith(line, "RECTSTART"))
-		{
-			this->RECTSTART(listener);
-			return;
-		}
-
 		if (startsWith(line, "INFO"))
 			this->INFO(listener); // intentionally does not have a return as other INFO keys must be processed by base class
 
@@ -177,40 +166,15 @@ namespace ag
 	/*
 	 * private
 	 */
-	void ExtendedGomocupProtocol::START(InputListener &listener)
-	{
-		std::string line = listener.peekLine();
-		std::vector<std::string> tmp = split(line, ' ');
-		if (tmp.size() != 2u)
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
-
-		rows = std::stoi(tmp.at(1));
-		columns = std::stoi(tmp.at(1));
-
-		GomocupProtocol::START(listener);
-	}
-	void ExtendedGomocupProtocol::RECTSTART(InputListener &listener)
-	{
-		std::string line = listener.peekLine();
-		std::vector<std::string> tmp = split(line, ' ');
-		if (tmp.size() != 2u)
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
-
-		tmp = split(tmp.at(1), ',');
-		if (tmp.size() != 2u)
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
-
-		rows = std::stoi(tmp.at(1));
-		columns = std::stoi(tmp.at(0));
-
-		GomocupProtocol::RECTSTART(listener);
-	}
 	void ExtendedGomocupProtocol::INFO(InputListener &listener)
 	{
 		std::string line = listener.peekLine();
 		std::vector<std::string> tmp = split(line, ' ');
 		if (tmp.size() < 2u)
+		{
+			listener.consumeLine();
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+		}
 		if (tmp.at(1) == "evaluate")
 		{
 			std::vector<Move> path;
@@ -221,11 +185,16 @@ namespace ag
 			return;
 		}
 		if (tmp.size() != 3u)
+		{
+			listener.consumeLine();
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+		}
 
 		if (tmp.at(1) == "analysis_mode")
 		{
 			is_in_analysis_mode = static_cast<bool>(std::stoi(tmp.at(2)));
+			if (is_in_analysis_mode)
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "auto_pondering", "0" })); // if analysis mode is on, auto pondering is off
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
 			return;
 		}
@@ -298,14 +267,9 @@ namespace ag
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
-		if (std::find(list_of_moves.begin(), list_of_moves.end(), new_move) == list_of_moves.end()) // new move must not be in the list
-		{
-			list_of_moves.push_back(new_move);
-			output_queue.push(Message(MessageType::BEST_MOVE, new_move));
-		}
-		else
-			output_queue.push(Message(MessageType::ERROR, "Invalid move '" + tmp.at(1) + "'"));
+		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
+		add_new_move(new_move);
+		output_queue.push(Message(MessageType::PLAIN_STRING, tmp.at(1)));
 	}
 	void ExtendedGomocupProtocol::PONDER(InputListener &listener)
 	{
@@ -389,9 +353,9 @@ namespace ag
 		{
 			std::string line2 = listener.getLine();
 			std::string line3 = listener.getLine();
-			list_of_moves.push_back(moveFromString(line1, Sign::CROSS));
-			list_of_moves.push_back(moveFromString(line2, Sign::CIRCLE));
-			list_of_moves.push_back(moveFromString(line3, Sign::CROSS));
+			add_new_move(moveFromString(line1, Sign::CROSS));
+			add_new_move(moveFromString(line2, Sign::CIRCLE));
+			add_new_move(moveFromString(line3, Sign::CROSS));
 
 			std::string line4 = listener.getLine();
 			if (line4 != "DONE")
@@ -412,17 +376,17 @@ namespace ag
 		{
 			std::string line2 = listener.getLine();
 			std::string line3 = listener.getLine();
-			list_of_moves.push_back(moveFromString(line1, Sign::CROSS));
-			list_of_moves.push_back(moveFromString(line2, Sign::CIRCLE));
-			list_of_moves.push_back(moveFromString(line3, Sign::CROSS));
+			add_new_move(moveFromString(line1, Sign::CROSS));
+			add_new_move(moveFromString(line2, Sign::CIRCLE));
+			add_new_move(moveFromString(line3, Sign::CROSS));
 
 			std::string line4 = listener.getLine();
 			if (line4 != "DONE") // 5 stones were placed
 			{
 				std::string line5 = listener.getLine();
 				std::string line6 = listener.getLine(); // DONE
-				list_of_moves.push_back(moveFromString(line4, Sign::CIRCLE));
-				list_of_moves.push_back(moveFromString(line5, Sign::CROSS));
+				add_new_move(moveFromString(line4, Sign::CIRCLE));
+				add_new_move(moveFromString(line5, Sign::CROSS));
 
 				if (line6 != "DONE")
 					throw ProtocolRuntimeException("Expected 'DONE' at the end, got '" + line6 + "'");

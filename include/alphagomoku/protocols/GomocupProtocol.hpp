@@ -18,6 +18,8 @@ namespace ag
 		protected:
 			mutable std::recursive_mutex protocol_mutex;
 			std::vector<Move> list_of_moves;
+			int rows = 0;
+			int columns = 0;
 
 		public:
 			GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT);
@@ -29,6 +31,8 @@ namespace ag
 
 		protected:
 			Sign get_sign_to_move() const noexcept;
+			void add_new_move(Move move);
+			void check_move_validity(Move move, const std::vector<Move> &playedMoves) const;
 			std::string parse_search_summary(const SearchSummary &summary) const;
 			std::vector<Move> parse_list_of_moves(InputListener &listener, const std::string &ending) const;
 
