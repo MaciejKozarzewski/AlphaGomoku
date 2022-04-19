@@ -122,7 +122,7 @@ namespace ag
 									if (search_engine->isSearchFinished())
 										search_engine = nullptr;
 									else
-										output_queue.push(Message(MessageType::ERROR, "cannot set this option while the search is running"));
+										output_queue.push(Message(MessageType::ERROR, "Cannot set this option while the search is running"));
 								}
 								break;
 							case SetOptionOutcome::FAILURE:
@@ -144,7 +144,7 @@ namespace ag
 						{
 							if (search_engine->isSearchFinished() == false)
 							{
-								output_queue.push(Message(MessageType::ERROR, "search engine is already running"));
+								output_queue.push(Message(MessageType::ERROR, "Search engine is already running"));
 								break;
 							}
 							search_engine->setPosition(board, sign_to_move);
@@ -157,7 +157,12 @@ namespace ag
 					case MessageType::STOP_SEARCH:
 					{
 						if (search_engine != nullptr)
-							search_engine->stopSearch();
+						{
+							if (search_engine->isSearchFinished())
+								output_queue.push(Message(MessageType::ERROR, "Search engine is not running"));
+							else
+								search_engine->stopSearch();
+						}
 						break;
 					}
 					case MessageType::EXIT_PROGRAM:

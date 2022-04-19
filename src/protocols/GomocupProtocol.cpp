@@ -368,13 +368,16 @@ namespace ag
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		output_queue.push(Message(MessageType::ERROR, "Rectangular boards are not supported"));
-		/* if it was supported, below is how it should be implemented */
-//		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
-//		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(0) }));
-//		input_queue.push(Message(MessageType::START_PROGRAM));
-//		rows = std::stoi(tmp.at(1));
-//		columns = std::stoi(tmp.at(0));
+		if (std::stoi(tmp.at(0)) == std::stoi(tmp.at(1))) // actually a square board
+		{
+			rows = std::stoi(tmp.at(1));
+			columns = std::stoi(tmp.at(0));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(0) }));
+			input_queue.push(Message(MessageType::START_PROGRAM));
+		}
+		else
+			output_queue.push(Message(MessageType::ERROR, "Rectangular boards are not supported"));
 	}
 	void GomocupProtocol::RESTART(InputListener &listener)
 	{

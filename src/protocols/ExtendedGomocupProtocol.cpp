@@ -35,11 +35,17 @@ namespace ag
 
 		std::lock_guard lock(protocol_mutex);
 
-		if (startsWith(line, "PLAY"))
+		if (expects_play_command)
 		{
-			PLAY(listener);
-			return;
+			if (startsWith(line, "PLAY"))
+			{
+				PLAY(listener);
+				return;
+			}
+			else
+				throw ProtocolRuntimeException("Expecting PLAY command");
 		}
+
 		if (startsWith(line, "PONDER"))
 		{
 			PONDER(listener);
@@ -118,7 +124,10 @@ namespace ag
 					{
 						assert(msg.getMove().sign == get_sign_to_move());
 						if (is_in_analysis_mode)
+						{
 							sender.send("SUGGEST " + moveToString(msg.getMove()));
+							expects_play_command = true;
+						}
 						else
 						{
 							sender.send(moveToString(msg.getMove()));
@@ -263,12 +272,16 @@ namespace ag
 	void ExtendedGomocupProtocol::PLAY(InputListener &listener)
 	{
 		std::string line = listener.getLine();
+		if (not expects_play_command)
+			throw ProtocolRuntimeException("Was not expecting PLAY command");
+
 		std::vector<std::string> tmp = split(line, ' ');
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
 		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
 		add_new_move(new_move);
+		expects_play_command = false;
 		output_queue.push(Message(MessageType::PLAIN_STRING, tmp.at(1)));
 	}
 	void ExtendedGomocupProtocol::PONDER(InputListener &listener)
