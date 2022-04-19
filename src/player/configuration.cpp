@@ -137,7 +137,8 @@ namespace ag
 			DeviceConfig tmp;
 			tmp.batch_size = best_config.getOptimalParams().first;
 			tmp.device = ml::Device::cpu();
-			device_configs.push_back(tmp);
+			for (int j = 0; j < best_config.search_threads; j++)
+				device_configs.push_back(tmp);
 
 			max_batch_size = tmp.batch_size;
 			result["search_options"]["vcf_solver_max_positions"] = 1600;

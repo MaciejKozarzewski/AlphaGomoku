@@ -65,18 +65,16 @@ namespace ag
 			configure();
 			return false;
 		}
-		bool success = load_config(argument_parser.getLaunchPath() + name_of_config_file);
-		if (success == false)
-		{
-			output_sender.send(ProgramInfo::name() + " will now use a default configuration.");
-			config = createDefaultConfig();
-		}
-		setup_paths_in_config();
 		if (run_benchmark)
 		{
+			config = createDefaultConfig();
+			setup_paths_in_config();
 			benchmark();
 			return false;
 		}
+		bool success = load_config(argument_parser.getLaunchPath() + name_of_config_file);
+		if (success)
+			setup_paths_in_config();
 		return success;
 	}
 	void ProgramManager::run()
