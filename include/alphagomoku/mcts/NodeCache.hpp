@@ -11,7 +11,7 @@
 #include <alphagomoku/mcts/Node.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/utils/configs.hpp>
-#include <alphagomoku/utils/ObjectArrayPool.hpp>
+#include <alphagomoku/utils/ObjectPool.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 
 namespace ag
@@ -66,7 +66,7 @@ namespace ag
 					CompressedBoard board;
 			};
 
-			ObjectArrayPool<Edge> edge_pool;
+			ObjectPool<Edge> edge_pool;
 			std::vector<std::unique_ptr<Entry[]>> node_pool;
 
 			std::vector<Entry*> bins; // non-owning
