@@ -35,17 +35,6 @@ namespace ag
 
 		std::lock_guard lock(protocol_mutex);
 
-		if (expects_play_command)
-		{
-			if (startsWith(line, "PLAY"))
-			{
-				PLAY(listener);
-				return;
-			}
-			else
-				throw ProtocolRuntimeException("Expecting PLAY command");
-		}
-
 		if (startsWith(line, "PONDER"))
 		{
 			PONDER(listener);
@@ -99,78 +88,10 @@ namespace ag
 		}
 
 		if (startsWith(line, "INFO"))
-			this->INFO(listener); // intentionally does not have a return as other INFO keys must be processed by base class
+			this->INFO(listener); // intentionally does not have a return as some INFO keys must be processed by base class
 
 		if (listener.isEmpty() == false) // call the base class only if there is anything to process, otherwise it will block waiting for input
 			GomocupProtocol::processInput(listener);
-	}
-	void ExtendedGomocupProtocol::processOutput(OutputSender &sender)
-	{
-		std::lock_guard lock(protocol_mutex);
-
-		while (output_queue.isEmpty() == false)
-		{
-			Message msg = output_queue.pop();
-			switch (msg.getType())
-			{
-				case MessageType::BEST_MOVE:
-				{
-					if (msg.holdsString()) // used to swap colors
-					{
-						if (msg.getString() == "swap")
-							sender.send("SWAP");
-					}
-					if (msg.holdsMove()) // used to return the best move
-					{
-						assert(msg.getMove().sign == get_sign_to_move());
-						if (is_in_analysis_mode)
-						{
-							sender.send("SUGGEST " + moveToString(msg.getMove()));
-							expects_play_command = true;
-						}
-						else
-						{
-							sender.send(moveToString(msg.getMove()));
-							list_of_moves.push_back(msg.getMove());
-						}
-					}
-					if (msg.holdsListOfMoves()) // used to return an opening
-					{
-						std::string str;
-						for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
-						{
-							if (i != 0)
-								str += ' ';
-							str += moveToString(msg.getListOfMoves().at(i));
-						}
-						sender.send(str);
-					}
-					break;
-				}
-				case MessageType::PLAIN_STRING:
-					sender.send(msg.getString());
-					break;
-				case MessageType::UNKNOWN_COMMAND:
-					sender.send("UNKNOWN '" + msg.getString() + "'");
-					break;
-				case MessageType::ERROR:
-					sender.send("ERROR " + msg.getString());
-					break;
-				case MessageType::INFO_MESSAGE:
-				{
-					if (msg.holdsString())
-						sender.send("MESSAGE " + msg.getString());
-					if (msg.holdsSearchSummary())
-						sender.send("MESSAGE " + parse_search_summary(msg.getSearchSummary()));
-					break;
-				}
-				case MessageType::ABOUT_ENGINE:
-					sender.send(msg.getString());
-					break;
-				default:
-					break;
-			}
-		}
 	}
 	/*
 	 * private
@@ -202,6 +123,7 @@ namespace ag
 		if (tmp.at(1) == "analysis_mode")
 		{
 			is_in_analysis_mode = static_cast<bool>(std::stoi(tmp.at(2)));
+			use_suggest = is_in_analysis_mode;
 			if (is_in_analysis_mode)
 				input_queue.push(Message(MessageType::SET_OPTION, Option { "auto_pondering", "0" })); // if analysis mode is on, auto pondering is off
 			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
@@ -266,24 +188,10 @@ namespace ag
 					is_renju_rule = false;
 					return;
 			}
+			// not consuming line because it must be further processed by the base class
 		}
 	}
 
-	void ExtendedGomocupProtocol::PLAY(InputListener &listener)
-	{
-		std::string line = listener.getLine();
-		if (not expects_play_command)
-			throw ProtocolRuntimeException("Was not expecting PLAY command");
-
-		std::vector<std::string> tmp = split(line, ' ');
-		if (tmp.size() != 2u)
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
-
-		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
-		add_new_move(new_move);
-		expects_play_command = false;
-		output_queue.push(Message(MessageType::PLAIN_STRING, tmp.at(1)));
-	}
 	void ExtendedGomocupProtocol::PONDER(InputListener &listener)
 	{
 		std::string line = listener.getLine();
@@ -308,7 +216,7 @@ namespace ag
 		std::vector<Move> moves = parse_list_of_moves(listener, "DONE");
 		if (is_renju_rule)
 		{
-			// TODO add detecting of forbidden moves for renju
+			output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported")); // TODO add detecting of forbidden moves for renju
 		}
 		else
 			output_queue.push(Message(MessageType::PLAIN_STRING, "FORBID"));
@@ -316,15 +224,17 @@ namespace ag
 	void ExtendedGomocupProtocol::BALANCE(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		std::vector<std::string> tmp = split(line, ' ');
-		if (tmp.size() != 2u)
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+		output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported")); // TODO add position balancing
 
-		list_of_moves = parse_list_of_moves(listener, "DONE");
-
-		input_queue.push(Message(MessageType::STOP_SEARCH));
-		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
-		input_queue.push(Message(MessageType::START_SEARCH, "balance " + tmp.at(1)));
+//		std::vector<std::string> tmp = split(line, ' ');
+//		if (tmp.size() != 2u)
+//			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+//
+//		list_of_moves = parse_list_of_moves(listener, "DONE");
+//
+//		input_queue.push(Message(MessageType::STOP_SEARCH));
+//		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+//		input_queue.push(Message(MessageType::START_SEARCH, "balance " + tmp.at(1)));
 	}
 	void ExtendedGomocupProtocol::CLEARHASH(InputListener &listener)
 	{
@@ -336,7 +246,7 @@ namespace ag
 
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, tmp)); // Node cache deletes states that are provably not possible given current board state. Given an impossible board state, all nodes will be cleared.
-		input_queue.push(Message(MessageType::START_SEARCH, "clearhash")); // launching search with special controller that will pass this board to the engine, causing tree reset.
+		input_queue.push(Message(MessageType::START_SEARCH, "clearhash")); // launching search with special controller that will pass this board to the engine causing tree reset but without actually starting the search.
 	}
 	void ExtendedGomocupProtocol::PROTOCOLVERSION(InputListener &listener)
 	{

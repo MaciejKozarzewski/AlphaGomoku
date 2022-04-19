@@ -76,6 +76,30 @@ namespace ag
 			BOARD(listener);
 			return;
 		}
+		if (startsWith(line, "END"))
+		{
+			END(listener);
+			return;
+		}
+		if (startsWith(line, "ABOUT"))
+		{
+			ABOUT(listener);
+			return;
+		}
+
+		if (expects_play_command)
+		{
+			if (startsWith(line, "PLAY"))
+			{
+				PLAY(listener);
+				return;
+			}
+			else
+			{
+				listener.consumeLine();
+				throw ProtocolRuntimeException("Expecting PLAY command");
+			}
+		}
 		if (startsWith(line, "TURN"))
 		{
 			TURN(listener);
@@ -84,17 +108,6 @@ namespace ag
 		if (startsWith(line, "TAKEBACK"))
 		{
 			TAKEBACK(listener);
-			return;
-		}
-		if (startsWith(line, "END"))
-		{
-			END(listener);
-			return;
-		}
-
-		if (startsWith(line, "ABOUT"))
-		{
-			ABOUT(listener);
 			return;
 		}
 
@@ -111,11 +124,35 @@ namespace ag
 			{
 				case MessageType::BEST_MOVE:
 				{
+					if (msg.holdsString()) // used to swap colors
+					{
+						if (msg.getString() == "swap")
+							sender.send("SWAP");
+					}
 					if (msg.holdsMove()) // used to return the best move
 					{
 						assert(msg.getMove().sign == get_sign_to_move());
-						sender.send(moveToString(msg.getMove()));
-						list_of_moves.push_back(msg.getMove());
+						if (use_suggest)
+						{
+							sender.send("SUGGEST " + moveToString(msg.getMove()));
+							expects_play_command = true;
+						}
+						else
+						{
+							sender.send(moveToString(msg.getMove()));
+							list_of_moves.push_back(msg.getMove());
+						}
+					}
+					if (msg.holdsListOfMoves()) // used to return multiple moves (for example an opening)
+					{
+						std::string str;
+						for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
+						{
+							if (i != 0)
+								str += ' ';
+							str += moveToString(msg.getListOfMoves().at(i));
+						}
+						sender.send(str);
 					}
 					break;
 				}
@@ -439,6 +476,21 @@ namespace ag
 				output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 			}
 		}
+	}
+	void GomocupProtocol::PLAY(InputListener &listener)
+	{
+		std::string line = listener.getLine();
+		if (not expects_play_command)
+			throw ProtocolRuntimeException("Was not expecting PLAY command");
+
+		std::vector<std::string> tmp = split(line, ' ');
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
+		add_new_move(new_move);
+		expects_play_command = false;
+		output_queue.push(Message(MessageType::PLAIN_STRING, tmp.at(1)));
 	}
 	void GomocupProtocol::END(InputListener &listener)
 	{

@@ -25,11 +25,9 @@ namespace ag
 			void reset();
 			ProtocolType getType() const noexcept;
 			void processInput(InputListener &listener);
-			void processOutput(OutputSender &sender);
 		private:
 			void INFO(InputListener &listener);
 
-			void PLAY(InputListener &listener);
 			void PONDER(InputListener &listener);
 			void STOP(InputListener &listener);
 			void SHOWFORBID(InputListener &listener);

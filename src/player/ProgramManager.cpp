@@ -157,12 +157,7 @@ namespace ag
 					case MessageType::STOP_SEARCH:
 					{
 						if (search_engine != nullptr)
-						{
-							if (search_engine->isSearchFinished())
-								output_queue.push(Message(MessageType::ERROR, "Search engine is not running"));
-							else
-								search_engine->stopSearch();
-						}
+							search_engine->stopSearch();
 						break;
 					}
 					case MessageType::EXIT_PROGRAM:
@@ -371,9 +366,9 @@ namespace ag
 		else
 		{
 			GameConfig cfg = engine_settings->getGameConfig();
-			std::string str = toString(cfg.rules) + " rule is not supported on " + std::to_string(cfg.rows) + "x" + std::to_string(cfg.cols)
-					+ " board";
-			output_queue.push(Message(MessageType::ERROR, str));
+			Message msg(MessageType::ERROR,
+					toString(cfg.rules) + " rule is not supported on " + std::to_string(cfg.rows) + "x" + std::to_string(cfg.cols) + " board");
+			output_queue.push(msg);
 		}
 	}
 	void ProgramManager::set_position(const std::vector<Move> &listOfMoves)
@@ -390,12 +385,14 @@ namespace ag
 	}
 	void ProgramManager::setup_controller(const std::string &type)
 	{
+		if (type.empty())
+			return; // using the same controller as previously
 		std::vector<std::string> tmp = split(type, ' ');
 		assert(tmp.size() >= 1);
 		assert(engine_settings != nullptr);
 		assert(search_engine != nullptr);
 
-		if (tmp[0] == "clearhash") // it just pretends to be a controller but causes hash clear
+		if (tmp[0] == "clearhash") // it just pretends to be a controller but does not start any search
 			return;
 
 		engine_controller = createController(tmp[0], *engine_settings, time_manager, *search_engine);
@@ -406,7 +403,7 @@ namespace ag
 			engine_controller->setup(args);
 		}
 		else
-			output_queue.push(Message(MessageType::ERROR, "unsupported controller type '" + type + "'"));
+			output_queue.push(Message(MessageType::ERROR, "Unsupported controller type '" + type + "'"));
 	}
 	bool ProgramManager::is_game_config_correct() const
 	{

@@ -20,6 +20,8 @@ namespace ag
 			std::vector<Move> list_of_moves;
 			int rows = 0;
 			int columns = 0;
+			bool use_suggest = false;
+			bool expects_play_command = false;
 
 		public:
 			GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT);
@@ -46,6 +48,7 @@ namespace ag
 			void BOARD(InputListener &listener);
 			void TURN(InputListener &listener);
 			void TAKEBACK(InputListener &listener);
+			void PLAY(InputListener &listener);
 			void END(InputListener &listener);
 
 			void ABOUT(InputListener &listener);
