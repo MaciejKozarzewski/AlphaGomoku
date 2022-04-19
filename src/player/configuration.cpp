@@ -70,12 +70,12 @@ namespace
 			}
 	};
 
-	HardwareConfiguration filter_configs(const std::vector<HardwareConfiguration> &configs, ml::Device device)
+	HardwareConfiguration filter_configs(const std::vector<HardwareConfiguration> &configs, ml::Device device, int maxThreads)
 	{
 		size_t index = 0;
 		std::pair<int, float> best_param( { 0, 0.0f });
 		for (size_t i = 0; i < configs.size(); i++)
-			if (configs[i].device == device)
+			if (configs[i].device == device and configs[i].search_threads <= maxThreads)
 			{
 				std::pair<int, float> tmp = configs[i].getOptimalParams();
 				if (tmp.second > best_param.second)
@@ -102,15 +102,19 @@ namespace ag
 			if (benchmarkResults["tests"][i].isNull() == false)
 				configs.push_back(HardwareConfiguration(benchmarkResults["tests"][i]));
 
+		const int num_cpu_cores = ml::Device::cpu().cores();
+		const int num_cuda_devices = ml::Device::numberOfCudaDevices();
+
 		Json result = create_base_config();
 		int search_threads = 0;
 		int max_batch_size = 0;
 		std::vector<DeviceConfig> device_configs;
-		if (ml::Device::numberOfCudaDevices() > 0)
+		if (num_cuda_devices > 0)
 		{
-			for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
+			for (int i = 0; i < num_cuda_devices; i++)
 			{
-				HardwareConfiguration best_config = filter_configs(configs, ml::Device::cuda(i));
+				const int max_threads = std::max(1, (num_cpu_cores - search_threads) / (num_cuda_devices - i));
+				HardwareConfiguration best_config = filter_configs(configs, ml::Device::cuda(i), max_threads);
 				search_threads += best_config.search_threads;
 				for (int j = 0; j < best_config.search_threads; j++)
 				{
@@ -123,11 +127,12 @@ namespace ag
 			}
 			result["search_options"]["vcf_solver_max_positions"] = 200;
 			result["tree_options"]["initial_cache_size"] = 65536;
-			result["tree_options"]["bucket_size"] = 1000000;
+			result["tree_options"]["edge_bucket_size"] = 1000000;
+			result["tree_options"]["node_bucket_size"] = 100000;
 		}
 		else
 		{
-			HardwareConfiguration best_config = filter_configs(configs, ml::Device::cpu());
+			HardwareConfiguration best_config = filter_configs(configs, ml::Device::cpu(), num_cpu_cores);
 			search_threads = best_config.search_threads;
 			DeviceConfig tmp;
 			tmp.batch_size = best_config.getOptimalParams().first;
@@ -137,7 +142,8 @@ namespace ag
 			max_batch_size = tmp.batch_size;
 			result["search_options"]["vcf_solver_max_positions"] = 1600;
 			result["tree_options"]["initial_cache_size"] = 8192;
-			result["tree_options"]["bucket_size"] = 100000;
+			result["tree_options"]["edge_bucket_size"] = 100000;
+			result["tree_options"]["node_bucket_size"] = 10000;
 		}
 
 		result["search_threads"] = search_threads;
