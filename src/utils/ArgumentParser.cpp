@@ -7,27 +7,30 @@
 
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/os_utils.hpp>
 
 #include <iostream>
+#include <filesystem>
 
 namespace
 {
 	using namespace ag;
 	std::pair<std::string, std::string> parse_launch_path(std::string text)
 	{
+		if (text.find('\\') == std::string::npos and text.find('/') == std::string::npos) // no slashes
+			return std::pair<std::string, std::string>( { "", text });
 		size_t last_slash = text.length();
 		for (size_t i = 0; i < text.length(); i++)
 			if (text[i] == '\\' or text[i] == '/')
 			{
-#ifdef _WIN32
+#if defined(_WIN32)
 				text[i] = '\\';
-#elif __linux__
+#elif defined(__linux__)
 				text[i] = '/';
 #endif
 				last_slash = i + 1;
 			}
-		return
-		{	text.substr(0, last_slash), text.substr(last_slash)};
+		return std::pair<std::string, std::string>( { text.substr(0, last_slash), text.substr(last_slash) });
 	}
 	std::string combine(const std::vector<std::string> &args)
 	{
@@ -186,7 +189,9 @@ namespace ag
 
 		if (arguments.size() == 0)
 			throw ParsingError("Parser requires at least one argument - executable launch path");
-		auto tmp = parse_launch_path(arguments.front());
+
+		std::string executable_path = static_cast<std::string>(get_executable_path());
+		auto tmp = parse_launch_path(executable_path);
 		m_launch_path = tmp.first;
 		m_executable_name = tmp.second;
 		size_t arg_counter = 1;

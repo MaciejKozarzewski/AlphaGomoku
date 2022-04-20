@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
  
 ### Fixed
+- Fixed error with parsing launch path on Windows.
  
 ## [5.3.3] - 2022-04-19
   
