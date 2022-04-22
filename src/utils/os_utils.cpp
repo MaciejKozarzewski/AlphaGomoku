@@ -21,12 +21,9 @@ namespace ag
 #if defined(_WIN32)
 	std::string get_executable_path()
 	{
-		wchar_t path[MAX_PATH] = { 0 };
-		GetModuleFileNameW(NULL, path, MAX_PATH);
-		std::string result(MAX_PATH, 0);
-		std::transform(path, path + MAX_PATH, result.begin(), [](wchar_t c)
-		{	return static_cast<char>(c);});
-		return result;
+		char path[MAX_PATH] = { 0 };
+		GetModuleFileName(NULL, path, MAX_PATH);
+		return std::string(path);
 	}
 #elif defined(__linux__)
 	std::string get_executable_path()
