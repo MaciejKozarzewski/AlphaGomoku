@@ -66,6 +66,56 @@ namespace ag
 		return *this;
 	}
 
+	NodeCache::CompressedBoard::CompressedBoard(const matrix<Sign> &board) noexcept
+	{
+		assert(board.size() <= 32 * static_cast<int>(data.size()));
+		data.fill(0ul);
+		for (int i = 0; i < board.size(); i += 32)
+		{
+			uint64_t tmp = 0;
+			for (int j = 0; j < std::min(32, board.size() - i); j++)
+				tmp |= static_cast<uint64_t>(board[i + j]) << (2 * j);
+			data[i / 32] = tmp;
+		}
+	}
+	bool NodeCache::CompressedBoard::operator==(const matrix<Sign> &board) const noexcept
+	{
+		assert(board.size() <= 32 * static_cast<int>(data.size()));
+		for (int i = 0; i < board.size(); i += 32)
+		{
+			uint64_t tmp = 0;
+			for (int j = 0; j < std::min(32, board.size() - i); j++)
+				tmp |= static_cast<uint64_t>(board[i + j]) << (2 * j);
+			if (data[i / 32] != tmp)
+				return false;
+		}
+		return true;
+	}
+	bool NodeCache::CompressedBoard::isTransitionPossibleFrom(const NodeCache::CompressedBoard &board) const noexcept
+	{
+		/*                    transition from
+		 *               | NONE | CROSS | CIRCLE |
+		 *               |  00  |  01   |  10    |
+		 * to    NONE  00|  yes |  no   |  no    |
+		 * to   CROSS  01|  yes |  yes  |  no    |
+		 * to  CIRCLE  10|  yes |  no   |  yes   |
+		 *
+		 * The required logical function is AND(XOR(from, to), from) == 0
+		 */
+		uint64_t result = 0ull;
+		for (size_t i = 0; i < data.size(); i++)
+		{
+			uint64_t from = board.data[i];
+			uint64_t to = this->data[i];
+			result = result | ((from ^ to) & from);
+		}
+		return result == 0;
+	}
+
+	NodeCache::NodeCache()
+	{
+		std::cout << sizeof(Entry) << " " << sizeof(CompressedBoard) << " " << sizeof(Node) << " " << sizeof(Edge) << std::endl;
+	}
 	NodeCache::NodeCache(GameConfig gameConfig, TreeConfig treeConfig) :
 			edge_pool(treeConfig.edge_bucket_size, gameConfig.rows * gameConfig.cols),
 			node_pool(128),
@@ -113,58 +163,6 @@ namespace ag
 		result.stored_edges = storedEdges();
 		return result;
 	}
-
-	NodeCache::CompressedBoard::CompressedBoard(const matrix<Sign> &board) noexcept
-	{
-		assert(board.rows() <= static_cast<int>(data.size()) && board.cols() < 32);
-		for (int i = 0; i < board.rows(); i++)
-		{
-			uint64_t tmp = 0ull;
-			for (int j = 0; j < board.cols(); j++)
-				tmp = tmp | (static_cast<uint64_t>(board.at(i, j)) << (2 * j));
-			data[i] = tmp;
-		}
-		for (size_t i = board.rows(); i < data.size(); i++)
-			data[i] = 0ull;
-	}
-	bool NodeCache::CompressedBoard::operator==(const matrix<Sign> &board) const noexcept
-	{
-		assert(board.rows() <= static_cast<int>(data.size()) && board.cols() < 32);
-		for (int i = 0; i < board.rows(); i++)
-		{
-			uint64_t tmp = 0ull;
-			for (int j = 0; j < board.cols(); j++)
-				tmp = tmp | (static_cast<uint64_t>(board.at(i, j)) << (2 * j));
-			if (tmp != data[i])
-				return false;
-//			uint64_t tmp = data[i];
-//			for (int j = 0; j < board.cols(); j++, tmp = tmp >> 2)
-//				if ((tmp & 3) != static_cast<uint64_t>(board.at(i, j)))
-//					return false;
-		}
-		return true;
-	}
-	bool NodeCache::CompressedBoard::isTransitionPossibleFrom(const NodeCache::CompressedBoard &board) const noexcept
-	{
-		/*                    transition from
-		 *               | NONE | CROSS | CIRCLE |
-		 *               |  00  |  01   |  10    |
-		 * to    NONE  00|  yes |  no   |  no    |
-		 * to   CROSS  01|  yes |  yes  |  no    |
-		 * to  CIRCLE  10|  yes |  no   |  yes   |
-		 *
-		 * The required logical function is AND(XOR(from, to), from) == 0
-		 */
-		uint64_t result = 0ull;
-		for (size_t i = 0; i < data.size(); i++)
-		{
-			uint64_t from = board.data[i];
-			uint64_t to = this->data[i];
-			result = result | ((from ^ to) & from);
-		}
-		return result == 0;
-	}
-
 	uint64_t NodeCache::getMemory() const noexcept
 	{
 		return sizeof(Entry) * storedNodes() + sizeof(Entry*) * bins.size() + sizeof(Edge) * storedEdges();

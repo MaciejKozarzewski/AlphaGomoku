@@ -2,11 +2,16 @@
 # Change Log
 All notable changes to this project will be documented in this file.
  
-## [Unreleased] - 2022-04-19
+## [Unreleased] - 2022-04-22
  
 ### Added
  
 ### Changed
+- Reduced memory consumption by about 8% (on average).
+ 
+### Fixed
+
+## [5.3.4] - 2022-04-20
  
 ### Fixed
 - Fixed error with parsing launch path on Windows.

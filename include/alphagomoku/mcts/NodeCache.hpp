@@ -50,7 +50,7 @@ namespace ag
 		private:
 			class CompressedBoard
 			{
-					std::array<uint64_t, 20> data;
+					std::array<uint64_t, 13> data; // assuming at most 416 spots on board
 				public:
 					CompressedBoard() = default;
 					CompressedBoard(const matrix<Sign> &board) noexcept;
@@ -79,7 +79,7 @@ namespace ag
 
 			mutable NodeCacheStats stats;
 		public:
-			NodeCache() = default;
+			NodeCache(); // = default;
 			NodeCache(GameConfig gameConfig, TreeConfig treeConfig);
 			NodeCache(const NodeCache &other) = delete;
 			NodeCache(NodeCache &&other);
