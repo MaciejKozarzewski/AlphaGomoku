@@ -112,10 +112,6 @@ namespace ag
 		return result == 0;
 	}
 
-	NodeCache::NodeCache()
-	{
-		std::cout << sizeof(Entry) << " " << sizeof(CompressedBoard) << " " << sizeof(Node) << " " << sizeof(Edge) << std::endl;
-	}
 	NodeCache::NodeCache(GameConfig gameConfig, TreeConfig treeConfig) :
 			edge_pool(treeConfig.edge_bucket_size, gameConfig.rows * gameConfig.cols),
 			node_pool(128),

@@ -84,14 +84,15 @@ namespace ag
 	}
 
 	OutputSender::OutputSender(std::ostream &outputStream) :
-			output_stream(outputStream)
+			output_stream(&outputStream)
 	{
 	}
 	void OutputSender::send(const std::string &msg) const
 	{
 		Logger::write("Answered : " + msg);
 		std::lock_guard lock(sender_mutex);
-		output_stream << msg << std::endl;
+		if (output_stream != nullptr)
+			(*output_stream) << msg << std::endl;
 	}
 
 	bool Message::isEmpty() const noexcept

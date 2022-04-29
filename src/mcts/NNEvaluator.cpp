@@ -135,13 +135,8 @@ namespace ag
 		matrix<Sign> board(network.getGraph().getInputShape()[1], network.getGraph().getInputShape()[2]);
 		for (int i = 0; i < batch_size; i++)
 		{
-			if (use_symmetries)
-			{
-				augment(board, task_queue[i].ptr->getBoard(), task_queue[i].symmetry);
-				network.packInputData(i, board, task_queue[i].ptr->getSignToMove());
-			}
-			else
-				network.packInputData(i, task_queue[i].ptr->getBoard(), task_queue[i].ptr->getSignToMove());
+			augment(board, task_queue[i].ptr->getBoard(), task_queue[i].symmetry);
+			network.packInputData(i, board, task_queue[i].ptr->getSignToMove());
 		}
 	}
 	void NNEvaluator::unpack_from_network(int batch_size)
@@ -152,18 +147,10 @@ namespace ag
 		Value value;
 		for (int i = 0; i < batch_size; i++)
 		{
-			if (use_symmetries)
-			{
-				network.unpackOutput(i, policy, action_values, value);
-				augment(task_queue[i].ptr->getPolicy(), policy, -task_queue[i].symmetry);
-				// TODO add processing of action values
-				task_queue[i].ptr->setValue(value);
-			}
-			else
-			{
-				network.unpackOutput(i, task_queue[i].ptr->getPolicy(), task_queue[i].ptr->getActionValues(), value);
-				task_queue[i].ptr->setValue(value);
-			}
+			network.unpackOutput(i, policy, action_values, value);
+			augment(task_queue[i].ptr->getPolicy(), policy, -task_queue[i].symmetry);
+			// TODO add processing of action values
+			task_queue[i].ptr->setValue(value);
 			task_queue[i].ptr->markAsReady();
 		}
 	}

@@ -79,7 +79,7 @@ namespace ag
 
 			mutable NodeCacheStats stats;
 		public:
-			NodeCache(); // = default;
+			NodeCache() = default;
 			NodeCache(GameConfig gameConfig, TreeConfig treeConfig);
 			NodeCache(const NodeCache &other) = delete;
 			NodeCache(NodeCache &&other);

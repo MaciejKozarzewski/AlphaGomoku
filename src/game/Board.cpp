@@ -111,6 +111,7 @@ namespace ag
 	matrix<Sign> Board::fromString(const std::string &str)
 	{
 		int height = std::count(str.begin(), str.end(), '\n'); // every line must end with new line character "\n"
+		assert(height != 0);
 		assert(str.size() % height == 0);
 		int width = std::count(str.begin(), str.end(), ' ') / height; // every board spot must contain exactly one leading space
 
