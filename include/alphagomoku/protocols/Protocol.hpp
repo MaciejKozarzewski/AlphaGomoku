@@ -77,9 +77,10 @@ namespace ag
 	class OutputSender
 	{
 		private:
-			std::ostream &output_stream;
+			std::ostream *output_stream = nullptr;
 			mutable std::mutex sender_mutex;
 		public:
+			OutputSender() = default;
 			OutputSender(std::ostream &outputStream);
 			void send(const std::string &msg) const;
 	};

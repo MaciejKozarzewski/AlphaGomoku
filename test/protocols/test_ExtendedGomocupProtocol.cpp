@@ -23,6 +23,14 @@ namespace
 					protocol(input_queue, output_queue)
 			{
 			}
+			void setBoardSize(int size)
+			{
+				listener.pushLine("START " + std::to_string(size));
+				protocol.processInput(listener);
+				ag::OutputSender sender;
+				protocol.processOutput(sender);
+				input_queue.clear();
+			}
 	};
 }
 
@@ -31,6 +39,8 @@ namespace ag
 
 	TEST_F(TestExtendedGomocupProtocol, SWAP2BOARD_0_stones)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("SWAP2BOARD");
 		listener.pushLine("DONE");
 		protocol.processInput(listener);
@@ -56,6 +66,8 @@ namespace ag
 	}
 	TEST_F(TestExtendedGomocupProtocol, SWAP2BOARD_3_stones)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("SWAP2BOARD");
 		listener.pushLine("0,0");
 		listener.pushLine("3,2");
@@ -89,6 +101,8 @@ namespace ag
 	}
 	TEST_F(TestExtendedGomocupProtocol, SWAP2BOARD_5_stones)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("SWAP2BOARD");
 		listener.pushLine("0,0");
 		listener.pushLine("3,2");

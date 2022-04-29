@@ -23,6 +23,14 @@ namespace
 					protocol(input_queue, output_queue)
 			{
 			}
+			void setBoardSize(int size)
+			{
+				listener.pushLine("START " + std::to_string(size));
+				protocol.processInput(listener);
+				ag::OutputSender sender;
+				protocol.processOutput(sender);
+				input_queue.clear();
+			}
 	};
 }
 
@@ -182,6 +190,8 @@ namespace ag
 
 	TEST_F(TestGomocupProtocol, begin)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("BEGIN");
 		protocol.processInput(listener);
 		EXPECT_EQ(input_queue.length(), 3);
@@ -200,6 +210,8 @@ namespace ag
 	}
 	TEST_F(TestGomocupProtocol, board_0_stones)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("BOARD");
 		listener.pushLine("DONE");
 
@@ -221,6 +233,8 @@ namespace ag
 	}
 	TEST_F(TestGomocupProtocol, board_odd_stones)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("BOARD");
 		listener.pushLine("2,3,2"); // opponent stone
 		listener.pushLine("5,6,2"); // opponent stone
@@ -248,6 +262,8 @@ namespace ag
 	}
 	TEST_F(TestGomocupProtocol, board_even_stones)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("BOARD");
 		listener.pushLine("2,3,2"); // opponent stone
 		listener.pushLine("5,6,2"); // opponent stone
@@ -277,6 +293,8 @@ namespace ag
 	}
 	TEST_F(TestGomocupProtocol, board_incorrect)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("BOARD");
 		listener.pushLine("2,3,1"); // own stone
 		listener.pushLine("5,6,1"); // own stone
@@ -287,6 +305,8 @@ namespace ag
 	}
 	TEST_F(TestGomocupProtocol, turn)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("TURN 2,3");
 
 		protocol.processInput(listener);
@@ -334,6 +354,8 @@ namespace ag
 	}
 	TEST_F(TestGomocupProtocol, takeback)
 	{
+		setBoardSize(20);
+
 		listener.pushLine("BOARD");
 		listener.pushLine("2,3,2"); // opponent stone
 		listener.pushLine("0,0,1"); // own stone
