@@ -8,18 +8,19 @@
 #ifndef INCLUDE_ALPHAGOMOKU_VCF_SOLVER_FASTPOLICY_HPP_
 #define INCLUDE_ALPHAGOMOKU_VCF_SOLVER_FASTPOLICY_HPP_
 
-#include <alphagomoku/vcf_solver/FeatureExtractor_v3.hpp>
+#include <alphagomoku/solver/PatternCalculator.hpp>
 
-namespace ag
+namespace ag::experimental
 {
 
 	class FastPolicy
 	{
 		private:
-			FeatureExtractor_v3 feature_extractor;
+			PatternCalculator pattern_extractor;
 			std::vector<float> feature_weights;
 			std::vector<float> threat_weights;
 			matrix<float> bias;
+
 		public:
 			FastPolicy(GameConfig gameConfig);
 

@@ -1,0 +1,587 @@
+/*
+ * VCTSolver.cpp
+ *
+ *  Created on: Apr 21, 2022
+ *      Author: Maciej Kozarzewski
+ */
+
+#include <alphagomoku/mcts/SearchTask.hpp>
+#include <alphagomoku/utils/LinearRegression.hpp>
+#include <alphagomoku/utils/Logger.hpp>
+#include <alphagomoku/solver/VCTSolver.hpp>
+
+#include <iostream>
+#include <bitset>
+#include <cassert>
+
+namespace
+{
+	using namespace ag;
+	using namespace ag::experimental;
+
+	constexpr int get_row_step(Direction dir) noexcept
+	{
+		return (dir == HORIZONTAL) ? 0 : 1;
+	}
+	constexpr int get_col_step(Direction dir) noexcept
+	{
+		switch (dir)
+		{
+			case HORIZONTAL:
+				return 1;
+			case VERTICAL:
+				return 0;
+			case DIAGONAL:
+				return 1;
+			case ANTIDIAGONAL:
+				return -1;
+			default:
+				return 0;
+		}
+	}
+	template<typename T>
+	bool contains(const std::vector<T> &v, T element)
+	{
+		return std::find(v.begin(), v.end(), element) != v.end();
+	}
+
+	SolvedValue invertSolvedValue(SolvedValue sv) noexcept
+	{
+		switch (sv)
+		{
+			default:
+				return sv;
+			case SolvedValue::LOSS:
+				return SolvedValue::WIN;
+			case SolvedValue::WIN:
+				return SolvedValue::LOSS;
+		}
+	}
+
+	int get_max_nodes(ag::GameConfig cfg) noexcept
+	{
+		const int size = cfg.rows * cfg.cols;
+		return size * (size - 1) / 2;
+	}
+	Direction find_direction_of(PatternType pattern, std::array<PatternType, 4> patternGroup)
+	{
+		for (Direction dir = 0; dir < 4; dir++)
+			if (patternGroup[dir] == pattern)
+				return dir;
+		assert(false); // assuming that searched pattern exists in the group
+		return 0;
+	}
+
+	class SubSolverFork4x3
+	{
+			const PatternCalculator &calc;
+			Direction find_direction_of(PatternType pattern, Move move) const
+			{
+				const std::array<PatternType, 4> own_patterns = calc.getPatternTypeAt(move.sign, move.row, move.col);
+				for (Direction dir = 0; dir < 4; dir++)
+					if (own_patterns[dir] == pattern)
+						return dir;
+				assert(false); // actually this should never happen as there is always a half open four in 4x3 fork
+				return 0;
+			}
+			Move find_response_to(Move move, Direction dir) const
+			{
+				assert(move.sign != Sign::NONE);
+				assert(calc.getPatternTypeAt(move.sign, move.row, move.col, dir) == PatternType::HALF_OPEN_4);
+
+				const Sign defender_sign = invertSign(move.sign);
+				const BitMask<uint16_t> defensive_moves = calc.getDefensiveMoves(defender_sign, move.row, move.col, dir);
+				for (int i = -calc.getPadding(); i <= calc.getPadding(); i++)
+					if (i != 0 and defensive_moves.get(i + calc.getPadding())) // defensive move will never be outside board
+						return Move(move.row + i * get_row_step(dir), move.col + i * get_col_step(dir), defender_sign);
+				assert(false); // actually this should never happen as there always is a defensive move to half open four
+				return Move();
+			}
+		public:
+			SubSolverFork4x3(const PatternCalculator &calc) :
+					calc(calc)
+			{
+			}
+			SolvedValue trySolve(Move move) const
+			{
+				assert(move.sign != Sign::NONE);
+				const Direction direction_of_own_four = find_direction_of(PatternType::HALF_OPEN_4, move);
+				const Move opponent_response = find_response_to(move, direction_of_own_four);
+				const ThreatType opponent_threat = calc.getThreatAt(opponent_response.sign, opponent_response.row, opponent_response.col);
+				switch (opponent_threat)
+				{
+					default:
+					case ThreatType::NONE:
+					case ThreatType::FORBIDDEN:
+					case ThreatType::HALF_OPEN_3:
+					case ThreatType::OPEN_3:
+					case ThreatType::FORK_3x3:
+						return SolvedValue::WIN; // opponent cannot make any four in response to our threat
+					case ThreatType::HALF_OPEN_4:
+					{
+						const Direction direction_of_opp_four = find_direction_of(PatternType::HALF_OPEN_4, opponent_response);
+						const Move our_response = find_response_to(opponent_response, direction_of_opp_four);
+						const ThreatType our_threat = calc.getThreatAt(our_response.sign, our_response.row, our_response.col);
+						if (our_threat == ThreatType::OPEN_3) // check if our response to the opponent four creates an open four for us (3-plys earlier it will be just open three)
+						{
+							const Direction direction_of_our_three = find_direction_of(PatternType::OPEN_3, our_response);
+							const int dr = get_row_step(direction_of_our_three);
+							const int dc = get_col_step(direction_of_our_three);
+							if ((move.row - dr == our_response.row and move.col - dc == our_response.col)
+									or (move.row + dr == our_response.row and move.col + dc == our_response.col))
+							{
+								return SolvedValue::WIN;
+							}
+						}
+						return SolvedValue::UNCHECKED;
+					}
+					case ThreatType::FORK_4x3:
+						return SolvedValue::UNCHECKED; // checking this statically would be too complex
+					case ThreatType::FORK_4x4:
+					case ThreatType::OPEN_4:
+					case ThreatType::FIVE:
+						return SolvedValue::LOSS; // opponent can make either 4x4 fork, open four or a five
+				}
+			}
+	};
+}
+
+namespace ag::experimental
+{
+	SolverStats::SolverStats() :
+			setup("setup "),
+			solve("solve ")
+	{
+	}
+	std::string SolverStats::toString() const
+	{
+		std::string result = "----SolverStats----\n";
+		result += setup.toString() + '\n';
+		result += solve.toString() + '\n';
+		if (setup.getTotalCount() > 0)
+		{
+			if (solve.getTotalCount() > 0)
+				result += "total positions = " + std::to_string(total_positions) + " : " + std::to_string(total_positions / solve.getTotalCount())
+						+ '\n';
+			result += "solved    " + std::to_string(hits) + " / " + std::to_string(setup.getTotalCount()) + " ("
+					+ std::to_string(100.0 * hits / setup.getTotalCount()) + "%)\n";
+		}
+		return result;
+	}
+
+	/*
+	 * VCTSolver
+	 */
+	VCTSolver::VCTSolver(GameConfig gameConfig, int maxPositions) :
+			node_stack(get_max_nodes(gameConfig)),
+			number_of_moves_for_draw(gameConfig.rows * gameConfig.cols),
+			max_positions(maxPositions),
+			game_config(gameConfig),
+			pattern_calculator(gameConfig),
+			hashtable(gameConfig.rows * gameConfig.cols, 4096)
+	{
+	}
+	void VCTSolver::solve(SearchTask &task, int level)
+	{
+		stats.setup.startTimer();
+		pattern_calculator.setBoard(task.getBoard());
+		stats.setup.stopTimer();
+
+		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
+		pattern_calculator.print();
+		pattern_calculator.printAllThreats();
+
+		TimerGuard tg(stats.solve);
+		const Move last_move = (task.getLastEdge() == nullptr) ? Move(0, 0, invertSign(task.getSignToMove())) : task.getLastEdge()->getMove();
+		setup_node_stack(last_move);
+
+		switch (level)
+		{
+			case 0: // only check win or draw conditions
+			{
+				node_stack.front().children = node_stack.data() + node_counter; // setup pointer to child nodes
+				if (try_win_in_1(node_stack.front()))
+					break;
+				if (try_draw_in_1(node_stack.front()))
+					break;
+				break;
+			}
+			case 1: // statically solve position
+			{
+				generate_moves(node_stack.front());
+				break;
+			}
+			case 2: // perform recursive search
+			default:
+			{
+				recursive_solve(node_stack.front());
+				break;
+			}
+		}
+
+		calculate_solved_value(node_stack.front());
+		node_stack.front().print();
+
+		if (node_stack.front().hasSolution())
+		{
+			task.markAsReady();
+			stats.hits++;
+			return;
+		}
+	}
+	/*
+	 * private
+	 */
+	bool VCTSolver::try_win_in_1(InternalNode &node)
+	{
+		const std::vector<Move> &own_five = get_own_threats(node, ThreatType::FIVE);
+		if (own_five.size() > 0) // if attacker can make a five, it is a win in 1 ply
+		{
+			add_children_nodes(node, own_five, SolvedValue::WIN);
+			return true;
+		}
+		return false;
+	}
+	bool VCTSolver::try_draw_in_1(InternalNode &node)
+	{
+		if (pattern_calculator.getRootDepth() + 1 >= number_of_moves_for_draw) // detect draw
+		{
+			for (int row = 0; row < game_config.rows; row++)
+				for (int col = 0; col < game_config.cols; col++)
+					if (pattern_calculator.signAt(row, col) == Sign::NONE)
+						add_child_node(node, Move(row, col), SolvedValue::DRAW);
+			return true;
+		}
+		return false;
+	}
+	bool VCTSolver::try_defend_opponent_five(InternalNode &node)
+	{
+		const std::vector<Move> &opponent_five = get_opp_threats(node, ThreatType::FIVE);
+		switch (opponent_five.size())
+		{
+			case 0:
+				return false; // continue to check other threats
+			case 1:
+			{
+				const Move five_move = opponent_five[0];
+				// check if the defensive move created a win for us
+				if (contains(get_own_threats(node, ThreatType::OPEN_4), five_move)
+						or contains(get_own_threats(node, ThreatType::FORK_4x4), five_move))
+				{
+					add_child_node(node, five_move, SolvedValue::WIN);
+					return true;
+				}
+				if (contains(get_own_threats(node, ThreatType::FORK_4x3), five_move))
+				{
+					SubSolverFork4x3 sub_solver(pattern_calculator);
+					SolvedValue sv = sub_solver.trySolve(Move(node.getSignToMove(), five_move));
+					add_child_node(node, five_move, sv);
+					return true;
+				}
+				if (contains(get_own_threats(node, ThreatType::FORK_3x3), five_move))
+				{
+					if (pattern_calculator.getThreatHistogram(invertSign(node.getSignToMove())).hasAnyFour() == false) // opponent has no fours
+					{
+						add_child_node(node, five_move, SolvedValue::WIN);
+						return true;
+					}
+				}
+				add_child_node(node, five_move);
+				node.must_defend = true;
+				return true;
+			}
+			default: // multiple fives
+			{
+				node.must_defend = true;
+				add_children_nodes(node, opponent_five, SolvedValue::LOSS);
+				return true;
+			}
+		}
+	}
+	bool VCTSolver::try_win_in_3(InternalNode &node)
+	{
+		const std::vector<Move> &own_open_four = get_own_threats(node, ThreatType::OPEN_4);
+		const std::vector<Move> &own_fork_4x4 = get_own_threats(node, ThreatType::FORK_4x4);
+		if (own_open_four.size() > 0 or own_fork_4x4.size() > 0)
+		{
+			add_children_nodes(node, own_open_four, SolvedValue::WIN);
+			add_children_nodes(node, own_fork_4x4, SolvedValue::WIN);
+			return true;
+		}
+		return false;
+	}
+	bool VCTSolver::try_solve_forks_if_opponent_has_no_fours(InternalNode &node)
+	{
+		if (pattern_calculator.getThreatHistogram(invertSign(node.getSignToMove())).hasAnyFour() == false) // opponent has no fours
+		{
+			const std::vector<Move> &own_fork_4x3 = get_own_threats(node, ThreatType::FORK_4x3);
+			const std::vector<Move> &own_fork_3x3 = get_own_threats(node, ThreatType::FORK_3x3);
+			if (own_fork_4x3.size() > 0 or own_fork_3x3.size() > 0)
+			{
+				add_children_nodes(node, own_fork_4x3, SolvedValue::WIN);
+				add_children_nodes(node, own_fork_3x3, SolvedValue::WIN);
+				return true;
+			}
+		}
+		return false;
+	}
+	bool VCTSolver::try_solve_4x3_forks(InternalNode &node)
+	{
+		SubSolverFork4x3 sub_solver(pattern_calculator);
+		const std::vector<Move> &own_fork_4x3 = get_own_threats(node, ThreatType::FORK_4x3);
+		const Sign sign_to_move = node.getSignToMove();
+		bool any_4x3_fork_was_solved = false;
+
+		for (auto move = own_fork_4x3.begin(); move < own_fork_4x3.end(); move++)
+		{
+			SolvedValue sv = sub_solver.trySolve(Move(sign_to_move, *move));
+			any_4x3_fork_was_solved |= (sv == SolvedValue::WIN);
+			add_child_node(node, *move, sv);
+		}
+		return any_4x3_fork_was_solved;
+	}
+	bool VCTSolver::try_defend_opponent_fours(InternalNode &node)
+	{
+		const std::vector<Move> opp_open_four = get_opp_threats(node, ThreatType::OPEN_4);
+		const std::vector<Move> opp_fork_4x4 = get_opp_threats(node, ThreatType::FORK_4x4);
+		const std::vector<Move> opp_fork_4x3 = get_opp_threats(node, ThreatType::FORK_4x3);
+		const std::vector<Move> opp_half_open_4 = get_opp_threats(node, ThreatType::HALF_OPEN_4);
+
+		SolvedValue sv = SolvedValue::UNCHECKED;
+		if (pattern_calculator.getThreatHistogram(node.getSignToMove()).hasAnyFour() == false) // we have no fours
+		{
+			if (opp_open_four.size() > 2 or (opp_open_four.size() + opp_fork_4x4.size() >= 2 and opp_fork_4x4.size() > 0))
+				sv = SolvedValue::LOSS;
+		}
+		const Sign own_sign = node.getSignToMove();
+		const Sign opp_sign = invertSign(own_sign);
+
+//		for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
+//		{
+//			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
+//			const Direction direction = find_direction_of(PatternType::OPEN_4, patterns);
+//			const BitMask<uint16_t> defensive_moves = pattern_calculator.getDefensiveMoves(own_sign, move->row, move->col, direction);
+//
+//			std::cout << "Defensive moves to " << move->toString() << ":\n";
+//			for (int i = -pattern_calculator.getPadding(); i <= pattern_calculator.getPadding(); i++)
+//				if (defensive_moves.get(i + pattern_calculator.getPadding())) // defensive move will never be outside board
+//				{
+//					Move m(move->row + i * get_row_step(direction), move->col + i * get_col_step(direction), own_sign);
+//					std::cout << "---" << m.toString() << '\n';
+//				}
+//					return Move(move.row + i * get_row_step(direction), move.col + i * get_col_step(direction), defender_sign);
+//		}
+		add_children_nodes(node, opp_open_four, sv, true);
+		add_children_nodes(node, opp_fork_4x4, sv, true);
+		add_children_nodes(node, opp_fork_4x3, SolvedValue::UNCHECKED, true);
+		add_children_nodes(node, opp_half_open_4, SolvedValue::UNCHECKED, true);
+		return true;
+	}
+	void VCTSolver::generate_moves(InternalNode &node)
+	{
+		node.children = node_stack.data() + node_counter; // setup pointer to child nodes
+
+		if (try_win_in_1(node))
+			return;
+		if (try_draw_in_1(node))
+			return;
+		if (try_defend_opponent_five(node))
+			return;
+		if (try_win_in_3(node))
+			return;
+		if (try_solve_forks_if_opponent_has_no_fours(node))
+			return;
+		if (try_solve_4x3_forks(node))
+			return;
+
+		add_children_nodes(node, get_own_threats(node, ThreatType::HALF_OPEN_4), SolvedValue::UNCHECKED, true);
+
+		try_defend_opponent_fours(node);
+
+//		add_children_nodes(node, opp_fork_4x3, SolvedValue::UNCHECKED, true);
+
+//		if (pattern_calculator.getThreatHistogram(get_sign_to_move()).hasAnyFour() == false)
+//		{
+//		const std::vector<Move> opp_open_four = get_opp_threats(ThreatType::OPEN_4);
+//		const std::vector<Move> opp_fork_4x4 = get_opp_threats(ThreatType::FORK_4x4);
+//		const std::vector<Move> opp_fork_4x3 = get_opp_threats(ThreatType::FORK_4x3);
+//		const std::vector<Move> opp_fork_3x3 = get_opp_threats(ThreatType::FORK_3x3);
+//			const size_t count = opp_fork_4x4.size() + opp_fork_4x3.size() + opp_fork_3x3.size();
+//			if (opp_open_four.size() >= 4)
+//			{
+//				state.add(get_opp_threats(ThreatType::OPEN_4), SolvedValue::LOSS);
+//				state.add(get_opp_threats(ThreatType::FORK_4x4), SolvedValue::LOSS);
+//				state.add(get_opp_threats(ThreatType::FORK_4x3), SolvedValue::LOSS);
+//				state.add(get_opp_threats(ThreatType::FORK_3x3), SolvedValue::LOSS);
+//			}
+//		}
+
+//		if (pattern_calculator.getThreatHistogram(invertSign(get_sign_to_move())).hasAnyFour())
+//		{
+//			state.add(get_opp_threats(ThreatType::OPEN_4));
+//			state.add(get_opp_threats(ThreatType::FORK_4x4));
+//			state.add(get_opp_threats(ThreatType::FORK_4x3));
+//			state.add(get_opp_threats(ThreatType::HALF_OPEN_4));
+//			state.addButExcludeDuplicates(get_own_threats(ThreatType::HALF_OPEN_4));
+//			std::cout << "opponent has fours - adding defensive moves\n";
+//		}
+//		else
+//		{
+//			state.add(get_own_threats(ThreatType::OPEN_3));
+//			std::cout << "opponent has no fours - adding own open threes\n";
+//		}
+	}
+
+	void VCTSolver::setup_node_stack(Move lastMove)
+	{
+		node_stack.front().init(lastMove.row, lastMove.col, lastMove.sign); // prepare node stack
+		position_counter = 0;
+		node_counter = 1;
+	}
+	void VCTSolver::recursive_solve(InternalNode &node)
+	{
+		pattern_calculator.print(node.move);
+		pattern_calculator.printAllThreats();
+
+		generate_moves(node);
+		calculate_solved_value(node);
+		node.print();
+
+//		std::sort(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
+//		{
+//			const int lhs_value = lhs.move.row * game_config.cols + lhs.move.col - 1024 * lhs.prior_value;
+//			const int rhs_value = rhs.move.row * game_config.cols + rhs.move.col - 1024 * rhs.prior_value;
+//			return lhs_value < rhs_value;
+//		});
+		if (not node.hasSolution())
+			for (int i = 0; i < node.number_of_children; i++)
+			{
+				InternalNode *iter = node.begin() + i;
+
+				if (iter != node.children)
+				{
+					pattern_calculator.print(node.move);
+					pattern_calculator.printAllThreats();
+				}
+				std::cout << "positions checked = " << position_counter << "/" << max_positions << std::endl;
+				std::cout << "state of all children:" << std::endl;
+				for (int i = 0; i < node.number_of_children; i++)
+					std::cout << i << " : " << node.children[i].move.toString() << " : " << node.children[i].move.text() << " = "
+							<< toString(node.children[i].solved_value) << " " << (int) node.children[i].prior_value << std::endl;
+				if (not iter->hasSolution()) // some nodes will already have some value assigned
+				{
+					std::cout << "---now checking " << iter->move.toString() << std::endl;
+					hashtable.updateHash(iter->move);
+					const SolvedValue solved_value_from_table = hashtable.get(hashtable.getHash());
+					if (solved_value_from_table == SolvedValue::UNCHECKED) // not found
+					{
+						if (position_counter < max_positions)
+						{
+							position_counter += 1.0;
+							pattern_calculator.addMove(iter->move);
+							recursive_solve(*iter);
+							pattern_calculator.undoMove(iter->move);
+						}
+						else
+							iter->solved_value = SolvedValue::NO_SOLUTION;
+					}
+					else
+					{
+//						position_counter += 0.0625; // the position counter is increased by 1/16 to avoid infinite search over cached states
+						iter->solved_value = solved_value_from_table; // cache hit
+					}
+					hashtable.updateHash(iter->move); // revert back to original hash
+
+					if (iter->solved_value == SolvedValue::WIN) // found winning move, can skip remaining nodes
+						break;
+				}
+			}
+		calculate_solved_value(node);
+
+		std::cout << "state of all children:\n";
+		for (int i = 0; i < node.number_of_children; i++)
+			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
+
+		delete_children_nodes(node);
+		hashtable.insert(hashtable.getHash(), node.solved_value);
+	}
+	const std::vector<Move>& VCTSolver::get_own_threats(const InternalNode &node, ThreatType tt) const noexcept
+	{
+		return pattern_calculator.getThreatHistogram(node.getSignToMove()).get(tt);
+	}
+	const std::vector<Move>& VCTSolver::get_opp_threats(const InternalNode &node, ThreatType tt) const noexcept
+	{
+		return pattern_calculator.getThreatHistogram(invertSign(node.getSignToMove())).get(tt);
+	}
+	void VCTSolver::add_child_node(InternalNode &node, Move move, SolvedValue sv) noexcept
+	{
+		assert(node_counter + 1 <= node_stack.size());
+		node_counter += 1;
+		node.end()->init(move.row, move.col, node.getSignToMove(), sv);
+		node.number_of_children += 1;
+	}
+	void VCTSolver::add_children_nodes(InternalNode &node, const std::vector<Move> &moves, SolvedValue sv, bool excludeDuplicates) noexcept
+	{
+		assert(node_counter + moves.size() <= node_stack.size());
+		const Sign sign_to_move = node.getSignToMove();
+		if (excludeDuplicates)
+		{
+			for (size_t i = 0; i < moves.size(); i++)
+				if (not node.containsChild(moves[i]))
+				{
+					node_counter++;
+					node.children[node.number_of_children].init(moves[i].row, moves[i].col, sign_to_move, sv);
+					node.number_of_children++;
+				}
+		}
+		else
+		{
+			for (size_t i = 0; i < moves.size(); i++)
+				node.children[node.number_of_children + i].init(moves[i].row, moves[i].col, sign_to_move, sv);
+			node_counter += moves.size();
+			node.number_of_children += moves.size();
+		}
+	}
+	void VCTSolver::delete_children_nodes(InternalNode &node) noexcept
+	{
+		assert(node_counter >= static_cast<size_t>(node.number_of_children));
+		node_counter -= node.number_of_children;
+	}
+	void VCTSolver::calculate_solved_value(InternalNode &node) noexcept
+	{
+		if (node.number_of_children == 0)
+		{
+			node.solved_value = SolvedValue::NO_SOLUTION;
+			return;
+		}
+		int num_losing_children = 0;
+		bool has_draw_child = false, has_unchecked_child = false;
+		for (auto iter = node.begin(); iter < node.end(); iter++)
+		{
+			num_losing_children += static_cast<int>(iter->solved_value == SolvedValue::LOSS);
+			has_draw_child |= iter->solved_value == SolvedValue::DRAW;
+			has_unchecked_child |= iter->solved_value == SolvedValue::UNCHECKED;
+			if (iter->solved_value == SolvedValue::WIN) // found winning move, can skip remaining nodes
+			{
+				node.solved_value = SolvedValue::LOSS;
+				return;
+			}
+		}
+		if (num_losing_children == node.number_of_children)
+			node.solved_value = SolvedValue::WIN;
+		else
+		{
+			if (has_unchecked_child)
+			{
+				if (has_draw_child)
+					node.solved_value = SolvedValue::DRAW;
+				else
+					node.solved_value = SolvedValue::NO_SOLUTION;
+			}
+			else
+				node.solved_value = SolvedValue::UNCHECKED;
+		}
+	}
+
+} /* namespace ag */
+

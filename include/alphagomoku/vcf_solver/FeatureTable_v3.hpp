@@ -80,10 +80,35 @@ namespace ag
 			}
 	};
 
+	template<typename T = uint32_t>
+	struct BitMask
+	{
+		private:
+			T m_data = 0;
+		public:
+			BitMask() noexcept = default;
+			BitMask(T data) noexcept :
+					m_data(data)
+			{
+			}
+			void set(int index, bool b) noexcept
+			{
+				assert(index >= 0 && index < 8 * sizeof(T));
+				m_data &= (~(static_cast<T>(1) << index));
+				m_data |= (static_cast<T>(b) << index);
+			}
+			bool get(int index) const noexcept
+			{
+				assert(index >= 0 && index < 8 * sizeof(T));
+				return static_cast<bool>((m_data >> index) & static_cast<T>(1));
+			}
+	};
+
 	class FeatureTable_v3
 	{
 		private:
 			std::vector<FeatureEncoding> features;
+			std::vector<uint16_t> defensive_move_mask;
 		public:
 			FeatureTable_v3(GameRules rules);
 			FeatureEncoding getFeatureType(uint32_t feature) const noexcept

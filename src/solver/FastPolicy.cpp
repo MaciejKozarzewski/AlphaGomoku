@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/vcf_solver/FastPolicy.hpp>
+#include <alphagomoku/solver/FastPolicy.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 namespace
@@ -35,10 +35,10 @@ namespace
 	}
 }
 
-namespace ag
+namespace ag::experimental
 {
 	FastPolicy::FastPolicy(GameConfig gameConfig) :
-			feature_extractor(gameConfig),
+			pattern_extractor(gameConfig),
 			feature_weights(number_of_features(gameConfig.rules)),
 			threat_weights(9),
 			bias(gameConfig.rows, gameConfig.cols)
@@ -56,10 +56,10 @@ namespace ag
 	}
 	void FastPolicy::learn(const matrix<Sign> &board, Sign signToMove, const matrix<float> &target)
 	{
-		if (signToMove == Sign::CROSS)
-			feature_extractor.setBoard(board, signToMove);
-		else
-			feature_extractor.setBoard(invert_board(board), invertSign(signToMove));
+//		if (signToMove == Sign::CROSS)
+//			pattern_extractor.setBoard(board, signToMove);
+//		else
+//			pattern_extractor.setBoard(invert_board(board), invertSign(signToMove));
 	}
 } /* namespace ag */
 

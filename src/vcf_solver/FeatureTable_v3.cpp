@@ -472,6 +472,7 @@ namespace ag
 	{
 		switch (ft)
 		{
+			default:
 			case FeatureType::NONE:
 				return "NONE";
 			case FeatureType::OPEN_3:
@@ -492,13 +493,14 @@ namespace ag
 	FeatureTable_v3::FeatureTable_v3(GameRules rules) :
 			features(power(4, Feature::length(rules)))
 	{
-//		double t0 = getTime();
+		double t0 = getTime();
 		init_features(rules);
-//		double t1 = getTime();
+		double t1 = getTime();
 		init_update_mask(rules);
-//		double t2 = getTime();
-//		init_defensive_moves(rules);
-//		std::cout << (t1 - t0) << " " << (t2 - t1) << std::endl;
+		double t2 = getTime();
+		init_defensive_moves(rules);
+		double t3 = getTime();
+//		std::cout << (t1 - t0) << " " << (t2 - t1) << " " << (t3 - t2) << std::endl;
 
 //		size_t count_cross[7] = { 0, 0, 0, 0, 0, 0, 0 };
 //		size_t count_circle[7] = { 0, 0, 0, 0, 0, 0, 0 };
@@ -642,12 +644,11 @@ namespace ag
 	}
 	void FeatureTable_v3::init_defensive_moves(GameRules rules)
 	{
+		defensive_move_mask.reserve(32);
 		const int feature_length = Feature::length(rules);
 		const int side_length = feature_length / 2;
 		Feature base_line(feature_length);
 		Feature secondary_line(feature_length);
-
-		std::unordered_map<uint32_t, int> unique_patterns;
 
 		for (size_t i = 0; i < features.size(); i++)
 		{
@@ -671,39 +672,23 @@ namespace ag
 							mask_circle |= (1 << spot_index);
 					}
 
-				if (unique_patterns.find(mask_cross) == unique_patterns.end())
-					unique_patterns.insert( { mask_cross, 0 });
-				else
-					unique_patterns.find(mask_cross)->second++;
+				if (std::find(defensive_move_mask.begin(), defensive_move_mask.end(), mask_cross) == defensive_move_mask.end())
+					defensive_move_mask.push_back(mask_cross);
 
-				if (unique_patterns.find(mask_circle) == unique_patterns.end())
-					unique_patterns.insert( { mask_circle, 0 });
-				else
-					unique_patterns.find(mask_circle)->second++;
-
-//				base_line.setCenter(Sign::CIRCLE);
-//				std::cout << base_line.toString() << '\n';
-//				for (int k = 0; k < feature_length; k++)
-//					std::cout << ((mask_cross >> k) & 1);
-//				std::cout << '\n';
-//				base_line.setCenter(Sign::CROSS);
-//				std::cout << base_line.toString() << '\n';
-//				for (int k = 0; k < feature_length; k++)
-//					std::cout << ((mask_circle >> k) & 1);
-//				std::cout << '\n' << std::endl;
-
+				if (std::find(defensive_move_mask.begin(), defensive_move_mask.end(), mask_circle) == defensive_move_mask.end())
+					defensive_move_mask.push_back(mask_circle);
 			}
 		}
 
-		std::cout << toString(rules) << '\n';
-		for (auto iter = unique_patterns.begin(); iter != unique_patterns.end(); iter++)
-		{
-			uint32_t tmp = iter->first;
-			for (int k = 0; k < feature_length; k++)
-				std::cout << ((tmp >> k) & 1);
-			std::cout << '\n';
-		}
-		std::cout << std::endl;
+//		std::cout << toString(rules) << '\n';
+//		for (size_t i = 0; i < defensive_move_mask.size(); i++)
+//		{
+//			uint32_t tmp = defensive_move_mask[i];
+//			for (int k = 0; k < feature_length; k++)
+//				std::cout << ((tmp >> k) & 1);
+//			std::cout << '\n';
+//		}
+//		std::cout << std::endl;
 	}
 
 }

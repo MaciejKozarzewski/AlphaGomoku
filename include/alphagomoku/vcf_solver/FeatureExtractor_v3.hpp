@@ -51,7 +51,7 @@ namespace ag
 					list.erase(index);
 				}
 			}
-			void add(ThreatType_v3 threat, Move move) noexcept
+			void add(ThreatType_v3 threat, Move move)
 			{
 				assert(static_cast<size_t>(threat) < threats.size());
 				if (threat != ThreatType_v3::NONE)

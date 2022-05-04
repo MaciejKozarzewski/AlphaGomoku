@@ -382,7 +382,7 @@ namespace ag
 //						if (node.number_of_children > 4)
 //							node.solved_value = SolvedValue::UNSOLVED; // too many defensive moves
 //						else
-							node.solved_value = SolvedValue::UNKNOWN; // can check them all
+						node.solved_value = SolvedValue::UNKNOWN; // can check them all
 					}
 					else
 						node.solved_value = SolvedValue::UNSOLVED; // attacker lost initiative

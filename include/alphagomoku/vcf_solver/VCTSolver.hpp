@@ -57,7 +57,7 @@ namespace ag
 //			SolverStats();
 //			std::string toString() const;
 //	};
-
+//
 //	class Measurement
 //	{
 //			std::vector<std::pair<int, float>> m_values;

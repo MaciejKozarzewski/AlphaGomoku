@@ -34,6 +34,7 @@ namespace ag
 	{
 		private:
 			std::vector<NodeEdgePair> visited_path;/**< trajectory within the tree visited during select phase */
+			std::vector<Edge> non_losing_edges; /**< provably non losing edges found by VCF solver */
 			std::vector<Edge> proven_edges; /**< provably winning edges found by VCF solver */
 			std::vector<Edge> edges; /**< edges created by EdgeGenerator */
 
@@ -44,6 +45,7 @@ namespace ag
 			matrix<float> policy; /**< policy returned from neural network */
 			matrix<Value> action_values; /**< matrix of action values returned from neural network */
 			Value value; /**< value returned from neural network */
+			ProvenValue proven_value = ProvenValue::UNKNOWN;
 
 			bool is_ready = false; /**< flag indicating whether the task has been evaluated and can be used for edge generation */
 		public:
@@ -72,6 +74,14 @@ namespace ag
 					return visited_path.back().edge;
 			}
 
+			const std::vector<Edge>& getNonLosingEdges() const noexcept
+			{
+				return non_losing_edges;
+			}
+			std::vector<Edge>& getNonLosingEdges() noexcept
+			{
+				return non_losing_edges;
+			}
 			const std::vector<Edge>& getProvenEdges() const noexcept
 			{
 				return proven_edges;
@@ -99,6 +109,10 @@ namespace ag
 			Value getValue() const noexcept
 			{
 				return value;
+			}
+			ProvenValue getProvenValue() const noexcept
+			{
+				return proven_value;
 			}
 			bool isReady() const noexcept
 			{
@@ -148,10 +162,16 @@ namespace ag
 			{
 				value = v;
 			}
+			void setProvenValue(ProvenValue pv) noexcept
+			{
+				proven_value = pv;
+			}
 
+			void addNonLosingEdges(const std::vector<Move> &moves, Sign sign, ProvenValue pv);
+			void addNonLosingEdge(Move move, ProvenValue pv = ProvenValue::UNKNOWN);
 			void addProvenEdges(const std::vector<Move> &moves, Sign sign, ProvenValue pv);
 			void addProvenEdge(Move move, ProvenValue pv);
-			void addEdge(Move move);
+			void addEdge(Move move, ProvenValue pv = ProvenValue::UNKNOWN);
 			void addEdge(const Edge &other)
 			{
 				edges.push_back(other);

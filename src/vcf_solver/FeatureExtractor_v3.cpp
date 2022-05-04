@@ -288,17 +288,17 @@ namespace ag
 			std::memcpy(internal_board.data(pad + row) + pad, board.data(row), sizeof(Sign) * board.cols());
 
 		root_depth = Board::numberOfMoves(board);
-//		features_init.startTimer();
+		features_init.startTimer();
 		calculate_raw_features();
-//		features_init.stopTimer();
+		features_init.stopTimer();
 
-//		features_class.startTimer();
+		features_class.startTimer();
 		classify_feature_types();
-//		features_class.stopTimer();
+		features_class.stopTimer();
 
-//		threats_init.startTimer();
+		threats_init.startTimer();
 		get_threat_lists();
-//		threats_init.stopTimer();
+		threats_init.stopTimer();
 
 //		if (features_init.getTotalCount() % 1000 == 0)
 //		{
@@ -506,13 +506,13 @@ namespace ag
 	void FeatureExtractor_v3::addMove(Move move) noexcept
 	{
 		assert(signAt(move.row, move.col) == Sign::NONE); // move must be made on empty spot
-//		threats_update.startTimer();
+		threats_update.startTimer();
 		update_central_spot(move.row, move.col, +1);
-//		threats_update.pauseTimer();
+		threats_update.pauseTimer();
 
 		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(move.sign);
 
-//		features_update.startTimer();
+		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -526,18 +526,18 @@ namespace ag
 			default:
 				break;
 		}
-//		features_update.stopTimer();
+		features_update.stopTimer();
 
-//		threats_update.resumeTimer();
+		threats_update.resumeTimer();
 		update_neighborhood(move.row, move.col);
-//		threats_update.stopTimer();
+		threats_update.stopTimer();
 	}
 	void FeatureExtractor_v3::undoMove(Move move) noexcept
 	{
 		assert(signAt(move.row, move.col) == move.sign); // board must contain the move to be undone
 		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(Sign::NONE);
 
-//		features_update.startTimer();
+		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -551,12 +551,12 @@ namespace ag
 			default:
 				break;
 		}
-//		features_update.stopTimer();
+		features_update.stopTimer();
 
-//		threats_update.startTimer();
+		threats_update.startTimer();
 		update_central_spot(move.row, move.col, -1);
 		update_neighborhood(move.row, move.col);
-//		threats_update.stopTimer();
+		threats_update.stopTimer();
 	}
 //	void FeatureExtractor_v3::updateValueStatistics(Move move) noexcept
 //	{

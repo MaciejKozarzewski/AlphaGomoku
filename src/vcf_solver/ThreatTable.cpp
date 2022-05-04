@@ -8,6 +8,7 @@
 #include <alphagomoku/vcf_solver/ThreatTable.hpp>
 
 #include <array>
+#include <stdexcept>
 #include <algorithm>
 
 namespace

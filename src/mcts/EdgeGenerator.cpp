@@ -163,10 +163,10 @@ namespace ag
 	{
 		assert(task.isReady());
 
-		if (task.getProvenEdges().size() > 0)
+		if (task.getNonLosingEdges().size() > 0)
 		{
-			for (size_t i = 0; i < task.getProvenEdges().size(); i++)
-				task.addEdge(task.getProvenEdges()[i]);
+			for (size_t i = 0; i < task.getNonLosingEdges().size(); i++)
+				task.addEdge(task.getNonLosingEdges()[i]);
 		}
 		else
 		{

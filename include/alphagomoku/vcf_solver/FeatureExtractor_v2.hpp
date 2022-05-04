@@ -177,7 +177,7 @@ namespace ag
 				assert(index != list.end()); // the threat must exist in the list
 				list.erase(index);
 			}
-			void add_single_threat(Move move, std::vector<Move> &list) noexcept
+			void add_single_threat(Move move, std::vector<Move> &list)
 			{
 				list.push_back(move);
 			}
