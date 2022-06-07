@@ -9,6 +9,7 @@
 #include <alphagomoku/mcts/SearchTask.hpp>
 
 #include <cassert>
+#include <iostream>
 
 namespace
 {
@@ -170,7 +171,12 @@ namespace ag
 		}
 		else
 		{
-			if (not contains_winning_edge(task.getEdges()))
+			if (contains_winning_edge(task.getProvenEdges()))
+			{
+				for (size_t i = 0; i < task.getProvenEdges().size(); i++)
+					task.addEdge(task.getProvenEdges()[i]);
+			}
+			else
 			{
 				for (int row = 0; row < task.getBoard().rows(); row++)
 					for (int col = 0; col < task.getBoard().cols(); col++)

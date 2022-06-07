@@ -227,7 +227,6 @@ namespace ag::experimental
 				internal_board[i] = tmp_table[internal_board[i]];
 		}
 
-		root_depth = Board::numberOfMoves(board);
 		features_init.startTimer();
 		calculate_raw_features();
 		features_init.stopTimer();

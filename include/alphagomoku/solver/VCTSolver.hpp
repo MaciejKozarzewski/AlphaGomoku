@@ -133,7 +133,8 @@ namespace ag::experimental
 						std::cout << "must defend : " << must_defend << '\n' << "Children nodes:\n";
 						for (int i = 0; i < number_of_children; i++)
 							std::cout << i << " : " << children[i].move.toString() << " : " << children[i].move.text() << " = "
-									<< toString(children[i].solved_value) << " " << (int) children[i].prior_value << std::endl;
+									<< toString(children[i].solved_value) << " " << (int) children[i].prior_value << '\n';
+						std::cout << std::endl;
 					}
 			};
 
@@ -141,6 +142,8 @@ namespace ag::experimental
 			size_t node_counter = 0;
 			int number_of_moves_for_draw; // after that number of moves, a draw will be concluded
 			int max_positions; // maximum number of positions that will be searched
+			int depth = 0;
+			Sign attacking_sign = Sign::NONE;
 
 			double position_counter = 0.0;
 
@@ -153,7 +156,10 @@ namespace ag::experimental
 			VCTSolver(GameConfig gameConfig, int maxPositions = 100);
 
 			void solve(SearchTask &task, int level = 0);
+			void tune(float speed);
 
+			SolverStats getStats() const;
+			void clearStats();
 			void print_stats()
 			{
 				pattern_calculator.print_stats();
@@ -169,12 +175,12 @@ namespace ag::experimental
 			bool try_defend_opponent_fours(InternalNode &node);
 			void generate_moves(InternalNode &node);
 
-			void setup_node_stack(Move lastMove);
 			void recursive_solve(InternalNode &node);
 
 			const std::vector<Move>& get_own_threats(const InternalNode &node, ThreatType tt) const noexcept;
 			const std::vector<Move>& get_opp_threats(const InternalNode &node, ThreatType tt) const noexcept;
-			void add_child_node(InternalNode &node, Move move, SolvedValue sv = SolvedValue::UNCHECKED) noexcept;
+			void add_defensive_moves(InternalNode &node, const Move move, Direction dir);
+			void add_child_node(InternalNode &node, Move move, SolvedValue sv = SolvedValue::UNCHECKED, bool excludeDuplicates = false) noexcept;
 			void add_children_nodes(InternalNode &node, const std::vector<Move> &moves, SolvedValue sv = SolvedValue::UNCHECKED,
 					bool excludeDuplicates = false) noexcept;
 			void delete_children_nodes(InternalNode &node) noexcept;

@@ -106,7 +106,6 @@ namespace ag::experimental
 			GameConfig game_config;
 			int pad;
 
-			int root_depth = 0;
 			matrix<int16_t> internal_board;
 			matrix<RawPatternGroup> raw_features;
 			matrix<PatternTypeGroup> feature_types;
@@ -141,10 +140,6 @@ namespace ag::experimental
 			Sign signAt(int row, int col) const noexcept
 			{
 				return static_cast<Sign>(internal_board.at(pad + row, pad + col));
-			}
-			int getRootDepth() const noexcept
-			{
-				return root_depth;
 			}
 			const ThreatHistogram& getThreatHistogram(Sign sign) const noexcept
 			{

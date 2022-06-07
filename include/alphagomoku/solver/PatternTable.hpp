@@ -34,6 +34,23 @@ namespace ag::experimental
 	{
 		return ((pattern >> 1) & 0x55555555) | ((pattern & 0x55555555) << 1);
 	}
+	inline uint32_t reverse_bits(uint32_t x) noexcept
+	{
+		x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
+		x = ((x >> 2) & 0x33333333) | ((x & 0x33333333) << 2);
+		x = ((x >> 4) & 0x0F0F0F0F) | ((x & 0x0F0F0F0F) << 4);
+		x = ((x >> 8) & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);
+		x = (x >> 16) | (x << 16);
+		return x;
+	}
+	inline uint16_t reverse_bits(uint16_t x) noexcept
+	{
+		x = ((x >> 1) & 0x5555) | ((x & 0x5555) << 1);
+		x = ((x >> 2) & 0x3333) | ((x & 0x3333) << 2);
+		x = ((x >> 4) & 0x0F0F) | ((x & 0x0F0F) << 4);
+		x = (x >> 8) | (x << 8);
+		return x;
+	}
 
 	struct PatternTypeGroup
 	{
@@ -75,9 +92,18 @@ namespace ag::experimental
 			{
 				return m_data;
 			}
+			void flip(int length) noexcept
+			{
+				m_data = reverse_bits(m_data) >> (8 * sizeof(T) - length);
+			}
 			friend bool operator==(const BitMask<T> &lhs, const BitMask<T> &rhs) noexcept
 			{
 				return lhs.raw() == rhs.raw();
+			}
+			friend BitMask<T>& operator&=(BitMask<T> &lhs, const BitMask<T> &rhs) noexcept
+			{
+				lhs.m_data &= rhs.m_data;
+				return lhs;
 			}
 			BitMask<T> operator<<(int shift) const noexcept
 			{
@@ -96,7 +122,7 @@ namespace ag::experimental
 		public:
 			PatternEncoding() noexcept = default;
 			PatternEncoding(PatternType cross, PatternType circle) noexcept :
-					m_data(static_cast<uint16_t>(cross) | (static_cast<uint16_t>(circle) << 3))
+					m_data(static_cast<uint32_t>(cross) | (static_cast<uint32_t>(circle) << 3))
 			{
 			}
 			PatternType forCross() const noexcept

@@ -18,6 +18,7 @@ namespace ag
 	void SearchTask::set(const matrix<Sign> &base, Sign signToMove)
 	{
 		visited_path.clear();
+		non_losing_edges.clear();
 		proven_edges.clear();
 		edges.clear();
 		board = base;
@@ -117,6 +118,12 @@ namespace ag
 		}
 		else
 			result += Board::toString(board);
+		if (non_losing_edges.size() > 0)
+		{
+			result += "Non-losing moves:\n";
+			for (size_t i = 0; i < non_losing_edges.size(); i++)
+				result += non_losing_edges[i].getMove().toString() + " : " + non_losing_edges[i].toString() + '\n';
+		}
 		if (proven_edges.size() > 0)
 		{
 			result += "Proven moves:\n";

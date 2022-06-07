@@ -45,16 +45,6 @@ namespace
 		return result;
 	}
 
-	constexpr uint32_t reverse_bits(uint32_t x) noexcept
-	{
-		x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
-		x = ((x >> 2) & 0x33333333) | ((x & 0x33333333) << 2);
-		x = ((x >> 4) & 0x0F0F0F0F) | ((x & 0x0F0F0F0F) << 4);
-		x = ((x >> 8) & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);
-		x = (x >> 16) | (x << 16);
-		return x;
-	}
-
 	class Pattern
 	{
 		private:
@@ -289,7 +279,6 @@ namespace
 	class FeatureClassifier
 	{
 			std::vector<MatchingRule> m_matching_rules;
-			std::vector<BitMask<uint16_t>> m_defensive_moves;
 			GameRules m_rule;
 			Sign m_sign;
 		public:
@@ -303,16 +292,12 @@ namespace
 			{
 				return m_sign;
 			}
-			std::pair<bool, BitMask<uint16_t>> operator()(const Pattern &f) const noexcept
+			bool operator()(const Pattern &f) const noexcept
 			{
-				assert(m_matching_rules.size() == m_defensive_moves.size());
 				for (size_t i = 0; i < m_matching_rules.size(); i++)
-				{
-					int tmp = m_matching_rules[i].findMatch(f);
-					if (tmp != -1)
-						return std::pair<bool, BitMask<uint16_t>>(true, m_defensive_moves[i] << tmp);
-				}
-				return std::pair<bool, BitMask<uint16_t>>(false, 0);
+					if (m_matching_rules[i].findMatch(f) != -1)
+						return true;
+				return false;
 			}
 			void addPattern(const std::string &str)
 			{
@@ -328,23 +313,6 @@ namespace
 				for (auto iter = m_matching_rules.begin(); iter < m_matching_rules.end(); iter++)
 					*iter = MatchingRule(prefix + iter->toString() + postfix);
 			}
-			void addDefensiveMove(const std::string &str)
-			{
-				m_defensive_moves.emplace_back(str);
-			}
-			void addDefensiveMoves(const std::vector<std::string> &str)
-			{
-				for (size_t i = 0; i < str.size(); i++)
-					addDefensiveMove(str[i]);
-			}
-			void modifyDefensiveMoves(int prefix, int postfix)
-			{
-				for (auto iter = m_defensive_moves.begin(); iter < m_defensive_moves.end(); iter++)
-				{
-					uint16_t tmp = (prefix & 1) | (iter->raw() << 1) | ((postfix & 1) << Pattern::length(m_rule));
-					*iter = BitMask<uint16_t>(tmp);
-				}
-			}
 	};
 
 	class IsOverline: public FeatureClassifier
@@ -357,7 +325,6 @@ namespace
 					addPattern("XXXXXX");
 				else
 					addPattern("OOOOOO");
-				addDefensiveMove("");
 			}
 	};
 	class IsFive: public FeatureClassifier
@@ -382,7 +349,6 @@ namespace
 					if (rule == GameRules::CARO)
 						modifyPatterns("[not X]", "[not X]");
 				}
-				addDefensiveMove("");
 			}
 	};
 	class IsOpenFour: public FeatureClassifier
@@ -407,30 +373,6 @@ namespace
 					if (rule == GameRules::CARO)
 						modifyPatterns("[not X]", "[not X]");
 				}
-
-				addDefensiveMove("100001");
-				if (rule == GameRules::STANDARD or (rule == GameRules::RENJU and sign == Sign::CROSS))
-					modifyDefensiveMoves(0, 0);
-				if (rule == GameRules::CARO)
-					modifyDefensiveMoves(1, 1);
-//				switch (rule)
-//				{
-//					case GameRules::FREESTYLE:
-//						addDefensiveMove("100001");
-//						break;
-//					case GameRules::STANDARD:
-//						addDefensiveMove("01000010");
-//						break;
-//					case GameRules::RENJU:
-//						if (sign == Sign::CROSS) // black
-//							addDefensiveMove("01000010");
-//						else
-//							addDefensiveMove("100001");
-//						break;
-//					case GameRules::CARO:
-//						addDefensiveMove("11000011");
-//						break;
-//				}
 			}
 	};
 	class IsDoubleFour: public FeatureClassifier
@@ -455,30 +397,6 @@ namespace
 					if (rule == GameRules::CARO)
 						modifyPatterns("[not X]", "[not X]");
 				}
-
-				addDefensiveMoves( { "0100010", "00100100", "000101000" });
-				if (rule == GameRules::STANDARD or (rule == GameRules::RENJU and sign == Sign::CROSS))
-					modifyDefensiveMoves(0, 0);
-				if (rule == GameRules::CARO)
-					modifyDefensiveMoves(1, 1);
-//				switch (rule)
-//				{
-//					case GameRules::FREESTYLE:
-//						addDefensiveMoves( { "0100010", "00100100", "000101000" });
-//						break;
-//					case GameRules::STANDARD:
-//						addDefensiveMoves( { "001000100", "0001001000", "00001010000" });
-//						break;
-//					case GameRules::RENJU:
-//						if (sign == Sign::CROSS) // black
-//							addDefensiveMoves( { "001000100", "0001001000", "00001010000" });
-//						else
-//							addDefensiveMoves( { "0100010", "00100100", "000101000" });
-//						break;
-//					case GameRules::CARO:
-//						addDefensiveMoves( { "101000101", "1001001001", "10001010001" });
-//						break;
-//				}
 			}
 	};
 	class IsHalfOpenFour: public FeatureClassifier
@@ -503,30 +421,6 @@ namespace
 					if (rule == GameRules::CARO)
 						modifyPatterns("[not X]", "[not X]");
 				}
-
-				addDefensiveMoves( { "10000", "01000", "00100", "00010", "00001" });
-				if (rule == GameRules::STANDARD or (rule == GameRules::RENJU and sign == Sign::CROSS))
-					modifyDefensiveMoves(0, 0);
-				if (rule == GameRules::CARO)
-					modifyDefensiveMoves(1, 1);
-//				switch (rule)
-//				{
-//					case GameRules::FREESTYLE:
-//						addDefensiveMoves( { "10000", "01000", "00100", "00010", "00001" });
-//						break;
-//					case GameRules::STANDARD:
-//						addDefensiveMoves( { "0100000", "0010000", "0001000", "0000100", "0000010" });
-//						break;
-//					case GameRules::RENJU:
-//						if (sign == Sign::CROSS) // black
-//							addDefensiveMoves( { "0100000", "0010000", "0001000", "0000100", "0000010" });
-//						else
-//							addDefensiveMoves( { "10000", "01000", "00100", "00010", "00001" });
-//						break;
-//					case GameRules::CARO:
-//						addDefensiveMoves( { "1100001", "1010001", "1001001", "1000101", "1000011" });
-//						break;
-//				}
 			}
 	};
 	class IsOpenThree: public FeatureClassifier
@@ -551,7 +445,6 @@ namespace
 					if (rule == GameRules::CARO)
 						modifyPatterns("[not X]", "[not X]");
 				}
-				addDefensiveMoves( { "", "", "", "" });
 			}
 	};
 	class IsHalfOpenThree: public FeatureClassifier
@@ -576,7 +469,6 @@ namespace
 					if (rule == GameRules::CARO)
 						modifyPatterns("[not X]", "[not X]");
 				}
-				addDefensiveMoves( { "", "", "", "", "", "", "", "", "", "" });
 			}
 	};
 
@@ -600,31 +492,23 @@ namespace
 					is_half_open_three(rules, sign)
 			{
 			}
-			std::pair<PatternType, BitMask<uint16_t>> operator()(const Pattern &f) const noexcept
+			PatternType operator()(const Pattern &f) const noexcept
 			{
-				std::pair<bool, BitMask<uint16_t>> tmp;
-				tmp = is_five(f);
-				if (tmp.first)
-					return std::pair<PatternType, BitMask<uint16_t>>(PatternType::FIVE, tmp.second);
-				tmp = is_overline(f);
-				if (tmp.first)
-					return std::pair<PatternType, BitMask<uint16_t>>(PatternType::OVERLINE, tmp.second);
-				tmp = is_open_four(f);
-				if (tmp.first)
-					return std::pair<PatternType, BitMask<uint16_t>>(PatternType::OPEN_4, tmp.second);
-				tmp = is_double_four(f);
-				if (tmp.first)
-					return std::pair<PatternType, BitMask<uint16_t>>(PatternType::DOUBLE_4, tmp.second);
-				tmp = is_half_open_four(f);
-				if (tmp.first)
-					return std::pair<PatternType, BitMask<uint16_t>>(PatternType::HALF_OPEN_4, tmp.second);
-				tmp = is_open_three(f);
-				if (tmp.first)
-					return std::pair<PatternType, BitMask<uint16_t>>(PatternType::OPEN_3, tmp.second);
-				tmp = is_half_open_three(f);
-				if (tmp.first)
-					return std::pair<PatternType, BitMask<uint16_t>>(PatternType::HALF_OPEN_3, tmp.second);
-				return std::pair<PatternType, BitMask<uint16_t>>(PatternType::NONE, BitMask<uint16_t>());
+				if (is_five(f))
+					return PatternType::FIVE;
+				if (is_overline(f))
+					return PatternType::OVERLINE;
+				if (is_open_four(f))
+					return PatternType::OPEN_4;
+				if (is_double_four(f))
+					return PatternType::DOUBLE_4;
+				if (is_half_open_four(f))
+					return PatternType::HALF_OPEN_4;
+				if (is_open_three(f))
+					return PatternType::OPEN_3;
+//				if (is_half_open_three(f))
+//					return PatternType::HALF_OPEN_3;
+				return PatternType::NONE;
 			}
 	};
 
@@ -634,13 +518,8 @@ namespace
 			IsFive is_five;
 			int check_outcome(Pattern line, Sign signToMove, int depth)
 			{
-				std::cout << depth << " : " << line.toString() << " " << signToMove << '\n';
-
-				if (is_five(line).first)
-				{
-					std::cout << depth << " : " << line.toString() << " " << signToMove << " win found\n";
+				if (is_five(line))
 					return 1; // win found
-				}
 
 				bool all_losing = true;
 				bool at_least_one = false;
@@ -650,7 +529,6 @@ namespace
 						at_least_one = true;
 						line.set(i, signToMove);
 						int tmp = (depth == 7) ? 0 : check_outcome(line, invertSign(signToMove), depth + 1);
-//						std::cout << "tmp = " << tmp << '\n';
 						line.set(i, Sign::NONE);
 
 						all_losing &= (tmp == -1);
@@ -658,15 +536,9 @@ namespace
 							return -1;
 					}
 				if (all_losing and at_least_one)
-				{
-					std::cout << depth << " : " << line.toString() << " " << signToMove << " proven loss\n";
 					return 1;
-				}
 				else
-				{
-					std::cout << depth << " : " << line.toString() << " " << signToMove << " no solution\n";
 					return 0;
-				}
 			}
 		public:
 			DefensiveMoveFinder(const PatternTable &t, Sign sign) :
@@ -677,20 +549,17 @@ namespace
 			BitMask<uint16_t> operator()(Pattern line)
 			{
 				line = Pattern(line.size() + 2, line.encode() << 2);
-				std::cout << line.toString() << ":\n";
-				int tmp = check_outcome(Pattern("__OOOO_X||||_"), Sign::CROSS, 0);
-				std::cout << tmp << '\n';
 				BitMask<uint16_t> result;
-//				const Sign defender_sign = invertSign(is_five.getSign());
-//				for (size_t i = 1; i < line.size() - 1; i++)
-//					if (line.get(i) == Sign::NONE)
-//					{
-//						line.set(i, defender_sign);
-//						int tmp = check_outcome(line, invertSign(defender_sign), 0);
-//						if (tmp != -1)
-//							result.set(i - 1, true);
-//						line.set(i, Sign::NONE);
-//					}
+				const Sign defender_sign = invertSign(is_five.getSign());
+				for (size_t i = 1; i < line.size() - 1; i++)
+					if (line.get(i) == Sign::NONE)
+					{
+						line.set(i, defender_sign);
+						int tmp = check_outcome(line, invertSign(defender_sign), 0);
+						if (tmp != -1)
+							result.set(i - 1, true);
+						line.set(i, Sign::NONE);
+					}
 				return result;
 			}
 	};
@@ -729,48 +598,48 @@ namespace ag::experimental
 		double t0 = getTime();
 		init_features();
 		double t1 = getTime();
-//		init_update_mask();
+		init_update_mask();
 		double t2 = getTime();
-//		init_defensive_moves();
+		init_defensive_moves();
 		double t3 = getTime();
 
 		std::cout << (t1 - t0) << " " << (t2 - t1) << " " << (t3 - t2) << std::endl;
-		std::cout << defensive_move_mask.size() << '\n';
-
-		std::cout << "five       : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
-		{	return enc.forCross() == PatternType::FIVE;}) << '\n';
-		std::cout << "double 4   : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
-		{	return enc.forCross() == PatternType::DOUBLE_4;}) << '\n';
-		std::cout << "open 4     : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
-		{	return enc.forCross() == PatternType::OPEN_4;}) << '\n';
-		std::cout << "half open 4: " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
-		{	return enc.forCross() == PatternType::HALF_OPEN_4;}) << '\n';
-		std::cout << "open 3     : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
-		{	return enc.forCross() == PatternType::OPEN_3;}) << '\n';
-		std::cout << "half open 3: " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
-		{	return enc.forCross() == PatternType::HALF_OPEN_3;}) << '\n' << '\n';
-
-		Pattern line("__OOOO_____");
-		DefensiveMoveFinder dmf(*this, Sign::CROSS);
-		BitMask<uint16_t> res = dmf(line);
-
-		std::cout << "raw feature = " << line.encode() << '\n';
-		PatternEncoding data = getPatternData(line.encode());
-		std::cout << line.toString() << " " << toString(data.forCross()) << " " << toString(data.forCircle()) << '\n';
-		for (int i = 0; i < 11; i++)
-			std::cout << data.mustBeUpdated(i);
-		std::cout << '\n';
-		for (int i = 0; i < 11; i++)
-			std::cout << getDefensiveMoves(data, Sign::CROSS).get(i);
-		std::cout << " defensive moves for X\n";
-		for (int i = 0; i < 11; i++)
-			std::cout << getDefensiveMoves(data, Sign::CIRCLE).get(i);
-		std::cout << " defensive moves for O\n";
-
-		for (int i = 0; i < 11; i++)
-			std::cout << res.get(i);
-		std::cout << " defensive moves for X v2\n";
-		exit(0);
+//		std::cout << defensive_move_mask.size() << '\n';
+//
+//		std::cout << "five       : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
+//		{	return enc.forCross() == PatternType::FIVE;}) << '\n';
+//		std::cout << "double 4   : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
+//		{	return enc.forCross() == PatternType::DOUBLE_4;}) << '\n';
+//		std::cout << "open 4     : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
+//		{	return enc.forCross() == PatternType::OPEN_4;}) << '\n';
+//		std::cout << "half open 4: " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
+//		{	return enc.forCross() == PatternType::HALF_OPEN_4;}) << '\n';
+//		std::cout << "open 3     : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
+//		{	return enc.forCross() == PatternType::OPEN_3;}) << '\n';
+//		std::cout << "half open 3: " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
+//		{	return enc.forCross() == PatternType::HALF_OPEN_3;}) << '\n' << '\n';
+//
+//		Pattern line("___OO______");
+//		DefensiveMoveFinder dmf(*this, Sign::CROSS);
+//		BitMask<uint16_t> res = dmf(line);
+//
+//		std::cout << "raw feature = " << line.encode() << '\n';
+//		PatternEncoding data = getPatternData(line.encode());
+//		std::cout << line.toString() << " " << toString(data.forCross()) << " " << toString(data.forCircle()) << '\n';
+//		for (int i = 0; i < 11; i++)
+//			std::cout << data.mustBeUpdated(i);
+//		std::cout << '\n';
+//		for (int i = 0; i < 11; i++)
+//			std::cout << getDefensiveMoves(data, Sign::CROSS).get(i);
+//		std::cout << " defensive moves for X\n";
+//		for (int i = 0; i < 11; i++)
+//			std::cout << getDefensiveMoves(data, Sign::CIRCLE).get(i);
+//		std::cout << " defensive moves for O\n";
+//
+//		for (int i = 0; i < 11; i++)
+//			std::cout << res.get(i);
+//		std::cout << " defensive moves for X v2\n";
+//		exit(0);
 	}
 	const PatternTable& PatternTable::get(GameRules rules)
 	{
@@ -814,41 +683,24 @@ namespace ag::experimental
 
 		for (size_t i = 0; i < patterns.size(); i++)
 //		for (size_t i = 672; i <= 672; i++)
-//			if (was_processed[i] == false)
-		{
-			line.decode(i);
-			if (line.isValid())
+			if (was_processed[i] == false)
 			{
-				line.setCenter(Sign::CROSS);
-				std::pair<PatternType, BitMask<uint16_t>> cross = for_cross(line);
-				line.setCenter(Sign::CIRCLE);
-				std::pair<PatternType, BitMask<uint16_t>> circle = for_circle(line);
-				line.setCenter(Sign::NONE);
+				line.decode(i);
+				if (line.isValid())
+				{
+					line.setCenter(Sign::CROSS);
+					PatternType cross = for_cross(line);
+					line.setCenter(Sign::CIRCLE);
+					PatternType circle = for_circle(line);
+					line.setCenter(Sign::NONE);
 
-//					cross.second.set(line.size() / 2, true); // center is always the defensive move
-//					circle.second.set(line.size() / 2, true); // center is always the defensive move
-//					for (size_t j = 0; j < line.size(); j++)
-//						if (line.get(j) != Sign::NONE)
-//						{
-//							cross.second.set(j, false);
-//							circle.second.set(j, false);
-//						}
-
-				patterns[i] = PatternEncoding(cross.first, circle.first);
-//					was_processed[i] = true;
-//					line.flip(); // the features are symmetrical so we can update both at the same time
-//					patterns[line.encode()] = PatternEncoding(cross.first, circle.first);
-//					was_processed[line.encode()] = true;
-
-//					BitMask<uint16_t> cross_inverted(reverse_bits(cross.second.raw()) >> (16 - line.size()));
-				patterns[i].setDefensiveMoves(Sign::CROSS, add_defensive_move_mask(circle.second));
-//					patterns[line.encode()].setDefensiveMoves(Sign::CROSS, add_defensive_move_mask(cross_inverted));
-
-//					BitMask<uint16_t> circle_inverted(reverse_bits(circle.second.raw()) >> (16 - line.size()));
-				patterns[i].setDefensiveMoves(Sign::CIRCLE, add_defensive_move_mask(cross.second));
-//					patterns[line.encode()].setDefensiveMoves(Sign::CIRCLE, add_defensive_move_mask(circle_inverted));
+					patterns[i] = PatternEncoding(cross, circle);
+					was_processed[i] = true;
+					line.flip(); // the features are symmetrical so we can update both at the same time
+					patterns[line.encode()] = PatternEncoding(cross, circle);
+					was_processed[line.encode()] = true;
+				}
 			}
-		}
 	}
 	void PatternTable::init_update_mask()
 	{
@@ -866,7 +718,7 @@ namespace ag::experimental
 			{
 				PatternEncoding pattern = getPatternData(i);
 				for (int spot_index = 0; spot_index < feature_length; spot_index++)
-					if (spot_index != side_length) // omitting central spot as it always must be updated anyway
+					if (spot_index != side_length) // omitting central spot as it must always be updated anyway
 					{
 						const int free_spots = std::abs(side_length - spot_index);
 						const int combinations = power(4, free_spots);
@@ -923,17 +775,22 @@ namespace ag::experimental
 	}
 	void PatternTable::init_defensive_moves()
 	{
-		defensive_move_mask.reserve(32);
+		std::vector<bool> was_processed(patterns.size());
+
+		defensive_move_mask.reserve(128);
 		const int feature_length = Pattern::length(game_rules);
 		Pattern base_line(feature_length);
 		Pattern secondary_line(feature_length);
 
+		DefensiveMoveFinder dmf_cross(*this, Sign::CROSS);
+		DefensiveMoveFinder dmf_circle(*this, Sign::CIRCLE);
+
 		for (size_t i = 0; i < patterns.size(); i++)
 		{
-			BitMask<uint16_t> mask_cross, mask_circle;
 			base_line.decode(i);
-			if (base_line.isValid())
+			if (was_processed[i] == false and base_line.isValid())
 			{
+				BitMask<uint16_t> mask_cross, mask_circle;
 				PatternEncoding feature = getPatternData(i);
 				for (int spot_index = 0; spot_index < feature_length; spot_index++)
 					if (base_line.get(spot_index) == Sign::NONE)
@@ -944,41 +801,30 @@ namespace ag::experimental
 						const PatternEncoding circle_refuted = getPatternData(base_line.encode());
 						base_line.set(spot_index, Sign::NONE);
 
-//						if (feature.forCircle() != PatternType::NONE and cross_refuted.forCircle() == PatternType::NONE)
-//							mask_cross.set(spot_index, true);
-//						if (feature.forCross() != PatternType::NONE and circle_refuted.forCross() == PatternType::NONE)
-//							mask_circle.set(spot_index, true);
-						if (feature.forCircle() != cross_refuted.forCircle())
+						if (cross_refuted.forCircle() < feature.forCircle())
 							mask_cross.set(spot_index, true);
-						if (feature.forCross() != circle_refuted.forCross())
+						if (circle_refuted.forCross() < feature.forCross())
 							mask_circle.set(spot_index, true);
 					}
+				if (feature.forCircle() == PatternType::OPEN_4)
+					mask_cross &= dmf_cross(base_line);
+				if (feature.forCross() == PatternType::OPEN_4)
+					mask_circle &= dmf_circle(base_line);
 
-				if (std::find(defensive_move_mask.begin(), defensive_move_mask.end(), mask_cross) == defensive_move_mask.end())
-					defensive_move_mask.push_back(mask_cross);
-				uint32_t idx_cross = std::distance(defensive_move_mask.begin(),
-						std::find(defensive_move_mask.begin(), defensive_move_mask.end(), mask_cross));
-				patterns[i].setDefensiveMoves(Sign::CROSS, idx_cross);
+				patterns[i].setDefensiveMoves(Sign::CROSS, add_defensive_move_mask(mask_cross));
+				patterns[i].setDefensiveMoves(Sign::CIRCLE, add_defensive_move_mask(mask_circle));
+				was_processed[i] = true;
 
-				if (std::find(defensive_move_mask.begin(), defensive_move_mask.end(), mask_circle) == defensive_move_mask.end())
-					defensive_move_mask.push_back(mask_circle);
-				uint32_t idx_circle = std::distance(defensive_move_mask.begin(),
-						std::find(defensive_move_mask.begin(), defensive_move_mask.end(), mask_circle));
-				patterns[i].setDefensiveMoves(Sign::CIRCLE, idx_circle);
+				base_line.decode(i);
+				base_line.flip();
+				mask_cross.flip(feature_length);
+				mask_circle.flip(feature_length);
+				patterns[base_line.encode()].setDefensiveMoves(Sign::CROSS, add_defensive_move_mask(mask_cross));
+				patterns[base_line.encode()].setDefensiveMoves(Sign::CIRCLE, add_defensive_move_mask(mask_circle));
+				was_processed[base_line.encode()] = true;
 			}
 		}
-
 		assert(defensive_move_mask.size() < 128); // only 7 bits are reserved in PatternEncoding for storing index of defensive move mask
-
-//		std::cout << toString(game_rules) << '\n';
-//		for (size_t i = 0; i < defensive_move_mask.size(); i++)
-//		{
-//			std::cout << "\"";
-//			for (int k = 0; k < feature_length; k++)
-//				std::cout << defensive_move_mask[i].get(k);
-//			std::cout << "\" " << defensive_move_mask[i].raw() << '\n';
-//		}
-//		std::cout << std::endl;
 	}
 	size_t PatternTable::add_defensive_move_mask(BitMask<uint16_t> mask)
 	{

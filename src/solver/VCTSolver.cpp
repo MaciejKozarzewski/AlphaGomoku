@@ -57,6 +57,20 @@ namespace
 				return SolvedValue::LOSS;
 		}
 	}
+	ProvenValue convert(SolvedValue sv) noexcept
+	{
+		switch (sv)
+		{
+			default:
+				return ProvenValue::UNKNOWN;
+			case SolvedValue::LOSS:
+				return ProvenValue::LOSS;
+			case SolvedValue::DRAW:
+				return ProvenValue::DRAW;
+			case SolvedValue::WIN:
+				return ProvenValue::WIN;
+		}
+	}
 
 	int get_max_nodes(ag::GameConfig cfg) noexcept
 	{
@@ -136,7 +150,7 @@ namespace
 						return SolvedValue::UNCHECKED;
 					}
 					case ThreatType::FORK_4x3:
-						return SolvedValue::UNCHECKED; // checking this statically would be too complex
+						return SolvedValue::UNCHECKED; // checking this statically would be too complicated
 					case ThreatType::FORK_4x4:
 					case ThreatType::OPEN_4:
 					case ThreatType::FIVE:
@@ -185,49 +199,163 @@ namespace ag::experimental
 	{
 		stats.setup.startTimer();
 		pattern_calculator.setBoard(task.getBoard());
+		depth = Board::numberOfMoves(task.getBoard());
+		attacking_sign = task.getSignToMove();
 		stats.setup.stopTimer();
 
-		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
-		pattern_calculator.print();
-		pattern_calculator.printAllThreats();
+//		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
+//		pattern_calculator.print();
+//		pattern_calculator.printAllThreats();
 
 		TimerGuard tg(stats.solve);
 		const Move last_move = (task.getLastEdge() == nullptr) ? Move(0, 0, invertSign(task.getSignToMove())) : task.getLastEdge()->getMove();
-		setup_node_stack(last_move);
+		InternalNode &root_node = node_stack.front();
+		root_node.init(last_move.row, last_move.col, last_move.sign); // prepare node stack
+		position_counter = 0;
+		node_counter = 1;
 
 		switch (level)
 		{
 			case 0: // only check win or draw conditions
 			{
-				node_stack.front().children = node_stack.data() + node_counter; // setup pointer to child nodes
-				if (try_win_in_1(node_stack.front()))
+				root_node.children = node_stack.data() + node_counter; // setup pointer to child nodes
+				if (try_win_in_1(root_node))
 					break;
-				if (try_draw_in_1(node_stack.front()))
+				if (try_draw_in_1(root_node))
 					break;
 				break;
 			}
 			case 1: // statically solve position
 			{
-				generate_moves(node_stack.front());
+				generate_moves(root_node);
 				break;
 			}
 			case 2: // perform recursive search
 			default:
 			{
-				recursive_solve(node_stack.front());
+				hashtable.clear();
+				hashtable.setBoard(task.getBoard());
+				recursive_solve(root_node);
 				break;
 			}
 		}
 
-		calculate_solved_value(node_stack.front());
-		node_stack.front().print();
+		calculate_solved_value(root_node);
+//		root_node.print();
 
-		if (node_stack.front().hasSolution())
+		if (root_node.must_defend)
 		{
-			task.markAsReady();
-			stats.hits++;
-			return;
+			for (auto iter = root_node.begin(); iter < root_node.end(); iter++)
+				task.addNonLosingEdge(iter->move);
 		}
+		else
+		{
+			for (auto iter = root_node.begin(); iter < root_node.end(); iter++)
+				if (iter->hasSolution())
+					task.addProvenEdge(iter->move, convert(iter->solved_value));
+		}
+		switch (root_node.solved_value)
+		{
+			default:
+				break;
+			case SolvedValue::LOSS:
+				task.setValue(Value(1.0f, 0.0f, 0.0f));
+				task.setProvenValue(ProvenValue::WIN);
+				task.markAsReady();
+				break;
+			case SolvedValue::DRAW:
+				task.setValue(Value(0.0f, 1.0f, 0.0f));
+				task.setProvenValue(ProvenValue::DRAW);
+				task.markAsReady();
+				break;
+			case SolvedValue::WIN:
+				if (root_node.must_defend)
+				{
+					task.setValue(Value(0.0f, 0.0f, 1.0f));
+					task.setProvenValue(ProvenValue::LOSS);
+					task.markAsReady();
+				}
+				break;
+		}
+
+		stats.hits += static_cast<int>(task.isReady());
+	}
+	void VCTSolver::tune(float speed)
+	{
+//		//		Logger::write("VCFSolver::tune(" + std::to_string(speed) + ")");
+//		//		Logger::write("Before new measurement");
+//		//		Logger::write(lower_measurement.toString());
+//		//		Logger::write(upper_measurement.toString());
+//		if (max_positions == lower_measurement.getParamValue())
+//		{
+//			lower_measurement.update(step_counter, speed);
+//			max_positions = upper_measurement.getParamValue();
+//			//			Logger::write("using upper " + std::to_string(max_positions));
+//		}
+//		else
+//		{
+//			upper_measurement.update(step_counter, speed);
+//			max_positions = lower_measurement.getParamValue();
+//			//			Logger::write("using lower " + std::to_string(max_positions));
+//		}
+//
+//		//		Logger::write("After new measurement");
+//		//		Logger::write(lower_measurement.toString());
+//		//		Logger::write(upper_measurement.toString());
+//
+//		step_counter++;
+//
+//		std::pair<float, float> lower_mean_and_stddev = lower_measurement.predict(step_counter);
+//		std::pair<float, float> upper_mean_and_stddev = upper_measurement.predict(step_counter);
+//
+//		//		Logger::write("Predicted");
+//		//		Logger::write("Lower : " + std::to_string(lower_mean_and_stddev.first) + " +/-" + std::to_string(lower_mean_and_stddev.second));
+//		//		Logger::write("Upper : " + std::to_string(upper_mean_and_stddev.first) + " +/-" + std::to_string(upper_mean_and_stddev.second));
+//
+//		float mean = lower_mean_and_stddev.first - upper_mean_and_stddev.first;
+//		float stddev = std::hypot(lower_mean_and_stddev.second, upper_mean_and_stddev.second);
+//		//		Logger::write("mean = " + std::to_string(mean) + ", stddev = " + std::to_string(stddev));
+//
+//		float probability = 1.0f - gaussian_cdf(mean / stddev);
+//		//		Logger::write("probability = " + std::to_string(probability));
+//
+//		if (probability > 0.95f) // there is more than 95% chance that higher value of 'max_positions' gives higher speed
+//		{
+//			if (lower_measurement.getParamValue() * tuning_step <= 6400)
+//			{
+//				const int new_max_pos = tuning_step * lower_measurement.getParamValue();
+//				lower_measurement = Measurement(new_max_pos);
+//				upper_measurement = Measurement(tuning_step * new_max_pos);
+//				max_positions = lower_measurement.getParamValue();
+//				Logger::write(
+//						"VCTSolver increasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
+//			}
+//		}
+//		if (probability < 0.05f) // there is less than 5% chance that higher value of 'max_positions' gives higher speed
+//		{
+//			if (lower_measurement.getParamValue() / tuning_step >= 50)
+//			{
+//				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
+//				lower_measurement = Measurement(new_max_pos);
+//				upper_measurement = Measurement(tuning_step * new_max_pos);
+//				max_positions = lower_measurement.getParamValue();
+//				Logger::write(
+//						"VCTSolver decreasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
+//			}
+//		}
+	}
+	SolverStats VCTSolver::getStats() const
+	{
+		return stats;
+	}
+	void VCTSolver::clearStats()
+	{
+		stats = SolverStats();
+//		max_positions = lower_measurement.getParamValue();
+//		lower_measurement.clear();
+//		upper_measurement.clear();
+//		step_counter = 0;
+		Logger::write("VCTSolver is using " + std::to_string(max_positions) + " positions");
 	}
 	/*
 	 * private
@@ -244,7 +372,7 @@ namespace ag::experimental
 	}
 	bool VCTSolver::try_draw_in_1(InternalNode &node)
 	{
-		if (pattern_calculator.getRootDepth() + 1 >= number_of_moves_for_draw) // detect draw
+		if (depth + 1 >= number_of_moves_for_draw) // detect draw
 		{
 			for (int row = 0; row < game_config.rows; row++)
 				for (int col = 0; col < game_config.cols; col++)
@@ -347,34 +475,52 @@ namespace ag::experimental
 		const std::vector<Move> opp_fork_4x3 = get_opp_threats(node, ThreatType::FORK_4x3);
 		const std::vector<Move> opp_half_open_4 = get_opp_threats(node, ThreatType::HALF_OPEN_4);
 
-		SolvedValue sv = SolvedValue::UNCHECKED;
 		if (pattern_calculator.getThreatHistogram(node.getSignToMove()).hasAnyFour() == false) // we have no fours
 		{
 			if (opp_open_four.size() > 2 or (opp_open_four.size() + opp_fork_4x4.size() >= 2 and opp_fork_4x4.size() > 0))
-				sv = SolvedValue::LOSS;
+			{
+				add_children_nodes(node, opp_open_four, SolvedValue::LOSS, true);
+				add_children_nodes(node, opp_fork_4x4, SolvedValue::LOSS, true);
+				node.must_defend = true;
+				return true;
+			}
 		}
 		const Sign own_sign = node.getSignToMove();
 		const Sign opp_sign = invertSign(own_sign);
 
-//		for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
+		for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
+		{
+			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
+			const Direction direction = find_direction_of(PatternType::OPEN_4, patterns);
+			add_defensive_moves(node, *move, direction);
+		}
+		for (auto move = opp_fork_4x4.begin(); move < opp_fork_4x4.end(); move++)
+		{
+			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
+			for (Direction direction = 0; direction < 4; direction++)
+				if (patterns[direction] == PatternType::OPEN_4 or patterns[direction] == PatternType::HALF_OPEN_4)
+					add_defensive_moves(node, *move, direction);
+		}
+		for (auto move = opp_fork_4x3.begin(); move < opp_fork_4x3.end(); move++)
+		{
+			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
+			for (Direction direction = 0; direction < 4; direction++)
+				if (patterns[direction] == PatternType::OPEN_3 or patterns[direction] == PatternType::HALF_OPEN_4)
+					add_defensive_moves(node, *move, direction);
+		}
+
+		if (opp_open_four.size() > 0 or opp_fork_4x4.size() > 0 or opp_fork_4x3.size() > 0)
+		{
+			node.must_defend = true;
+			return true;
+		}
+
+//		for (auto move = opp_half_open_4.begin(); move < opp_half_open_4.end(); move++)
 //		{
 //			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
-//			const Direction direction = find_direction_of(PatternType::OPEN_4, patterns);
-//			const BitMask<uint16_t> defensive_moves = pattern_calculator.getDefensiveMoves(own_sign, move->row, move->col, direction);
-//
-//			std::cout << "Defensive moves to " << move->toString() << ":\n";
-//			for (int i = -pattern_calculator.getPadding(); i <= pattern_calculator.getPadding(); i++)
-//				if (defensive_moves.get(i + pattern_calculator.getPadding())) // defensive move will never be outside board
-//				{
-//					Move m(move->row + i * get_row_step(direction), move->col + i * get_col_step(direction), own_sign);
-//					std::cout << "---" << m.toString() << '\n';
-//				}
-//					return Move(move.row + i * get_row_step(direction), move.col + i * get_col_step(direction), defender_sign);
+//			const Direction direction = find_direction_of(PatternType::HALF_OPEN_4, patterns);
+//			add_defensive_moves(node, *move, direction);
 //		}
-		add_children_nodes(node, opp_open_four, sv, true);
-		add_children_nodes(node, opp_fork_4x4, sv, true);
-		add_children_nodes(node, opp_fork_4x3, SolvedValue::UNCHECKED, true);
-		add_children_nodes(node, opp_half_open_4, SolvedValue::UNCHECKED, true);
 		return true;
 	}
 	void VCTSolver::generate_moves(InternalNode &node)
@@ -395,57 +541,17 @@ namespace ag::experimental
 			return;
 
 		add_children_nodes(node, get_own_threats(node, ThreatType::HALF_OPEN_4), SolvedValue::UNCHECKED, true);
-
 		try_defend_opponent_fours(node);
-
-//		add_children_nodes(node, opp_fork_4x3, SolvedValue::UNCHECKED, true);
-
-//		if (pattern_calculator.getThreatHistogram(get_sign_to_move()).hasAnyFour() == false)
-//		{
-//		const std::vector<Move> opp_open_four = get_opp_threats(ThreatType::OPEN_4);
-//		const std::vector<Move> opp_fork_4x4 = get_opp_threats(ThreatType::FORK_4x4);
-//		const std::vector<Move> opp_fork_4x3 = get_opp_threats(ThreatType::FORK_4x3);
-//		const std::vector<Move> opp_fork_3x3 = get_opp_threats(ThreatType::FORK_3x3);
-//			const size_t count = opp_fork_4x4.size() + opp_fork_4x3.size() + opp_fork_3x3.size();
-//			if (opp_open_four.size() >= 4)
-//			{
-//				state.add(get_opp_threats(ThreatType::OPEN_4), SolvedValue::LOSS);
-//				state.add(get_opp_threats(ThreatType::FORK_4x4), SolvedValue::LOSS);
-//				state.add(get_opp_threats(ThreatType::FORK_4x3), SolvedValue::LOSS);
-//				state.add(get_opp_threats(ThreatType::FORK_3x3), SolvedValue::LOSS);
-//			}
-//		}
-
-//		if (pattern_calculator.getThreatHistogram(invertSign(get_sign_to_move())).hasAnyFour())
-//		{
-//			state.add(get_opp_threats(ThreatType::OPEN_4));
-//			state.add(get_opp_threats(ThreatType::FORK_4x4));
-//			state.add(get_opp_threats(ThreatType::FORK_4x3));
-//			state.add(get_opp_threats(ThreatType::HALF_OPEN_4));
-//			state.addButExcludeDuplicates(get_own_threats(ThreatType::HALF_OPEN_4));
-//			std::cout << "opponent has fours - adding defensive moves\n";
-//		}
-//		else
-//		{
-//			state.add(get_own_threats(ThreatType::OPEN_3));
-//			std::cout << "opponent has no fours - adding own open threes\n";
-//		}
 	}
 
-	void VCTSolver::setup_node_stack(Move lastMove)
-	{
-		node_stack.front().init(lastMove.row, lastMove.col, lastMove.sign); // prepare node stack
-		position_counter = 0;
-		node_counter = 1;
-	}
 	void VCTSolver::recursive_solve(InternalNode &node)
 	{
-		pattern_calculator.print(node.move);
-		pattern_calculator.printAllThreats();
+//		pattern_calculator.print(node.move);
+//		pattern_calculator.printAllThreats();
 
 		generate_moves(node);
 		calculate_solved_value(node);
-		node.print();
+//		node.print();
 
 //		std::sort(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
 //		{
@@ -454,23 +560,24 @@ namespace ag::experimental
 //			return lhs_value < rhs_value;
 //		});
 		if (not node.hasSolution())
+		{
 			for (int i = 0; i < node.number_of_children; i++)
 			{
 				InternalNode *iter = node.begin() + i;
 
-				if (iter != node.children)
-				{
-					pattern_calculator.print(node.move);
-					pattern_calculator.printAllThreats();
-				}
-				std::cout << "positions checked = " << position_counter << "/" << max_positions << std::endl;
-				std::cout << "state of all children:" << std::endl;
-				for (int i = 0; i < node.number_of_children; i++)
-					std::cout << i << " : " << node.children[i].move.toString() << " : " << node.children[i].move.text() << " = "
-							<< toString(node.children[i].solved_value) << " " << (int) node.children[i].prior_value << std::endl;
+//				if (iter != node.children)
+//				{
+//					pattern_calculator.print(node.move);
+//					pattern_calculator.printAllThreats();
+//				}
+//				std::cout << "positions checked = " << position_counter << "/" << max_positions << std::endl;
+//				std::cout << "state of all children:" << std::endl;
+//				for (int i = 0; i < node.number_of_children; i++)
+//					std::cout << i << " : " << node.children[i].move.toString() << " : " << node.children[i].move.text() << " = "
+//							<< toString(node.children[i].solved_value) << " " << (int) node.children[i].prior_value << std::endl;
 				if (not iter->hasSolution()) // some nodes will already have some value assigned
 				{
-					std::cout << "---now checking " << iter->move.toString() << std::endl;
+//					std::cout << "---now checking " << iter->move.toString() << std::endl;
 					hashtable.updateHash(iter->move);
 					const SolvedValue solved_value_from_table = hashtable.get(hashtable.getHash());
 					if (solved_value_from_table == SolvedValue::UNCHECKED) // not found
@@ -479,7 +586,9 @@ namespace ag::experimental
 						{
 							position_counter += 1.0;
 							pattern_calculator.addMove(iter->move);
+							depth++;
 							recursive_solve(*iter);
+							depth--;
 							pattern_calculator.undoMove(iter->move);
 						}
 						else
@@ -487,6 +596,7 @@ namespace ag::experimental
 					}
 					else
 					{
+//						std::cout << "cache hit " << toString(solved_value_from_table) << '\n';
 //						position_counter += 0.0625; // the position counter is increased by 1/16 to avoid infinite search over cached states
 						iter->solved_value = solved_value_from_table; // cache hit
 					}
@@ -496,11 +606,12 @@ namespace ag::experimental
 						break;
 				}
 			}
-		calculate_solved_value(node);
+			calculate_solved_value(node);
+		}
 
-		std::cout << "state of all children:\n";
-		for (int i = 0; i < node.number_of_children; i++)
-			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
+//		std::cout << "state of all children:\n";
+//		for (int i = 0; i < node.number_of_children; i++)
+//			std::cout << i << " : " << node.children[i].move.toString() << " = " << toString(node.children[i].solved_value) << std::endl;
 
 		delete_children_nodes(node);
 		hashtable.insert(hashtable.getHash(), node.solved_value);
@@ -513,9 +624,22 @@ namespace ag::experimental
 	{
 		return pattern_calculator.getThreatHistogram(invertSign(node.getSignToMove())).get(tt);
 	}
-	void VCTSolver::add_child_node(InternalNode &node, Move move, SolvedValue sv) noexcept
+	void VCTSolver::add_defensive_moves(InternalNode &node, const Move move, Direction dir)
+	{
+		const Sign own_sign = node.getSignToMove();
+		const BitMask<uint16_t> defensive_moves = pattern_calculator.getDefensiveMoves(own_sign, move.row, move.col, dir);
+		for (int i = -pattern_calculator.getPadding(); i <= pattern_calculator.getPadding(); i++)
+			if (defensive_moves.get(i + pattern_calculator.getPadding())) // defensive move will never be outside board
+			{
+				Move m(move.row + i * get_row_step(dir), move.col + i * get_col_step(dir), own_sign);
+				add_child_node(node, m, SolvedValue::UNCHECKED, true);
+			}
+	}
+	void VCTSolver::add_child_node(InternalNode &node, Move move, SolvedValue sv, bool excludeDuplicates) noexcept
 	{
 		assert(node_counter + 1 <= node_stack.size());
+		if (excludeDuplicates and node.containsChild(move))
+			return;
 		node_counter += 1;
 		node.end()->init(move.row, move.col, node.getSignToMove(), sv);
 		node.number_of_children += 1;
@@ -559,8 +683,8 @@ namespace ag::experimental
 		for (auto iter = node.begin(); iter < node.end(); iter++)
 		{
 			num_losing_children += static_cast<int>(iter->solved_value == SolvedValue::LOSS);
-			has_draw_child |= iter->solved_value == SolvedValue::DRAW;
-			has_unchecked_child |= iter->solved_value == SolvedValue::UNCHECKED;
+			has_draw_child |= (iter->solved_value == SolvedValue::DRAW);
+			has_unchecked_child |= (iter->solved_value == SolvedValue::UNCHECKED);
 			if (iter->solved_value == SolvedValue::WIN) // found winning move, can skip remaining nodes
 			{
 				node.solved_value = SolvedValue::LOSS;
@@ -572,14 +696,14 @@ namespace ag::experimental
 		else
 		{
 			if (has_unchecked_child)
+				node.solved_value = SolvedValue::UNCHECKED;
+			else
 			{
 				if (has_draw_child)
 					node.solved_value = SolvedValue::DRAW;
 				else
 					node.solved_value = SolvedValue::NO_SOLUTION;
 			}
-			else
-				node.solved_value = SolvedValue::UNCHECKED;
 		}
 	}
 
