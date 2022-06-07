@@ -603,7 +603,7 @@ namespace ag::experimental
 		init_defensive_moves();
 		double t3 = getTime();
 
-		std::cout << (t1 - t0) << " " << (t2 - t1) << " " << (t3 - t2) << std::endl;
+//		std::cout << (t1 - t0) << " " << (t2 - t1) << " " << (t3 - t2) << std::endl;
 //		std::cout << defensive_move_mask.size() << '\n';
 //
 //		std::cout << "five       : " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)

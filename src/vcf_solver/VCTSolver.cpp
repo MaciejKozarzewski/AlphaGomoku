@@ -17,11 +17,6 @@ namespace
 {
 	using namespace ag;
 
-	template<typename T>
-	T gaussian_cdf(T x) noexcept
-	{
-		return static_cast<T>(0.5) * (static_cast<T>(1.0) + std::erf(x / std::sqrt(2.0)));
-	}
 	int get_max_nodes(ag::GameConfig cfg) noexcept
 	{
 		const int size = cfg.rows * cfg.cols;

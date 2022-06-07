@@ -184,6 +184,45 @@ namespace ag::experimental
 	}
 
 	/*
+	 * Measurement
+	 */
+	Measurement::Measurement(int paramValue) noexcept :
+			m_param_value(paramValue)
+	{
+	}
+	void Measurement::clear() noexcept
+	{
+		m_values.clear();
+	}
+	int Measurement::getParamValue() const noexcept
+	{
+		return m_param_value;
+	}
+	void Measurement::update(int x, float y) noexcept
+	{
+		if (m_values.size() >= 10)
+			m_values.erase(m_values.begin());
+		m_values.push_back(std::pair<int, float>( { x, y }));
+	}
+	std::pair<float, float> Measurement::predict(int x) const noexcept
+	{
+		if (m_values.size() < 5)
+			return std::pair<float, float>( { 0.0f, 1.0e6f });
+		else
+		{
+			LinearRegression<int, float> linreg(m_values);
+			return linreg.predict(x);
+		}
+	}
+	std::string Measurement::toString() const
+	{
+		std::string result = "Measurements for param = " + std::to_string(m_param_value) + "\n";
+		for (size_t i = 0; i < m_values.size(); i++)
+			result += std::to_string(i) + " : " + std::to_string(m_values[i].first) + ", " + std::to_string(m_values[i].second) + "\n";
+		return result;
+	}
+
+	/*
 	 * VCTSolver
 	 */
 	VCTSolver::VCTSolver(GameConfig gameConfig, int maxPositions) :
@@ -192,7 +231,9 @@ namespace ag::experimental
 			max_positions(maxPositions),
 			game_config(gameConfig),
 			pattern_calculator(gameConfig),
-			hashtable(gameConfig.rows * gameConfig.cols, 4096)
+			hashtable(gameConfig.rows * gameConfig.cols, 4096),
+			lower_measurement(max_positions),
+			upper_measurement(tuning_step * max_positions)
 	{
 	}
 	void VCTSolver::solve(SearchTask &task, int level)
@@ -282,67 +323,67 @@ namespace ag::experimental
 	}
 	void VCTSolver::tune(float speed)
 	{
-//		//		Logger::write("VCFSolver::tune(" + std::to_string(speed) + ")");
-//		//		Logger::write("Before new measurement");
-//		//		Logger::write(lower_measurement.toString());
-//		//		Logger::write(upper_measurement.toString());
-//		if (max_positions == lower_measurement.getParamValue())
-//		{
-//			lower_measurement.update(step_counter, speed);
-//			max_positions = upper_measurement.getParamValue();
-//			//			Logger::write("using upper " + std::to_string(max_positions));
-//		}
-//		else
-//		{
-//			upper_measurement.update(step_counter, speed);
-//			max_positions = lower_measurement.getParamValue();
-//			//			Logger::write("using lower " + std::to_string(max_positions));
-//		}
-//
-//		//		Logger::write("After new measurement");
-//		//		Logger::write(lower_measurement.toString());
-//		//		Logger::write(upper_measurement.toString());
-//
-//		step_counter++;
-//
-//		std::pair<float, float> lower_mean_and_stddev = lower_measurement.predict(step_counter);
-//		std::pair<float, float> upper_mean_and_stddev = upper_measurement.predict(step_counter);
-//
-//		//		Logger::write("Predicted");
-//		//		Logger::write("Lower : " + std::to_string(lower_mean_and_stddev.first) + " +/-" + std::to_string(lower_mean_and_stddev.second));
-//		//		Logger::write("Upper : " + std::to_string(upper_mean_and_stddev.first) + " +/-" + std::to_string(upper_mean_and_stddev.second));
-//
-//		float mean = lower_mean_and_stddev.first - upper_mean_and_stddev.first;
-//		float stddev = std::hypot(lower_mean_and_stddev.second, upper_mean_and_stddev.second);
-//		//		Logger::write("mean = " + std::to_string(mean) + ", stddev = " + std::to_string(stddev));
-//
-//		float probability = 1.0f - gaussian_cdf(mean / stddev);
-//		//		Logger::write("probability = " + std::to_string(probability));
-//
-//		if (probability > 0.95f) // there is more than 95% chance that higher value of 'max_positions' gives higher speed
-//		{
-//			if (lower_measurement.getParamValue() * tuning_step <= 6400)
-//			{
-//				const int new_max_pos = tuning_step * lower_measurement.getParamValue();
-//				lower_measurement = Measurement(new_max_pos);
-//				upper_measurement = Measurement(tuning_step * new_max_pos);
-//				max_positions = lower_measurement.getParamValue();
-//				Logger::write(
-//						"VCTSolver increasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
-//			}
-//		}
-//		if (probability < 0.05f) // there is less than 5% chance that higher value of 'max_positions' gives higher speed
-//		{
-//			if (lower_measurement.getParamValue() / tuning_step >= 50)
-//			{
-//				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
-//				lower_measurement = Measurement(new_max_pos);
-//				upper_measurement = Measurement(tuning_step * new_max_pos);
-//				max_positions = lower_measurement.getParamValue();
-//				Logger::write(
-//						"VCTSolver decreasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
-//			}
-//		}
+//		Logger::write("VCFSolver::tune(" + std::to_string(speed) + ")");
+//		Logger::write("Before new measurement");
+//		Logger::write(lower_measurement.toString());
+//		Logger::write(upper_measurement.toString());
+		if (max_positions == lower_measurement.getParamValue())
+		{
+			lower_measurement.update(step_counter, speed);
+			max_positions = upper_measurement.getParamValue();
+//			Logger::write("using upper " + std::to_string(max_positions));
+		}
+		else
+		{
+			upper_measurement.update(step_counter, speed);
+			max_positions = lower_measurement.getParamValue();
+//			Logger::write("using lower " + std::to_string(max_positions));
+		}
+
+//		Logger::write("After new measurement");
+//		Logger::write(lower_measurement.toString());
+//		Logger::write(upper_measurement.toString());
+
+		step_counter++;
+
+		std::pair<float, float> lower_mean_and_stddev = lower_measurement.predict(step_counter);
+		std::pair<float, float> upper_mean_and_stddev = upper_measurement.predict(step_counter);
+
+//		Logger::write("Predicted");
+//		Logger::write("Lower : " + std::to_string(lower_mean_and_stddev.first) + " +/-" + std::to_string(lower_mean_and_stddev.second));
+//		Logger::write("Upper : " + std::to_string(upper_mean_and_stddev.first) + " +/-" + std::to_string(upper_mean_and_stddev.second));
+
+		float mean = lower_mean_and_stddev.first - upper_mean_and_stddev.first;
+		float stddev = std::hypot(lower_mean_and_stddev.second, upper_mean_and_stddev.second);
+//		Logger::write("mean = " + std::to_string(mean) + ", stddev = " + std::to_string(stddev));
+
+		float probability = 1.0f - gaussian_cdf(mean / stddev);
+//		Logger::write("probability = " + std::to_string(probability));
+
+		if (probability > 0.95f) // there is more than 95% chance that higher value of 'max_positions' gives higher speed
+		{
+			if (lower_measurement.getParamValue() * tuning_step <= 6400)
+			{
+				const int new_max_pos = tuning_step * lower_measurement.getParamValue();
+				lower_measurement = Measurement(new_max_pos);
+				upper_measurement = Measurement(tuning_step * new_max_pos);
+				max_positions = lower_measurement.getParamValue();
+				Logger::write(
+						"VCTSolver increasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
+			}
+		}
+		if (probability < 0.05f) // there is less than 5% chance that higher value of 'max_positions' gives higher speed
+		{
+			if (lower_measurement.getParamValue() / tuning_step >= 50)
+			{
+				const int new_max_pos = lower_measurement.getParamValue() / tuning_step;
+				lower_measurement = Measurement(new_max_pos);
+				upper_measurement = Measurement(tuning_step * new_max_pos);
+				max_positions = lower_measurement.getParamValue();
+				Logger::write(
+						"VCTSolver decreasing positions to " + std::to_string(max_positions) + " at probability " + std::to_string(probability));
+			}
+		}
 	}
 	SolverStats VCTSolver::getStats() const
 	{
@@ -351,10 +392,10 @@ namespace ag::experimental
 	void VCTSolver::clearStats()
 	{
 		stats = SolverStats();
-//		max_positions = lower_measurement.getParamValue();
-//		lower_measurement.clear();
-//		upper_measurement.clear();
-//		step_counter = 0;
+		max_positions = lower_measurement.getParamValue();
+		lower_measurement.clear();
+		upper_measurement.clear();
+		step_counter = 0;
 		Logger::write("VCTSolver is using " + std::to_string(max_positions) + " positions");
 	}
 	/*

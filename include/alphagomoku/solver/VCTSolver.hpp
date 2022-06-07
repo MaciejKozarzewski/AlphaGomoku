@@ -151,6 +151,11 @@ namespace ag::experimental
 			PatternCalculator pattern_calculator;
 			FastHashTable<uint32_t, SolvedValue, 4> hashtable;
 
+			size_t step_counter = 0;
+			int tuning_step = 2;
+			Measurement lower_measurement;
+			Measurement upper_measurement;
+
 			SolverStats stats;
 		public:
 			VCTSolver(GameConfig gameConfig, int maxPositions = 100);

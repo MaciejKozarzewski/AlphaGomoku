@@ -20,8 +20,10 @@
 
 namespace ag
 {
-	enum class GameRules;
-	enum class GameOutcome;
+	enum class GameRules
+	;
+	enum class GameOutcome
+	;
 }
 
 namespace ag
@@ -52,6 +54,14 @@ namespace ag
 		while (result <= x)
 			result *= 2;
 		return result / 2;
+	}
+	/*
+	 * \brief Calculates Gaussian cumulative distribution function.
+	 */
+	template<typename T>
+	T gaussian_cdf(T x) noexcept
+	{
+		return static_cast<T>(0.5) * (static_cast<T>(1.0) + std::erf(x / std::sqrt(2.0)));
 	}
 
 	/*
