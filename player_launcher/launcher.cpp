@@ -41,11 +41,46 @@ void add_edge(SearchTask &task, Move move, float policyPrior = 0.0f, Value actio
 
 std::string get_BOARD_command(const matrix<Sign> &board, Sign signToMove)
 {
-	std::string result = "BOARD\n";
+	std::vector<Move> moves_cross;
+	std::vector<Move> moves_circle;
 	for (int r = 0; r < board.rows(); r++)
 		for (int c = 0; c < board.cols(); c++)
-			if (board.at(r, c) != Sign::NONE)
-				result += std::to_string(c) + ',' + std::to_string(r) + ',' + (board.at(r, c) == signToMove ? '1' : '2') + '\n';
+			switch (board.at(r, c))
+			{
+				default:
+					break;
+				case Sign::CROSS:
+					moves_cross.push_back(Move(r, c, Sign::CROSS));
+					break;
+				case Sign::CIRCLE:
+					moves_circle.push_back(Move(r, c, Sign::CIRCLE));
+					break;
+			}
+
+	std::string result = "BOARD\n";
+	if (moves_cross.size() == moves_circle.size()) // I started the game as first player (CROSS)
+	{
+		for (size_t i = 0; i < moves_cross.size(); i++)
+		{
+			result += std::to_string(moves_cross[i].col) + ',' + std::to_string(moves_cross[i].row) + ",1\n";
+			result += std::to_string(moves_circle[i].col) + ',' + std::to_string(moves_circle[i].row) + ",2\n";
+		}
+	}
+	else
+	{
+		if (moves_cross.size() == moves_circle.size() + 1) // opponent started the game as first player (CROSS)
+		{
+			for (size_t i = 0; i < moves_circle.size(); i++)
+			{
+				result += std::to_string(moves_cross[i].col) + ',' + std::to_string(moves_cross[i].row) + ",2\n";
+				result += std::to_string(moves_circle[i].col) + ',' + std::to_string(moves_circle[i].row) + ",1\n";
+			}
+			result += std::to_string(moves_cross.back().col) + ',' + std::to_string(moves_cross.back().row) + ",2\n";
+		}
+		else
+			throw ProtocolRuntimeException("Invalid position - too many stones either color");
+	}
+
 	return result + "DONE\n";
 }
 
@@ -68,6 +103,10 @@ class SolverSearch
 			m_vcf_solver.solve(m_task, 2);
 //			std::cout << m_task.toString() << '\n';
 			return m_task.isReady();
+		}
+		const SearchTask& getTask() const noexcept
+		{
+			return m_task;
 		}
 		void printStats()
 		{
@@ -275,7 +314,7 @@ void test_proven_positions(int pos)
 	int v3_solved_v4_not = 0;
 
 	for (int i = 0; i < buffer.size(); i++)
-//	for (int i = 26; i <= 26; i++)
+//	for (int i = 118; i <= 118; i++)
 	{
 		if (i % (buffer.size() / 10) == 0)
 			std::cout << i << " / " << buffer.size() << '\n';
@@ -283,7 +322,7 @@ void test_proven_positions(int pos)
 		buffer.getFromBuffer(i).getSample(0).getBoard(board);
 		total_samples += buffer.getFromBuffer(i).getNumberOfSamples();
 		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
-//		for (int j = 0; j <= 0; j++)
+//		for (int j = 1; j <= 1; j++)
 		{
 			const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
 			sample.getBoard(board);
@@ -332,6 +371,8 @@ void test_proven_positions(int pos)
 				v3_solved_v4_not++;
 //				return;
 			}
+//			if (is_solved_v4 or is_solved_v3)
+//				break;
 		}
 	}
 	std::cout << "FeatureExtractor\n";
@@ -354,6 +395,76 @@ void test_proven_positions(int pos)
 	std::cout << "v3 solved, while v2 didn't " << v3_solved_v2_not << '\n';
 	std::cout << "v4 solved, while v3 didn't " << v4_solved_v3_not << '\n';
 	std::cout << "v3 solved, while v4 didn't " << v3_solved_v4_not << '\n';
+}
+
+void test_solver(int pos)
+{
+//	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	GameBuffer buffer;
+#ifdef NDEBUG
+	for (int i = 0; i < 17; i++)
+#else
+	for (int i = 0; i < 1; i++)
+#endif
+		buffer.load("/home/maciek/alphagomoku/run2022_15x15s2/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
+	std::cout << buffer.getStats().toString() << '\n';
+
+	SolverSearch<ag::experimental::VCTSolver> solver(game_config, pos);
+
+	matrix<Sign> board(game_config.rows, game_config.cols);
+	int total_samples = 0;
+
+	std::fstream output("/home/maciek/Desktop/win_r.txt", std::fstream::out);
+
+	size_t counter = 0;
+	for (int i = 0; i < buffer.size(); i++)
+//	for (int i = 73; i <= 73; i++)
+	{
+		if (i % (buffer.size() / 10) == 0)
+			std::cout << i << " / " << buffer.size() << '\n';
+
+		buffer.getFromBuffer(i).getSample(0).getBoard(board);
+		total_samples += buffer.getFromBuffer(i).getNumberOfSamples();
+		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+//		for (int j = 0; j <= 0; j++)
+		{
+			const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
+			sample.getBoard(board);
+			const Sign sign_to_move = sample.getMove().sign;
+
+			bool is_solved = solver.solve(board, sign_to_move);
+
+			if (is_solved)
+			{
+//				std::cout << "\n\n\n" << solver.getTask().toString() << '\n';
+//				std::cout << get_BOARD_command(board, sign_to_move);
+//				counter = 0;
+//				output << get_BOARD_command(board, sign_to_move);
+				for (auto iter = solver.getTask().getProvenEdges().begin(); iter < solver.getTask().getProvenEdges().end(); iter++)
+					if (iter->getProvenValue() == ProvenValue::WIN and solver.getTask().getNonLosingEdges().empty())
+					{
+						output << get_BOARD_command(board, sign_to_move);
+						counter++;
+						break;
+
+//						Board::putMove(board, iter->getMove());
+//						if (getOutcome(game_config.rules, board) == GameOutcome::UNKNOWN)
+//						{
+//							output << get_BOARD_command(board, invertSign(sign_to_move));
+//							std::cout << boardToString(board, iter->getMove());
+//							std::cout << get_BOARD_command(board, invertSign(sign_to_move));
+//						}
+//						Board::undoMove(board, iter->getMove());
+					}
+//				counter++;
+				if (counter > 0)
+					break;
+			}
+		}
+	}
 }
 
 void test_search()
@@ -813,32 +924,51 @@ void test_search()
 //								/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
 //								/*         a b c d e f g h i j k l m n o          */); // @formatter:on
 
+//// @formatter:off
+//	board = Board::fromString(	/*         a b c d e f g h i j k l m n o        */
+//								/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+//								/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+//								/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+//								/*  3 */ " _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n" /*  3 */
+//								/*  4 */ " _ _ _ _ _ _ _ _ O X X _ X _ _\n" /*  4 */
+//								/*  5 */ " _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" /*  5 */
+//								/*  6 */ " _ _ _ _ _ _ _ _ _ X O _ X _ _\n" /*  6 */
+//								/*  7 */ " _ _ _ _ _ _ _ _ _ _ O _ X _ _\n" /*  7 */
+//								/*  8 */ " _ _ _ _ _ _ _ _ _ _ X O O _ _\n" /*  8 */
+//								/*  9 */ " _ _ _ _ _ _ _ _ _ O _ X _ _ _\n" /*  9 */
+//								/* 10 */ " _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n" /* 10 */
+//								/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+//								/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+//								/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+//								/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+//								/*         a b c d e f g h i j k l m n o          */);    // @formatter:on
+//	sign_to_move = Sign::CIRCLE;
 // @formatter:off
 	board = Board::fromString(	/*         a b c d e f g h i j k l m n o        */
 								/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 								/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-								/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-								/*  3 */ " _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n" /*  3 */
-								/*  4 */ " _ _ _ _ _ _ _ _ O X X _ X _ _\n" /*  4 */
-								/*  5 */ " _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" /*  5 */
-								/*  6 */ " _ _ _ _ _ _ _ _ _ X O _ X _ _\n" /*  6 */
-								/*  7 */ " _ _ _ _ _ _ _ _ _ _ O _ X _ _\n" /*  7 */
-								/*  8 */ " _ _ _ _ _ _ _ _ _ _ X O O _ _\n" /*  8 */
-								/*  9 */ " _ _ _ _ _ _ _ _ _ O _ X _ _ _\n" /*  9 */
-								/* 10 */ " _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n" /* 10 */
-								/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-								/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-								/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-								/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-								/*         a b c d e f g h i j k l m n o          */);    // @formatter:on
-	sign_to_move = Sign::CIRCLE;
+								/*  2 */ " _ _ _ _ _ X _ _ X _ _ _ _ _ _\n" /*  2 */
+								/*  3 */ " _ _ _ _ _ _ O O X _ _ _ _ _ O\n" /*  3 */
+								/*  4 */ " _ _ _ _ _ _ _ X O O O _ _ O _\n" /*  4 */
+								/*  5 */ " _ _ _ _ O _ _ _ X X O X X _ O\n" /*  5 */
+								/*  6 */ " _ _ _ _ _ _ O X X X O O O _ X\n" /*  6 */
+								/*  7 */ " _ _ _ _ _ _ X O O O O X X _ X\n" /*  7 */
+								/*  8 */ " _ _ _ _ _ O _ X X _ X O _ O X\n" /*  8 */
+								/*  9 */ " _ _ _ _ _ _ _ _ _ O O X X X _\n" /*  9 */
+								/* 10 */ " _ _ _ _ _ _ O X X _ O X X _ _\n" /* 10 */
+								/* 11 */ " _ _ _ _ _ _ _ X _ O X X O _ _\n" /* 11 */
+								/* 12 */ " _ _ _ _ _ _ _ _ O X O _ O _ _\n" /* 12 */
+								/* 13 */ " _ _ _ _ _ _ _ X O _ _ _ _ _ _\n" /* 13 */
+								/* 14 */ " _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /* 14 */
+								/*         a b c d e f g h i j k l m n o          */);                                       // @formatter:on
+	sign_to_move = Sign::CROSS;
 
 	ag::experimental::VCTSolver solver(game_config, search_config.vcf_solver_max_positions);
 	SearchTask task(game_config.rules);
 	task.set(board, sign_to_move);
 	solver.solve(task, 2);
 	solver.print_stats();
-//	return;
+	return;
 
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
@@ -1202,23 +1332,40 @@ int main(int argc, char *argv[])
 //											/* 9 */" _ _ _ _ _ _ O _ _ _\n"/* 9 */
 //											/*       0 1 2 3 4 5 6 7 8 9        */);  	// @formatter:on
 
-	GameConfig game_config(GameRules::STANDARD, 15);
-	// @formatter:off
-	matrix<Sign> board = Board::fromString(	" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-											" _ _ _ _ _ O _ O _ _ _ _ _ _ _\n"
-											" _ _ _ _ O _ X _ _ _ _ _ _ _ _\n"
-											" _ _ _ _ _ X _ X _ _ _ _ _ _ _\n"
-											" _ _ _ _ X O X O X _ _ _ _ _ _\n"
-											" _ _ _ X _ O O X _ X _ _ _ _ _\n"
-											" _ _ O _ O X _ X X O O _ _ _ _\n"
-											" _ _ _ _ _ O _ X _ O _ _ _ _ _\n"
-											" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-											" _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n"
-											" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
-											" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-											" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-											" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-											" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");  	// @formatter:on
+//	GameConfig game_config(GameRules::STANDARD, 15);
+// @formatter:off
+//	matrix<Sign> board = Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ O _ _ O _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ X X X _ X _ _ _ _ _ _\n"
+//			" _ _ _ X _ X X O O _ _ _ _ _ _\n"
+//			" _ _ _ O _ O X O _ _ O _ _ _ _\n"
+//			" _ _ _ X O X X O O _ X _ _ _ _\n"
+//			" _ _ O X O O O X X _ X O _ _ _\n"
+//			" _ _ _ _ _ X _ X O O _ _ _ _ _\n"
+//			" _ _ _ _ _ _ O X _ X _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");  	// @formatter:on
+
+//	// @formatter:off
+//	matrix<Sign> board = Board::fromString(	" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//											" _ _ _ _ _ O _ O _ _ _ _ _ _ _\n"
+//											" _ _ _ _ O _ X _ _ _ _ _ _ _ _\n"
+//											" _ _ _ _ _ X _ X _ _ _ _ _ _ _\n"
+//											" _ _ _ _ X O X O X _ _ _ _ _ _\n"
+//											" _ _ _ X _ O O X _ X _ _ _ _ _\n"
+//											" _ _ O _ O X _ X X O O _ _ _ _\n"
+//											" _ _ _ _ _ O _ X _ O _ _ _ _ _\n"
+//											" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+//											" _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n"
+//											" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
+//											" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//											" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//											" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//											" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");  	// @formatter:on
 //	// @formatter:off
 //	matrix<Sign> board = Board::fromString(	/*       0 1 2 3 4 5 6 7 8 9 a b c d e        */
 //											/* 0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 0 */
@@ -1237,11 +1384,15 @@ int main(int argc, char *argv[])
 //											/*13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*13 */
 //											/*14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*14 */
 //											/*       0 1 2 3 4 5 6 7 8 9 a b c d e        */);  // @formatter:on
-//	ag::experimental::VCTSolver solver(game_config, 20);
+//	ag::experimental::VCTSolver solver(game_config, 1000);
 //	SearchTask task(game_config.rules);
-//	task.set(board, Sign::CROSS);
+//	task.set(board, Sign::CIRCLE);
 //	solver.solve(task, 2);
 //	solver.print_stats();
+//
+//	task.markAsReady();
+//	std::cout << task.toString() << std::endl;
+//	std::cout << get_BOARD_command(board, Sign::CIRCLE);
 
 //	std::cout << "----------------------------------------------------------------\n";
 //	task.set(board, Sign::CROSS);
@@ -1256,7 +1407,8 @@ int main(int argc, char *argv[])
 //	ag::experimental::PatternTable table_s(GameRules::STANDARD);
 //	ag::experimental::PatternTable table_r(GameRules::RENJU);
 //	ag::experimental::PatternTable table_c(GameRules::CARO);
-//	test_proven_positions(100);
+//	test_proven_positions(1000);
+//	test_solver(1000);
 //	test_search();
 //	test_feature_extractor();
 //	time_manager();

@@ -456,6 +456,16 @@ namespace ag::experimental
 					}
 				}
 				add_child_node(node, five_move);
+
+//				if (node.getSignToMove() == attacking_sign)
+//				{
+//					if (contains(get_own_threats(node, ThreatType::HALF_OPEN_4), five_move))
+//						add_child_node(node, five_move);
+//				}
+//				else
+//				{
+//					add_child_node(node, five_move);
+//				}
 				node.must_defend = true;
 				return true;
 			}
@@ -511,30 +521,30 @@ namespace ag::experimental
 	}
 	bool VCTSolver::try_defend_opponent_fours(InternalNode &node)
 	{
-		const std::vector<Move> opp_open_four = get_opp_threats(node, ThreatType::OPEN_4);
-		const std::vector<Move> opp_fork_4x4 = get_opp_threats(node, ThreatType::FORK_4x4);
-		const std::vector<Move> opp_fork_4x3 = get_opp_threats(node, ThreatType::FORK_4x3);
-		const std::vector<Move> opp_half_open_4 = get_opp_threats(node, ThreatType::HALF_OPEN_4);
-
-		if (pattern_calculator.getThreatHistogram(node.getSignToMove()).hasAnyFour() == false) // we have no fours
-		{
-			if (opp_open_four.size() > 2 or (opp_open_four.size() + opp_fork_4x4.size() >= 2 and opp_fork_4x4.size() > 0))
-			{
-				add_children_nodes(node, opp_open_four, SolvedValue::LOSS, true);
-				add_children_nodes(node, opp_fork_4x4, SolvedValue::LOSS, true);
-				node.must_defend = true;
-				return true;
-			}
-		}
+//		if (pattern_calculator.getThreatHistogram(node.getSignToMove()).hasAnyFour() == false) // we have no fours
+//		{
+//			const int fork_count = opp_fork_4x4.size() + opp_fork_4x3.size();
+//			if (opp_open_four.size() > 2 or (opp_open_four.size() + fork_count >= 2 and fork_count > 0))
+//			{
+//				add_children_nodes(node, opp_open_four, SolvedValue::LOSS, true);
+//				add_children_nodes(node, opp_fork_4x4, SolvedValue::LOSS, true);
+//				add_children_nodes(node, opp_fork_4x3, SolvedValue::LOSS, true);
+//				node.must_defend = true;
+//				return true;
+//			}
+//		}
 		const Sign own_sign = node.getSignToMove();
 		const Sign opp_sign = invertSign(own_sign);
 
+		const std::vector<Move> opp_open_four = get_opp_threats(node, ThreatType::OPEN_4);
 		for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
 		{
 			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
 			const Direction direction = find_direction_of(PatternType::OPEN_4, patterns);
 			add_defensive_moves(node, *move, direction);
 		}
+
+		const std::vector<Move> opp_fork_4x4 = get_opp_threats(node, ThreatType::FORK_4x4);
 		for (auto move = opp_fork_4x4.begin(); move < opp_fork_4x4.end(); move++)
 		{
 			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
@@ -542,6 +552,8 @@ namespace ag::experimental
 				if (patterns[direction] == PatternType::OPEN_4 or patterns[direction] == PatternType::HALF_OPEN_4)
 					add_defensive_moves(node, *move, direction);
 		}
+
+		const std::vector<Move> opp_fork_4x3 = get_opp_threats(node, ThreatType::FORK_4x3);
 		for (auto move = opp_fork_4x3.begin(); move < opp_fork_4x3.end(); move++)
 		{
 			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
@@ -556,6 +568,7 @@ namespace ag::experimental
 			return true;
 		}
 
+		const std::vector<Move> opp_half_open_4 = get_opp_threats(node, ThreatType::HALF_OPEN_4);
 //		for (auto move = opp_half_open_4.begin(); move < opp_half_open_4.end(); move++)
 //		{
 //			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
@@ -582,7 +595,9 @@ namespace ag::experimental
 			return;
 
 		add_children_nodes(node, get_own_threats(node, ThreatType::HALF_OPEN_4), SolvedValue::UNCHECKED, true);
+//		if (node.getSignToMove() != attacking_sign)
 		try_defend_opponent_fours(node);
+//		add_children_nodes(node, get_own_threats(node, ThreatType::OPEN_3), SolvedValue::UNCHECKED, true);
 	}
 
 	void VCTSolver::recursive_solve(InternalNode &node)
@@ -732,7 +747,7 @@ namespace ag::experimental
 				return;
 			}
 		}
-		if (num_losing_children == node.number_of_children)
+		if (num_losing_children == node.number_of_children and node.must_defend)
 			node.solved_value = SolvedValue::WIN;
 		else
 		{

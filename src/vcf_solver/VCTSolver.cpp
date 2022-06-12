@@ -98,6 +98,7 @@ namespace ag
 				if (iter->solved_value == SolvedValue::WIN)
 					task.addProvenEdge(Move(sign_to_move, iter->move), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
+			task.setProvenValue(ProvenValue::WIN);
 			task.markAsReady();
 		}
 	}
@@ -195,6 +196,7 @@ namespace ag
 		{
 			task.addProvenEdges(attacker_five, sign_to_move, ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
+			task.setProvenValue(ProvenValue::WIN);
 			task.markAsReady();
 			return;
 		}
@@ -206,6 +208,7 @@ namespace ag
 					{
 						task.addProvenEdge(Move(sign_to_move, row, col), ProvenValue::DRAW);
 						task.setValue(Value(0.0f, 1.0, 0.0f));
+						task.setProvenValue(ProvenValue::DRAW);
 					}
 			task.markAsReady();
 			return;
@@ -225,6 +228,7 @@ namespace ag
 					task.addProvenEdges(attacker_open_four, sign_to_move, ProvenValue::WIN);
 					task.addProvenEdges(attacker_fork_4x4, sign_to_move, ProvenValue::WIN);
 					task.setValue(Value(1.0f, 0.0, 0.0f));
+					task.setProvenValue(ProvenValue::WIN);
 					task.markAsReady();
 					return;
 				}
@@ -242,6 +246,7 @@ namespace ag
 						task.addProvenEdges(attacker_fork_4x3, sign_to_move, ProvenValue::WIN);
 						task.addProvenEdges(attacker_fork_3x3, sign_to_move, ProvenValue::WIN);
 						task.setValue(Value(1.0f, 0.0, 0.0f));
+						task.setProvenValue(ProvenValue::WIN);
 						task.markAsReady();
 						return;
 					}
@@ -269,6 +274,7 @@ namespace ag
 			{
 				task.addProvenEdges(defender_five, sign_to_move, ProvenValue::LOSS);
 				task.setValue(Value(0.0f, 0.0, 1.0f));
+				task.setProvenValue(ProvenValue::LOSS);
 				task.markAsReady(); // the state is provably losing, there is no need to further evaluate it
 				break;
 			}

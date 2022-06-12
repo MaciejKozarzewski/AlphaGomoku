@@ -168,13 +168,13 @@ namespace ag
 				switch (board.at(i, j))
 				{
 					case Sign::NONE:
-						result += " _";
+						result += "_";
 						break;
 					case Sign::CROSS:
-						result += " X";
+						result += "X";
 						break;
 					case Sign::CIRCLE:
-						result += " O";
+						result += "O";
 						break;
 					default:
 						break;

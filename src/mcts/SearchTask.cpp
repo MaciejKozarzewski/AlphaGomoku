@@ -32,6 +32,7 @@ namespace ag
 		else
 			action_values = matrix<Value>(base.rows(), base.cols());
 		value = Value();
+		proven_value = ProvenValue::UNKNOWN;
 		is_ready = false;
 	}
 
@@ -112,8 +113,8 @@ namespace ag
 		result += "sign to move = " + getSignToMove() + '\n';
 		if (is_ready)
 		{
-			result += "value = " + value.toString();
-			result += '\n';
+			result += "value = " + value.toString() + '\n';
+			result += "proven value = " + ag::toString(proven_value) + '\n';
 			result += Board::toString(board, policy);
 		}
 		else
