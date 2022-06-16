@@ -29,10 +29,11 @@ namespace ag
 			std::queue<std::string> input_queue;
 			mutable std::mutex listener_mutex;
 			std::condition_variable listener_cond;
+			bool case_sensitive = true;
 
 		public:
 			InputListener() = default;
-			InputListener(std::istream &inputStream);
+			InputListener(std::istream &inputStream, bool caseSensitive = true);
 			InputListener(const InputListener &other) = delete;
 			InputListener(InputListener &&other) = default;
 			InputListener& operator=(const InputListener &other) = delete;
@@ -167,7 +168,7 @@ namespace ag
 			bool isEmpty() const noexcept;
 			void push(const Message &msg);
 			Message pop();
-			Message peek() const;
+			const Message& peek() const;
 	};
 
 	enum class ProtocolType
@@ -198,14 +199,13 @@ namespace ag
 	class Protocol
 	{
 		protected:
+			mutable std::recursive_mutex protocol_mutex;
 			MessageQueue &input_queue;
 			MessageQueue &output_queue;
+			std::vector<std::pair<std::string, std::function<void(InputListener&)>>> input_processors;
+			std::vector<std::pair<MessageType, std::function<void(OutputSender&)>>> output_processors;
 		public:
-			Protocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
-					input_queue(queueIN),
-					output_queue(queueOUT)
-			{
-			}
+			Protocol(MessageQueue &queueIN, MessageQueue &queueOUT);
 			Protocol(const Protocol &other) = delete;
 			Protocol(Protocol &&other) = delete;
 			Protocol& operator=(const Protocol &other) = delete;
@@ -214,8 +214,12 @@ namespace ag
 
 			virtual void reset() = 0;
 			virtual ProtocolType getType() const noexcept = 0;
-			virtual void processInput(InputListener &listener) = 0;
-			virtual void processOutput(OutputSender &sender) = 0;
+
+			void processInput(InputListener &listener);
+			void processOutput(OutputSender &sender);
+
+			void registerInputProcessor(const std::string &cmd, const std::function<void(InputListener&)> &function);
+			void registerOutputProcessor(MessageType type, const std::function<void(OutputSender&)> &function);
 	};
 
 } /* namespace ag */

@@ -181,6 +181,11 @@ namespace ag
 					time_for_pondering = value / 1000.0;
 				return SetOptionOutcome::SUCCESS;
 			}
+			if (option.name == "use_database")
+			{
+				use_database = static_cast<bool>(std::stoi(option.value));
+				return SetOptionOutcome::SUCCESS;
+			}
 			if (option.name == "folder")
 				return SetOptionOutcome::SUCCESS; // engine does not make use of any storage for temporary data
 

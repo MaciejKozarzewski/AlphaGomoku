@@ -29,6 +29,33 @@ namespace ag
 	GomocupProtocol::GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
 			Protocol(queueIN, queueOUT)
 	{
+		// @formatter:off
+		registerOutputProcessor(MessageType::BEST_MOVE, [this](OutputSender &sender) { this->best_move(sender);});
+		registerOutputProcessor(MessageType::PLAIN_STRING, [this](OutputSender &sender) { this->plain_string(sender);});
+		registerOutputProcessor(MessageType::UNKNOWN_COMMAND, [this](OutputSender &sender) { this->unknown_command(sender);});
+		registerOutputProcessor(MessageType::ERROR, [this](OutputSender &sender) { this->error(sender);});
+		registerOutputProcessor(MessageType::INFO_MESSAGE, [this](OutputSender &sender) { this->info_message(sender);});
+		registerOutputProcessor(MessageType::ABOUT_ENGINE, [this](OutputSender &sender) { this->about_engine(sender);});
+
+		registerInputProcessor("info timeout_turn", [this](InputListener &listener) { this->info_timeout_turn(listener);});
+		registerInputProcessor("info timeout_match",[this](InputListener &listener) { this->info_timeout_match(listener);});
+		registerInputProcessor("info time_left", 	[this](InputListener &listener) { this->info_time_left(listener);});
+		registerInputProcessor("info max_memory", 	[this](InputListener &listener) { this->info_max_memory(listener);});
+		registerInputProcessor("info game_type",	[this](InputListener &listener) { this->info_game_type(listener);});
+		registerInputProcessor("info rule",			[this](InputListener &listener) { this->info_rule(listener);});
+		registerInputProcessor("info evaluate",		[this](InputListener &listener) { this->info_evaluate(listener);});
+		registerInputProcessor("info folder",		[this](InputListener &listener) { this->info_folder(listener);});
+		registerInputProcessor("start",				[this](InputListener &listener) { this->start(listener);});
+		registerInputProcessor("rectstart",			[this](InputListener &listener) { this->rectstart(listener);});
+		registerInputProcessor("restart",			[this](InputListener &listener) { this->restart(listener);});
+		registerInputProcessor("begin",				[this](InputListener &listener) { this->begin(listener);});
+		registerInputProcessor("board",				[this](InputListener &listener) { this->board(listener);});
+		registerInputProcessor("turn",				[this](InputListener &listener) { this->turn(listener);});
+		registerInputProcessor("takeback",			[this](InputListener &listener) { this->takeback(listener);});
+		registerInputProcessor("end",				[this](InputListener &listener) { this->end(listener);});
+		registerInputProcessor("about",				[this](InputListener &listener) { this->about(listener);});
+		registerInputProcessor("unknown",			[this](InputListener &listener) { this->unknown(listener);});
+		// @formatter:on
 	}
 	void GomocupProtocol::reset()
 	{
@@ -39,151 +66,17 @@ namespace ag
 	{
 		return ProtocolType::GOMOCUP;
 	}
-	void GomocupProtocol::processInput(InputListener &listener)
-	{
-		std::string line = listener.peekLine();
-
-		std::lock_guard lock(protocol_mutex);
-
-		if (startsWith(line, "INFO"))
-		{
-			INFO(listener);
-			return;
-		}
-
-		if (startsWith(line, "START"))
-		{
-			START(listener);
-			return;
-		}
-		if (startsWith(line, "RECTSTART"))
-		{
-			RECTSTART(listener);
-			return;
-		}
-		if (startsWith(line, "RESTART"))
-		{
-			RESTART(listener);
-			return;
-		}
-		if (startsWith(line, "BEGIN"))
-		{
-			BEGIN(listener);
-			return;
-		}
-		if (startsWith(line, "BOARD"))
-		{
-			BOARD(listener);
-			return;
-		}
-		if (startsWith(line, "END"))
-		{
-			END(listener);
-			return;
-		}
-		if (startsWith(line, "ABOUT"))
-		{
-			ABOUT(listener);
-			return;
-		}
-
-		if (expects_play_command)
-		{
-			if (startsWith(line, "PLAY"))
-			{
-				PLAY(listener);
-				return;
-			}
-			else
-			{
-				listener.consumeLine();
-				throw ProtocolRuntimeException("Expecting PLAY command");
-			}
-		}
-		if (startsWith(line, "TURN"))
-		{
-			TURN(listener);
-			return;
-		}
-		if (startsWith(line, "TAKEBACK"))
-		{
-			TAKEBACK(listener);
-			return;
-		}
-
-		UNKNOWN(listener);
-	}
-	void GomocupProtocol::processOutput(OutputSender &sender)
-	{
-		std::lock_guard lock(protocol_mutex);
-
-		while (output_queue.isEmpty() == false)
-		{
-			Message msg = output_queue.pop();
-			switch (msg.getType())
-			{
-				case MessageType::BEST_MOVE:
-				{
-					if (msg.holdsString()) // used to swap colors
-					{
-						if (msg.getString() == "swap")
-							sender.send("SWAP");
-					}
-					if (msg.holdsMove()) // used to return the best move
-					{
-						assert(msg.getMove().sign == get_sign_to_move());
-						if (use_suggest)
-						{
-							sender.send("SUGGEST " + moveToString(msg.getMove()));
-							expects_play_command = true;
-						}
-						else
-						{
-							sender.send(moveToString(msg.getMove()));
-							list_of_moves.push_back(msg.getMove());
-						}
-					}
-					if (msg.holdsListOfMoves()) // used to return multiple moves (for example an opening)
-					{
-						std::string str;
-						for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
-						{
-							if (i != 0)
-								str += ' ';
-							str += moveToString(msg.getListOfMoves().at(i));
-						}
-						sender.send(str);
-					}
-					break;
-				}
-				case MessageType::PLAIN_STRING:
-					sender.send(msg.getString());
-					break;
-				case MessageType::UNKNOWN_COMMAND:
-					sender.send("UNKNOWN '" + msg.getString() + "'");
-					break;
-				case MessageType::ERROR:
-					sender.send("ERROR " + msg.getString());
-					break;
-				case MessageType::INFO_MESSAGE:
-				{
-					if (msg.holdsString())
-						sender.send("MESSAGE " + msg.getString());
-					if (msg.holdsSearchSummary())
-						sender.send("MESSAGE " + parse_search_summary(msg.getSearchSummary()));
-					break;
-				}
-				case MessageType::ABOUT_ENGINE:
-					sender.send(msg.getString());
-					break;
-				default:
-					break;
-			}
-		}
-	}
 	/*
 	 * private
 	 */
+	std::string GomocupProtocol::extract_command_data(InputListener &listener, const std::string &command) const
+	{
+		std::string line = listener.getLine();
+		assert(startsWith(line, command));
+		line.erase(line.begin(), std::find_if_not(line.begin() + command.size(), line.end(), [](unsigned char ch)
+		{	return std::isspace(ch);}));
+		return line;
+	}
 	Sign GomocupProtocol::get_sign_to_move() const noexcept
 	{
 		if (list_of_moves.empty())
@@ -308,73 +201,103 @@ namespace ag
 		}
 		return result;
 	}
-	void GomocupProtocol::INFO(InputListener &listener)
+	/*
+	 * Output processing
+	 */
+	void GomocupProtocol::best_move(OutputSender &sender)
 	{
-		std::string line = listener.getLine();
-		std::vector<std::string> tmp = split(line, ' ');
-		if (tmp.size() != 3u)
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
-
-		if (tmp.at(1) == "timeout_turn")
+		const Message msg = output_queue.pop();
+		if (msg.holdsMove()) // used to return the best move
 		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_turn", tmp.at(2) }));
-			return;
+			assert(msg.getMove().sign == get_sign_to_move());
+			sender.send(moveToString(msg.getMove()));
+			list_of_moves.push_back(msg.getMove());
 		}
-		if (tmp.at(1) == "timeout_match")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_match", tmp.at(2) }));
-			return;
-		}
-		if (tmp.at(1) == "time_left")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_left", tmp.at(2) }));
-			return;
-		}
-		if (tmp.at(1) == "max_memory")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_memory", tmp.at(2) }));
-			return;
-		}
-		if (tmp.at(1) == "game_type")
-		{
-			return;
-		}
-		if (tmp.at(1) == "rule")
-		{
-			switch (std::stoi(tmp.at(2)))
-			{
-				case 0:
-					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::FREESTYLE) }));
-					return;
-				case 1:
-					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::STANDARD) }));
-					return;
-				case 2:
-					output_queue.push(Message(MessageType::ERROR, "Continuous game is not supported"));
-					return;
-				case 4:
-//					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) })); TODO uncomment this once this rule is supported
-					output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported"));
-					return;
-				default:
-					output_queue.push(Message(MessageType::ERROR, "Invalid rule " + tmp.at(2)));
-					return;
-			}
-		}
-		if (tmp.at(1) == "evaluate")
-		{
-			const Move m = moveFromString(tmp.at(2), Sign::NONE);
-			input_queue.push(Message(MessageType::INFO_MESSAGE, std::vector<Move>( { m })));
-			return;
-		}
-		if (tmp.at(1) == "folder")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "folder", tmp.at(2) }));
-			return;
-		}
-		Logger::write("Unknown option '" + tmp.at(1) + "'");
 	}
-	void GomocupProtocol::START(InputListener &listener)
+	void GomocupProtocol::plain_string(OutputSender &sender)
+	{
+		const Message msg = output_queue.pop();
+		sender.send(msg.getString());
+	}
+	void GomocupProtocol::unknown_command(OutputSender &sender)
+	{
+		const Message msg = output_queue.pop();
+		sender.send("UNKNOWN '" + msg.getString() + "'");
+	}
+	void GomocupProtocol::error(OutputSender &sender)
+	{
+		const Message msg = output_queue.pop();
+		sender.send("ERROR " + msg.getString());
+	}
+	void GomocupProtocol::info_message(OutputSender &sender)
+	{
+		const Message msg = output_queue.pop();
+		if (msg.holdsString())
+			sender.send("MESSAGE " + msg.getString());
+		if (msg.holdsSearchSummary())
+			sender.send("MESSAGE " + parse_search_summary(msg.getSearchSummary()));
+	}
+	void GomocupProtocol::about_engine(OutputSender &sender)
+	{
+		const Message msg = output_queue.pop();
+		sender.send(msg.getString());
+	}
+	/*
+	 * Input processing
+	 */
+	void GomocupProtocol::info_timeout_turn(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_turn", extract_command_data(listener, "info timeout_turn") }));
+	}
+	void GomocupProtocol::info_timeout_match(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "time_for_match", extract_command_data(listener, "info timeout_match") }));
+	}
+	void GomocupProtocol::info_time_left(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "time_left", extract_command_data(listener, "info time_left") }));
+	}
+	void GomocupProtocol::info_max_memory(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "max_memory", extract_command_data(listener, "info max_memory") }));
+	}
+	void GomocupProtocol::info_game_type(InputListener &listener)
+	{
+		listener.consumeLine();
+	}
+	void GomocupProtocol::info_rule(InputListener &listener)
+	{
+		const std::string data = extract_command_data(listener, "info rule");
+		switch (std::stoi(data))
+		{
+			case 0:
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::FREESTYLE) }));
+				return;
+			case 1:
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::STANDARD) }));
+				return;
+			case 2:
+				output_queue.push(Message(MessageType::ERROR, "Continuous game is not supported"));
+				return;
+			case 4:
+//				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) })); TODO uncomment this once this rule is supported
+				output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported"));
+				return;
+			default:
+				output_queue.push(Message(MessageType::ERROR, "Invalid rule " + data));
+				return;
+		}
+	}
+	void GomocupProtocol::info_evaluate(InputListener &listener)
+	{
+		const Move m = moveFromString(extract_command_data(listener, "info evaluate"), Sign::NONE);
+		input_queue.push(Message(MessageType::INFO_MESSAGE, std::vector<Move>( { m })));
+	}
+	void GomocupProtocol::info_folder(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "folder", extract_command_data(listener, "info folder") }));
+	}
+	void GomocupProtocol::start(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
@@ -394,7 +317,7 @@ namespace ag
 		else
 			output_queue.push(Message(MessageType::ERROR, "Only 15x15 or 20x20 boards are supported"));
 	}
-	void GomocupProtocol::RECTSTART(InputListener &listener)
+	void GomocupProtocol::rectstart(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
@@ -416,30 +339,29 @@ namespace ag
 		else
 			output_queue.push(Message(MessageType::ERROR, "Rectangular boards are not supported"));
 	}
-	void GomocupProtocol::RESTART(InputListener &listener)
+	void GomocupProtocol::restart(InputListener &listener)
 	{
-		listener.consumeLine("RESTART");
+		listener.consumeLine("restart");
 		input_queue.push(Message(MessageType::START_PROGRAM));
 		output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 	}
-	void GomocupProtocol::BEGIN(InputListener &listener)
+	void GomocupProtocol::begin(InputListener &listener)
 	{
-		listener.consumeLine("BEGIN");
-
+		listener.consumeLine("begin");
 		list_of_moves.clear();
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
-	void GomocupProtocol::BOARD(InputListener &listener)
+	void GomocupProtocol::board(InputListener &listener)
 	{
-		listener.consumeLine("BOARD");
-		list_of_moves = parse_list_of_moves(listener, "DONE");
+		listener.consumeLine("board");
+		list_of_moves = parse_list_of_moves(listener, "done");
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
-	void GomocupProtocol::TURN(InputListener &listener)
+	void GomocupProtocol::turn(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
@@ -452,7 +374,7 @@ namespace ag
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "bestmove"));
 	}
-	void GomocupProtocol::TAKEBACK(InputListener &listener)
+	void GomocupProtocol::takeback(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
@@ -477,30 +399,15 @@ namespace ag
 			}
 		}
 	}
-	void GomocupProtocol::PLAY(InputListener &listener)
+	void GomocupProtocol::end(InputListener &listener)
 	{
-		std::string line = listener.getLine();
-		if (not expects_play_command)
-			throw ProtocolRuntimeException("Was not expecting PLAY command");
-
-		std::vector<std::string> tmp = split(line, ' ');
-		if (tmp.size() != 2u)
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
-
-		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
-		add_new_move(new_move);
-		expects_play_command = false;
-		output_queue.push(Message(MessageType::PLAIN_STRING, tmp.at(1)));
-	}
-	void GomocupProtocol::END(InputListener &listener)
-	{
-		listener.consumeLine("END");
+		listener.consumeLine("end");
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::EXIT_PROGRAM));
 	}
-	void GomocupProtocol::ABOUT(InputListener &listener)
+	void GomocupProtocol::about(InputListener &listener)
 	{
-		listener.consumeLine("ABOUT");
+		listener.consumeLine("about");
 		std::string result;
 		result += "name=\"" + ProgramInfo::name() + "\", ";
 		result += "version=\"" + ProgramInfo::version() + "\", ";
@@ -510,10 +417,11 @@ namespace ag
 		result += "email=\"" + ProgramInfo::email() + "\"";
 		output_queue.push(Message(MessageType::ABOUT_ENGINE, result));
 	}
-	void GomocupProtocol::UNKNOWN(InputListener &listener)
+	void GomocupProtocol::unknown(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		output_queue.push(Message(MessageType::UNKNOWN_COMMAND, line));
 	}
+
 } /* namespace ag */
 

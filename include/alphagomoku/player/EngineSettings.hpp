@@ -61,6 +61,7 @@ namespace ag
 			bool analysis_mode = false;
 			bool auto_pondering = false;
 			bool use_symmetries = true;
+			bool use_database = false;
 
 			std::vector<DeviceConfig> device_configs;
 

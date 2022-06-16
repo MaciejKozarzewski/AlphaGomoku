@@ -562,6 +562,8 @@ namespace ag
 		// coordinates in Gomocup protocol are inverted relative to those used internally here
 		int row = std::stoi(tmp[1]);
 		int col = std::stoi(tmp[0]);
+		if (row < 0 or row > 128 or col < 0 or col > 128)
+			throw std::logic_error("Invalid move '" + str + "'");
 		return ag::Move(row, col, sign);
 	}
 	bool startsWith(const std::string &line, const std::string &prefix)
@@ -590,5 +592,10 @@ namespace ag
 			pos = tmp + 1;
 		}
 		return result;
+	}
+	void toLowerCase(std::string &s)
+	{
+		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c)
+		{	return std::tolower(c);});
 	}
 }

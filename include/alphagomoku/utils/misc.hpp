@@ -130,6 +130,7 @@ namespace ag
 	ag::Move moveFromString(const std::string &str, ag::Sign sign);
 	bool startsWith(const std::string &line, const std::string &prefix);
 	std::vector<std::string> split(const std::string &str, char delimiter);
+	void toLowerCase(std::string &s);
 
 } /* namespace ag */
 

@@ -32,7 +32,7 @@ namespace ag
 
 	ProgramManager::ProgramManager() :
 			argument_parser(""),
-			input_listener(std::cin),
+			input_listener(std::cin, false),
 			output_sender(std::cout)
 	{
 		time_manager.startTimer();

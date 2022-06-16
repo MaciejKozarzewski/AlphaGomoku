@@ -20,6 +20,35 @@ namespace ag
 	ExtendedGomocupProtocol::ExtendedGomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
 			GomocupProtocol(queueIN, queueOUT)
 	{
+		// @formatter:off
+		registerOutputProcessor(MessageType::BEST_MOVE, [this](OutputSender &sender) { this->best_move(sender);});
+
+		registerInputProcessor("info evaluate",		[this](InputListener &listener) { this->info_evaluate(listener);});
+		registerInputProcessor("info rule",			[this](InputListener &listener) { this->info_rule(listener);});
+		registerInputProcessor("info analysis_mode",[this](InputListener &listener) { this->info_analysis_mode(listener);});
+		registerInputProcessor("info max_depth", 	[this](InputListener &listener) { this->info_max_depth(listener);});
+		registerInputProcessor("info max_node",		[this](InputListener &listener) { this->info_max_node(listener);});
+		registerInputProcessor("info time_increment",[this](InputListener &listener) { this->info_time_increment(listener);});
+		registerInputProcessor("info style",		[this](InputListener &listener) { this->info_style(listener);});
+		registerInputProcessor("info auto_pondering",[this](InputListener &listener) { this->info_auto_pondering(listener);});
+		registerInputProcessor("info protocol_lag",	[this](InputListener &listener) { this->info_protocol_lag(listener);});
+		registerInputProcessor("info thread_num",	[this](InputListener &listener) { this->info_thread_num(listener);});
+
+		registerInputProcessor("play",				[this](InputListener &listener) { this->play(listener);});
+		registerInputProcessor("turn",				[this](InputListener &listener) { this->turn(listener);});
+		registerInputProcessor("takeback",			[this](InputListener &listener) { this->takeback(listener);});
+		registerInputProcessor("ponder",			[this](InputListener &listener) { this->ponder(listener);});
+		registerInputProcessor("stop",				[this](InputListener &listener) { this->stop(listener);});
+		registerInputProcessor("showforbid",		[this](InputListener &listener) { this->showforbid(listener);});
+		registerInputProcessor("balance",			[this](InputListener &listener) { this->balance(listener);});
+		registerInputProcessor("clearhash",			[this](InputListener &listener) { this->clearhash(listener);});
+		registerInputProcessor("protocolversion",	[this](InputListener &listener) { this->protocolversion(listener);});
+		// openings
+		registerInputProcessor("proboard",		[this](InputListener &listener) { this->proboard(listener);});
+		registerInputProcessor("longproboard",	[this](InputListener &listener) { this->longproboard(listener);});
+		registerInputProcessor("swapboard",		[this](InputListener &listener) { this->swapboard(listener);});
+		registerInputProcessor("swap2board",	[this](InputListener &listener) { this->swap2board(listener);});
+		// @formatter:on
 	}
 	void ExtendedGomocupProtocol::reset()
 	{
@@ -29,170 +58,156 @@ namespace ag
 	{
 		return ProtocolType::EXTENDED_GOMOCUP;
 	}
-	void ExtendedGomocupProtocol::processInput(InputListener &listener)
-	{
-		std::string line = listener.peekLine();
-
-		std::lock_guard lock(protocol_mutex);
-
-		if (startsWith(line, "PONDER"))
-		{
-			PONDER(listener);
-			return;
-		}
-		if (startsWith(line, "STOP"))
-		{
-			STOP(listener);
-			return;
-		}
-		if (startsWith(line, "SHOWFORBID"))
-		{
-			SHOWFORBID(listener);
-			return;
-		}
-		if (startsWith(line, "BALANCE"))
-		{
-			BALANCE(listener);
-			return;
-		}
-		if (startsWith(line, "CLEARHASH"))
-		{
-			CLEARHASH(listener);
-			return;
-		}
-		if (startsWith(line, "PROTOCOLVERSION"))
-		{
-			PROTOCOLVERSION(listener);
-			return;
-		}
-
-		if (startsWith(line, "PROBOARD"))
-		{
-			PROBOARD(listener);
-			return;
-		}
-		if (startsWith(line, "LONGPROBOARD"))
-		{
-			LONGPROBOARD(listener);
-			return;
-		}
-		if (startsWith(line, "SWAPBOARD"))
-		{
-			SWAPBOARD(listener);
-			return;
-		}
-		if (startsWith(line, "SWAP2BOARD"))
-		{
-			SWAP2BOARD(listener);
-			return;
-		}
-
-		if (startsWith(line, "INFO"))
-			this->INFO(listener); // intentionally does not have a return as some INFO keys must be processed by base class
-
-		if (listener.isEmpty() == false) // call the base class only if there is anything to process, otherwise it will block waiting for input
-			GomocupProtocol::processInput(listener);
-	}
 	/*
 	 * private
 	 */
-	void ExtendedGomocupProtocol::INFO(InputListener &listener)
+	/*
+	 * Output processors
+	 */
+	void ExtendedGomocupProtocol::best_move(OutputSender &sender)
 	{
-		std::string line = listener.peekLine();
-		std::vector<std::string> tmp = split(line, ' ');
-		if (tmp.size() < 2u)
+		const Message msg = output_queue.pop();
+		if (msg.holdsString()) // used to swap colors
 		{
-			listener.consumeLine();
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+			if (msg.getString() == "swap")
+				sender.send("SWAP");
 		}
-		if (tmp.at(1) == "evaluate")
+		if (msg.holdsMove()) // used to return the best move
 		{
-			std::vector<Move> path;
-			for (size_t i = 2; i < tmp.size(); i++)
-				path.push_back(moveFromString(tmp.at(i), Sign::NONE));
-			input_queue.push(Message(MessageType::INFO_MESSAGE, path));
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.size() != 3u)
-		{
-			listener.consumeLine();
-			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
-		}
-
-		if (tmp.at(1) == "analysis_mode")
-		{
-			is_in_analysis_mode = static_cast<bool>(std::stoi(tmp.at(2)));
-			use_suggest = is_in_analysis_mode;
+			assert(msg.getMove().sign == get_sign_to_move());
 			if (is_in_analysis_mode)
-				input_queue.push(Message(MessageType::SET_OPTION, Option { "auto_pondering", "0" })); // if analysis mode is on, auto pondering is off
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.at(1) == "max_depth")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_depth", tmp.at(2) }));
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.at(1) == "max_node")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "max_nodes", tmp.at(2) }));
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.at(1) == "time_increment")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "time_increment", tmp.at(2) }));
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.at(1) == "style")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "style", tmp.at(2) }));
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.at(1) == "auto_pondering")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "auto_pondering", tmp.at(2) }));
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.at(1) == "protocol_lag")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "protocol_lag", tmp.at(2) }));
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.at(1) == "thread_num")
-		{
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "thread_num", tmp.at(2) }));
-			listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-			return;
-		}
-		if (tmp.at(1) == "rule")
-		{
-			switch (std::stoi(tmp.at(2)))
 			{
-				case 4:
-					is_renju_rule = true;
-					return;
-				case 8:
-					is_renju_rule = false;
-//					input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO) })); TODO uncomment this once this rule is supported
-					output_queue.push(Message(MessageType::ERROR, "Caro rule is not supported"));
-					listener.consumeLine(); // consuming line so it won't be processed again by base GomocupProtocol class
-					return;
-				default:
-					is_renju_rule = false;
-					return;
+				sender.send("SUGGEST " + moveToString(msg.getMove()));
+				expects_play_command = true;
 			}
-			// not consuming line because it must be further processed by the base class
+			else
+			{
+				sender.send(moveToString(msg.getMove()));
+				list_of_moves.push_back(msg.getMove());
+			}
+		}
+		if (msg.holdsListOfMoves()) // used to return multiple moves (for example an opening)
+		{
+			std::string str;
+			for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
+			{
+				if (i != 0)
+					str += ' ';
+				str += moveToString(msg.getListOfMoves().at(i));
+			}
+			sender.send(str);
 		}
 	}
+	/*
+	 * Input processors
+	 */
+	void ExtendedGomocupProtocol::info_evaluate(InputListener &listener)
+	{
+		const std::vector<std::string> tmp = split(extract_command_data(listener, "info evaluate"), ' ');
+		std::vector<Move> path;
+		for (size_t i = 0; i < tmp.size(); i++)
+			path.push_back(moveFromString(tmp.at(i), Sign::NONE));
+		input_queue.push(Message(MessageType::INFO_MESSAGE, path));
+	}
+	void ExtendedGomocupProtocol::info_rule(InputListener &listener)
+	{
+		const std::string data = extract_command_data(listener, "info rule");
+		is_renju_rule = (std::stoi(data) == 4);
+		switch (std::stoi(data))
+		{
+			case 0:
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::FREESTYLE) }));
+				break;
+			case 1:
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::STANDARD) }));
+				break;
+			case 2:
+				output_queue.push(Message(MessageType::ERROR, "Continuous game is not supported"));
+				break;
+			case 4:
+//				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) })); TODO uncomment this once this rule is supported
+				output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported"));
+				break;
+			case 8:
+//				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::Caro) })); TODO uncomment this once this rule is supported
+				output_queue.push(Message(MessageType::ERROR, "Caro rule is not supported"));
+				break;
+			default:
+				output_queue.push(Message(MessageType::ERROR, "Invalid rule " + data));
+				break;
+		}
+	}
+	void ExtendedGomocupProtocol::info_analysis_mode(InputListener &listener)
+	{
+		std::string data = extract_command_data(listener, "info analysis_mode");
+		is_in_analysis_mode = (std::stoi(data) == 1);
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "analysis_mode", data }));
+	}
+	void ExtendedGomocupProtocol::info_max_depth(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "max_depth", extract_command_data(listener, "info max_depth") }));
+	}
+	void ExtendedGomocupProtocol::info_max_node(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "max_node", extract_command_data(listener, "info max_node") }));
+	}
+	void ExtendedGomocupProtocol::info_time_increment(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "time_increment", extract_command_data(listener, "info time_increment") }));
+	}
+	void ExtendedGomocupProtocol::info_style(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "style", extract_command_data(listener, "info style") }));
+	}
+	void ExtendedGomocupProtocol::info_auto_pondering(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "auto_pondering", extract_command_data(listener, "info auto_pondering") }));
+	}
+	void ExtendedGomocupProtocol::info_protocol_lag(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "protocol_lag", extract_command_data(listener, "info protocol_lag") }));
+	}
+	void ExtendedGomocupProtocol::info_thread_num(InputListener &listener)
+	{
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "thread_num", extract_command_data(listener, "info thread_num") }));
+	}
+	void ExtendedGomocupProtocol::play(InputListener &listener)
+	{
+		std::string line = listener.getLine();
+		if (not expects_play_command)
+			throw ProtocolRuntimeException("Was not expecting PLAY command");
 
-	void ExtendedGomocupProtocol::PONDER(InputListener &listener)
+		std::vector<std::string> tmp = split(line, ' ');
+		if (tmp.size() != 2u)
+			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
+		add_new_move(new_move);
+		expects_play_command = false;
+		output_queue.push(Message(MessageType::PLAIN_STRING, tmp.at(1)));
+	}
+	void ExtendedGomocupProtocol::turn(InputListener &listener)
+	{
+		if (expects_play_command)
+		{
+			listener.consumeLine();
+			throw ProtocolRuntimeException("Expecting PLAY command");
+		}
+		else
+			GomocupProtocol::turn(listener);
+	}
+	void ExtendedGomocupProtocol::takeback(InputListener &listener)
+	{
+		if (expects_play_command)
+		{
+			listener.consumeLine();
+			throw ProtocolRuntimeException("Expecting PLAY command");
+		}
+		else
+			GomocupProtocol::takeback(listener);
+	}
+
+	void ExtendedGomocupProtocol::ponder(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		std::vector<std::string> tmp = split(line, ' ');
@@ -205,14 +220,14 @@ namespace ag
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "ponder"));
 	}
-	void ExtendedGomocupProtocol::STOP(InputListener &listener)
+	void ExtendedGomocupProtocol::stop(InputListener &listener)
 	{
-		listener.consumeLine("STOP");
+		listener.consumeLine("stop");
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 	}
-	void ExtendedGomocupProtocol::SHOWFORBID(InputListener &listener)
+	void ExtendedGomocupProtocol::showforbid(InputListener &listener)
 	{
-		listener.consumeLine("SHOWFORBID");
+		listener.consumeLine("showforbid");
 		std::vector<Move> moves = parse_list_of_moves(listener, "DONE");
 		if (is_renju_rule)
 		{
@@ -221,10 +236,10 @@ namespace ag
 		else
 			output_queue.push(Message(MessageType::PLAIN_STRING, "FORBID"));
 	}
-	void ExtendedGomocupProtocol::BALANCE(InputListener &listener)
+	void ExtendedGomocupProtocol::balance(InputListener &listener)
 	{
 		std::string line = listener.getLine();
-		output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported")); // TODO add position balancing
+		output_queue.push(Message(MessageType::ERROR, "Command not supported")); // TODO add position balancing
 
 //		std::vector<std::string> tmp = split(line, ' ');
 //		if (tmp.size() != 2u)
@@ -236,9 +251,9 @@ namespace ag
 //		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 //		input_queue.push(Message(MessageType::START_SEARCH, "balance " + tmp.at(1)));
 	}
-	void ExtendedGomocupProtocol::CLEARHASH(InputListener &listener)
+	void ExtendedGomocupProtocol::clearhash(InputListener &listener)
 	{
-		listener.consumeLine("CLEARHASH");
+		listener.consumeLine("clearhash");
 		std::vector<Move> tmp;
 		for (int r = 0; r < rows; r++)
 			for (int c = 0; c < columns; c++)
@@ -247,32 +262,33 @@ namespace ag
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, tmp)); // Node cache deletes states that are provably not possible given current board state. Given an impossible board state, all nodes will be cleared.
 		input_queue.push(Message(MessageType::START_SEARCH, "clearhash")); // launching search with special controller that will pass this board to the engine causing tree reset but without actually starting the search.
+		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves)); // reverting to the original board state
 	}
-	void ExtendedGomocupProtocol::PROTOCOLVERSION(InputListener &listener)
+	void ExtendedGomocupProtocol::protocolversion(InputListener &listener)
 	{
-		listener.consumeLine("PROTOCOLVERSION");
+		listener.consumeLine("protocolversion");
 		output_queue.push(Message(MessageType::PLAIN_STRING, "1,0"));
 	}
 	/*
 	 * opening rules
 	 */
-	void ExtendedGomocupProtocol::PROBOARD(InputListener &listener)
+	void ExtendedGomocupProtocol::proboard(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		output_queue.push(Message(MessageType::UNKNOWN_COMMAND, line));
 	}
-	void ExtendedGomocupProtocol::LONGPROBOARD(InputListener &listener)
+	void ExtendedGomocupProtocol::longproboard(InputListener &listener)
 	{
 		std::string line = listener.getLine();
 		output_queue.push(Message(MessageType::UNKNOWN_COMMAND, line));
 	}
-	void ExtendedGomocupProtocol::SWAPBOARD(InputListener &listener)
+	void ExtendedGomocupProtocol::swapboard(InputListener &listener)
 	{
-		listener.consumeLine("SWAPBOARD");
+		listener.consumeLine("swapboard");
 
 		list_of_moves.clear();
 		std::string line1 = listener.getLine();
-		if (line1 != "DONE") // 3 stones were placed
+		if (line1 != "done") // 3 stones were placed
 		{
 			std::string line2 = listener.getLine();
 			std::string line3 = listener.getLine();
@@ -281,7 +297,7 @@ namespace ag
 			add_new_move(moveFromString(line3, Sign::CROSS));
 
 			std::string line4 = listener.getLine();
-			if (line4 != "DONE")
+			if (line4 != "done")
 				throw ProtocolRuntimeException("Expected 'DONE' at the end, got '" + line4 + "'");
 		}
 
@@ -289,13 +305,13 @@ namespace ag
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "swap"));
 	}
-	void ExtendedGomocupProtocol::SWAP2BOARD(InputListener &listener)
+	void ExtendedGomocupProtocol::swap2board(InputListener &listener)
 	{
-		listener.consumeLine("SWAP2BOARD");
+		listener.consumeLine("swap2board");
 
 		list_of_moves.clear();
 		std::string line1 = listener.getLine();
-		if (line1 != "DONE") // 3 stones were placed
+		if (line1 != "done") // 3 stones were placed
 		{
 			std::string line2 = listener.getLine();
 			std::string line3 = listener.getLine();
@@ -304,14 +320,14 @@ namespace ag
 			add_new_move(moveFromString(line3, Sign::CROSS));
 
 			std::string line4 = listener.getLine();
-			if (line4 != "DONE") // 5 stones were placed
+			if (line4 != "done") // 5 stones were placed
 			{
 				std::string line5 = listener.getLine();
 				std::string line6 = listener.getLine(); // DONE
 				add_new_move(moveFromString(line4, Sign::CIRCLE));
 				add_new_move(moveFromString(line5, Sign::CROSS));
 
-				if (line6 != "DONE")
+				if (line6 != "done")
 					throw ProtocolRuntimeException("Expected 'DONE' at the end, got '" + line6 + "'");
 			}
 		}

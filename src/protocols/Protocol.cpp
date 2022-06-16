@@ -12,8 +12,9 @@
 namespace ag
 {
 
-	InputListener::InputListener(std::istream &inputStream) :
-			input_stream(&inputStream)
+	InputListener::InputListener(std::istream &inputStream, bool caseSensitive) :
+			input_stream(&inputStream),
+			case_sensitive(caseSensitive)
 	{
 	}
 	bool InputListener::isEmpty() const noexcept
@@ -80,6 +81,8 @@ namespace ag
 		getline(*input_stream, result);
 		if (result.back() == '\r') // remove '\r' character from the end, if exists
 			result.pop_back();
+		if (not case_sensitive)
+			toLowerCase(result);
 		return result;
 	}
 
@@ -256,7 +259,7 @@ namespace ag
 		message_queue.pop();
 		return result;
 	}
-	Message MessageQueue::peek() const
+	const Message& MessageQueue::peek() const
 	{
 		std::lock_guard lock(queue_mutex);
 		if (message_queue.empty())
@@ -287,6 +290,66 @@ namespace ag
 		if (str == "YIXINBOARD" or str == "yixinboard")
 			return ProtocolType::YIXINBOARD;
 		throw std::invalid_argument(str);
+	}
+
+	Protocol::Protocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
+			input_queue(queueIN),
+			output_queue(queueOUT)
+	{
+	}
+	void Protocol::processInput(InputListener &listener)
+	{
+		const std::string line = listener.peekLine();
+
+		std::lock_guard lock(protocol_mutex);
+
+		for (auto iter = input_processors.begin(); iter < input_processors.end(); iter++)
+			if (startsWith(line, iter->first))
+			{
+				iter->second(listener);
+				return;
+			}
+		auto unknown = std::find_if(input_processors.begin(), input_processors.end(), [](auto e)
+		{	return e.first == "unknown";});
+		if (unknown == input_processors.end())
+			throw ProtocolRuntimeException("No handler for unknown '" + line + "'command");
+		else
+			unknown->second(listener);
+	}
+	void Protocol::processOutput(OutputSender &sender)
+	{
+		std::lock_guard lock(protocol_mutex);
+
+		while (output_queue.isEmpty() == false)
+		{
+			const MessageType type = output_queue.peek().getType();
+			for (auto iter = output_processors.begin(); iter < output_processors.end(); iter++)
+				if (iter->first == type)
+				{
+					iter->second(sender);
+					break;
+				}
+		}
+	}
+	void Protocol::registerInputProcessor(const std::string &cmd, const std::function<void(InputListener&)> &function)
+	{
+		for (auto iter = input_processors.begin(); iter < input_processors.end(); iter++)
+			if (cmd == iter->first)
+			{
+				iter->second = function; // overriding existing entry
+				return;
+			}
+		input_processors.push_back( { cmd, function });
+	}
+	void Protocol::registerOutputProcessor(MessageType type, const std::function<void(OutputSender&)> &function)
+	{
+		for (auto iter = output_processors.begin(); iter < output_processors.end(); iter++)
+			if (type == iter->first)
+			{
+				iter->second = function; // overriding existing entry
+				return;
+			}
+		output_processors.push_back( { type, function });
 	}
 
 } /* namespace ag */
