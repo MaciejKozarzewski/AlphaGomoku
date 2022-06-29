@@ -34,7 +34,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
 		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
@@ -62,7 +63,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
 		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
@@ -90,7 +92,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
 		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
@@ -118,7 +121,8 @@ namespace ag
 					/* 12 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" O _ _ _ _ X X X _ ! _ X X X _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_TRUE(isForbidden(board, Move("Xk0")));
 		EXPECT_TRUE(isForbidden(board, Move("Xd1")));
@@ -147,7 +151,8 @@ namespace ag
 					/* 12 */" _ _ ! _ X X _ _ _ ! _ X X X O\n" /* 12 */
 					/* 13 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xd1")));
 		EXPECT_FALSE(isForbidden(board, Move("Xl1")));
@@ -175,7 +180,8 @@ namespace ag
 					/* 12 */" _ _ _ _ ! _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ X _ _ _ _ X X ! _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xd2")));
 		EXPECT_TRUE(isForbidden(board, Move("Xm2")));
@@ -203,7 +209,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xj5")));
 	}
@@ -227,7 +234,8 @@ namespace ag
 					/* 12 */" _ _ _ _ X _ _ _ _ _ X ! X _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ O O X O O _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ O _ _ _ O _ O _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xn2")));
 		EXPECT_FALSE(isForbidden(board, Move("Xd3")));
@@ -254,7 +262,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xj6")));
 	}
@@ -278,7 +287,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ ! X ! X ! _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ X X X ! X X X _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_TRUE(isForbidden(board, Move("Xd5")));
 		EXPECT_TRUE(isForbidden(board, Move("Xl5")));
@@ -313,7 +323,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xh4")));
 	}
@@ -337,7 +348,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xg7")));
 	}
@@ -361,7 +373,8 @@ namespace ag
 					/* 12 */" _ _ O X O X _ _ _ _ X O _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ X _ _ _ _ _ X _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ O _ _ _ _ O _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_TRUE(isForbidden(board, Move("Xd3")));
 		EXPECT_TRUE(isForbidden(board, Move("Xm3")));
@@ -388,7 +401,8 @@ namespace ag
 					/* 12 */" _ _ O X O X _ _ _ _ X O _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ X _ _ _ _ _ X _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ O _ _ _ _ O _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xd3")));
 		EXPECT_FALSE(isForbidden(board, Move("Xm3")));
@@ -415,7 +429,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_TRUE(isForbidden(board, Move("Xk7")));
 
@@ -449,7 +464,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Ok7")));
 	}
@@ -473,7 +489,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_TRUE(isForbidden(board, Move("Xh5")));
 
@@ -502,7 +519,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xc2")));
 		EXPECT_FALSE(isForbidden(board, Move("Xe6")));
@@ -527,7 +545,8 @@ namespace ag
 					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
 
 		EXPECT_TRUE(isForbidden(board, Move("Xf8")));
 
@@ -558,7 +577,8 @@ namespace ag
 //					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
 //					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 //					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//					/*        a b c d e f g h i j k l m n o          */);/* @formatter:on */
+//					/*        a b c d e f g h i j k l m n o          */);
+//// @formatter:on
 //
 //		EXPECT_TRUE(true);
 //	}
