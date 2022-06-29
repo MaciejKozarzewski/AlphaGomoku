@@ -29,6 +29,7 @@ namespace ag::experimental
 	enum class SolvedValue : int8_t
 	{
 		UNCHECKED,
+		FORBIDDEN,
 		NO_SOLUTION,
 		LOSS,
 		DRAW,
@@ -171,6 +172,7 @@ namespace ag::experimental
 				std::cout << stats.toString() << '\n';
 			}
 		private:
+			void get_forbidden_moves(SearchTask &task);
 			bool try_win_in_1(InternalNode &node);
 			bool try_draw_in_1(InternalNode &node);
 			bool try_defend_opponent_five(InternalNode &node);

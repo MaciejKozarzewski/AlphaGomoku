@@ -82,13 +82,14 @@ namespace
 		for (Direction dir = 0; dir < 4; dir++)
 			if (patternGroup[dir] == pattern)
 				return dir;
-		assert(false); // assuming that searched pattern exists in the group
+		assert(false); // the search pattern must exist in the group
 		return 0;
 	}
 
 	class SubSolverFork4x3
 	{
 			const PatternCalculator &calc;
+
 			Direction find_direction_of(PatternType pattern, Move move) const
 			{
 				const std::array<PatternType, 4> own_patterns = calc.getPatternTypeAt(move.sign, move.row, move.col);
@@ -126,7 +127,6 @@ namespace
 				{
 					default:
 					case ThreatType::NONE:
-					case ThreatType::FORBIDDEN:
 					case ThreatType::HALF_OPEN_3:
 					case ThreatType::OPEN_3:
 					case ThreatType::FORK_3x3:
@@ -156,6 +156,89 @@ namespace
 					case ThreatType::FIVE:
 						return SolvedValue::LOSS; // opponent can make either 4x4 fork, open four or a five
 				}
+			}
+	};
+	class SubSolverForbiddenMoves
+	{
+			PatternCalculator &calc;
+
+			template<int Pad>
+			bool is_straight_four(int row, int col, Direction direction) const
+			{
+				assert(calc.signAt(row, col) == Sign::NONE);
+				uint32_t result = static_cast<uint32_t>(Sign::CROSS) << (2 * Pad);
+				uint32_t shift = 0;
+				switch (direction)
+				{
+					case HORIZONTAL:
+						for (int i = -Pad; i <= Pad; i++, shift += 2)
+							result |= (static_cast<uint32_t>(calc.signAt(row, col + i)) << shift);
+						break;
+					case VERTICAL:
+						for (int i = -Pad; i <= Pad; i++, shift += 2)
+							result |= (static_cast<uint32_t>(calc.signAt(row + i, col)) << shift);
+						break;
+					case DIAGONAL:
+						for (int i = -Pad; i <= Pad; i++, shift += 2)
+							result |= (static_cast<uint32_t>(calc.signAt(row + i, col + i)) << shift);
+						break;
+					case ANTIDIAGONAL:
+						for (int i = -Pad; i <= Pad; i++, shift += 2)
+							result |= (static_cast<uint32_t>(calc.signAt(row + i, col - i)) << shift);
+						break;
+				}
+				for (int i = 0; i < (2 * Pad + 1 - 4); i++, result /= 4)
+					if ((result & 255u) == 85u)
+						return true;
+				return false;
+			}
+		public:
+			SubSolverForbiddenMoves(PatternCalculator &calc) :
+					calc(calc)
+			{
+			}
+			bool isForbidden(int row, int col) const
+			{
+				constexpr int Pad = 5;
+
+				if (calc.signAt(row, col) != Sign::NONE)
+					return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
+
+				const Threat threat = calc.getThreatAt(Sign::CROSS, row, col);
+				if (threat.forCross() == ThreatType::OVERLINE)
+					return true;
+				if (threat.forCross() == ThreatType::FORK_4x4)
+					return true;
+				if (threat.forCross() == ThreatType::FORK_3x3)
+				{
+					int open3_count = 0;
+					for (Direction dir = 0; dir < 4; dir++)
+						if (calc.getPatternTypeAt(Sign::CROSS, row, col, dir) == PatternType::OPEN_3)
+						{
+							const BitMask<uint16_t> defensive_moves = calc.getDefensiveMoves(Sign::CIRCLE, row, col, dir);
+							for (int i = -Pad; i <= Pad; i++)
+							{
+								const int x = row + i * get_row_step(dir);
+								const int y = col + i * get_col_step(dir);
+								if (i != 0 and defensive_moves.get(Pad + i) == true and is_straight_four<Pad>(x, y, dir))
+								{ // minor optimization as 'is_straight_four' works without adding new move to the pattern calculator
+									calc.addMove(Move(row, col, Sign::CROSS));
+									const bool is_forbidden = isForbidden(x, y);
+									calc.undoMove(Move(row, col, Sign::CROSS));
+
+									if (not is_forbidden)
+									{
+										open3_count++;
+										break;
+									}
+								}
+							}
+
+						}
+					if (open3_count >= 2)
+						return true;
+				}
+				return false;
 			}
 	};
 }
@@ -401,6 +484,23 @@ namespace ag::experimental
 	/*
 	 * private
 	 */
+	void VCTSolver::get_forbidden_moves(SearchTask &task)
+	{
+//		if (game_config.rules == GameRules::RENJU and task.getSignToMove() == Sign::CROSS)
+//		{
+//			const ThreatHistogram &threats = pattern_calculator.getThreatHistogram(Sign::CROSS);
+//
+//			for (auto iter = threats.get(ThreatType::OVERLINE).begin(); iter < threats.get(ThreatType::OVERLINE).end(); iter++)
+//				task.getForbiddenEdges().push_back(Edge(*iter));
+//			for (auto iter = threats.get(ThreatType::FORK_4x4).begin(); iter < threats.get(ThreatType::FORK_4x4).end(); iter++)
+//				task.getForbiddenEdges().push_back(Edge(*iter));
+//
+//			SubSolverForbiddenMoves sub_solver(pattern_calculator);
+//			for (auto iter = threats.get(ThreatType::FORK_3x3).begin(); iter < threats.get(ThreatType::FORK_3x3).end(); iter++)
+//				if (sub_solver.isForbidden(iter->row, iter->col))
+//					task.getForbiddenEdges().push_back(Edge(*iter));
+//		}
+	}
 	bool VCTSolver::try_win_in_1(InternalNode &node)
 	{
 		const std::vector<Move> &own_five = get_own_threats(node, ThreatType::FIVE);
@@ -521,18 +621,6 @@ namespace ag::experimental
 	}
 	bool VCTSolver::try_defend_opponent_fours(InternalNode &node)
 	{
-//		if (pattern_calculator.getThreatHistogram(node.getSignToMove()).hasAnyFour() == false) // we have no fours
-//		{
-//			const int fork_count = opp_fork_4x4.size() + opp_fork_4x3.size();
-//			if (opp_open_four.size() > 2 or (opp_open_four.size() + fork_count >= 2 and fork_count > 0))
-//			{
-//				add_children_nodes(node, opp_open_four, SolvedValue::LOSS, true);
-//				add_children_nodes(node, opp_fork_4x4, SolvedValue::LOSS, true);
-//				add_children_nodes(node, opp_fork_4x3, SolvedValue::LOSS, true);
-//				node.must_defend = true;
-//				return true;
-//			}
-//		}
 		const Sign own_sign = node.getSignToMove();
 		const Sign opp_sign = invertSign(own_sign);
 
@@ -598,6 +686,14 @@ namespace ag::experimental
 //		if (node.getSignToMove() != attacking_sign)
 		try_defend_opponent_fours(node);
 //		add_children_nodes(node, get_own_threats(node, ThreatType::OPEN_3), SolvedValue::UNCHECKED, true);
+
+		if (game_config.rules == GameRules::RENJU and node.getSignToMove() == Sign::CROSS)
+		{
+			SubSolverForbiddenMoves sub_solver(pattern_calculator);
+			for (auto iter = node.begin(); iter < node.end(); iter++)
+				if (sub_solver.isForbidden(iter->move.row, iter->move.col))
+					iter->solved_value = SolvedValue::FORBIDDEN;
+		}
 	}
 
 	void VCTSolver::recursive_solve(InternalNode &node)

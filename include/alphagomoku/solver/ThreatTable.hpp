@@ -18,7 +18,6 @@ namespace ag::experimental
 	enum class ThreatType : int8_t
 	{
 		NONE,
-		FORBIDDEN,
 		HALF_OPEN_3,
 		OPEN_3,
 		FORK_3x3, // win in 5

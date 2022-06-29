@@ -34,8 +34,8 @@ namespace ag
 	std::string toString(GameOutcome outcome);
 	GameOutcome outcomeFromString(const std::string &str);
 
-	GameOutcome getOutcome_v2(GameRules rules, matrix<Sign> &board, Move lastMove);
-	bool isForbidden(matrix<Sign> &board, Move move);
+	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove);
+	bool isForbidden(const matrix<Sign> &board, Move move);
 
 } /* namespace ag */
 

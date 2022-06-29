@@ -180,7 +180,7 @@ namespace ag
 		throw std::logic_error("unknown outcome '" + str + "'");
 	}
 
-	GameOutcome getOutcome_v2(GameRules rules, matrix<Sign> &board, Move lastMove)
+	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove)
 	{
 		assert(board.isSquare());
 		assert(lastMove.sign != Sign::NONE);
@@ -217,42 +217,48 @@ namespace ag
 		else
 			return GameOutcome::UNKNOWN;
 	}
-	bool isForbidden(matrix<Sign> &board, Move move)
+	bool isForbidden(const matrix<Sign> &board, Move move)
 	{
+		constexpr int Pad = 5;
+
 		if (move.sign == Sign::CIRCLE)
 			return false; // circle (or white) doesn't have any forbidden moves
 		if (board.at(move.row, move.col) != Sign::NONE)
 			return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
 
-		const RawPatternGroup raw = get_raw_patterns<5>(board, move);
+		const RawPatternGroup raw = get_raw_patterns<Pad>(board, move);
 		PatternTypeGroup patterns = convert_to_patterns(GameRules::RENJU, raw);
 
-		const int number_of_open3 = std::count(patterns.for_cross.begin(), patterns.for_cross.end(), PatternType::OPEN_3);
-		if (number_of_open3 >= 2)
+		Threat threat = ThreatTable::get(GameRules::RENJU).getThreat(patterns);
+		if (threat.forCross() == ThreatType::FORK_3x3)
+		{
+			matrix<Sign> tmp_board(board);
 			for (Direction dir = 0; dir < 4; dir++)
 				if (patterns.for_cross[dir] == PatternType::OPEN_3)
 				{
-					Board::putMove(board, move);
+					Board::putMove(tmp_board, move);
 					const PatternEncoding tmp = PatternTable::get(GameRules::RENJU).getPatternData(raw.get(dir));
 					const BitMask<uint16_t> defensive_moves = PatternTable::get(GameRules::RENJU).getDefensiveMoves(tmp, Sign::CIRCLE);
 					bool is_really_an_open3 = false;
-					for (int i = -5; i <= 5; i++)
+					for (int i = -Pad; i <= Pad; i++)
 					{
 						const int x = move.row + i * get_row_step(dir);
 						const int y = move.col + i * get_col_step(dir);
-						if (defensive_moves.get(5 + i) == true and board.at(x, y) == Sign::NONE) // defensive move will never be outside board
-							if (is_straight_four<5>(board, Move(x, y, Sign::CROSS), dir) and not isForbidden(board, Move(x, y, Sign::CROSS)))
+						if (defensive_moves.get(Pad + i) == true and tmp_board.at(x, y) == Sign::NONE) // defensive move will never be outside board
+							if (is_straight_four<Pad>(tmp_board, Move(x, y, Sign::CROSS), dir)
+									and not isForbidden(tmp_board, Move(x, y, Sign::CROSS)))
 							{
 								is_really_an_open3 = true;
 								break;
 							}
 					}
-					Board::undoMove(board, move);
+					Board::undoMove(tmp_board, move);
 					if (not is_really_an_open3)
 						patterns.for_cross[dir] = PatternType::NONE;
 				}
+			threat = ThreatTable::get(GameRules::RENJU).getThreat(patterns); // recalculating threat as some open threes may have turned out to be fake ones
+		}
 
-		const Threat threat = ThreatTable::get(GameRules::RENJU).getThreat(patterns);
 		if (threat.forCross() == ThreatType::OVERLINE or threat.forCross() == ThreatType::FORK_4x4 or threat.forCross() == ThreatType::FORK_3x3)
 			return true;
 		else

@@ -27,10 +27,10 @@ namespace ag::experimental
 
 	struct RawPatternGroup
 	{
-			uint32_t horizontal;
-			uint32_t vertical;
-			uint32_t diagonal;
-			uint32_t antidiagonal;
+			uint32_t horizontal = 0u;
+			uint32_t vertical = 0u;
+			uint32_t diagonal = 0u;
+			uint32_t antidiagonal = 0u;
 
 			uint32_t get(Direction dir) const noexcept
 			{
@@ -45,7 +45,7 @@ namespace ag::experimental
 					case ANTIDIAGONAL:
 						return antidiagonal;
 					default:
-						return 0;
+						return 0u;
 				}
 			}
 	};
@@ -129,7 +129,7 @@ namespace ag::experimental
 
 		public:
 			PatternCalculator(GameConfig gameConfig);
-			void setBoard(const matrix<Sign> &board, bool  = false);
+			void setBoard(const matrix<Sign> &board, bool = false);
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
 

@@ -114,8 +114,6 @@ namespace ag::experimental
 			default:
 			case ThreatType::NONE:
 				return "NONE";
-			case ThreatType::FORBIDDEN:
-				return "FORBIDDEN";
 			case ThreatType::OPEN_3:
 				return "OPEN_3";
 			case ThreatType::HALF_OPEN_4:
@@ -130,6 +128,8 @@ namespace ag::experimental
 				return "OPEN_4";
 			case ThreatType::FIVE:
 				return "FIVE";
+			case ThreatType::OVERLINE:
+				return "OVERLINE";
 		}
 	}
 

@@ -36,6 +36,7 @@ namespace ag
 			std::vector<NodeEdgePair> visited_path;/**< trajectory within the tree visited during select phase */
 			std::vector<Edge> non_losing_edges; /**< provably non losing edges found by VCF solver */
 			std::vector<Edge> proven_edges; /**< provably winning edges found by VCF solver */
+			std::vector<Edge> forbidden_edges; /**< forbidden edges in renju rule found by VCF solver */
 			std::vector<Edge> edges; /**< edges created by EdgeGenerator */
 
 			GameRules game_rules;
@@ -51,6 +52,17 @@ namespace ag
 		public:
 			SearchTask(GameRules rules);
 			void set(const matrix<Sign> &base, Sign signToMove);
+			int getAbsoluteDepth() const noexcept
+			{
+				if (visited_path.size() == 0)
+					return 0;
+				else
+					return visited_path.back().node->getDepth();
+			}
+			int getRelativeDepth() const noexcept
+			{
+				return visitedPathLength();
+			}
 
 			int visitedPathLength() const noexcept
 			{
@@ -89,6 +101,14 @@ namespace ag
 			std::vector<Edge>& getProvenEdges() noexcept
 			{
 				return proven_edges;
+			}
+			const std::vector<Edge>& getForbiddenEdges() const noexcept
+			{
+				return forbidden_edges;
+			}
+			std::vector<Edge>& getForbiddenEdges() noexcept
+			{
+				return forbidden_edges;
 			}
 			const std::vector<Edge>& getEdges() const noexcept
 			{
