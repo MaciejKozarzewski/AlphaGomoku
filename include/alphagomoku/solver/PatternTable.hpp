@@ -158,7 +158,8 @@ namespace ag::experimental
 				m_data &= (~(127u << shift));
 				m_data |= (maskIndex << shift);
 			}
-	};
+	}
+	;
 
 	class PatternTable
 	{
@@ -184,35 +185,6 @@ namespace ag::experimental
 			BitMask<uint16_t> getDefensiveMoves(PatternEncoding enc, Sign sign) const noexcept
 			{
 				return defensive_move_mask[enc.getDefensiveMoves(sign)];
-			}
-			BitMask<uint16_t> getDoubleFourDefensiveMoves(uint32_t pattern, Sign sign) const noexcept
-			{
-				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-				if (sign == Sign::CIRCLE)
-					pattern = invertColor(pattern);
-				auto iter = double_four_defensive_moves.find(pattern);
-				assert(iter != double_four_defensive_moves.end());
-				return iter->second;
-			}
-			BitMask<uint16_t> getOpenFourDefensiveMoves(uint32_t pattern, Sign sign) const noexcept
-			{
-				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-				std::cout << pattern << '\n';
-				if (sign == Sign::CIRCLE)
-					pattern = invertColor(pattern);
-				std::cout << pattern << '\n';
-				auto iter = open_four_defensive_moves.find(pattern);
-				assert(iter != open_four_defensive_moves.end());
-				return iter->second;
-			}
-			BitMask<uint16_t> getHalfOpenFourDefensiveMoves(uint32_t pattern, Sign sign) const noexcept
-			{
-				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-				if (sign == Sign::CIRCLE)
-					pattern = invertColor(pattern);
-				auto iter = half_open_four_defensive_moves.find(pattern);
-				assert(iter != half_open_four_defensive_moves.end());
-				return iter->second;
 			}
 			static const PatternTable& get(GameRules rules);
 		private:

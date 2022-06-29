@@ -65,20 +65,24 @@ namespace
 		if (rules == ag::GameRules::RENJU)
 		{
 			if (is_overline(group)) // forbidden or win in 1
-				return Threat(ThreatType::FORBIDDEN, ThreatType::FIVE);
+				return Threat(ThreatType::OVERLINE, ThreatType::FIVE);
 			if (contains(group, PatternType::OPEN_4)) // potentially win in 3
 			{
-				if (is_fork_4x4(group) or is_fork_3x3(group))
-					return Threat(ThreatType::FORBIDDEN, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
-				else
-					return Threat(ThreatType::OPEN_4);
+				if (is_fork_4x4(group))
+					return Threat(ThreatType::FORK_4x4, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
+				if (is_fork_3x3(group))
+					return Threat(ThreatType::FORK_3x3, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
+				return Threat(ThreatType::OPEN_4);
 			}
-			if (is_fork_4x4(group)) // forbidden or win in 3
-				return Threat(ThreatType::FORBIDDEN, ThreatType::FORK_4x4);
+			if (is_fork_4x4(group)) // win in 3
+				return Threat(ThreatType::FORK_4x4);
 			if (is_fork_4x3(group)) // win in 5
-				return Threat(ThreatType::FORK_4x3, ThreatType::FORK_4x3);
-			if (is_fork_3x3(group)) // forbidden or win in 5
-				return Threat(ThreatType::FORBIDDEN, ThreatType::FORK_3x3);  // TODO this requires recursive check for non-trivial 3x3 forks
+			{
+				if (is_fork_3x3(group))
+					return Threat(ThreatType::FORK_3x3, ThreatType::FORK_4x3); // in renju, despite the 4x3 fork being allowed, if there is also 3x3 fork the entire move is forbidden
+				else
+					return Threat(ThreatType::FORK_4x3);
+			}
 		}
 		else
 		{
@@ -88,9 +92,9 @@ namespace
 				return Threat(ThreatType::FORK_4x4);
 			if (is_fork_4x3(group)) // win in 5
 				return Threat(ThreatType::FORK_4x3);
-			if (is_fork_3x3(group)) // win in 5
-				return Threat(ThreatType::FORK_3x3);
 		}
+		if (is_fork_3x3(group)) // win in 5
+			return Threat(ThreatType::FORK_3x3);
 		if (contains(group, PatternType::HALF_OPEN_4))
 			return Threat(ThreatType::HALF_OPEN_4);
 		if (contains(group, PatternType::OPEN_3))

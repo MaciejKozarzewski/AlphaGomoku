@@ -26,7 +26,8 @@ namespace ag::experimental
 		FORK_4x3, // win in 5
 		FORK_4x4, // win in 3
 		OPEN_4, // win in 3
-		FIVE // win in 1
+		FIVE, // win in 1
+		OVERLINE
 	};
 	std::string toString(ThreatType t);
 

@@ -121,19 +121,25 @@ namespace ag
 		for (size_t i = 0; i < str.size(); i++)
 			switch (str.at(i))
 			{
+				case ' ':
+				case '\n':
+					break;
 				case '_':
 				case '!': // special case sometimes used in tests to indicate point of interest
-					result.data()[counter] = Sign::NONE;
+					result[counter] = Sign::NONE;
 					counter++;
 					break;
 				case 'X':
-					result.data()[counter] = Sign::CROSS;
+					result[counter] = Sign::CROSS;
 					counter++;
 					break;
 				case 'O':
-					result.data()[counter] = Sign::CIRCLE;
+					result[counter] = Sign::CIRCLE;
 					counter++;
 					break;
+				default:
+					throw std::logic_error(
+							std::string("Board::fromString() : invalid character '") + str.at(i) + "' in row " + std::to_string(counter / width));
 			}
 		return result;
 	}

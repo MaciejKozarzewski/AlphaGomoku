@@ -18,6 +18,15 @@
 namespace ag
 {
 	template<typename T>
+	int available_symmetries(const matrix<T> &input) noexcept
+	{
+		if (input.isSquare())
+			return 8;
+		else
+			return 4;
+	}
+
+	template<typename T>
 	void augment(matrix<T> &input, int mode) noexcept
 	{
 		if (mode == 0)
