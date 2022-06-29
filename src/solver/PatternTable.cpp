@@ -39,6 +39,7 @@ namespace
 	template<typename T>
 	constexpr T power(T base, T exponent) noexcept
 	{
+		assert(exponent >= 0);
 		T result = 1;
 		for (T i = 0; i < exponent; i++)
 			result *= base;
@@ -308,10 +309,20 @@ namespace
 				for (size_t i = 0; i < str.size(); i++)
 					addPattern(str[i]);
 			}
-			void modifyPatterns(const std::string &prefix, const std::string &postfix)
+			void modifyPatternsAND(const std::string &prefix, const std::string &postfix)
 			{
 				for (auto iter = m_matching_rules.begin(); iter < m_matching_rules.end(); iter++)
 					*iter = MatchingRule(prefix + iter->toString() + postfix);
+			}
+			void modifyPatternsOR(const std::string &prefix, const std::string &postfix)
+			{
+				std::vector<MatchingRule> result;
+				for (auto iter = m_matching_rules.begin(); iter < m_matching_rules.end(); iter++)
+				{
+					result.push_back(MatchingRule(prefix + iter->toString() + "[any]"));
+					result.push_back(MatchingRule("[any]" + iter->toString() + postfix));
+				}
+				m_matching_rules = result;
 			}
 	};
 
@@ -337,17 +348,17 @@ namespace
 				{
 					addPattern("XXXXX");
 					if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsAND("[not X]", "[not X]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsOR("[not O]", "[not O]");
 				}
 				else
 				{
 					addPattern("OOOOO");
 					if (rule == GameRules::STANDARD)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsAND("[not O]", "[not O]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsOR("[not X]", "[not X]");
 				}
 			}
 	};
@@ -361,17 +372,17 @@ namespace
 				{
 					addPattern("_XXXX_");
 					if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsAND("[not X]", "[not X]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsOR("[not O]", "[not O]");
 				}
 				else
 				{
 					addPattern("_OOOO_");
 					if (rule == GameRules::STANDARD)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsAND("[not O]", "[not O]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsOR("[not X]", "[not X]");
 				}
 			}
 	};
@@ -385,17 +396,17 @@ namespace
 				{
 					addPatterns( { "X_XXX_X", "XX_XX_XX", "XXX_X_XXX" });
 					if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsAND("[not X]", "[not X]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsOR("[not O]", "[not O]");
 				}
 				else
 				{
 					addPatterns( { "O_OOO_O", "OO_OO_OO", "OOO_O_OOO" });
 					if (rule == GameRules::STANDARD)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsAND("[not O]", "[not O]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsOR("[not X]", "[not X]");
 				}
 			}
 	};
@@ -409,17 +420,17 @@ namespace
 				{
 					addPatterns( { "_XXXX", "X_XXX", "XX_XX", "XXX_X", "XXXX_" });
 					if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsAND("[not X]", "[not X]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsOR("[not O]", "[not O]");
 				}
 				else
 				{
 					addPatterns( { "_OOOO", "O_OOO", "OO_OO", "OOO_O", "OOOO_" });
 					if (rule == GameRules::STANDARD)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsAND("[not O]", "[not O]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsOR("[not X]", "[not X]");
 				}
 			}
 	};
@@ -433,17 +444,17 @@ namespace
 				{
 					addPatterns( { "_XXX__", "_XX_X_", "_X_XX_", "__XXX_" });
 					if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsAND("[not X]", "[not X]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsOR("[not O]", "[not O]");
 				}
 				else
 				{
 					addPatterns( { "_OOO__", "_OO_O_", "_O_OO_", "__OOO_" });
 					if (rule == GameRules::STANDARD)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsAND("[not O]", "[not O]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsOR("[not X]", "[not X]");
 				}
 			}
 	};
@@ -457,17 +468,17 @@ namespace
 				{
 					addPatterns( { "__XXX", "_X_XX", "_XX_X", "_XXX_", "X__XX", "X_X_X", "X_XX_", "XX__X", "XX_X_", "XXX__" });
 					if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsAND("[not X]", "[not X]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsOR("[not O]", "[not O]");
 				}
 				else
 				{
 					addPatterns( { "__OOO", "_O_OO", "_OO_O", "_OOO_", "O__OO", "O_O_O", "O_OO_", "OO__O", "OO_O_", "OOO__" });
 					if (rule == GameRules::STANDARD)
-						modifyPatterns("[not O]", "[not O]");
+						modifyPatternsAND("[not O]", "[not O]");
 					if (rule == GameRules::CARO)
-						modifyPatterns("[not X]", "[not X]");
+						modifyPatternsOR("[not X]", "[not X]");
 				}
 			}
 	};
@@ -682,7 +693,6 @@ namespace ag::experimental
 		Pattern line(Pattern::length(game_rules));
 
 		for (size_t i = 0; i < patterns.size(); i++)
-//		for (size_t i = 672; i <= 672; i++)
 			if (was_processed[i] == false)
 			{
 				line.decode(i);
