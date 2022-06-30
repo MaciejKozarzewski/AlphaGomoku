@@ -76,7 +76,7 @@ namespace ag
 	};
 
 	/**
-	 * \brief Generator that adds all edges..
+	 * \brief Generator that adds all edges.
 	 */
 	class BalancedGenerator: public EdgeGenerator
 	{
@@ -86,6 +86,47 @@ namespace ag
 		public:
 			BalancedGenerator(int balanceDepth, const EdgeGenerator &baseGenerator);
 			BalancedGenerator* clone() const;
+			void generate(SearchTask &task) const;
+	};
+
+	/**
+	 * \brief Generator that generates balanced moves at depth 0 excluding central NxN square
+	 */
+	class CenterExcludingGenerator: public EdgeGenerator
+	{
+		private:
+			const int square_size;
+			std::unique_ptr<EdgeGenerator> base_generator;
+		public:
+			CenterExcludingGenerator(int squareSize, const EdgeGenerator &baseGenerator);
+			CenterExcludingGenerator* clone() const;
+			void generate(SearchTask &task) const;
+	};
+
+	/**
+	 * \brief Generator that generates balanced moves at depth 0 including only central NxN square
+	 */
+	class CenterOnlyGenerator: public EdgeGenerator
+	{
+		private:
+			const int square_size;
+			std::unique_ptr<EdgeGenerator> base_generator;
+		public:
+			CenterOnlyGenerator(int squareSize, const EdgeGenerator &baseGenerator);
+			CenterOnlyGenerator* clone() const;
+			void generate(SearchTask &task) const;
+	};
+
+	/**
+	 * \brief Generator that generates balanced moves at depth 0 excluding symmetrical moves (if they exist)
+	 */
+	class SymmetricalExcludingGenerator: public EdgeGenerator
+	{
+		private:
+			std::unique_ptr<EdgeGenerator> base_generator;
+		public:
+			SymmetricalExcludingGenerator(const EdgeGenerator &baseGenerator);
+			SymmetricalExcludingGenerator* clone() const;
 			void generate(SearchTask &task) const;
 	};
 

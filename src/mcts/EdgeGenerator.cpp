@@ -7,6 +7,7 @@
 
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
+#include <alphagomoku/utils/augmentations.hpp>
 
 #include <cassert>
 #include <iostream>
@@ -95,6 +96,26 @@ namespace
 				break;
 			}
 		}
+	}
+	bool is_in_center_square(const SearchTask &task, int size, int row, int col)
+	{
+		const int center_row = task.getBoard().rows() / 2;
+		const int center_col = task.getBoard().cols() / 2;
+		return row >= center_row - size and row <= center_row + size and col >= center_col - size and col <= center_col + size;
+	}
+
+	std::vector<int> get_symmetries(const matrix<Sign> &board)
+	{
+		std::vector<int> result;
+		matrix<Sign> copy(board.rows(), board.cols());
+
+		for (int i = 1; i < available_symmetries(board); i++)
+		{
+			augment(copy, board, i);
+			if (copy == board)
+				result.push_back(i);
+		}
+		return result;
 	}
 }
 
@@ -208,7 +229,7 @@ namespace ag
 	{
 		assert(task.isReady());
 
-		if (task.visitedPathLength() == 0)
+		if (task.getRelativeDepth() == 0)
 		{
 			for (int row = 0; row < task.getBoard().rows(); row++)
 				for (int col = 0; col < task.getBoard().cols(); col++)
@@ -242,7 +263,7 @@ namespace ag
 	{
 		assert(task.isReady());
 
-		if (task.getLastPair().node->getDepth() < balance_depth)
+		if (task.getAbsoluteDepth() < balance_depth)
 		{
 			for (int row = 0; row < task.getBoard().rows(); row++)
 				for (int col = 0; col < task.getBoard().cols(); col++)
@@ -260,7 +281,117 @@ namespace ag
 		}
 		else
 			base_generator->generate(task);
+	}
 
+	CenterExcludingGenerator::CenterExcludingGenerator(int squareSize, const EdgeGenerator &baseGenerator) :
+			square_size(squareSize),
+			base_generator(std::unique_ptr<EdgeGenerator>(baseGenerator.clone()))
+	{
+	}
+	CenterExcludingGenerator* CenterExcludingGenerator::clone() const
+	{
+		return new CenterExcludingGenerator(square_size, *base_generator);
+	}
+	void CenterExcludingGenerator::generate(SearchTask &task) const
+	{
+		assert(task.isReady());
+
+		if (task.getRelativeDepth() == 0)
+		{
+			for (int row = 0; row < task.getBoard().rows(); row++)
+				for (int col = 0; col < task.getBoard().cols(); col++)
+					if (task.getBoard().at(row, col) == Sign::NONE and not is_in_center_square(task, square_size, row, col))
+						task.addEdge(Move(row, col, task.getSignToMove()));
+
+			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+			{
+				check_terminal_conditions(task, *edge);
+				assign_policy_and_Q(task, *edge);
+			}
+
+			renormalize_edges(task.getEdges());
+			assert(task.getEdges().size() > 0);
+		}
+		else
+			base_generator->generate(task);
+	}
+
+	CenterOnlyGenerator::CenterOnlyGenerator(int squareSize, const EdgeGenerator &baseGenerator) :
+			square_size(squareSize),
+			base_generator(std::unique_ptr<EdgeGenerator>(baseGenerator.clone()))
+	{
+	}
+	CenterOnlyGenerator* CenterOnlyGenerator::clone() const
+	{
+		return new CenterOnlyGenerator(square_size, *base_generator);
+	}
+	void CenterOnlyGenerator::generate(SearchTask &task) const
+	{
+		assert(task.isReady());
+
+		if (task.getRelativeDepth() == 0)
+		{
+			for (int row = 0; row < task.getBoard().rows(); row++)
+				for (int col = 0; col < task.getBoard().cols(); col++)
+					if (task.getBoard().at(row, col) == Sign::NONE and is_in_center_square(task, square_size, row, col))
+						task.addEdge(Move(row, col, task.getSignToMove()));
+
+			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+			{
+				check_terminal_conditions(task, *edge);
+				assign_policy_and_Q(task, *edge);
+			}
+
+			renormalize_edges(task.getEdges());
+			assert(task.getEdges().size() > 0);
+		}
+		else
+			base_generator->generate(task);
+	}
+
+	SymmetricalExcludingGenerator::SymmetricalExcludingGenerator(const EdgeGenerator &baseGenerator) :
+			base_generator(std::unique_ptr<EdgeGenerator>(baseGenerator.clone()))
+	{
+	}
+	SymmetricalExcludingGenerator* SymmetricalExcludingGenerator::clone() const
+	{
+		return new SymmetricalExcludingGenerator(*base_generator);
+	}
+	void SymmetricalExcludingGenerator::generate(SearchTask &task) const
+	{
+		assert(task.isReady());
+
+		if (task.getRelativeDepth() == 0)
+		{
+			std::vector<Move> tmp_moves;
+			for (int row = 0; row < task.getBoard().rows(); row++)
+				for (int col = 0; col < task.getBoard().cols(); col++)
+					if (task.getBoard().at(row, col) == Sign::NONE)
+						tmp_moves.emplace_back(row, col, task.getSignToMove());
+
+			const std::vector<int> symmetry_modes = get_symmetries(task.getBoard());
+			for (size_t i = 0; i < symmetry_modes.size(); i++)
+				for (size_t j = 0; j < tmp_moves.size(); j++)
+				{
+					const Move augmented = augment(tmp_moves[j], task.getBoard().rows(), task.getBoard().cols(), symmetry_modes[i]);
+					auto position = std::find(tmp_moves.begin() + j + 1, tmp_moves.end(), augmented);
+					if (position != tmp_moves.end())
+						tmp_moves.erase(position);
+				}
+			for (size_t i = 0; i < tmp_moves.size(); i++)
+				task.addEdge(tmp_moves[i]);
+
+			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+			{
+				check_terminal_conditions(task, *edge);
+				assign_policy_and_Q(task, *edge);
+			}
+
+			renormalize_edges(task.getEdges());
+			assert(task.getEdges().size() > 0);
+		}
+		else
+			base_generator->generate(task);
 	}
 
 } /* namespace ag */

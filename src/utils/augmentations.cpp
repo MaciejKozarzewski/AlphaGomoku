@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/utils/augmentations.hpp>
+#include <cassert>
 
 namespace ag
 {
@@ -25,7 +26,7 @@ namespace ag
 				return Move(move.sign, height - 1 - move.row, move.col); // reflect x
 			case 2:
 			case -2:
-				return Move(move.sign, height - 1 - move.row, width - 1 - move.col); // reflect y
+				return Move(move.sign, move.row, width - 1 - move.col); // reflect y
 			case 3:
 			case -3:
 				return Move(move.sign, height - 1 - move.row, width - 1 - move.col); // rotate 180 degrees

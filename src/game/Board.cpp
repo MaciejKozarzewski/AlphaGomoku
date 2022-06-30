@@ -143,6 +143,13 @@ namespace ag
 			}
 		return result;
 	}
+	matrix<Sign> Board::fromListOfMoves(int rows, int cols, const std::vector<Move> &moves)
+	{
+		matrix<Sign> result(rows, cols);
+		for (size_t i = 0; i < moves.size(); i++)
+			Board::putMove(result, moves[i]);
+		return result;
+	}
 	bool Board::isValid(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
 		if (signToMove != Sign::CROSS and signToMove != Sign::CIRCLE)
