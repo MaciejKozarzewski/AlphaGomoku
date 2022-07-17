@@ -12,7 +12,8 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/solver/PatternCalculator.hpp>
-#include <alphagomoku/vcf_solver/FastHashTable.hpp>
+#include <alphagomoku/solver/FastPolicy.hpp>
+#include <alphagomoku/solver/FastHashTable.hpp>
 
 #include <cassert>
 #include <algorithm>
@@ -83,7 +84,7 @@ namespace ag::experimental
 					InternalNode *children = nullptr;
 					Move move;
 					int16_t number_of_children = 0;
-					int8_t prior_value = 0;
+					uint8_t prior_value = 0;
 					SolvedValue solved_value :6;
 					bool must_defend :2;
 
@@ -151,6 +152,7 @@ namespace ag::experimental
 			GameConfig game_config;
 			PatternCalculator pattern_calculator;
 			FastHashTable<uint32_t, SolvedValue, 4> hashtable;
+			FastOrderingPolicy ordering_policy;
 
 			size_t step_counter = 0;
 			int tuning_step = 2;

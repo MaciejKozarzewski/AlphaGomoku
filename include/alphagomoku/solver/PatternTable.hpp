@@ -158,8 +158,7 @@ namespace ag::experimental
 				m_data &= (~(127u << shift));
 				m_data |= (maskIndex << shift);
 			}
-	}
-	;
+	};
 
 	class PatternTable
 	{

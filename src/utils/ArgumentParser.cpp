@@ -15,23 +15,6 @@
 namespace
 {
 	using namespace ag;
-	std::pair<std::string, std::string> parse_launch_path(std::string text)
-	{
-		if (text.find('\\') == std::string::npos and text.find('/') == std::string::npos) // no slashes
-			return std::pair<std::string, std::string>( { "", text });
-		size_t last_slash = text.length();
-		for (size_t i = 0; i < text.length(); i++)
-			if (text[i] == '\\' or text[i] == '/')
-			{
-#if defined(_WIN32)
-				text[i] = '\\';
-#elif defined(__linux__)
-				text[i] = '/';
-#endif
-				last_slash = i + 1;
-			}
-		return std::pair<std::string, std::string>( { text.substr(0, last_slash), text.substr(last_slash) });
-	}
 	std::string combine(const std::vector<std::string> &args)
 	{
 		std::string result;

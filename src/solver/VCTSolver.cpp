@@ -315,6 +315,7 @@ namespace ag::experimental
 			game_config(gameConfig),
 			pattern_calculator(gameConfig),
 			hashtable(gameConfig.rows * gameConfig.cols, 4096),
+			ordering_policy(pattern_calculator, gameConfig),
 			lower_measurement(max_positions),
 			upper_measurement(tuning_step * max_positions)
 	{
@@ -323,6 +324,7 @@ namespace ag::experimental
 	{
 		stats.setup.startTimer();
 		pattern_calculator.setBoard(task.getBoard());
+		ordering_policy.init();
 		depth = Board::numberOfMoves(task.getBoard());
 		attacking_sign = task.getSignToMove();
 		stats.setup.stopTimer();
@@ -705,12 +707,15 @@ namespace ag::experimental
 		calculate_solved_value(node);
 //		node.print();
 
-//		std::sort(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
-//		{
-//			const int lhs_value = lhs.move.row * game_config.cols + lhs.move.col - 1024 * lhs.prior_value;
-//			const int rhs_value = rhs.move.row * game_config.cols + rhs.move.col - 1024 * rhs.prior_value;
-//			return lhs_value < rhs_value;
-//		});
+		// order moves from most to least promising
+		for (auto iter = node.begin(); iter < node.end(); iter++)
+			iter->prior_value = ordering_policy.getValue(iter->move) / 4;
+		std::sort(node.begin(), node.end(), [this](const InternalNode &lhs, const InternalNode &rhs)
+		{	return lhs.prior_value > rhs.prior_value;});
+//		for (auto iter = node.begin(); iter < node.end(); iter++)
+//			std::cout << (int) iter->prior_value << " ";
+//		std::cout << '\n';
+
 		if (not node.hasSolution())
 		{
 			for (int i = 0; i < node.number_of_children; i++)
@@ -736,12 +741,16 @@ namespace ag::experimental
 					{
 						if (position_counter < max_positions)
 						{
-							position_counter += 1.0;
 							pattern_calculator.addMove(iter->move);
+							ordering_policy.update(iter->move);
 							depth++;
+
+							position_counter += 1.0;
 							recursive_solve(*iter);
+
 							depth--;
 							pattern_calculator.undoMove(iter->move);
+							ordering_policy.update(iter->move);
 						}
 						else
 							iter->solved_value = SolvedValue::NO_SOLUTION;

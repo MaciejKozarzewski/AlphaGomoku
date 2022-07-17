@@ -117,14 +117,14 @@ namespace ag
 	}
 	void Game::resolveOutcome()
 	{
-		outcome = ag::getOutcome(rules, current_board);
+		outcome = ag::getOutcome_v2(rules, current_board, getLastMove());
 		if (outcome != GameOutcome::UNKNOWN)
 			for (size_t i = 0; i < search_data.size(); i++)
 				search_data[i].setOutcome(outcome);
 	}
 	bool Game::isOver() const
 	{
-		return ag::getOutcome(rules, current_board) != GameOutcome::UNKNOWN;
+		return ag::getOutcome_v2(rules, current_board, getLastMove()) != GameOutcome::UNKNOWN;
 	}
 	bool Game::isDraw() const
 	{

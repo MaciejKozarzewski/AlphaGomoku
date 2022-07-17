@@ -344,31 +344,7 @@ namespace ag::experimental
 			for (int s = 1; s <= 2; s++)
 			{
 				if (s == 2)
-					std::cout << " : ";
-				switch (getPatternTypeAt(static_cast<Sign>(s), row, col, static_cast<Direction>(i)))
-				{
-					case PatternType::NONE:
-						std::cout << "NONE";
-						break;
-					case PatternType::OPEN_3:
-						std::cout << "OPEN_3";
-						break;
-					case PatternType::HALF_OPEN_4:
-						std::cout << "HALF_OPEN_4";
-						break;
-					case PatternType::OPEN_4:
-						std::cout << "OPEN_4";
-						break;
-					case PatternType::DOUBLE_4:
-						std::cout << "DOUBLE_4";
-						break;
-					case PatternType::FIVE:
-						std::cout << "FIVE";
-						break;
-					case PatternType::OVERLINE:
-						std::cout << "OVERLINE";
-						break;
-				}
+					std::cout << " : " << toString(getPatternTypeAt(static_cast<Sign>(s), row, col, static_cast<Direction>(i)));
 			}
 			std::cout << '\n';
 		}

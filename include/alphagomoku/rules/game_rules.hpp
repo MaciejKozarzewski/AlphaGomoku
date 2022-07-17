@@ -14,8 +14,8 @@
 
 namespace ag
 {
-	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board);
-	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, const Move &last_move);
+//	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board);
+//	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, const Move &last_move);
 
 	GameOutcome getOutcome(GameRules rules, const std::vector<Sign> &line);
 }

@@ -86,6 +86,20 @@ namespace ag
 	std::string printStatistics(const char *name, uint64_t number, double time);
 
 	template<typename T>
+	T cross_entropy(const T *target_begin, const T *target_end, const T *y_begin) noexcept
+	{
+		T result = static_cast<T>(0);
+		while (target_begin < target_end)
+		{
+			const T t = *target_begin;
+			const T y = *y_begin;
+			result += t * std::log(1.0e-16 + y) + (1 - t) * std::log(1.0e-16 + (1 - y));
+			target_begin++;
+			y_begin++;
+		}
+		return -result;
+	}
+	template<typename T>
 	void addVectors(std::vector<T> &dst, const std::vector<T> &src)
 	{
 		assert(dst.size() == src.size());

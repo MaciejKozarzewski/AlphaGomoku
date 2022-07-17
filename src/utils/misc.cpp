@@ -512,7 +512,7 @@ namespace ag
 				board.at(move.row, move.col) = sign_to_move;
 				sign_to_move = invertSign(sign_to_move);
 			}
-			if (getOutcome(config.rules, board) == GameOutcome::UNKNOWN)
+			if (getOutcome_v2(config.rules, board, result.back()) == GameOutcome::UNKNOWN)
 				return result;
 		}
 	}

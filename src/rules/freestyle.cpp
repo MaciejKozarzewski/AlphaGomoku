@@ -9,6 +9,8 @@
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <cassert>
+
 namespace
 {
 	const int ROW_TO_WIN = 5;
