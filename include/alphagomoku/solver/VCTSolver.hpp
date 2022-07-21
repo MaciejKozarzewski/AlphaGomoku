@@ -12,7 +12,6 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/solver/PatternCalculator.hpp>
-#include <alphagomoku/solver/FastPolicy.hpp>
 #include <alphagomoku/solver/FastHashTable.hpp>
 
 #include <cassert>
@@ -84,19 +83,10 @@ namespace ag::experimental
 					InternalNode *children = nullptr;
 					Move move;
 					int16_t number_of_children = 0;
-					uint8_t prior_value = 0;
-					SolvedValue solved_value :6;
-					bool must_defend :2;
+					SolvedValue solved_value = SolvedValue::UNCHECKED;
+					bool must_defend = false;
 
-					InternalNode() noexcept :
-							children(nullptr),
-							number_of_children(0),
-							prior_value(0),
-							solved_value(SolvedValue::UNCHECKED),
-							must_defend(false)
-					{
-					}
-
+					InternalNode() noexcept = default;
 					Sign getSignToMove() const noexcept
 					{
 						return invertSign(move.sign);
@@ -110,7 +100,6 @@ namespace ag::experimental
 						children = nullptr;
 						move = Move(row, col, sign);
 						number_of_children = 0;
-						prior_value = 0;
 						solved_value = sv;
 						must_defend = false;
 					}
@@ -135,7 +124,7 @@ namespace ag::experimental
 						std::cout << "must defend : " << must_defend << '\n' << "Children nodes:\n";
 						for (int i = 0; i < number_of_children; i++)
 							std::cout << i << " : " << children[i].move.toString() << " : " << children[i].move.text() << " = "
-									<< toString(children[i].solved_value) << " " << (int) children[i].prior_value << '\n';
+									<< toString(children[i].solved_value) << '\n';
 						std::cout << std::endl;
 					}
 			};
@@ -152,7 +141,6 @@ namespace ag::experimental
 			GameConfig game_config;
 			PatternCalculator pattern_calculator;
 			FastHashTable<uint32_t, SolvedValue, 4> hashtable;
-			FastOrderingPolicy ordering_policy;
 
 			size_t step_counter = 0;
 			int tuning_step = 2;
@@ -194,6 +182,7 @@ namespace ag::experimental
 					bool excludeDuplicates = false) noexcept;
 			void delete_children_nodes(InternalNode &node) noexcept;
 			void calculate_solved_value(InternalNode &node) noexcept;
+			void sort_nodes(InternalNode *begin, InternalNode *end);
 	};
 
 } /* namespace ag */
