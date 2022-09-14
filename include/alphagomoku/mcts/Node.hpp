@@ -222,6 +222,14 @@ namespace ag
 				sign_to_move = s;
 			}
 
+			void removeEdge(int index)
+			{
+				assert(is_owning); // removing edges of non-owning nodes (in the tree) might not be the best idea, even if it's correctly implemented (which I'm not sure)
+				assert(index >= 0 && index < number_of_edges);
+				std::swap(edges[index], edges[number_of_edges - 1]);
+				number_of_edges--;
+			}
+
 			std::string toString() const;
 			void sortEdges() const;
 	};
