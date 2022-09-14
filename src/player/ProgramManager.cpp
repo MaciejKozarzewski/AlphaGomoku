@@ -13,6 +13,7 @@
 
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/protocols/ExtendedGomocupProtocol.hpp>
+#include <alphagomoku/protocols/YixinBoardProtocol.hpp>
 
 #include <alphagomoku/player/controllers/dispatcher.hpp>
 
@@ -311,7 +312,10 @@ namespace ag
 				protocol = std::make_unique<ExtendedGomocupProtocol>(input_queue, output_queue);
 				break;
 			case ProtocolType::YIXINBOARD:
+				protocol = std::make_unique<YixinBoardProtocol>(input_queue, output_queue);
 				break;
+			default:
+				throw std::logic_error("Unknown protocol type '" + config["protocol"].getString() + "'");
 		}
 		assert(protocol != nullptr);
 		Logger::write("Using " + toString(protocol->getType()) + " protocol");
