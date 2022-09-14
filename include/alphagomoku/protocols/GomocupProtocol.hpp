@@ -32,6 +32,7 @@ namespace ag
 			void check_move_validity(Move move, const std::vector<Move> &playedMoves) const;
 			std::string parse_search_summary(const SearchSummary &summary) const;
 			std::vector<Move> parse_list_of_moves(InputListener &listener, const std::string &ending) const;
+			std::vector<Move> parse_ordered_moves(InputListener &listener, const std::string &ending) const;
 			/*
 			 * Output processing
 			 */

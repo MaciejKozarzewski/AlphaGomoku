@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/protocols/ExtendedGomocupProtocol.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/version.hpp>
@@ -48,7 +49,7 @@ namespace ag
 		registerInputProcessor("longproboard",	[this](InputListener &listener) { this->longproboard(listener);});
 		registerInputProcessor("swapboard",		[this](InputListener &listener) { this->swapboard(listener);});
 		registerInputProcessor("swap2board",	[this](InputListener &listener) { this->swap2board(listener);});
-		// @formatter:on
+// @formatter:on
 	}
 	void ExtendedGomocupProtocol::reset()
 	{
@@ -231,7 +232,13 @@ namespace ag
 		std::vector<Move> moves = parse_list_of_moves(listener, "DONE");
 		if (is_renju_rule)
 		{
-			output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported")); // TODO add detecting of forbidden moves for renju
+			const matrix<Sign> board = Board::fromListOfMoves(rows, columns, moves);
+			std::string response = "FORBID";
+			for (int r = 0; r < board.rows(); r++)
+				for (int c = 0; c < board.cols(); c++)
+					if (isForbidden(board, Move(r, c, Sign::CROSS)))
+						response += " " + moveToString(Move(r, c));
+			output_queue.push(Message(MessageType::PLAIN_STRING, response));
 		}
 		else
 			output_queue.push(Message(MessageType::PLAIN_STRING, "FORBID"));
@@ -285,21 +292,7 @@ namespace ag
 	void ExtendedGomocupProtocol::swapboard(InputListener &listener)
 	{
 		listener.consumeLine("swapboard");
-
-		list_of_moves.clear();
-		std::string line1 = listener.getLine();
-		if (line1 != "done") // 3 stones were placed
-		{
-			std::string line2 = listener.getLine();
-			std::string line3 = listener.getLine();
-			add_new_move(moveFromString(line1, Sign::CROSS));
-			add_new_move(moveFromString(line2, Sign::CIRCLE));
-			add_new_move(moveFromString(line3, Sign::CROSS));
-
-			std::string line4 = listener.getLine();
-			if (line4 != "done")
-				throw ProtocolRuntimeException("Expected 'DONE' at the end, got '" + line4 + "'");
-		}
+		list_of_moves = parse_ordered_moves(listener, "done");
 
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
@@ -308,29 +301,8 @@ namespace ag
 	void ExtendedGomocupProtocol::swap2board(InputListener &listener)
 	{
 		listener.consumeLine("swap2board");
+		list_of_moves = parse_ordered_moves(listener, "done");
 
-		list_of_moves.clear();
-		std::string line1 = listener.getLine();
-		if (line1 != "done") // 3 stones were placed
-		{
-			std::string line2 = listener.getLine();
-			std::string line3 = listener.getLine();
-			add_new_move(moveFromString(line1, Sign::CROSS));
-			add_new_move(moveFromString(line2, Sign::CIRCLE));
-			add_new_move(moveFromString(line3, Sign::CROSS));
-
-			std::string line4 = listener.getLine();
-			if (line4 != "done") // 5 stones were placed
-			{
-				std::string line5 = listener.getLine();
-				std::string line6 = listener.getLine(); // DONE
-				add_new_move(moveFromString(line4, Sign::CIRCLE));
-				add_new_move(moveFromString(line5, Sign::CROSS));
-
-				if (line6 != "done")
-					throw ProtocolRuntimeException("Expected 'DONE' at the end, got '" + line6 + "'");
-			}
-		}
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
 		input_queue.push(Message(MessageType::START_SEARCH, "swap2"));

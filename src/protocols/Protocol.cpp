@@ -44,6 +44,8 @@ namespace ag
 	{
 		std::lock_guard lock(listener_mutex);
 		input_queue.push(line);
+		if (not case_sensitive)
+			toLowerCase(input_queue.back());
 		listener_cond.notify_all();
 	}
 

@@ -29,11 +29,11 @@ namespace ag
 			std::queue<std::string> input_queue;
 			mutable std::mutex listener_mutex;
 			std::condition_variable listener_cond;
-			bool case_sensitive = true;
+			bool case_sensitive = false;
 
 		public:
 			InputListener() = default;
-			InputListener(std::istream &inputStream, bool caseSensitive = true);
+			InputListener(std::istream &inputStream, bool caseSensitive = false);
 			InputListener(const InputListener &other) = delete;
 			InputListener(InputListener &&other) = default;
 			InputListener& operator=(const InputListener &other) = delete;

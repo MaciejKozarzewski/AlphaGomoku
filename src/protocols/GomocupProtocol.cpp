@@ -55,7 +55,7 @@ namespace ag
 		registerInputProcessor("end",				[this](InputListener &listener) { this->end(listener);});
 		registerInputProcessor("about",				[this](InputListener &listener) { this->about(listener);});
 		registerInputProcessor("unknown",			[this](InputListener &listener) { this->unknown(listener);});
-		// @formatter:on
+// @formatter:on
 	}
 	void GomocupProtocol::reset()
 	{
@@ -198,6 +198,26 @@ namespace ag
 		{
 			result.push_back(own_moves[i]);
 			result.push_back(opp_moves[i]);
+		}
+		return result;
+	}
+	std::vector<Move> GomocupProtocol::parse_ordered_moves(InputListener &listener, const std::string &ending) const
+	{
+		std::vector<Move> result;
+		Sign sign_to_move = Sign::CROSS;
+		while (true)
+		{
+			std::string line = listener.getLine();
+			if (line == ending)
+				break;
+			std::vector<std::string> tmp = split(line, ',');
+			if (tmp.size() != 2u)
+				throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
+
+			Move m(std::stoi(tmp.at(1)), std::stoi(tmp.at(0)), sign_to_move);
+			check_move_validity(m, result);
+			result.push_back(m);
+			sign_to_move = invertSign(sign_to_move);
 		}
 		return result;
 	}
