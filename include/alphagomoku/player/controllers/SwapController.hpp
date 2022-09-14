@@ -12,6 +12,13 @@
 
 namespace ag
 {
+	/*
+	 * \brief Controller for 'swap' opening rule:
+	 * - The first player puts 2 black and 1 white stones anywhere on the board.
+	 * - The second player has 2 options:
+	 * 		(a) stay with white,
+	 * 		(b) swap,
+	 */
 	class SwapController: public EngineController
 	{
 		private:
@@ -26,9 +33,6 @@ namespace ag
 		public:
 			SwapController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine);
 			void control(MessageQueue &outputQueue);
-		private:
-			void start_search();
-			void stop_search();
 	};
 } /* namespace ag */
 

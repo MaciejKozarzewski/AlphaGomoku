@@ -23,19 +23,17 @@ namespace ag
 		if (state == ControllerState::SETUP)
 		{
 			time_manager.startTimer();
-			start_search();
+			start_best_move_search();
 			state = ControllerState::SEARCH;
 		}
 
 		if (state == ControllerState::SEARCH)
 		{
 			const SearchSummary summary = search_engine.getSummary( { }, false);
-			if (time_manager.getElapsedTime() > time_manager.getTimeForTurn(engine_settings, summary.node.getDepth(), summary.node.getValue())
-					or search_engine.isSearchFinished())
+			const double time_for_turn = time_manager.getTimeForTurn(engine_settings, summary.node.getDepth(), summary.node.getValue());
+			if (is_search_completed(time_for_turn))
 			{
-				search_engine.stopSearch();
-				time_manager.stopTimer();
-				time_manager.resetTimer();
+				stop_search();
 				state = ControllerState::GET_BEST_ACTION;
 			}
 			else
@@ -44,13 +42,11 @@ namespace ag
 
 		if (state == ControllerState::GET_BEST_ACTION)
 		{
-			search_engine.logSearchInfo();
 			SearchSummary summary = search_engine.getSummary( { }, true);
 			summary.time_used = time_manager.getLastSearchTime();
 			outputQueue.push(Message(MessageType::INFO_MESSAGE, summary));
 
-			BestEdgeSelector selector;
-			Move best_move = selector.select(&summary.node)->getMove();
+			const Move best_move = get_best_move(summary);
 			outputQueue.push(Message(MessageType::BEST_MOVE, best_move));
 
 			if (engine_settings.isUsingAutoPondering() and not engine_settings.isInAnalysisMode())
@@ -59,7 +55,7 @@ namespace ag
 				Board::putMove(board, best_move);
 				search_engine.setPosition(board, invertSign(best_move.sign));
 
-				start_search();
+				start_best_move_search();
 				state = ControllerState::PONDERING;
 			}
 			else
@@ -71,16 +67,6 @@ namespace ag
 			if (search_engine.isSearchFinished())
 				state = ControllerState::IDLE;
 		}
-	}
-	/*
-	 * private
-	 */
-	void MatchController::start_search()
-	{
-		SearchConfig cfg = engine_settings.getSearchConfig();
-		search_engine.setEdgeSelector(PuctSelector(cfg.exploration_constant, engine_settings.getStyleFactor()));
-		search_engine.setEdgeGenerator(SolverGenerator(cfg.expansion_prior_treshold, cfg.max_children));
-		search_engine.startSearch();
 	}
 } /* namespace ag */
 

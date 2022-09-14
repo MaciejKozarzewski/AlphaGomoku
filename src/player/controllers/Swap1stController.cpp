@@ -1,21 +1,22 @@
 /*
- * SwapController.cpp
+ * Swap1stController.cpp
  *
- *  Created on: Apr 5, 2022
+ *  Created on: Jul 1, 2022
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/player/controllers/SwapController.hpp>
+#include <alphagomoku/player/controllers/Swap1stController.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
+#include <alphagomoku/utils/Logger.hpp>
 
 namespace ag
 {
-	SwapController::SwapController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine) :
+	Swap1stController::Swap1stController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine) :
 			EngineController(settings, manager, engine)
 	{
 	}
-	void SwapController::control(MessageQueue &outputQueue)
+	void Swap1stController::control(MessageQueue &outputQueue)
 	{
 		if (state == ControllerState::IDLE)
 			return;
@@ -25,24 +26,28 @@ namespace ag
 			switch (Board::numberOfMoves(search_engine.getBoard()))
 			{
 				case 0:
-					state = ControllerState::PUT_FIRST_3_STONES;
+					Logger::write("Placing first stone");
+					state = ControllerState::PUT_FIRST_STONE;
 					break;
-				case 3:
-					state = ControllerState::EVALUATE_FIRST_3_STONES;
+				case 1:
+					Logger::write("Evaluating first stone");
+					state = ControllerState::EVALUATE_FIRST_STONE;
 					start_best_move_search();
 					break;
 			}
 		}
 
-		if (state == ControllerState::PUT_FIRST_3_STONES)
+		if (state == ControllerState::PUT_FIRST_STONE)
 		{
-			const int r = randInt(engine_settings.getSwap2Openings().size());
-			Message msg(MessageType::BEST_MOVE, engine_settings.getSwap2Openings()[r]);
-			outputQueue.push(msg);
+			// TODO add loading first balanced move
+//			const int r = randInt(engine_settings.getSwap1stOpenings().size());
+//			Message msg(MessageType::BEST_MOVE, engine_settings.getSwap1stOpenings()[r]);
+//			outputQueue.push(msg);
 			state = ControllerState::IDLE;
+			return;
 		}
 
-		if (state == ControllerState::EVALUATE_FIRST_3_STONES)
+		if (state == ControllerState::EVALUATE_FIRST_STONE)
 		{
 			if (is_search_completed(time_manager.getTimeForOpening(engine_settings)))
 			{
@@ -54,8 +59,6 @@ namespace ag
 					outputQueue.push(Message(MessageType::BEST_MOVE, get_best_move(summary)));
 				state = ControllerState::IDLE;
 			}
-			else
-				return;
 		}
 	}
 

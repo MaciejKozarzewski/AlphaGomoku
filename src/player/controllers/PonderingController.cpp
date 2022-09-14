@@ -22,11 +22,7 @@ namespace ag
 
 		if (state == ControllerState::SETUP)
 		{
-			time_manager.startTimer();
-			SearchConfig cfg = engine_settings.getSearchConfig();
-			search_engine.setEdgeSelector(PuctSelector(cfg.exploration_constant, engine_settings.getStyleFactor()));
-			search_engine.setEdgeGenerator(SolverGenerator(cfg.expansion_prior_treshold, cfg.max_children));
-			search_engine.startSearch();
+			start_best_move_search();
 			state = ControllerState::PONDERING;
 		}
 
@@ -34,6 +30,7 @@ namespace ag
 		{
 			if (time_manager.getElapsedTime() > engine_settings.getTimeForPondering() or search_engine.isSearchFinished())
 			{
+				stop_search(false);
 				search_engine.stopSearch();
 				time_manager.stopTimer();
 				time_manager.resetTimer();

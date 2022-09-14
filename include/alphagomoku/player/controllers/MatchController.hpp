@@ -27,8 +27,6 @@ namespace ag
 		public:
 			MatchController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine);
 			void control(MessageQueue &outputQueue);
-		private:
-			void start_search();
 	};
 } /* namespace ag */
 
