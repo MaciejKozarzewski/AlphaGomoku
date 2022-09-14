@@ -99,9 +99,9 @@ namespace
 	}
 	bool is_in_center_square(const SearchTask &task, int size, int row, int col)
 	{
-		const int center_row = task.getBoard().rows() / 2;
-		const int center_col = task.getBoard().cols() / 2;
-		return row >= center_row - size and row <= center_row + size and col >= center_col - size and col <= center_col + size;
+		const int top = task.getBoard().rows() / 2 - size / 2;
+		const int left = task.getBoard().cols() / 2 - size / 2;
+		return row >= top and row < top + size and col >= left and col < left + size;
 	}
 
 	std::vector<int> get_symmetries(const matrix<Sign> &board)
