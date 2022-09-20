@@ -29,9 +29,9 @@ namespace ag
 			friend class ObjectPool<T> ;
 		private:
 			T *m_block_start = nullptr; // non-owning
-			size_t m_block_size = 0;
-			size_t m_source_block_index = -1;
-			BlockDescriptor(T *start, size_t size, size_t sourceIndex) noexcept :
+			uint32_t m_block_size = 0;
+			uint32_t m_source_block_index = -1;
+			BlockDescriptor(T *start, uint32_t size, uint32_t sourceIndex) noexcept :
 					m_block_start(start),
 					m_block_size(size),
 					m_source_block_index(sourceIndex)
@@ -42,7 +42,7 @@ namespace ag
 			/**
 			 * \brief Extract elements from the block, effectively reducing its size
 			 */
-			BlockDescriptor<T> getSubBlock(size_t size) noexcept
+			BlockDescriptor<T> getSubBlock(uint32_t size) noexcept
 			{
 				assert(m_block_start != nullptr);
 				assert(size <= m_block_size);

@@ -7,7 +7,11 @@ All notable changes to this project will be documented in this file.
 ### Added
  
 ### Changed
-- Reduced memory consumption by about 8% (on average).
+- Reduced memory consumption by about 26% (on average).
+- Improved solver.
+- Added support for Renju and Caro rule.
+- Added basic support for Yixin protocol
+- Added support for more opening rules.
  
 ### Fixed
 

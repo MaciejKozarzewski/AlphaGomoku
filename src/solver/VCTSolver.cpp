@@ -656,7 +656,7 @@ namespace ag::experimental
 			return true;
 		}
 
-		const std::vector<Move> opp_half_open_4 = get_opp_threats(node, ThreatType::HALF_OPEN_4);
+//		const std::vector<Move> opp_half_open_4 = get_opp_threats(node, ThreatType::HALF_OPEN_4);
 //		for (auto move = opp_half_open_4.begin(); move < opp_half_open_4.end(); move++)
 //		{
 //			const std::array<PatternType, 4> patterns = pattern_calculator.getPatternTypeAt(opp_sign, move->row, move->col);
