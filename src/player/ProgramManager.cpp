@@ -292,8 +292,8 @@ namespace ag
 		launch_path += "networks" + path_separator;
 		config["networks"]["freestyle"] = launch_path + config["networks"]["freestyle"].getString();
 		config["networks"]["standard"] = launch_path + config["networks"]["standard"].getString();
-		// TODO later add processing of path to renju network
-		// TODO later add processing of path to caro network
+		config["networks"]["renju"] = launch_path + config["networks"]["renju"].getString();
+		config["networks"]["caro"] = launch_path + config["networks"]["caro"].getString();
 	}
 
 	void ProgramManager::setup_protocol()
@@ -415,9 +415,9 @@ namespace ag
 			case GameRules::FREESTYLE:
 				return cfg.rows == 20 and cfg.cols == 20;
 			case GameRules::STANDARD:
-				return cfg.rows == 15 and cfg.cols == 15;
 			case GameRules::RENJU:
 			case GameRules::CARO:
+				return cfg.rows == 15 and cfg.cols == 15;
 			default:
 				return false;
 		}

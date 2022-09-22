@@ -217,8 +217,7 @@ namespace ag
 				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::STANDARD) }));
 				break;
 			case 2:
-//				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) })); TODO uncomment this once this rule is supported
-				output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported"));
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) }));
 				break;
 			default:
 				output_queue.push(Message(MessageType::ERROR, "Invalid rule " + data));

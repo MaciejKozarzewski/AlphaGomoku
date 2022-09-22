@@ -73,6 +73,8 @@ namespace ag
 	{
 		moves_left_estimators.insert( { GameRules::FREESTYLE, get_freestyle_estimator() });
 		moves_left_estimators.insert( { GameRules::STANDARD, get_standard_estimator() });
+		moves_left_estimators.insert( { GameRules::RENJU, get_standard_estimator() });
+		moves_left_estimators.insert( { GameRules::CARO, get_standard_estimator() });
 	}
 	void TimeManager::resetTimer() noexcept
 	{

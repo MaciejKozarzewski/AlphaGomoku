@@ -300,8 +300,7 @@ namespace ag
 				output_queue.push(Message(MessageType::ERROR, "Continuous game is not supported"));
 				return;
 			case 4:
-//				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) })); TODO uncomment this once this rule is supported
-				output_queue.push(Message(MessageType::ERROR, "Renju rule is not supported"));
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) }));
 				return;
 			default:
 				output_queue.push(Message(MessageType::ERROR, "Invalid rule " + data));
