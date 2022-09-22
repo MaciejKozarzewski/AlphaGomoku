@@ -7,6 +7,7 @@
 
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <libml/utils/json.hpp>
 #include <libml/utils/serialization.hpp>
 
@@ -128,7 +129,7 @@ namespace ag
 	}
 	bool Game::isDraw() const
 	{
-		return isBoardFull(current_board);
+		return Board::isFull(current_board);
 	}
 	GameOutcome Game::getOutcome() const noexcept
 	{

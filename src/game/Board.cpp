@@ -8,10 +8,6 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/configs.hpp>
-#include <alphagomoku/rules/freestyle.hpp>
-#include <alphagomoku/rules/standard.hpp>
-#include <alphagomoku/rules/renju.hpp>
-#include <alphagomoku/rules/caro.hpp>
 
 #include <algorithm>
 #include <iostream>
@@ -104,19 +100,28 @@ namespace
 		return result;
 	}
 
+	struct board_size
+	{
+			int rows;
+			int cols;
+	};
+	board_size get_board_size_from_string(const std::string &str)
+	{
+		int height = std::count(str.begin(), str.end(), '\n');		// every line must end with new line character "\n"
+		assert(height != 0);
+		assert(str.size() % height == 0);
+		int width = std::count(str.begin(), str.end(), ' ') / height; // every board spot must contain exactly one leading space
+		assert(std::count(str.begin(), str.end(), ' ') == height * width);
+		return board_size { height, width };
+	}
 }
 
 namespace ag
 {
 	matrix<Sign> Board::fromString(const std::string &str)
 	{
-		int height = std::count(str.begin(), str.end(), '\n'); // every line must end with new line character "\n"
-		assert(height != 0);
-		assert(str.size() % height == 0);
-		int width = std::count(str.begin(), str.end(), ' ') / height; // every board spot must contain exactly one leading space
-
-		assert(std::count(str.begin(), str.end(), ' ') == height * width);
-		matrix<Sign> result(height, width);
+		const board_size size = get_board_size_from_string(str);
+		matrix<Sign> result(size.rows, size.cols);
 		int counter = 0;
 		for (size_t i = 0; i < str.size(); i++)
 			switch (str.at(i))
@@ -139,7 +144,7 @@ namespace ag
 					break;
 				default:
 					throw std::logic_error(
-							std::string("Board::fromString() : invalid character '") + str.at(i) + "' in row " + std::to_string(counter / width));
+							std::string("Board::fromString() : invalid character '") + str.at(i) + "' in row " + std::to_string(counter / size.cols));
 			}
 		return result;
 	}
@@ -148,6 +153,15 @@ namespace ag
 		matrix<Sign> result(rows, cols);
 		for (size_t i = 0; i < moves.size(); i++)
 			Board::putMove(result, moves[i]);
+		return result;
+	}
+	std::vector<Move> Board::extractMoves(const std::string &str)
+	{
+		const board_size size = get_board_size_from_string(str);
+		std::vector<Move> result;
+		for (size_t i = 0; i < str.size(); i++)
+			if (str.at(i) == '!')
+				result.push_back(Move(i / size.cols, i % size.cols)); // FIXME this is incorrect
 		return result;
 	}
 	bool Board::isValid(const matrix<Sign> &board, Sign signToMove) noexcept
@@ -171,42 +185,6 @@ namespace ag
 	{
 		return std::none_of(board.begin(), board.end(), [](Sign s)
 		{	return s == Sign::NONE;});
-	}
-	bool Board::isForbidden(const matrix<Sign> &board, Move move) noexcept
-	{
-		return false; // TODO
-	}
-	GameOutcome Board::getOutcome(GameRules rules, const matrix<Sign> &board) noexcept
-	{
-		switch (rules)
-		{
-			default:
-				return GameOutcome::UNKNOWN;
-			case GameRules::FREESTYLE:
-				return getOutcomeFreestyle(board);
-			case GameRules::STANDARD:
-				return getOutcomeStandard(board);
-			case GameRules::RENJU:
-				return getOutcomeRenju(board);
-			case GameRules::CARO:
-				return getOutcomeCaro(board);
-		}
-	}
-	GameOutcome Board::getOutcome(GameRules rules, const matrix<Sign> &board, Move lastMove) noexcept
-	{
-		switch (rules)
-		{
-			default:
-				return GameOutcome::UNKNOWN;
-			case GameRules::FREESTYLE:
-				return getOutcomeFreestyle(board, lastMove);
-			case GameRules::STANDARD:
-				return getOutcomeStandard(board, lastMove);
-			case GameRules::RENJU:
-				return getOutcomeRenju(board, lastMove);
-			case GameRules::CARO:
-				return getOutcomeCaro(board, lastMove);
-		}
 	}
 
 	std::string Board::toString(const matrix<Sign> &board, bool prettyPrint)

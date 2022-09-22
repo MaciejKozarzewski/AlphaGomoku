@@ -7,6 +7,7 @@
 
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/game/Board.hpp>
 
 #include <libml/utils/serialization.hpp>
 
@@ -159,10 +160,10 @@ namespace ag
 		std::cout << "next move " << played_move.toString() << '\n';
 		std::cout << "minimax " << minimax_value.toString() << ", proven " << toString(proven_value) << '\n';
 		std::cout << "game outcome " << toString(game_outcome) << '\n';
-		std::cout << "board\n" << boardToString(board);
-		std::cout << "policy\n" << policyToString(board, policy);
-		std::cout << "proven values\n" << provenValuesToString(board, proven_values);
-		std::cout << "action values\n" << actionValuesToString(board, action_values);
+		std::cout << "board\n" << Board::toString(board);
+		std::cout << "policy\n" << Board::toString(board, policy);
+		std::cout << "proven values\n" << Board::toString(board, proven_values);
+		std::cout << "action values\n" << Board::toString(board, action_values);
 	}
 	bool SearchData::isCorrect() const noexcept
 	{

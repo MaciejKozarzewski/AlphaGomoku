@@ -56,10 +56,10 @@ namespace
 	{
 		if (not edge.isProven())
 		{
-			Move move = edge.getMove();
+			const Move move = edge.getMove();
 
 			Board::putMove(task.getBoard(), move);
-			GameOutcome outcome = Board::getOutcome(task.getGameRules(), task.getBoard(), move);
+			const GameOutcome outcome = getOutcome_v2(task.getGameRules(), task.getBoard(), move);
 			Board::undoMove(task.getBoard(), move);
 
 			edge.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
@@ -71,20 +71,20 @@ namespace
 		{
 			case ProvenValue::UNKNOWN:
 			{
-				Move move = edge.getMove();
+				const Move move = edge.getMove();
 				edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
 				edge.setValue(task.getActionValues().at(move.row, move.col));
 				break;
 			}
 			case ProvenValue::LOSS:
 			{
-				edge.setPolicyPrior(1.0e-6f); // setting zero would crash renormalization in case when all moves are provably losing as the policy sum would be 0
+				edge.setPolicyPrior(0.0f);
 				edge.setValue(Value(0.0f, 0.0f, 1.0f));
 				break;
 			}
 			case ProvenValue::DRAW:
 			{
-				Move move = edge.getMove();
+				const Move move = edge.getMove();
 				edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
 				edge.setValue(Value(0.0f, 1.0f, 0.0f));
 				break;

@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 
 #include <cinttypes>
@@ -36,19 +37,6 @@ namespace
 		thread_local std::mt19937_64 generator(0);
 #endif
 		return generator();
-	}
-
-	struct board_size
-	{
-			int rows;
-			int cols;
-	};
-	board_size get_board_size_from_string(const std::string &str)
-	{
-		int height = std::count(str.begin(), str.end(), '\n');		// every line must end with new line character "\n"
-		assert(str.size() % height == 0);
-		int width = std::count(str.begin(), str.end(), ' ') / height; // every board spot must contain exactly one leading space
-		return board_size { height, width };
 	}
 }
 
@@ -101,213 +89,6 @@ namespace ag
 		// for more information about date/time format
 		strftime(buf, sizeof(buf), "%Y_%m_%d_%H%M%S", &tstruct);
 		return buf;
-	}
-
-	bool isBoardFull(const matrix<Sign> &board)
-	{
-		return std::none_of(board.begin(), board.end(), [](Sign s)
-		{	return s == Sign::NONE;});
-	}
-	bool isBoardEmpty(const matrix<Sign> &board)
-	{
-		return std::all_of(board.begin(), board.end(), [](Sign s)
-		{	return s == Sign::NONE;});
-	}
-
-	matrix<Sign> boardFromString(const std::string &str)
-	{
-		board_size size = get_board_size_from_string(str);
-		matrix<Sign> result(size.rows, size.cols);
-		int counter = 0;
-		for (size_t i = 0; i < str.size(); i++)
-			switch (str.at(i))
-			{
-				case '_':
-					result.data()[counter] = Sign::NONE;
-					counter++;
-					break;
-				case 'X':
-					result.data()[counter] = Sign::CROSS;
-					counter++;
-					break;
-				case 'O':
-					result.data()[counter] = Sign::CIRCLE;
-					counter++;
-					break;
-			}
-		return result;
-	}
-	std::vector<Move> extractMoves(const std::string &str)
-	{
-		board_size size = get_board_size_from_string(str);
-		std::vector<Move> result;
-		for (size_t i = 0; i < str.size(); i++)
-			if (str.at(i) == '!')
-				result.push_back(Move(i / size.cols, i % size.cols)); // FIXME this is incorrect
-		return result;
-	}
-	std::string boardToString(const matrix<Sign> &board, const Move &lastMove)
-	{
-		std::string result;
-		for (int i = 0; i < board.rows(); i++)
-		{
-			for (int j = 0; j < board.cols(); j++)
-			{
-				if (lastMove.sign != Sign::NONE)
-				{
-					if (i == lastMove.row && j == lastMove.col)
-						result += '>';
-					else
-					{
-						if (i == lastMove.row && j == lastMove.col + 1)
-							result += '<';
-						else
-							result += ' ';
-					}
-				}
-				switch (board.at(i, j))
-				{
-					case Sign::NONE:
-						result += "_";
-						break;
-					case Sign::CROSS:
-						result += "X";
-						break;
-					case Sign::CIRCLE:
-						result += "O";
-						break;
-					default:
-						break;
-				}
-			}
-			if (lastMove.sign != Sign::NONE)
-			{
-				if (i == lastMove.row && board.cols() - 1 == lastMove.col)
-					result += '<';
-				else
-					result += ' ';
-			}
-			result += '\n';
-		}
-		return result;
-	}
-	std::string provenValuesToString(const matrix<Sign> &board, const matrix<ProvenValue> &pv)
-	{
-		assert(board.rows() == pv.rows());
-		assert(board.cols() == pv.cols());
-		std::string result;
-		for (int i = 0; i < board.rows(); i++)
-		{
-			for (int j = 0; j < board.cols(); j++)
-			{
-				if (board.at(i, j) == Sign::NONE)
-				{
-					switch (pv.at(i, j))
-					{
-						case ProvenValue::UNKNOWN:
-							result += " _ ";
-							break;
-						case ProvenValue::LOSS:
-							result += ">L<";
-							break;
-						case ProvenValue::DRAW:
-							result += ">D<";
-							break;
-						case ProvenValue::WIN:
-							result += ">W<";
-							break;
-					}
-				}
-				else
-					result += (board.at(i, j) == Sign::CROSS) ? " X " : " O ";
-			}
-			result += '\n';
-		}
-		return result;
-	}
-	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy)
-	{
-		assert(board.rows() == policy.rows());
-		assert(board.cols() == policy.cols());
-		std::string result;
-		for (int i = 0; i < board.rows(); i++)
-		{
-			for (int j = 0; j < board.cols(); j++)
-			{
-				if (board.at(i, j) == Sign::NONE)
-				{
-					int t = (int) (1000 * policy.at(i, j));
-					if (t == 0)
-						result += "  _ ";
-					else
-					{
-						if (t < 1000)
-							result += ' ';
-						if (t < 100)
-							result += ' ';
-						if (t < 10)
-							result += ' ';
-						result += std::to_string(t);
-					}
-				}
-				else
-					result += (board.at(i, j) == Sign::CROSS) ? "  X " : "  O ";
-			}
-			result += '\n';
-		}
-		return result;
-	}
-	std::string actionValuesToString(const matrix<Sign> &board, const matrix<Value> &actionValues)
-	{
-		assert(board.rows() == actionValues.rows());
-		assert(board.cols() == actionValues.cols());
-		std::string result;
-		for (int i = 0; i < board.rows(); i++)
-		{
-			for (int j = 0; j < board.cols(); j++)
-			{
-				if (board.at(i, j) == Sign::NONE)
-				{
-					if (actionValues.at(i, j) == Value())
-						result += "  _ ";
-					else
-					{
-						int t = std::min(999, (int) (1000 * (actionValues.at(i, j).win + 0.5f * actionValues.at(i, j).draw)));
-						result += ' ';
-						if (t < 100)
-							result += ' ';
-						if (t < 10)
-							result += ' ';
-						result += std::to_string(t);
-					}
-				}
-				else
-					result += (board.at(i, j) == Sign::CROSS) ? "  X " : "  O ";
-			}
-			result += '\n';
-		}
-		return result;
-	}
-
-	std::string printStatistics(const char *name, uint64_t number, double time)
-	{
-		std::string result(name);
-		double t = (number == 0) ? 0.0 : time / number;
-		char unit = ' ';
-		if (t < 1.0e-3)
-		{
-			t *= 1.0e6;
-			unit = 'u';
-		}
-		else
-		{
-			if (t < 1.0)
-			{
-				t *= 1.0e3;
-				unit = 'm';
-			}
-		}
-		return result + " = " + std::to_string(time) + "s : " + std::to_string(number) + " : " + std::to_string(t) + ' ' + unit + "s\n";
 	}
 
 	void maskIllegalMoves(const matrix<Sign> &board, matrix<float> &policy)
@@ -460,7 +241,7 @@ namespace ag
 	{
 		assert(board.rows() == dist.rows());
 		assert(board.cols() == dist.cols());
-		if (isBoardEmpty(board))
+		if (Board::isEmpty(board))
 		{
 			for (int i = 0; i < board.rows(); i++)
 				for (int j = 0; j < board.cols(); j++)

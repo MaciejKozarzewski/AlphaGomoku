@@ -32,8 +32,8 @@ namespace ag
 			uint64_t draw_rate :22;
 			uint32_t visits = 0;
 			uint16_t move = 0;
-			uint16_t virtual_loss :12;
-			uint16_t proven_value :4;
+			uint16_t virtual_loss :14;
+			uint16_t proven_value :2;
 		public:
 
 			Edge() noexcept :

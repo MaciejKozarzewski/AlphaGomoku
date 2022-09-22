@@ -73,18 +73,6 @@ namespace ag
 	}
 	std::string currentDateTime();
 
-	bool isBoardFull(const matrix<Sign> &board);
-	bool isBoardEmpty(const matrix<Sign> &board);
-
-	matrix<Sign> boardFromString(const std::string &str);
-	std::vector<Move> extractMoves(const std::string &str);
-	std::string boardToString(const matrix<Sign> &board, const Move &lastMove = Move());
-	std::string provenValuesToString(const matrix<Sign> &board, const matrix<ProvenValue> &pv);
-	std::string policyToString(const matrix<Sign> &board, const matrix<float> &policy);
-	std::string actionValuesToString(const matrix<Sign> &board, const matrix<Value> &actionValues);
-
-	std::string printStatistics(const char *name, uint64_t number, double time);
-
 	template<typename T>
 	T cross_entropy(const T *target_begin, const T *target_end, const T *y_begin) noexcept
 	{

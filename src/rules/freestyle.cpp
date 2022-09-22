@@ -7,7 +7,7 @@
 
 #include <alphagomoku/rules/freestyle.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
-#include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/game/Board.hpp>
 
 #include <cassert>
 
@@ -144,7 +144,7 @@ namespace ag
 			CHECK(last_move.row + i, last_move.col - i)
 #undef CHECK
 
-		if (isBoardFull(board))
+		if (Board::isFull(board))
 			return GameOutcome::DRAW;
 		else
 			return GameOutcome::UNKNOWN;

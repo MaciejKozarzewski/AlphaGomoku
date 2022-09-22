@@ -105,9 +105,9 @@ namespace ag
 		uint64_t result = 0ull;
 		for (size_t i = 0; i < data.size(); i++)
 		{
-			uint64_t from = board.data[i];
-			uint64_t to = this->data[i];
-			result = result | ((from ^ to) & from);
+			const uint64_t from = board.data[i];
+			const uint64_t to = this->data[i];
+			result |= ((from ^ to) & from);
 		}
 		return result == 0;
 	}
@@ -216,7 +216,7 @@ namespace ag
 		if (stats.stored_nodes == 0)
 			return;
 
-		CompressedBoard new_board(newBoard);
+		const CompressedBoard new_board(newBoard);
 		for (size_t i = 0; i < bins.size(); i++)
 		{
 			Entry *current = bins[i];
@@ -246,9 +246,7 @@ namespace ag
 		while (current != nullptr)
 		{
 			if (current->hash == hash and current->board == board and current->node.getSignToMove() == signToMove)
-			{
 				return &(current->node);
-			}
 			current = current->next_entry;
 		}
 		return nullptr;
@@ -267,7 +265,7 @@ namespace ag
 		const uint64_t hash = hashing.getHash(board, signToMove);
 		new_entry->hash = hash;
 
-		size_t bin_index = hash & bin_index_mask;
+		const size_t bin_index = hash & bin_index_mask;
 		new_entry->next_entry = bins[bin_index];
 		bins[bin_index] = new_entry;
 
@@ -289,7 +287,7 @@ namespace ag
 		TimerGuard timer(stats.remove);
 		const uint64_t hash = hashing.getHash(board, signToMove);
 
-		size_t bin_index = hash & bin_index_mask;
+		const size_t bin_index = hash & bin_index_mask;
 		Entry *current = bins[bin_index];
 		bins[bin_index] = nullptr;
 		while (current != nullptr)
@@ -314,25 +312,21 @@ namespace ag
 		bin_index_mask = newSize - 1ull;
 		if (bins.size() == newSize)
 			return;
-		if (stats.stored_nodes == 0)
-		{
-			bins.resize(newSize, nullptr);
-			return;
-		}
 
 		Entry *storage = nullptr;
-		for (size_t i = 0; i < bins.size(); i++)
-		{
-			Entry *current = bins[i];
-			bins[i] = nullptr;
-			while (current != nullptr)
+		if (stats.stored_nodes > 0)
+			for (size_t i = 0; i < bins.size(); i++)
 			{
-				Entry *next = current->next_entry;
-				current->next_entry = storage;
-				storage = current;
-				current = next;
+				Entry *current = bins[i];
+				bins[i] = nullptr;
+				while (current != nullptr)
+				{
+					Entry *next = current->next_entry;
+					current->next_entry = storage;
+					storage = current;
+					current = next;
+				}
 			}
-		}
 
 		bins.resize(newSize, nullptr);
 

@@ -19,10 +19,10 @@ namespace
 		return static_cast<float>(edge->getVisits()) / (1.0e-6f + edge->getVisits() + edge->getVirtualLoss());
 	}
 	template<typename T>
-	float getQ(const T *n, float sf = 0.5f) noexcept
+	float getQ(const T *n, float styleFactor = 0.5f) noexcept
 	{
 		assert(n != nullptr);
-		return n->getWinRate() + sf * n->getDrawRate();
+		return n->getWinRate() + styleFactor * n->getDrawRate();
 	}
 	template<typename T>
 	float getProvenQ(const T *node) noexcept
@@ -62,8 +62,8 @@ namespace ag
 			if (edge->isProven() == false)
 			{
 				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVloss(edge) : parent_value; // init to parent
-
 //				const float Q = getQ(edge, style_factor) * getVloss(edge); // init to loss
+
 				const float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
 
 				if (Q + U > bestValue)
@@ -209,8 +209,8 @@ namespace ag
 		double bestValue = std::numeric_limits<double>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 		{
-			double value = edge->getVisits() + (edge->getValue().win + style_factor * edge->getValue().draw) * node->getVisits()
-					+ 0.001 * edge->getPolicyPrior() + getProvenQ(edge) * 1.0e9;
+			double value = edge->getVisits() + getQ(edge, style_factor) * node->getVisits() + 0.001 * edge->getPolicyPrior()
+					+ getProvenQ(edge) * 1.0e9;
 			if (value > bestValue)
 			{
 				selected = edge;

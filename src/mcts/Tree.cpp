@@ -210,7 +210,6 @@ namespace ag
 		Node *node = root_node;
 		while (node != nullptr)
 		{
-
 			Edge *edge = edge_selector->select(node);
 			task.append(node, edge);
 			edge->increaseVirtualLoss();
@@ -261,7 +260,7 @@ namespace ag
 		else
 		{
 			// this can happen if the same state was encountered from different paths
-			if (task.visitedPathLength() > 0) // in a rare case it could be that the root node has been expanded by some other thread
+			if (task.visitedPathLength() > 0) // in a rare case it could be that the root node has already been expanded by some other thread
 			{ // but if not
 				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
 				if (has_information_leak(task.getLastEdge()))

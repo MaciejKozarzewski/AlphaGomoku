@@ -67,7 +67,7 @@ namespace ag
 			{
 				return m_source_block_index;
 			}
-			bool isEmpty() const noexcept
+			bool isNull() const noexcept
 			{
 				return m_block_start == nullptr;
 			}
@@ -264,7 +264,7 @@ namespace ag
 			}
 			void free(BlockDescriptor<T> &block)
 			{
-				if (not block.isEmpty())
+				if (not block.isNull())
 				{
 					m_used_objects -= block.size();
 					const size_t src_idx = block.sourceIndex();

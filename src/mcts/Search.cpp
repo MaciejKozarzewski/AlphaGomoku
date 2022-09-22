@@ -101,6 +101,7 @@ namespace ag
 	}
 	SearchStats Search::getStats() const noexcept
 	{
+		vct_solver.print_stats();
 		return stats;
 	}
 
@@ -115,7 +116,7 @@ namespace ag
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_next_task();
 
-			SelectOutcome out = tree.select(current_task);
+			const SelectOutcome out = tree.select(current_task);
 
 			if (current_task.visitedPathLength() == 0)
 				break; // visited only root node
@@ -169,7 +170,7 @@ namespace ag
 		for (int i = 0; i < active_task_count; i++)
 		{
 			TimerGuard timer(stats.expand);
-			ExpandOutcome out = tree.expand(search_tasks[i]);
+			const ExpandOutcome out = tree.expand(search_tasks[i]);
 			stats.nb_wasted_expansions += static_cast<uint64_t>(out == ExpandOutcome::ALREADY_EXPANDED);
 		}
 	}
@@ -207,7 +208,7 @@ namespace ag
 	 */
 	int Search::get_batch_size(int simulation_count) const noexcept
 	{
-		int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
+		const int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
 		return std::max(1, std::min(search_config.max_batch_size, tmp));
 	}
 	SearchTask& Search::get_next_task()

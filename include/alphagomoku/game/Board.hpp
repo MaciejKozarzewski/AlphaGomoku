@@ -30,15 +30,13 @@ namespace ag
 			 */
 			static matrix<Sign> fromString(const std::string &str);
 			static matrix<Sign> fromListOfMoves(int rows, int cols, const std::vector<Move> &moves);
+			static std::vector<Move> extractMoves(const std::string &str);
 			static bool isValid(const matrix<Sign> &board, Sign signToMove) noexcept;
 			static bool isEmpty(const matrix<Sign> &board) noexcept;
 			static bool isFull(const matrix<Sign> &board) noexcept;
-			static bool isForbidden(const matrix<Sign> &board, Move move) noexcept;
 			static bool isTransitionPossible(const matrix<Sign> &from, const matrix<Sign> &to) noexcept;
 
 			static int numberOfMoves(const matrix<Sign> &board) noexcept;
-			static GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board) noexcept;
-			static GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, Move lastMove) noexcept;
 
 			static void putMove(matrix<Sign> &board, Move move) noexcept;
 			static void undoMove(matrix<Sign> &board, Move move) noexcept;

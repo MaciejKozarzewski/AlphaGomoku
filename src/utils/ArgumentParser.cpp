@@ -174,7 +174,7 @@ namespace ag
 			throw ParsingError("Parser requires at least one argument - executable launch path");
 
 		std::string executable_path = static_cast<std::string>(get_executable_path());
-		auto tmp = parse_launch_path(executable_path);
+		const std::pair<std::string, std::string> tmp = parse_launch_path(executable_path);
 		m_launch_path = tmp.first;
 		m_executable_name = tmp.second;
 		size_t arg_counter = 1;
@@ -197,7 +197,7 @@ namespace ag
 		std::vector<std::string> remaining_args;
 		while (arg_counter < arguments.size())
 		{
-			std::string arg_name = arguments.at(arg_counter);
+			const std::string arg_name = arguments.at(arg_counter);
 			if (hasArgument(arg_name))
 			{
 				arg_counter++; // move past the current string

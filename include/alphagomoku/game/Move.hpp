@@ -80,8 +80,7 @@ namespace ag
 
 			uint16_t toShort() const noexcept
 			{
-//				return Move::move_to_short(row, col, sign);
-				return static_cast<uint16_t>(sign) + (row << 2) + (col << 9);
+				return Move::move_to_short(row, col, sign);
 			}
 
 			std::string toString() const;

@@ -57,7 +57,7 @@ namespace ag
 					return std::pair<double, double>( { y, 0.0 });
 				else
 				{
-					double err_y = Sr * std::sqrt(1.0 + 1.0 / N + (x - avg_x) * (x - avg_x) / Sxx);
+					const double err_y = Sr * std::sqrt(1.0 + 1.0 / N + (x - avg_x) * (x - avg_x) / Sxx);
 					return std::pair<double, double>( { y, err_y });
 				}
 			}

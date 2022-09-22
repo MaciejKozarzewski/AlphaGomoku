@@ -7,7 +7,7 @@
 
 #include <alphagomoku/rules/renju.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
-#include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/game/Board.hpp>
 
 namespace ag
 {
@@ -18,7 +18,7 @@ namespace ag
 	GameOutcome getOutcomeRenju(const matrix<Sign> &board, const Move &last_move)
 	{
 		// TODO
-		if (isBoardFull(board))
+		if (Board::isFull(board))
 			return GameOutcome::DRAW;
 		else
 			return GameOutcome::UNKNOWN;
