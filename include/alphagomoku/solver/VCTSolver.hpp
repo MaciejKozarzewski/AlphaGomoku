@@ -156,13 +156,12 @@ namespace ag::experimental
 
 			SolverStats getStats() const;
 			void clearStats();
-			void print_stats()
+			void print_stats() const
 			{
 				pattern_calculator.print_stats();
 				std::cout << stats.toString() << '\n';
 			}
 		private:
-			void get_forbidden_moves(SearchTask &task);
 			bool try_win_in_1(InternalNode &node);
 			bool try_draw_in_1(InternalNode &node);
 			bool try_defend_opponent_five(InternalNode &node);

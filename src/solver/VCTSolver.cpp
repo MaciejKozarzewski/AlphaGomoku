@@ -484,23 +484,6 @@ namespace ag::experimental
 	/*
 	 * private
 	 */
-	void VCTSolver::get_forbidden_moves(SearchTask &task)
-	{
-//		if (game_config.rules == GameRules::RENJU and task.getSignToMove() == Sign::CROSS)
-//		{
-//			const ThreatHistogram &threats = pattern_calculator.getThreatHistogram(Sign::CROSS);
-//
-//			for (auto iter = threats.get(ThreatType::OVERLINE).begin(); iter < threats.get(ThreatType::OVERLINE).end(); iter++)
-//				task.getForbiddenEdges().push_back(Edge(*iter));
-//			for (auto iter = threats.get(ThreatType::FORK_4x4).begin(); iter < threats.get(ThreatType::FORK_4x4).end(); iter++)
-//				task.getForbiddenEdges().push_back(Edge(*iter));
-//
-//			SubSolverForbiddenMoves sub_solver(pattern_calculator);
-//			for (auto iter = threats.get(ThreatType::FORK_3x3).begin(); iter < threats.get(ThreatType::FORK_3x3).end(); iter++)
-//				if (sub_solver.isForbidden(iter->row, iter->col))
-//					task.getForbiddenEdges().push_back(Edge(*iter));
-//		}
-	}
 	bool VCTSolver::try_win_in_1(InternalNode &node)
 	{
 		const std::vector<Move> &own_five = get_own_threats(node, ThreatType::FIVE);

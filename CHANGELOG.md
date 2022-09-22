@@ -2,16 +2,16 @@
 # Change Log
 All notable changes to this project will be documented in this file.
  
-## [Unreleased] - 2022-04-22
+## [Unreleased] - 2022-09-23
  
 ### Added
+- Added support for Renju and Caro rule (without new networks so far).
+- Added basic support for Yixin protocol.
+- Added support for more opening rules.
  
 ### Changed
 - Reduced memory consumption by about 26% (on average).
 - Improved solver.
-- Added support for Renju and Caro rule.
-- Added basic support for Yixin protocol
-- Added support for more opening rules.
  
 ### Fixed
 

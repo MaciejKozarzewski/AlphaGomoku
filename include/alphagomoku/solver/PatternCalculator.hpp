@@ -25,6 +25,10 @@ namespace ag::experimental
 	const Direction DIAGONAL = 2;
 	const Direction ANTIDIAGONAL = 3;
 
+	typedef int UpdateMode;
+	const UpdateMode ADD_MOVE = 0;
+	const UpdateMode UNDO_MOVE = 1;
+
 	struct RawPatternGroup
 	{
 			uint32_t horizontal = 0u;
@@ -132,6 +136,7 @@ namespace ag::experimental
 			void setBoard(const matrix<Sign> &board, bool = false);
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
+			int getMoveValue(Move move, const std::array<int, 4> &values) const noexcept;
 
 			int getPadding() const noexcept
 			{
@@ -204,9 +209,9 @@ namespace ag::experimental
 			void classify_feature_types() noexcept;
 			void prepare_threat_lists();
 
-			void update_central_spot(int row, int col, int mode) noexcept;
+			void update_central_spot(int row, int col, UpdateMode mode) noexcept;
 			void update_neighborhood(int row, int col) noexcept;
-			void update_feature_types_and_threats(int row, int col, int direction) noexcept;
+			void update_feature_types_and_threats(int row, int col, Direction direction) noexcept;
 	};
 
 } /* namespace ag */

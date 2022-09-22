@@ -32,7 +32,7 @@ namespace
 	template<int Pad>
 	void horizontal(ag::matrix<RawPatternGroup> &features, const ag::matrix<int16_t> &board) noexcept
 	{
-		const uint32_t shift = 4 * Pad;
+		constexpr uint32_t shift = 4 * Pad;
 		const int number_of_rows = board.rows() - 2 * Pad;
 		const int number_of_cols = board.cols() - 2 * Pad;
 		for (int row = 0; row < number_of_rows; row++)
@@ -51,7 +51,7 @@ namespace
 	template<int Pad>
 	void vertical(ag::matrix<RawPatternGroup> &features, const ag::matrix<int16_t> &board) noexcept
 	{
-		const uint32_t shift = 4 * Pad;
+		constexpr uint32_t shift = 4 * Pad;
 		const int number_of_rows = board.rows() - 2 * Pad;
 		const int number_of_cols = board.cols() - 2 * Pad;
 		for (int col = 0; col < number_of_cols; col++)
@@ -71,7 +71,7 @@ namespace
 	void diagonal(ag::matrix<RawPatternGroup> &features, const ag::matrix<int16_t> &board) noexcept
 	{
 		assert(board.isSquare());
-		const uint32_t shift = 4 * Pad;
+		constexpr uint32_t shift = 4 * Pad;
 		const int board_size = board.rows() - 2 * Pad;
 		for (int i = 0; i < board_size; i++) // lower left half
 		{
@@ -103,7 +103,7 @@ namespace
 	void antidiagonal(ag::matrix<RawPatternGroup> &features, const ag::matrix<int16_t> &board) noexcept
 	{
 		assert(board.isSquare());
-		const uint32_t shift = 4 * Pad;
+		constexpr uint32_t shift = 4 * Pad;
 		const int board_size = board.rows() - 2 * Pad;
 		for (int i = 0; i < board_size; i++) // upper left half
 		{
@@ -161,6 +161,21 @@ namespace
 			FEATURES_AT(move.row + i, move.col - i).antidiagonal &= mask1;
 			mask1 = (3 << 30) | (mask1 >> 2);
 		}
+	}
+
+	template<int Pad>
+	int move_value(const ag::matrix<int16_t> &board, ag::Move move, const std::array<int, 4> &values) noexcept
+	{
+		assert(features.isSquare());
+		int result = 0;
+		for (int i = -Pad; i <= Pad; i++)
+		{
+			result += values[BOARD_AT(move.row, move.col + i)];
+			result += values[BOARD_AT(move.row + i, move.col)];
+			result += values[BOARD_AT(move.row + i, move.col + i)];
+			result += values[BOARD_AT(move.row + i, move.col - i)];
+		}
+		return result;
 	}
 
 #undef BOARD_AT
@@ -243,7 +258,7 @@ namespace ag::experimental
 	{
 		assert(signAt(move.row, move.col) == Sign::NONE); // move must be made on empty spot
 		threats_update.startTimer();
-		update_central_spot(move.row, move.col, +1);
+		update_central_spot(move.row, move.col, ADD_MOVE);
 		threats_update.pauseTimer();
 
 		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(move.sign);
@@ -290,9 +305,24 @@ namespace ag::experimental
 		features_update.stopTimer();
 
 		threats_update.startTimer();
-		update_central_spot(move.row, move.col, -1);
+		update_central_spot(move.row, move.col, UNDO_MOVE);
 		update_neighborhood(move.row, move.col);
 		threats_update.stopTimer();
+	}
+	int PatternCalculator::getMoveValue(Move move, const std::array<int, 4> &values) const noexcept
+	{
+		assert(signAt(move.row, move.col) == Sign::NONE); // move must be made on empty spot
+		switch (game_config.rules)
+		{
+			case GameRules::FREESTYLE:
+				return move_value<4>(internal_board, move, values);
+			case GameRules::STANDARD:
+			case GameRules::RENJU:
+			case GameRules::CARO:
+				return move_value<5>(internal_board, move, values);
+			default:
+				return 0;
+		}
 	}
 
 	void PatternCalculator::printRawFeature(int row, int col) const
@@ -447,9 +477,9 @@ namespace ag::experimental
 			for (int col = 0; col < game_config.cols; col++)
 				if (signAt(row, col) == Sign::NONE)
 				{
-					for (int dir = 0; dir < 4; dir++)
+					for (Direction dir = 0; dir < 4; dir++)
 					{
-						const PatternEncoding tmp = pattern_table->getPatternData(getRawFeatureAt(row, col, static_cast<Direction>(dir)));
+						const PatternEncoding tmp = pattern_table->getPatternData(getRawFeatureAt(row, col, dir));
 						feature_types.at(row, col).for_cross[dir] = tmp.forCross();
 						feature_types.at(row, col).for_circle[dir] = tmp.forCircle();
 
@@ -481,16 +511,15 @@ namespace ag::experimental
 					threat_types.at(row, col) = Threat();
 	}
 
-	void PatternCalculator::update_central_spot(int row, int col, int mode) noexcept
+	void PatternCalculator::update_central_spot(int row, int col, UpdateMode mode) noexcept
 	{
 		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
-		assert(mode == 1 || mode == -1);
 		assert(signAt(row, col) == Sign::NONE);
 
-		for (int dir = 0; dir < 4; dir++)
-			central_spot_encoding[dir] = pattern_table->getPatternData(getRawFeatureAt(row, col, static_cast<Direction>(dir)));
+		for (Direction dir = 0; dir < 4; dir++)
+			central_spot_encoding[dir] = pattern_table->getPatternData(getRawFeatureAt(row, col, dir));
 
-		if (mode == 1) // a stone was added
+		if (mode == ADD_MOVE) // a stone was added
 		{
 			const Threat old_threat = threat_types.at(row, col);
 			cross_threats.remove(old_threat.forCross(), Move(row, col));
@@ -503,7 +532,8 @@ namespace ag::experimental
 		}
 		else // a stone was removed
 		{
-			for (int dir = 0; dir < 4; dir++)
+			assert(mode == UNDO_MOVE);
+			for (Direction dir = 0; dir < 4; dir++)
 			{
 				feature_types.at(row, col).for_cross[dir] = central_spot_encoding[dir].forCross();
 				feature_types.at(row, col).for_circle[dir] = central_spot_encoding[dir].forCircle();
@@ -533,12 +563,12 @@ namespace ag::experimental
 					update_feature_types_and_threats(row + i, col - i, ANTIDIAGONAL);
 			}
 	}
-	void PatternCalculator::update_feature_types_and_threats(int row, int col, int direction) noexcept
+	void PatternCalculator::update_feature_types_and_threats(int row, int col, Direction direction) noexcept
 	{
 		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
 
 		// find new feature type and update appropriate direction in the table
-		const PatternEncoding new_feature_type = pattern_table->getPatternData(getRawFeatureAt(row, col, static_cast<Direction>(direction)));
+		const PatternEncoding new_feature_type = pattern_table->getPatternData(getRawFeatureAt(row, col, direction));
 		feature_types.at(row, col).for_cross[direction] = new_feature_type.forCross();
 		feature_types.at(row, col).for_circle[direction] = new_feature_type.forCircle();
 
@@ -560,7 +590,6 @@ namespace ag::experimental
 			circle_threats.remove(old_threat.forCircle(), Move(row, col));
 			circle_threats.add(new_threat.forCircle(), Move(row, col));
 		}
-
 	}
 
 } /* namespace ag */
