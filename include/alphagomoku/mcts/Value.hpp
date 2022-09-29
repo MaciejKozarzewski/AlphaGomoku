@@ -57,12 +57,16 @@ namespace ag
 			Value(float w) :
 					win(w)
 			{
+				assert(0.0f <= w && w <= 1.0f);
 			}
 			Value(float w, float d) noexcept :
 					win(w),
 					draw(d),
 					loss(1.0f - (w + d))
 			{
+				assert(0.0f <= w && w <= 1.0f);
+				assert(0.0f <= d && d <= 1.0f);
+				assert(0.0f <= (w + d) && (w + d) <= 1.0f);
 			}
 			Value(float w, float d, float l) noexcept :
 					win(w),
