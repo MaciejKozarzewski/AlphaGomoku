@@ -241,6 +241,12 @@ namespace ag
 	{
 		return board.at(m.row, m.col);
 	}
+	bool Board::isMoveLegal(const matrix<Sign> &board, Move m, GameRules rules) noexcept
+	{
+		const bool is_spot_empty = board.at(m.row, m.col) == Sign::NONE;
+		const bool is_forbidden = (rules == GameRules::RENJU) ? isForbidden(board, m) : false;
+		return is_spot_empty and not is_forbidden;
+	}
 
 	int Board::numberOfMoves(const matrix<Sign> &board) noexcept
 	{
