@@ -27,30 +27,18 @@ namespace ag
 	{
 		private:
 			Node *node = nullptr; // non-owning
-			uint64_t policy_prior :20;
-			uint64_t win_rate :22;
-			uint64_t draw_rate :22;
-			uint32_t visits = 0;
-			uint16_t move = 0;
-			uint16_t virtual_loss :14;
-			uint16_t proven_value :2;
+			float policy_prior = 0.0f;
+			float win_rate = 0.0f;
+			float draw_rate = 0.0f;
+			int32_t visits = 0;
+			Move move;
+			ProvenValue proven_value = ProvenValue::UNKNOWN;
+			int16_t virtual_loss = 0;
 		public:
 
-			Edge() noexcept :
-					policy_prior(0),
-					win_rate(0),
-					draw_rate(0),
-					virtual_loss(0),
-					proven_value(static_cast<uint64_t>(ProvenValue::UNKNOWN))
-			{
-			}
+			Edge() noexcept = default;
 			Edge(Move m) noexcept :
-					policy_prior(0),
-					win_rate(0),
-					draw_rate(0),
-					move(m.toShort()),
-					virtual_loss(0),
-					proven_value(static_cast<uint64_t>(ProvenValue::UNKNOWN))
+					move(m)
 			{
 			}
 
@@ -64,19 +52,19 @@ namespace ag
 			}
 			float getPolicyPrior() const noexcept
 			{
-				return policy_prior / 1048575.0f;
+				return policy_prior;
 			}
 			float getWinRate() const noexcept
 			{
-				return win_rate / 4194303.0f;
+				return win_rate;
 			}
 			float getDrawRate() const noexcept
 			{
-				return draw_rate / 4194303.0f;
+				return draw_rate;
 			}
 			float getLossRate() const noexcept
 			{
-				return 1.0f - (win_rate + draw_rate) / 4194303.0f;
+				return 1.0f - (win_rate + draw_rate);
 			}
 			Value getValue() const noexcept
 			{
@@ -88,11 +76,11 @@ namespace ag
 			}
 			Move getMove() const noexcept
 			{
-				return Move::move_from_short(move);
+				return move;
 			}
 			ProvenValue getProvenValue() const noexcept
 			{
-				return static_cast<ProvenValue>(proven_value);
+				return proven_value;
 			}
 			bool isProven() const noexcept
 			{
@@ -110,31 +98,30 @@ namespace ag
 			}
 			void setPolicyPrior(float p) noexcept
 			{
-				policy_prior = static_cast<uint64_t>(p * 1048575.0f);
+				policy_prior = p;
 			}
 			void setValue(Value value) noexcept
 			{
-				win_rate = static_cast<uint64_t>(value.win * 4194303.0f);
-				draw_rate = static_cast<uint64_t>(value.draw * 4194303.0f);
+				win_rate = value.win;
+				draw_rate = value.draw;
 			}
 			void updateValue(Value eval) noexcept
 			{
 				visits++;
 				const float tmp = 1.0f / static_cast<float>(visits);
-				float tmp_win_rate = getWinRate();
-				float tmp_draw_rate = getDrawRate();
-				tmp_win_rate += (eval.win - tmp_win_rate) * tmp;
-				tmp_draw_rate += (eval.draw - tmp_draw_rate) * tmp;
-				win_rate = static_cast<uint64_t>(tmp_win_rate * 4194303.0f);
-				draw_rate = static_cast<uint64_t>(tmp_draw_rate * 4194303.0f);
+				win_rate += (eval.win - win_rate) * tmp;
+				draw_rate += (eval.draw - draw_rate) * tmp;
+				assert(win_rate >= -0.001f && win_rate <= 1.001f);
+				assert(draw_rate >= -0.001f && draw_rate <= 1.001f);
+				assert((win_rate + draw_rate) <= 1.001f);
 			}
 			void setMove(Move m) noexcept
 			{
-				move = m.toShort();
+				move = m;
 			}
 			void setProvenValue(ProvenValue pv) noexcept
 			{
-				proven_value = static_cast<uint64_t>(pv);
+				proven_value = pv;
 			}
 			void increaseVirtualLoss() noexcept
 			{

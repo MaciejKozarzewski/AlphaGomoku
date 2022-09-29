@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - Added support for more opening rules.
  
 ### Changed
-- Reduced memory consumption by about 26% (on average).
+- Reduced memory consumption by about 8% (on average).
 - Improved solver.
  
 ### Fixed
