@@ -34,9 +34,7 @@ namespace ag
 	{
 		private:
 			std::vector<NodeEdgePair> visited_path;/**< trajectory within the tree visited during select phase */
-			std::vector<Edge> non_losing_edges; /**< provably non losing edges found by VCF solver */
 			std::vector<Edge> proven_edges; /**< provably winning edges found by VCF solver */
-			std::vector<Edge> forbidden_edges; /**< forbidden edges in renju rule found by VCF solver */
 			std::vector<Edge> edges; /**< edges created by EdgeGenerator */
 
 			GameRules game_rules;
@@ -49,6 +47,7 @@ namespace ag
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 
 			bool is_ready = false; /**< flag indicating whether the task has been evaluated and can be used for edge generation */
+			bool must_defend = false; /**< flag indicating whether the player to move must defend a threat from the opponent */
 		public:
 			SearchTask(GameRules rules);
 			void set(const matrix<Sign> &base, Sign signToMove);
@@ -86,14 +85,6 @@ namespace ag
 					return visited_path.back().edge;
 			}
 
-			const std::vector<Edge>& getNonLosingEdges() const noexcept
-			{
-				return non_losing_edges;
-			}
-			std::vector<Edge>& getNonLosingEdges() noexcept
-			{
-				return non_losing_edges;
-			}
 			const std::vector<Edge>& getProvenEdges() const noexcept
 			{
 				return proven_edges;
@@ -101,14 +92,6 @@ namespace ag
 			std::vector<Edge>& getProvenEdges() noexcept
 			{
 				return proven_edges;
-			}
-			const std::vector<Edge>& getForbiddenEdges() const noexcept
-			{
-				return forbidden_edges;
-			}
-			std::vector<Edge>& getForbiddenEdges() noexcept
-			{
-				return forbidden_edges;
 			}
 			const std::vector<Edge>& getEdges() const noexcept
 			{
@@ -137,6 +120,10 @@ namespace ag
 			bool isReady() const noexcept
 			{
 				return is_ready;
+			}
+			bool mustDefend() const noexcept
+			{
+				return must_defend;
 			}
 			const matrix<Sign>& getBoard() const noexcept
 			{
@@ -168,6 +155,10 @@ namespace ag
 			{
 				is_ready = true;
 			}
+			void setMustDefendFlag(bool flag) noexcept
+			{
+				must_defend = flag;
+			}
 
 			/**
 			 * \param[in] p Pointer to the memory block containing calculated policy.
@@ -187,11 +178,9 @@ namespace ag
 				proven_value = pv;
 			}
 
-			void addNonLosingEdges(const std::vector<Move> &moves, Sign sign, ProvenValue pv);
-			void addNonLosingEdge(Move move, ProvenValue pv = ProvenValue::UNKNOWN);
 			void addProvenEdges(const std::vector<Move> &moves, Sign sign, ProvenValue pv);
 			void addProvenEdge(Move move, ProvenValue pv);
-			void addEdge(Move move, ProvenValue pv = ProvenValue::UNKNOWN);
+			void addEdge(Move move);
 			void addEdge(const Edge &other)
 			{
 				edges.push_back(other);

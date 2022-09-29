@@ -24,7 +24,7 @@ namespace
 		if (fabsf(sum_priors - 1.0f) > 0.01f) // do not renormalize if the sum is close to 1
 		{
 			if (sum_priors == 0.0f)
-			{
+			{ // in this case divide the distribution evenly among all edges
 				sum_priors = 1.0f / edges.size();
 				for (size_t i = 0; i < edges.size(); i++)
 					edges[i].setPolicyPrior(sum_priors);
@@ -43,7 +43,7 @@ namespace
 			return;
 
 		std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), [](const Edge &lhs, const Edge &rhs)
-		{	return lhs.getPolicyPrior() > rhs.getPolicyPrior();});
+		{	return lhs.getPolicyPrior() > rhs.getPolicyPrior();}); // sort by prior policy in descending order
 		edges.erase(edges.begin() + max_edges, edges.end());
 	}
 
@@ -54,24 +54,28 @@ namespace
 	}
 	void check_terminal_conditions(SearchTask &task, Edge &edge)
 	{
-		if (not edge.isProven())
-		{
-			const Move move = edge.getMove();
+		assert(edge.isProven() == false);
+		const Move move = edge.getMove();
 
-			Board::putMove(task.getBoard(), move);
-			const GameOutcome outcome = getOutcome_v2(task.getGameRules(), task.getBoard(), move);
-			Board::undoMove(task.getBoard(), move);
+		Board::putMove(task.getBoard(), move);
+		const GameOutcome outcome = getOutcome_v2(task.getGameRules(), task.getBoard(), move);
+		Board::undoMove(task.getBoard(), move);
 
-			edge.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
-		}
+		edge.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
 	}
-	void assign_policy_and_Q(SearchTask &task, Edge &edge) noexcept
+	void assign_policy_and_Q(const SearchTask &task, Edge &edge) noexcept
 	{
-		switch (edge.getProvenValue())
+		const Move move = edge.getMove();
+		const auto iter = std::find_if(task.getProvenEdges().begin(), task.getProvenEdges().end(), [move](const Edge &e)
+		{	return e.getMove() == move;}); // check if this edge is one of the proven edges
+
+		// if the edge is among proven ones assign found proven value, if not assume unknown proven value
+		const ProvenValue pv = (iter == task.getProvenEdges().end()) ? ProvenValue::UNKNOWN : iter->getProvenValue();
+
+		switch (pv)
 		{
 			case ProvenValue::UNKNOWN:
 			{
-				const Move move = edge.getMove();
 				edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
 				edge.setValue(task.getActionValues().at(move.row, move.col));
 				break;
@@ -84,7 +88,6 @@ namespace
 			}
 			case ProvenValue::DRAW:
 			{
-				const Move move = edge.getMove();
 				edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
 				edge.setValue(Value(0.0f, 1.0f, 0.0f));
 				break;
@@ -139,21 +142,10 @@ namespace ag
 	{
 		assert(task.isReady());
 
-		if (task.getProvenEdges().size() > 0)
-		{
-			for (size_t i = 0; i < task.getProvenEdges().size(); i++)
-				task.addEdge(task.getProvenEdges()[i]);
-		}
-		else
-		{
-			if (not contains_winning_edge(task.getEdges()))
-			{
-				for (int row = 0; row < task.getBoard().rows(); row++)
-					for (int col = 0; col < task.getBoard().cols(); col++)
-						if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policy_threshold)
-							task.addEdge(Move(row, col, task.getSignToMove()));
-			}
-		}
+		for (int row = 0; row < task.getBoard().rows(); row++)
+			for (int col = 0; col < task.getBoard().cols(); col++)
+				if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policy_threshold)
+					task.addEdge(Move(row, col, task.getSignToMove()));
 
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 		{
@@ -185,17 +177,18 @@ namespace ag
 	{
 		assert(task.isReady());
 
-		if (task.getNonLosingEdges().size() > 0)
-		{
-			for (size_t i = 0; i < task.getNonLosingEdges().size(); i++)
-				task.addEdge(task.getNonLosingEdges()[i]);
+		if (task.mustDefend())
+		{ // the edges added by the solver are the only non-losing edges
+			for (size_t i = 0; i < task.getProvenEdges().size(); i++)
+				task.addEdge(task.getProvenEdges()[i]);
 		}
 		else
 		{
 			if (contains_winning_edge(task.getProvenEdges()))
 			{
-				for (size_t i = 0; i < task.getProvenEdges().size(); i++)
-					task.addEdge(task.getProvenEdges()[i]);
+				for (auto iter = task.getProvenEdges().begin(); iter < task.getProvenEdges().end(); iter++)
+					if (iter->getProvenValue() == ProvenValue::WIN)
+						task.addEdge(*iter);
 			}
 			else
 			{
@@ -212,6 +205,8 @@ namespace ag
 		exclude_weak_moves(task.getEdges(), max_edges);
 
 		renormalize_edges(task.getEdges());
+//		std::cout << "after\n";
+//		std::cout << task.toString() << '\n';
 		assert(task.getEdges().size() > 0);
 	}
 
@@ -363,7 +358,7 @@ namespace ag
 
 		if (task.getRelativeDepth() == 0)
 		{
-			std::vector<Move> tmp_moves;
+			std::vector<Move> tmp_moves; // a list of candidates, originally filled with all legal moves
 			for (int row = 0; row < task.getBoard().rows(); row++)
 				for (int col = 0; col < task.getBoard().cols(); col++)
 					if (task.getBoard().at(row, col) == Sign::NONE)
