@@ -21,6 +21,24 @@ namespace ag
 	 * \brief Parses the path to extract path and executable name.
 	 */
 	std::pair<std::string, std::string> parse_launch_path(std::string text);
+
+	enum class PrefetchMode
+	{
+		READ,
+		WRITE
+	};
+	template<PrefetchMode mode, int localityHint>
+	void prefetch_memory(const void *ptr) noexcept
+	{
+#if (defined(__GNUC__) && defined(__cplusplus)) || defined(__clang__)
+		__builtin_prefetch(ptr, static_cast<int>(mode), localityHint);
+#elif defined(_MSC_VER)
+		_mm_prefetch(ptr, localiTyHint);
+#else
+
+#endif
+	}
+
 } /* namespace ag */
 
 #endif /* INCLUDE_ALPHAGOMOKU_UTILS_OS_UTILS_HPP_ */
