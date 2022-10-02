@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/game/Board.hpp>
 
 #include <gtest/gtest.h>
 
@@ -15,20 +16,20 @@ namespace ag
 	TEST(TestMisc, isBoardFull)
 	{
 		matrix<Sign> board(9, 11);
-		EXPECT_FALSE(isBoardFull(board));
+		EXPECT_FALSE(Board::isFull(board));
 		board.fill(Sign::CROSS);
-		EXPECT_TRUE(isBoardFull(board));
+		EXPECT_TRUE(Board::isFull(board));
 		board.at(4, 5) = Sign::NONE;
-		EXPECT_FALSE(isBoardFull(board));
+		EXPECT_FALSE(Board::isFull(board));
 	}
 	TEST(TestMisc, isBoardEmpty)
 	{
 		matrix<Sign> board(9, 11);
-		EXPECT_TRUE(isBoardEmpty(board));
+		EXPECT_TRUE(Board::isEmpty(board));
 		board.at(4, 5) = Sign::CROSS;
-		EXPECT_FALSE(isBoardEmpty(board));
+		EXPECT_FALSE(Board::isEmpty(board));
 		board.fill(Sign::CROSS);
-		EXPECT_FALSE(isBoardEmpty(board));
+		EXPECT_FALSE(Board::isEmpty(board));
 	}
 
 	TEST(TestMisc, split)

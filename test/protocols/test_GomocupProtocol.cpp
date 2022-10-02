@@ -102,17 +102,13 @@ namespace ag
 		EXPECT_EQ(msg.getOption().name, "rules");
 		EXPECT_EQ(msg.getOption().value, "STANDARD");
 
-		EXPECT_TRUE(input_queue.isEmpty());
-
-		msg = output_queue.pop(); // error for rule = 2
+		msg = output_queue.pop(); // error for unsupported rule = 2 (continuous game)
 		EXPECT_EQ(msg.getType(), MessageType::ERROR);
 
-		msg = output_queue.pop(); // error for rule = 4
-		EXPECT_EQ(msg.getType(), MessageType::ERROR);
-//		msg = input_queue.pop();
-//		EXPECT_EQ(msg.getType(), MessageType::SET_OPTION);
-//		EXPECT_EQ(msg.getOption().name, "rules");
-//		EXPECT_EQ(msg.getOption().value, "RENJU");
+		msg = input_queue.pop();
+		EXPECT_EQ(msg.getType(), MessageType::SET_OPTION);
+		EXPECT_EQ(msg.getOption().name, "rules");
+		EXPECT_EQ(msg.getOption().value, "RENJU");
 	}
 	TEST_F(TestGomocupProtocol, INFO_evaluate)
 	{
