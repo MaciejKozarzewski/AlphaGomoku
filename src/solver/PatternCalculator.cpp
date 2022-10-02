@@ -18,6 +18,7 @@
 
 namespace
 {
+	using namespace ag;
 	using namespace ag::experimental;
 
 	template<int Pad>
@@ -30,7 +31,7 @@ namespace
 #define FEATURES_AT(row, col) features.at(Pad + (row), Pad + (col))
 
 	template<int Pad>
-	void horizontal(ag::matrix<RawPatternGroup> &features, const ag::matrix<int16_t> &board) noexcept
+	void horizontal(matrix<RawPatternGroup> &features, const matrix<int16_t> &board) noexcept
 	{
 		constexpr uint32_t shift = 4 * Pad;
 		const int number_of_rows = board.rows() - 2 * Pad;
@@ -49,7 +50,7 @@ namespace
 		}
 	}
 	template<int Pad>
-	void vertical(ag::matrix<RawPatternGroup> &features, const ag::matrix<int16_t> &board) noexcept
+	void vertical(matrix<RawPatternGroup> &features, const matrix<int16_t> &board) noexcept
 	{
 		constexpr uint32_t shift = 4 * Pad;
 		const int number_of_rows = board.rows() - 2 * Pad;
@@ -68,7 +69,7 @@ namespace
 		}
 	}
 	template<int Pad>
-	void diagonal(ag::matrix<RawPatternGroup> &features, const ag::matrix<int16_t> &board) noexcept
+	void diagonal(matrix<RawPatternGroup> &features, const matrix<int16_t> &board) noexcept
 	{
 		assert(board.isSquare());
 		constexpr uint32_t shift = 4 * Pad;
@@ -100,7 +101,7 @@ namespace
 		}
 	}
 	template<int Pad>
-	void antidiagonal(ag::matrix<RawPatternGroup> &features, const ag::matrix<int16_t> &board) noexcept
+	void antidiagonal(matrix<RawPatternGroup> &features, const matrix<int16_t> &board) noexcept
 	{
 		assert(board.isSquare());
 		constexpr uint32_t shift = 4 * Pad;
@@ -133,7 +134,7 @@ namespace
 	}
 
 	template<int Pad>
-	void add_move(ag::matrix<RawPatternGroup> &features, ag::Move move) noexcept
+	void add_move(ag::matrix<RawPatternGroup> &features, Move move) noexcept
 	{
 		assert(features.isSquare());
 		assert(move.sign != ag::Sign::NONE);
@@ -148,7 +149,7 @@ namespace
 		}
 	}
 	template<int Pad>
-	void undo_move(ag::matrix<RawPatternGroup> &features, ag::Move move) noexcept
+	void undo_move(ag::matrix<RawPatternGroup> &features, Move move) noexcept
 	{
 		assert(features.isSquare());
 		assert(move.sign != ag::Sign::NONE);
@@ -164,9 +165,9 @@ namespace
 	}
 
 	template<int Pad>
-	int move_value(const ag::matrix<int16_t> &board, ag::Move move, const std::array<int, 4> &values) noexcept
+	int move_value(const ag::matrix<int16_t> &board, Move move, const std::array<int, 4> &values) noexcept
 	{
-		assert(features.isSquare());
+		assert(board.isSquare());
 		int result = 0;
 		for (int i = -Pad; i <= Pad; i++)
 		{
@@ -176,6 +177,41 @@ namespace
 			result += values[BOARD_AT(move.row + i, move.col - i)];
 		}
 		return result;
+	}
+
+	/*
+	 * \brief Checks if placing cross in some spot creates straight four for cross
+	 */
+	template<int Pad>
+	bool is_straight_four(const matrix<int16_t> &board, Move move, Direction direction) noexcept
+	{
+		assert(BOARD_AT(move.row, move.col) == static_cast<int16_t>(Sign::NONE));
+		assert(move.sign == Sign::CROSS);
+		uint32_t result = static_cast<uint32_t>(Sign::CROSS) << (2 * Pad);
+		uint32_t shift = 0;
+		switch (direction)
+		{
+			case HORIZONTAL:
+				for (int i = -Pad; i <= Pad; i++, shift += 2)
+					result |= (BOARD_AT(move.row, move.col + i) << shift);
+				break;
+			case VERTICAL:
+				for (int i = -Pad; i <= Pad; i++, shift += 2)
+					result |= (BOARD_AT(move.row + i, move.col) << shift);
+				break;
+			case DIAGONAL:
+				for (int i = -Pad; i <= Pad; i++, shift += 2)
+					result |= (BOARD_AT(move.row + i, move.col + i) << shift);
+				break;
+			case ANTIDIAGONAL:
+				for (int i = -Pad; i <= Pad; i++, shift += 2)
+					result |= (BOARD_AT(move.row + i, move.col - i) << shift);
+				break;
+		}
+		for (int i = 0; i < (2 * Pad + 1 - 4); i++, result /= 4)
+			if ((result & 255u) == 85u)
+				return true;
+		return false;
 	}
 
 #undef BOARD_AT
@@ -195,13 +231,97 @@ namespace
 				return 0;
 		}
 	}
+
+	class ForbiddenMoveFinder
+	{
+			PatternCalculator &calc;
+
+			template<int Pad>
+			bool is_straight_four(int row, int col, Direction direction) const
+			{
+				assert(calc.signAt(row, col) == Sign::NONE);
+				uint32_t result = static_cast<uint32_t>(Sign::CROSS) << (2 * Pad);
+				uint32_t shift = 0;
+				switch (direction)
+				{
+					case HORIZONTAL:
+						for (int i = -Pad; i <= Pad; i++, shift += 2)
+							result |= (static_cast<uint32_t>(calc.signAt(row, col + i)) << shift);
+						break;
+					case VERTICAL:
+						for (int i = -Pad; i <= Pad; i++, shift += 2)
+							result |= (static_cast<uint32_t>(calc.signAt(row + i, col)) << shift);
+						break;
+					case DIAGONAL:
+						for (int i = -Pad; i <= Pad; i++, shift += 2)
+							result |= (static_cast<uint32_t>(calc.signAt(row + i, col + i)) << shift);
+						break;
+					case ANTIDIAGONAL:
+						for (int i = -Pad; i <= Pad; i++, shift += 2)
+							result |= (static_cast<uint32_t>(calc.signAt(row + i, col - i)) << shift);
+						break;
+				}
+				for (int i = 0; i < (2 * Pad + 1 - 4); i++, result /= 4)
+					if ((result & 255u) == 85u)
+						return true;
+				return false;
+			}
+		public:
+			ForbiddenMoveFinder(PatternCalculator &calc) :
+					calc(calc)
+			{
+			}
+			bool isForbidden(int row, int col) const
+			{
+				constexpr int Pad = 5;
+
+				if (calc.signAt(row, col) != Sign::NONE)
+					return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
+
+				const Threat threat = calc.getThreatAt(Sign::CROSS, row, col);
+				if (threat.forCross() == ThreatType::OVERLINE)
+					return true;
+				if (threat.forCross() == ThreatType::FORK_4x4)
+					return true;
+				if (threat.forCross() == ThreatType::FORK_3x3)
+				{
+					int open3_count = 0;
+					for (Direction dir = 0; dir < 4; dir++)
+						if (calc.getPatternTypeAt(Sign::CROSS, row, col, dir) == PatternType::OPEN_3)
+						{
+							const BitMask<uint16_t> defensive_moves = calc.getDefensiveMoves(Sign::CIRCLE, row, col, dir);
+							for (int i = -Pad; i <= Pad; i++)
+							{
+								const int x = row + i * get_row_step(dir);
+								const int y = col + i * get_col_step(dir);
+								if (i != 0 and defensive_moves.get(Pad + i) == true and is_straight_four<Pad>(x, y, dir))
+								{ // minor optimization as 'is_straight_four' works without adding new move to the pattern calculator
+									calc.addMove(Move(row, col, Sign::CROSS));
+									const bool is_forbidden = isForbidden(x, y);
+									calc.undoMove(Move(row, col, Sign::CROSS));
+
+									if (not is_forbidden)
+									{
+										open3_count++;
+										break;
+									}
+								}
+							}
+
+						}
+					if (open3_count >= 2)
+						return true;
+				}
+				return false;
+			}
+	};
 }
 
 namespace ag::experimental
 {
 	void ThreatHistogram::print() const
 	{
-		for (size_t i = 4; i < threats.size(); i++)
+		for (size_t i = 2; i < threats.size(); i++)
 			for (size_t j = 0; j < threats[i].size(); j++)
 				std::cout << threats[i][j].toString() << " : " << toString(static_cast<ThreatType>(i)) << '\n';
 	}
@@ -225,45 +345,39 @@ namespace ag::experimental
 		internal_board.fill(3);
 	}
 
-	void PatternCalculator::setBoard(const matrix<Sign> &board, bool flipColors)
+	void PatternCalculator::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
-		assert(flipColors == false);
 		assert(board.rows() + 2 * pad == internal_board.rows());
 		assert(board.cols() + 2 * pad == internal_board.cols());
 
+		sign_to_move = signToMove;
 		static_assert(sizeof(Sign) == sizeof(int16_t));
 		for (int row = 0; row < board.rows(); row++)
 			std::memcpy(internal_board.data(pad + row) + pad, board.data(row), sizeof(Sign) * board.cols());
 
-		if (flipColors)
-		{
-			const int16_t tmp_table[4] = { 0, 2, 1, 3 };
-			for (int i = 0; i < internal_board.size(); i++)
-				internal_board[i] = tmp_table[internal_board[i]];
-		}
-
-		features_init.startTimer();
+//		features_init.startTimer();
 		calculate_raw_features();
-		features_init.stopTimer();
+//		features_init.stopTimer();
 
-		features_class.startTimer();
+//		features_class.startTimer();
 		classify_feature_types();
-		features_class.stopTimer();
+//		features_class.stopTimer();
 
-		threats_init.startTimer();
+//		threats_init.startTimer();
 		prepare_threat_lists();
-		threats_init.stopTimer();
+//		threats_init.stopTimer();
 	}
 	void PatternCalculator::addMove(Move move) noexcept
 	{
 		assert(signAt(move.row, move.col) == Sign::NONE); // move must be made on empty spot
-		threats_update.startTimer();
+		assert(move.sign == sign_to_move);
+//		threats_update.startTimer();
 		update_central_spot(move.row, move.col, ADD_MOVE);
-		threats_update.pauseTimer();
+//		threats_update.pauseTimer();
 
 		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(move.sign);
 
-		features_update.startTimer();
+//		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -277,18 +391,21 @@ namespace ag::experimental
 			default:
 				break;
 		}
-		features_update.stopTimer();
+//		features_update.stopTimer();
 
-		threats_update.resumeTimer();
+//		threats_update.resumeTimer();
 		update_neighborhood(move.row, move.col);
-		threats_update.stopTimer();
+//		threats_update.stopTimer();
+
+		sign_to_move = invertSign(sign_to_move);
 	}
 	void PatternCalculator::undoMove(Move move) noexcept
 	{
 		assert(signAt(move.row, move.col) == move.sign); // board must contain the move to be undone
+		assert(move.sign == invertSign(sign_to_move));
 		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(Sign::NONE);
 
-		features_update.startTimer();
+//		features_update.startTimer();
 		switch (game_config.rules)
 		{
 			case GameRules::FREESTYLE:
@@ -302,12 +419,14 @@ namespace ag::experimental
 			default:
 				break;
 		}
-		features_update.stopTimer();
+//		features_update.stopTimer();
 
-		threats_update.startTimer();
+//		threats_update.startTimer();
 		update_central_spot(move.row, move.col, UNDO_MOVE);
 		update_neighborhood(move.row, move.col);
-		threats_update.stopTimer();
+//		threats_update.stopTimer();
+
+		sign_to_move = invertSign(sign_to_move);
 	}
 	int PatternCalculator::getMoveValue(Move move, const std::array<int, 4> &values) const noexcept
 	{
@@ -323,6 +442,51 @@ namespace ag::experimental
 			default:
 				return 0;
 		}
+	}
+	bool PatternCalculator::isForbidden(Sign sign, int row, int col) noexcept
+	{
+		if (game_config.rules == GameRules::RENJU and sign == Sign::CROSS)
+		{
+			if (signAt(row, col) != Sign::NONE)
+				return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
+
+			const Threat threat = getThreatAt(Sign::CROSS, row, col);
+			if (threat.forCross() == ThreatType::OVERLINE)
+				return true;
+			if (threat.forCross() == ThreatType::FORK_4x4)
+				return true;
+			if (threat.forCross() == ThreatType::FORK_3x3)
+			{
+				int open3_count = 0;
+				for (Direction dir = 0; dir < 4; dir++)
+					if (getPatternTypeAt(Sign::CROSS, row, col, dir) == PatternType::OPEN_3)
+					{
+						const BitMask<uint16_t> defensive_moves = getDefensiveMoves(Sign::CIRCLE, row, col, dir);
+						for (int i = -5; i <= 5; i++)
+						{
+							const int x = row + i * get_row_step(dir);
+							const int y = col + i * get_col_step(dir);
+							if (i != 0 and defensive_moves.get(5 + i) == true and is_straight_four<5>(internal_board, Move(Sign::CROSS, x, y), dir))
+							{ // minor optimization as 'is_straight_four' works without adding new move to the pattern calculator
+								addMove(Move(row, col, Sign::CROSS));
+								const bool is_forbidden = isForbidden(sign, x, y);
+								undoMove(Move(row, col, Sign::CROSS));
+
+								if (not is_forbidden)
+								{
+									open3_count++;
+									break;
+								}
+							}
+						}
+
+					}
+				if (open3_count >= 2)
+					return true;
+			}
+			return false;
+		}
+		return false;
 	}
 
 	void PatternCalculator::printRawFeature(int row, int col) const
