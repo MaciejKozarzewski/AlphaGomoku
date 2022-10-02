@@ -99,16 +99,17 @@ namespace
 			BitMask<uint16_t> operator()(Pattern line)
 			{
 				const int expanded_size = (table.getRules() == GameRules::FREESTYLE) ? 4 : 2;
+				const int offset = expanded_size / 2;
 				line = Pattern(line.size() + expanded_size, line.encode() << expanded_size);
 				BitMask<uint16_t> result;
 				const Sign defender_sign = invertSign(is_five.getSign());
-				for (size_t i = expanded_size / 2; i < line.size() - expanded_size / 2; i++)
+				for (size_t i = offset; i < line.size() - offset; i++)
 					if (line.get(i) == Sign::NONE)
 					{
 						line.set(i, defender_sign);
 						int tmp = check_outcome(line, invertSign(defender_sign), 0);
 						if (tmp != -1)
-							result.set(i - 1, true);
+							result.set(i - offset, true);
 						line.set(i, Sign::NONE);
 					}
 				return result;
