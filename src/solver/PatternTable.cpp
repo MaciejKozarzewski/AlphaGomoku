@@ -98,10 +98,11 @@ namespace
 			}
 			BitMask<uint16_t> operator()(Pattern line)
 			{
-				line = Pattern(line.size() + 2, line.encode() << 2);
+				const int expanded_size = (table.getRules() == GameRules::FREESTYLE) ? 4 : 2;
+				line = Pattern(line.size() + expanded_size, line.encode() << expanded_size);
 				BitMask<uint16_t> result;
 				const Sign defender_sign = invertSign(is_five.getSign());
-				for (size_t i = 1; i < line.size() - 1; i++)
+				for (size_t i = expanded_size / 2; i < line.size() - expanded_size / 2; i++)
 					if (line.get(i) == Sign::NONE)
 					{
 						line.set(i, defender_sign);
@@ -169,24 +170,24 @@ namespace ag::experimental
 //		std::cout << "half open 3: " << std::count_if(patterns.begin(), patterns.end(), [](const PatternEncoding &enc)
 //		{	return enc.forCross() == PatternType::HALF_OPEN_3;}) << '\n' << '\n';
 //
-//		Pattern line("___OO______");
+//		Pattern line("||___OOO_");
 //		DefensiveMoveFinder dmf(*this, Sign::CROSS);
 //		BitMask<uint16_t> res = dmf(line);
 //
 //		std::cout << "raw feature = " << line.encode() << '\n';
 //		PatternEncoding data = getPatternData(line.encode());
 //		std::cout << line.toString() << " " << toString(data.forCross()) << " " << toString(data.forCircle()) << '\n';
-//		for (int i = 0; i < 11; i++)
+//		for (int i = 0; i < 9; i++)
 //			std::cout << data.mustBeUpdated(i);
 //		std::cout << '\n';
-//		for (int i = 0; i < 11; i++)
+//		for (int i = 0; i < 9; i++)
 //			std::cout << getDefensiveMoves(data, Sign::CROSS).get(i);
 //		std::cout << " defensive moves for X\n";
-//		for (int i = 0; i < 11; i++)
+//		for (int i = 0; i < 9; i++)
 //			std::cout << getDefensiveMoves(data, Sign::CIRCLE).get(i);
 //		std::cout << " defensive moves for O\n";
 //
-//		for (int i = 0; i < 11; i++)
+//		for (int i = 0; i < 9; i++)
 //			std::cout << res.get(i);
 //		std::cout << " defensive moves for X v2\n";
 //		exit(0);
