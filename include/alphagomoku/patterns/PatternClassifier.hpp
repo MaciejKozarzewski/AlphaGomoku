@@ -1,5 +1,5 @@
 /*
- * FeatureClassifier.hpp
+ * PatternClassifier.hpp
  *
  *  Created on: Jul 17, 2022
  *      Author: Maciej Kozarzewski
@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_SOLVER_PATTERNCLASSIFIER_HPP_
 #define ALPHAGOMOKU_SOLVER_PATTERNCLASSIFIER_HPP_
 
-#include <alphagomoku/solver/Pattern.hpp>
+#include <alphagomoku/patterns/Pattern.hpp>
 
 namespace ag::experimental
 {

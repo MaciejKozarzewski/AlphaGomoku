@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/solver/ThreatTable.hpp>
+#include <alphagomoku/patterns/ThreatTable.hpp>
 
 #include <array>
 #include <stdexcept>
@@ -66,16 +66,14 @@ namespace
 		{
 			if (is_overline(group)) // forbidden or win in 1
 				return Threat(ThreatType::OVERLINE, ThreatType::FIVE);
+			if (is_fork_4x4(group)) // win in 3
+				return Threat(ThreatType::FORK_4x4);
 			if (contains(group, PatternType::OPEN_4)) // potentially win in 3
 			{
-				if (is_fork_4x4(group))
-					return Threat(ThreatType::FORK_4x4, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
 				if (is_fork_3x3(group))
 					return Threat(ThreatType::FORK_3x3, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
 				return Threat(ThreatType::OPEN_4);
 			}
-			if (is_fork_4x4(group)) // win in 3
-				return Threat(ThreatType::FORK_4x4);
 			if (is_fork_4x3(group)) // win in 5
 			{
 				if (is_fork_3x3(group))
@@ -86,10 +84,10 @@ namespace
 		}
 		else
 		{
-			if (contains(group, PatternType::OPEN_4)) // win in 3
-				return Threat(ThreatType::OPEN_4);
 			if (is_fork_4x4(group)) // win in 3
 				return Threat(ThreatType::FORK_4x4);
+			if (contains(group, PatternType::OPEN_4)) // win in 3
+				return Threat(ThreatType::OPEN_4);
 			if (is_fork_4x3(group)) // win in 5
 				return Threat(ThreatType::FORK_4x3);
 		}
@@ -114,6 +112,8 @@ namespace ag::experimental
 			default:
 			case ThreatType::NONE:
 				return "NONE";
+			case ThreatType::HALF_OPEN_3:
+				return "HALF_OPEN_3";
 			case ThreatType::OPEN_3:
 				return "OPEN_3";
 			case ThreatType::HALF_OPEN_4:

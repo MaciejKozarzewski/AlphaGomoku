@@ -53,7 +53,7 @@ namespace ag::experimental
 				switch (rules)
 				{
 					case GameRules::FREESTYLE:
-						return 9;
+						return 11;
 					case GameRules::STANDARD:
 					case GameRules::RENJU:
 					case GameRules::CARO:

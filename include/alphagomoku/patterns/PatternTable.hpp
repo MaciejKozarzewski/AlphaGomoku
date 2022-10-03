@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_SOLVER_PATTERNTABLE_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
+#include <alphagomoku/utils/os_utils.hpp>
 
 #include <array>
 #include <map>
@@ -22,8 +23,8 @@ namespace ag::experimental
 		NONE,
 		HALF_OPEN_3, // can become half open four in one move
 		OPEN_3, // can become open four in one move
-		HALF_OPEN_4,
-		OPEN_4,
+		HALF_OPEN_4, // can become a five in exactly one way
+		OPEN_4, // can become a five in more than one way
 		DOUBLE_4, // inline 4x4 fork
 		FIVE, // actually, it is a winning pattern so for some rules it means 'five but not overline'
 		OVERLINE
@@ -165,9 +166,6 @@ namespace ag::experimental
 		private:
 			std::vector<PatternEncoding> patterns;
 
-			std::map<uint32_t, BitMask<uint16_t>> double_four_defensive_moves;
-			std::map<uint32_t, BitMask<uint16_t>> open_four_defensive_moves;
-			std::map<uint32_t, BitMask<uint16_t>> half_open_four_defensive_moves;
 			std::vector<BitMask<uint16_t>> defensive_move_mask;
 			GameRules game_rules;
 		public:

@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_SOLVER_THREATTABLE_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
-#include <alphagomoku/solver/PatternTable.hpp>
+#include <alphagomoku/patterns/PatternTable.hpp>
 
 #include <cinttypes>
 
@@ -36,8 +36,8 @@ namespace ag::experimental
 			uint8_t data = 0u;
 		public:
 			Threat() noexcept = default;
-			Threat(Threat encoding_cross, Threat encoding_circle) noexcept :
-					data((encoding_cross.data & 15) | (encoding_circle.data & 240))
+			Threat(Threat encodingCross, Threat encodingCircle) noexcept :
+					data((encodingCross.data & 0x0F) | (encodingCircle.data & 0xF0))
 			{
 			}
 			Threat(ThreatType cross, ThreatType circle) noexcept :
@@ -50,11 +50,11 @@ namespace ag::experimental
 			}
 			ThreatType forCross() const noexcept
 			{
-				return static_cast<ThreatType>(data & 15);
+				return static_cast<ThreatType>(data & 0x0F);
 			}
 			ThreatType forCircle() const noexcept
 			{
-				return static_cast<ThreatType>((data >> 4) & 15);
+				return static_cast<ThreatType>(data >> 4);
 			}
 	};
 

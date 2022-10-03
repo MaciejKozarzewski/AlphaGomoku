@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/solver/PatternClassifier.hpp>
+#include <alphagomoku/patterns/PatternClassifier.hpp>
 
 #include <algorithm>
 
@@ -180,7 +180,12 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not O]", "[not O]");
+			{
+				modifyPatternsAND("[not O]", "[not O]");
+#if CARO_OVERLINE_WINS
+				addPattern("XXXXXX"); // overline may or may not be allowed, depending on the rules
+#endif
+			}
 		}
 		else
 		{
@@ -188,7 +193,12 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not X]", "[not X]");
+			{
+				modifyPatternsAND("[not X]", "[not X]");
+#if CARO_OVERLINE_WINS
+				addPattern("OOOOOO"); // overline may or may not be allowed, depending on the rules
+#endif
+			}
 		}
 	}
 	IsOpenFour::IsOpenFour(GameRules rule, Sign sign) :
@@ -200,7 +210,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not O]", "[not O]");
+				modifyPatternsAND("[not O]", "[not O]");
 		}
 		else
 		{
@@ -208,7 +218,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not X]", "[not X]");
+				modifyPatternsAND("[not X]", "[not X]");
 		}
 	}
 	IsDoubleFour::IsDoubleFour(GameRules rule, Sign sign) :
@@ -220,7 +230,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not O]", "[not O]");
+				modifyPatternsAND("[not O]", "[not O]");
 		}
 		else
 		{
@@ -228,7 +238,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not X]", "[not X]");
+				modifyPatternsAND("[not X]", "[not X]");
 		}
 	}
 	IsHalfOpenFour::IsHalfOpenFour(GameRules rule, Sign sign) :
@@ -240,7 +250,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not O]", "[not O]");
+				modifyPatternsAND("[not O]", "[not O]");
 		}
 		else
 		{
@@ -248,7 +258,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not X]", "[not X]");
+				modifyPatternsAND("[not X]", "[not X]");
 		}
 	}
 	IsOpenThree::IsOpenThree(GameRules rule, Sign sign) :
@@ -260,7 +270,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not O]", "[not O]");
+				modifyPatternsAND("[not O]", "[not O]");
 		}
 		else
 		{
@@ -268,7 +278,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not X]", "[not X]");
+				modifyPatternsAND("[not X]", "[not X]");
 		}
 	}
 	IsHalfOpenThree::IsHalfOpenThree(GameRules rule, Sign sign) :
@@ -280,7 +290,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not O]", "[not O]");
+				modifyPatternsAND("[not O]", "[not O]");
 		}
 		else
 		{
@@ -288,7 +298,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsOR("[not X]", "[not X]");
+				modifyPatternsAND("[not X]", "[not X]");
 		}
 	}
 

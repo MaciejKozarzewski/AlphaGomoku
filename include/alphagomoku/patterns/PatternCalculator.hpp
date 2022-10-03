@@ -11,8 +11,9 @@
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
-#include <alphagomoku/solver/PatternTable.hpp>
-#include <alphagomoku/solver/ThreatTable.hpp>
+#include <alphagomoku/patterns/PatternTable.hpp>
+#include <alphagomoku/patterns/ThreatTable.hpp>
+#include <alphagomoku/solver/BitBoard.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -28,6 +29,35 @@ namespace ag::experimental
 	typedef int UpdateMode;
 	const UpdateMode ADD_MOVE = 0;
 	const UpdateMode UNDO_MOVE = 1;
+
+	inline constexpr int get_row_step(Direction dir) noexcept
+	{
+		return (dir == HORIZONTAL) ? 0 : 1;
+	}
+	inline constexpr int get_col_step(Direction dir) noexcept
+	{
+		switch (dir)
+		{
+			case HORIZONTAL:
+				return 1;
+			case VERTICAL:
+				return 0;
+			case DIAGONAL:
+				return 1;
+			case ANTIDIAGONAL:
+				return -1;
+			default:
+				return 0;
+		}
+	}
+	inline Direction find_direction_of(PatternType pattern, std::array<PatternType, 4> patternGroup) noexcept
+	{
+		for (Direction dir = 0; dir < 4; dir++)
+			if (patternGroup[dir] == pattern)
+				return dir;
+		assert(false); // the search pattern must exist in the group
+		return -1;
+	}
 
 	struct RawPatternGroup
 	{
@@ -95,6 +125,13 @@ namespace ag::experimental
 				return get(ThreatType::HALF_OPEN_4).size() > 0 or get(ThreatType::FORK_4x3).size() > 0 or get(ThreatType::FORK_4x4).size() > 0
 						or get(ThreatType::OPEN_4).size() > 0;
 			}
+			bool canMakeAnyThreat() const noexcept
+			{
+				for (int i = 2; i <= 8; i++)
+					if (threats[i].size() > 0)
+						return true;
+				return false;
+			}
 			void print() const;
 	};
 
@@ -109,7 +146,9 @@ namespace ag::experimental
 		private:
 			GameConfig game_config;
 			int pad;
+			Sign sign_to_move = Sign::NONE;
 
+			BitBoard<uint32_t> legal_moves_mask;
 			matrix<int16_t> internal_board;
 			matrix<RawPatternGroup> raw_features;
 			matrix<PatternTypeGroup> feature_types;
@@ -131,13 +170,23 @@ namespace ag::experimental
 			TimedStat features_update;
 			TimedStat threats_update;
 
+			size_t neighborhood_updates = 0;
+
 		public:
 			PatternCalculator(GameConfig gameConfig);
-			void setBoard(const matrix<Sign> &board, bool = false);
+			void setBoard(const matrix<Sign> &board, Sign signToMove);
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
 			int getMoveValue(Move move, const std::array<int, 4> &values) const noexcept;
 
+			const BitBoard<uint32_t>& getLegalMovesMask() const noexcept
+			{
+				return legal_moves_mask;
+			}
+			Sign getSignToMove() const noexcept
+			{
+				return sign_to_move;
+			}
 			int getPadding() const noexcept
 			{
 				return pad;
@@ -198,6 +247,7 @@ namespace ag::experimental
 						return defensive_moves.at(row, col).for_circle[dir];
 				}
 			}
+			bool isForbidden(Sign sign, int row, int col) noexcept;
 
 			void printRawFeature(int row, int col) const;
 			void printThreat(int row, int col) const;
