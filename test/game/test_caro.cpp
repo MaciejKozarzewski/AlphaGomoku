@@ -2,7 +2,7 @@
  * test_caro.cpp
  *
  *  Created on: Jun 30, 2022
-  *      Author: Maciej Kozarzewski
+ *      Author: Maciej Kozarzewski
  */
 
 #include <alphagomoku/game/Board.hpp>
@@ -102,7 +102,11 @@ namespace ag
 // @formatter:on
 
 		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xa4")), GameOutcome::UNKNOWN);
+#if CARO_OVERLINE_WINS
 		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xh5")), GameOutcome::CROSS_WIN);
+#else
+		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xh5")), GameOutcome::UNKNOWN);
+#endif
 	}
 //	TEST(TestCaro, Placeholder)
 //	{
