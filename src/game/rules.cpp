@@ -7,7 +7,8 @@
 
 #include <alphagomoku/game/rules.hpp>
 #include <alphagomoku/game/Board.hpp>
-#include <alphagomoku/solver/PatternCalculator.hpp>
+#include <alphagomoku/patterns/PatternCalculator.hpp>
+#include <alphagomoku/patterns/Pattern.hpp>
 
 #include <stdexcept>
 #include <cassert>
@@ -17,26 +18,6 @@ namespace
 	using namespace ag;
 	using namespace ag::experimental;
 
-	constexpr int get_row_step(Direction dir) noexcept
-	{
-		return (dir == HORIZONTAL) ? 0 : 1;
-	}
-	constexpr int get_col_step(Direction dir) noexcept
-	{
-		switch (dir)
-		{
-			case HORIZONTAL:
-				return 1;
-			case VERTICAL:
-				return 0;
-			case DIAGONAL:
-				return 1;
-			case ANTIDIAGONAL:
-				return -1;
-			default:
-				return 0;
-		}
-	}
 	template<int Pad>
 	std::string pattern_to_string(uint32_t pattern)
 	{
@@ -65,6 +46,14 @@ namespace
 			result.vertical |= (get(board, move.row + i, move.col) << shift);
 			result.diagonal |= (get(board, move.row + i, move.col + i) << shift);
 			result.antidiagonal |= (get(board, move.row + i, move.col - i) << shift);
+		}
+		if (board.at(move.row, move.col) != Sign::NONE)
+		{ // the patterns should be calculated for empty spot, so we have to correct it now
+			const uint32_t mask = (((1u << (2u * Pad)) - 1u) << (2 * Pad + 2)) | ((1u << (2 * Pad)) - 1u);
+			result.horizontal &= mask;
+			result.vertical &= mask;
+			result.diagonal &= mask;
+			result.antidiagonal &= mask;
 		}
 		return result;
 	}
@@ -186,18 +175,7 @@ namespace ag
 		assert(lastMove.sign != Sign::NONE);
 		assert(lastMove.row >= 0 && lastMove.row < board.rows());
 		assert(lastMove.col >= 0 && lastMove.col < board.cols());
-		PatternTypeGroup patterns;
-		switch (rules)
-		{
-			case GameRules::FREESTYLE:
-				patterns = convert_to_patterns(rules, get_raw_patterns<4>(board, lastMove));
-				break;
-			case GameRules::STANDARD:
-			case GameRules::RENJU:
-			case GameRules::CARO:
-				patterns = convert_to_patterns(rules, get_raw_patterns<5>(board, lastMove));
-				break;
-		}
+		const PatternTypeGroup patterns = convert_to_patterns(rules, get_raw_patterns<5>(board, lastMove));
 		if (lastMove.sign == Sign::CROSS)
 		{
 			if (is_a_win(patterns.for_cross))
@@ -238,13 +216,13 @@ namespace ag
 				{
 					Board::putMove(tmp_board, move);
 					const PatternEncoding tmp = PatternTable::get(GameRules::RENJU).getPatternData(raw.get(dir));
-					const BitMask<uint16_t> defensive_moves = PatternTable::get(GameRules::RENJU).getDefensiveMoves(tmp, Sign::CIRCLE);
+					const BitMask1D<uint16_t> defensive_moves = PatternTable::get(GameRules::RENJU).getDefensiveMoves(tmp, Sign::CIRCLE);
 					bool is_really_an_open3 = false;
 					for (int i = -Pad; i <= Pad; i++)
 					{
 						const int x = move.row + i * get_row_step(dir);
 						const int y = move.col + i * get_col_step(dir);
-						if (defensive_moves.get(Pad + i) == true and tmp_board.at(x, y) == Sign::NONE) // defensive move will never be outside board
+						if (defensive_moves[Pad + i] == true and tmp_board.at(x, y) == Sign::NONE) // defensive move will never be outside board
 							if (is_straight_four<Pad>(tmp_board, Move(x, y, Sign::CROSS), dir)
 									and not isForbidden(tmp_board, Move(x, y, Sign::CROSS)))
 							{
