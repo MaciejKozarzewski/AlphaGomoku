@@ -15,7 +15,7 @@
 #include <cassert>
 #include <iostream>
 
-namespace ag::experimental
+namespace ag
 {
 	inline Sign signFromText(char c) noexcept
 	{

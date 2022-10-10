@@ -10,10 +10,11 @@
 
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/patterns/PatternTable.hpp>
+#include <alphagomoku/patterns/common.hpp>
 
 #include <cinttypes>
 
-namespace ag::experimental
+namespace ag
 {
 	enum class ThreatType : int8_t
 	{
@@ -30,22 +31,22 @@ namespace ag::experimental
 	};
 	std::string toString(ThreatType t);
 
-	struct Threat
+	struct ThreatEncoding
 	{
 		private:
 			uint8_t data = 0u;
 		public:
-			Threat() noexcept = default;
-			Threat(Threat encodingCross, Threat encodingCircle) noexcept :
-					data((encodingCross.data & 0x0F) | (encodingCircle.data & 0xF0))
+			ThreatEncoding() noexcept = default;
+			ThreatEncoding(ThreatEncoding cross, ThreatEncoding circle) noexcept :
+					data((cross.data & 0x0F) | (circle.data & 0xF0))
 			{
 			}
-			Threat(ThreatType cross, ThreatType circle) noexcept :
+			ThreatEncoding(ThreatType cross, ThreatType circle) noexcept :
 					data(static_cast<uint8_t>(cross) | (static_cast<uint8_t>(circle) << 4))
 			{
 			}
-			Threat(ThreatType tt) noexcept :
-					Threat(tt, tt)
+			ThreatEncoding(ThreatType tt) noexcept :
+					ThreatEncoding(tt, tt)
 			{
 			}
 			ThreatType forCross() const noexcept
@@ -58,28 +59,27 @@ namespace ag::experimental
 			}
 	};
 
-	constexpr uint32_t get_index(std::array<PatternType, 4> group) noexcept
-	{
-		return static_cast<uint32_t>(group[0]) + (static_cast<uint32_t>(group[1]) << 3) + (static_cast<uint32_t>(group[2]) << 6)
-				+ (static_cast<uint32_t>(group[3]) << 9);
-	}
-
 	class ThreatTable
 	{
 		private:
-			std::vector<Threat> threats;
+			std::vector<ThreatEncoding> threats;
 		public:
 			ThreatTable(GameRules rules);
-			Threat getThreat(PatternTypeGroup ptg) const noexcept
+			ThreatEncoding getThreat(TwoPlayerGroup<PatternType> ptg) const noexcept
 			{
 				const uint32_t index_cross = get_index(ptg.for_cross);
 				const uint32_t index_circle = get_index(ptg.for_circle);
 				assert(index_cross < threats.size() && index_circle < threats.size());
-				return Threat(threats[index_cross], threats[index_circle]);
+				return ThreatEncoding(threats[index_cross], threats[index_circle]);
 			}
 			static const ThreatTable& get(GameRules rules);
 		private:
 			void init_threats(GameRules rules);
+			constexpr uint32_t get_index(DirectionGroup<PatternType> group) const noexcept
+			{
+				return static_cast<uint32_t>(group.horizontal) + (static_cast<uint32_t>(group.vertical) << 3)
+						+ (static_cast<uint32_t>(group.diagonal) << 6) + (static_cast<uint32_t>(group.antidiagonal) << 9);
+			}
 	};
 
 } /* namespace ag */

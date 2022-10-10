@@ -13,97 +13,89 @@
 
 namespace
 {
-	using namespace ag::experimental;
+	using namespace ag;
 
-	std::array<PatternType, 4> make_feature_type_group(int f0, int f1, int f2, int f3) noexcept
+	DirectionGroup<PatternType> make_pattern_type_group(int f0, int f1, int f2, int f3) noexcept
 	{
-		std::array<PatternType, 4> result;
-		result[0] = static_cast<PatternType>(f0);
-		result[1] = static_cast<PatternType>(f1);
-		result[2] = static_cast<PatternType>(f2);
-		result[3] = static_cast<PatternType>(f3);
+		DirectionGroup<PatternType> result;
+		result.horizontal = static_cast<PatternType>(f0);
+		result.vertical = static_cast<PatternType>(f1);
+		result.diagonal = static_cast<PatternType>(f2);
+		result.antidiagonal = static_cast<PatternType>(f3);
 		return result;
 	}
-	int count(std::array<PatternType, 4> group, PatternType ft) noexcept
-	{
-		return std::count(group.begin(), group.end(), ft);
-	}
-	bool contains(std::array<PatternType, 4> group, PatternType ft) noexcept
-	{
-		return count(group, ft) > 0;
-	}
 
-	bool is_five(std::array<PatternType, 4> group) noexcept
+	bool is_five(DirectionGroup<PatternType> group) noexcept
 	{
-		return contains(group, PatternType::FIVE);
+		return group.contains(PatternType::FIVE);
 	}
-	bool is_overline(std::array<PatternType, 4> group) noexcept
+	bool is_overline(DirectionGroup<PatternType> group) noexcept
 	{
-		return contains(group, PatternType::OVERLINE);
+		return group.contains(PatternType::OVERLINE);
 	}
-	bool is_fork_3x3(std::array<PatternType, 4> group) noexcept
+	bool is_fork_3x3(DirectionGroup<PatternType> group) noexcept
 	{
-		return count(group, PatternType::OPEN_3) >= 2;
+		return group.count(PatternType::OPEN_3) >= 2;
 	}
-	bool is_fork_4x3(std::array<PatternType, 4> group) noexcept
+	bool is_fork_4x3(DirectionGroup<PatternType> group) noexcept
 	{
-		const int sum3 = count(group, PatternType::OPEN_3);
-		const int sum4 = count(group, PatternType::OPEN_4) + count(group, PatternType::HALF_OPEN_4);
+		const int sum3 = group.count(PatternType::OPEN_3);
+		const int sum4 = group.count(PatternType::OPEN_4) + group.count(PatternType::HALF_OPEN_4);
 		return sum3 >= 1 and sum4 >= 1;
 	}
-	bool is_fork_4x4(std::array<PatternType, 4> group) noexcept
+	bool is_fork_4x4(DirectionGroup<PatternType> group) noexcept
 	{
-		const int sum4 = count(group, PatternType::OPEN_4) + count(group, PatternType::HALF_OPEN_4);
-		return contains(group, PatternType::DOUBLE_4) or sum4 >= 2;
+		const int sum4 = group.count(PatternType::OPEN_4) + group.count(PatternType::HALF_OPEN_4);
+		return group.contains(PatternType::DOUBLE_4) or sum4 >= 2;
 	}
 
-	Threat get_threat(std::array<PatternType, 4> group, ag::GameRules rules) noexcept
+	ThreatEncoding get_threat(DirectionGroup<PatternType> group, GameRules rules) noexcept
 	{
 		if (is_five(group)) // win in 1
-			return Threat(ThreatType::FIVE); // five is never forbidden, even in renju
+			return ThreatEncoding(ThreatType::FIVE); // five is never forbidden, even in renju
 
 		if (rules == ag::GameRules::RENJU)
 		{
 			if (is_overline(group)) // forbidden or win in 1
-				return Threat(ThreatType::OVERLINE, ThreatType::FIVE);
+				return ThreatEncoding(ThreatType::OVERLINE, ThreatType::FIVE);
 			if (is_fork_4x4(group)) // win in 3
-				return Threat(ThreatType::FORK_4x4);
-			if (contains(group, PatternType::OPEN_4)) // potentially win in 3
+				return ThreatEncoding(ThreatType::FORK_4x4);
+			if (group.contains(PatternType::OPEN_4)) // potentially win in 3
 			{
 				if (is_fork_3x3(group))
-					return Threat(ThreatType::FORK_3x3, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
-				return Threat(ThreatType::OPEN_4);
+					return ThreatEncoding(ThreatType::FORK_3x3, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
+				return ThreatEncoding(ThreatType::OPEN_4);
 			}
 			if (is_fork_4x3(group)) // win in 5
 			{
 				if (is_fork_3x3(group))
-					return Threat(ThreatType::FORK_3x3, ThreatType::FORK_4x3); // in renju, despite the 4x3 fork being allowed, if there is also 3x3 fork the entire move is forbidden
+					return ThreatEncoding(ThreatType::FORK_3x3, ThreatType::FORK_4x3); // in renju, despite the 4x3 fork being allowed, if there is also 3x3 fork the entire move is forbidden
 				else
-					return Threat(ThreatType::FORK_4x3);
+					return ThreatEncoding(ThreatType::FORK_4x3);
 			}
 		}
 		else
 		{
 			if (is_fork_4x4(group)) // win in 3
-				return Threat(ThreatType::FORK_4x4);
-			if (contains(group, PatternType::OPEN_4)) // win in 3
-				return Threat(ThreatType::OPEN_4);
+				return ThreatEncoding(ThreatType::FORK_4x4);
+			if (group.contains(PatternType::OPEN_4)) // win in 3
+				return ThreatEncoding(ThreatType::OPEN_4);
 			if (is_fork_4x3(group)) // win in 5
-				return Threat(ThreatType::FORK_4x3);
+				return ThreatEncoding(ThreatType::FORK_4x3);
 		}
 		if (is_fork_3x3(group)) // win in 5
-			return Threat(ThreatType::FORK_3x3);
-		if (contains(group, PatternType::HALF_OPEN_4))
-			return Threat(ThreatType::HALF_OPEN_4);
-		if (contains(group, PatternType::OPEN_3))
-			return Threat(ThreatType::OPEN_3);
-		if (contains(group, PatternType::HALF_OPEN_3))
-			return Threat(ThreatType::HALF_OPEN_3);
-		return Threat(ThreatType::NONE);
+			return ThreatEncoding(ThreatType::FORK_3x3);
+		if (group.contains(PatternType::HALF_OPEN_4))
+			return ThreatEncoding(ThreatType::HALF_OPEN_4);
+		if (group.contains(PatternType::OPEN_3))
+			return ThreatEncoding(ThreatType::OPEN_3);
+		if (group.contains(PatternType::HALF_OPEN_3))
+			return ThreatEncoding(ThreatType::HALF_OPEN_3);
+		return ThreatEncoding(ThreatType::NONE);
 	}
 }
 
-namespace ag::experimental
+namespace ag
 {
 	std::string toString(ThreatType t)
 	{
@@ -176,7 +168,7 @@ namespace ag::experimental
 				for (int f2 = 0; f2 < 8; f2++)
 					for (int f3 = 0; f3 < 8; f3++)
 					{
-						const std::array<PatternType, 4> group = make_feature_type_group(f0, f1, f2, f3);
+						const DirectionGroup<PatternType> group = make_pattern_type_group(f0, f1, f2, f3);
 						threats[get_index(group)] = get_threat(group, rules);
 					}
 	}

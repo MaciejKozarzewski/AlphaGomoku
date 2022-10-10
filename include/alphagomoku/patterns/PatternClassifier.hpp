@@ -10,7 +10,7 @@
 
 #include <alphagomoku/patterns/Pattern.hpp>
 
-namespace ag::experimental
+namespace ag
 {
 
 	class MatchingRule
@@ -36,6 +36,7 @@ namespace ag::experimental
 			void addPatterns(const std::vector<std::string> &str);
 			void modifyPatternsAND(const std::string &prefix, const std::string &postfix);
 			void modifyPatternsOR(const std::string &prefix, const std::string &postfix);
+			void modifyPatternsOR(const std::string &prefix, const std::string &common, const std::string &postfix);
 	};
 
 	class IsOverline: public PatternClassifier

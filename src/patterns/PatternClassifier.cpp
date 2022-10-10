@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-namespace ag::experimental
+namespace ag
 {
 
 	MatchingRule::MatchingRule(const std::string &str)
@@ -162,6 +162,16 @@ namespace ag::experimental
 		}
 		m_matching_rules = result;
 	}
+	void PatternClassifier::modifyPatternsOR(const std::string &prefix, const std::string &common, const std::string &postfix)
+	{
+		std::vector<MatchingRule> result;
+		for (auto iter = m_matching_rules.begin(); iter < m_matching_rules.end(); iter++)
+		{
+			result.push_back(MatchingRule(prefix + iter->toString() + common));
+			result.push_back(MatchingRule(common + iter->toString() + postfix));
+		}
+		m_matching_rules = result;
+	}
 
 	IsOverline::IsOverline(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -180,12 +190,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-			{
-				modifyPatternsAND("[not O]", "[not O]");
-#if CARO_OVERLINE_WINS
-				addPattern("XXXXXX"); // overline may or may not be allowed, depending on the rules
-#endif
-			}
+				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
@@ -193,12 +198,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-			{
-				modifyPatternsAND("[not X]", "[not X]");
-#if CARO_OVERLINE_WINS
-				addPattern("OOOOOO"); // overline may or may not be allowed, depending on the rules
-#endif
-			}
+				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
 	}
 	IsOpenFour::IsOpenFour(GameRules rule, Sign sign) :
@@ -210,7 +210,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not O]", "[not O]");
+				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
@@ -218,7 +218,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not X]", "[not X]");
+				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
 	}
 	IsDoubleFour::IsDoubleFour(GameRules rule, Sign sign) :
@@ -230,7 +230,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not O]", "[not O]");
+				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
@@ -238,7 +238,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not X]", "[not X]");
+				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
 	}
 	IsHalfOpenFour::IsHalfOpenFour(GameRules rule, Sign sign) :
@@ -250,7 +250,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not O]", "[not O]");
+				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
@@ -258,7 +258,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not X]", "[not X]");
+				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
 	}
 	IsOpenThree::IsOpenThree(GameRules rule, Sign sign) :
@@ -270,7 +270,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not O]", "[not O]");
+				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
@@ -278,7 +278,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not X]", "[not X]");
+				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
 	}
 	IsHalfOpenThree::IsHalfOpenThree(GameRules rule, Sign sign) :
@@ -290,7 +290,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not O]", "[not O]");
+				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
@@ -298,7 +298,7 @@ namespace ag::experimental
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO)
-				modifyPatternsAND("[not X]", "[not X]");
+				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
 	}
 
