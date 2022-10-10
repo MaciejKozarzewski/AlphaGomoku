@@ -16,7 +16,6 @@
 namespace
 {
 	using namespace ag;
-	using namespace ag::experimental;
 
 	template<int Pad>
 	std::string pattern_to_string(uint32_t pattern)
@@ -34,11 +33,11 @@ namespace
 			return static_cast<uint32_t>(board.at(row, col));
 	}
 	template<int Pad>
-	RawPatternGroup get_raw_patterns(const matrix<Sign> &board, Move move) noexcept
+	DirectionGroup<uint32_t> get_raw_patterns(const matrix<Sign> &board, Move move) noexcept
 	{
 		assert(board.isSquare());
 		assert(move.sign != ag::Sign::NONE);
-		RawPatternGroup result;
+		DirectionGroup<uint32_t> result = { 0u, 0u, 0u, 0u };
 		uint32_t shift = 0;
 		for (int i = -Pad; i <= Pad; i++, shift += 2)
 		{
@@ -57,24 +56,21 @@ namespace
 		}
 		return result;
 	}
-	PatternTypeGroup convert_to_patterns(GameRules rules, RawPatternGroup raw)
+	TwoPlayerGroup<PatternType> convert_to_patterns(GameRules rules, DirectionGroup<uint32_t> raw)
 	{
-		PatternTypeGroup result;
+		TwoPlayerGroup<PatternType> result;
 		for (Direction dir = 0; dir < 4; dir++)
 		{
-			const PatternEncoding tmp = PatternTable::get(rules).getPatternData(raw.get(dir));
+			const PatternEncoding tmp = PatternTable::get(rules).getPatternData(raw[dir]);
 			result.for_cross[dir] = tmp.forCross();
 			result.for_circle[dir] = tmp.forCircle();
 		}
 		return result;
 	}
 
-	bool is_a_win(std::array<PatternType, 4> patterns) noexcept
+	bool is_a_win(DirectionGroup<PatternType> patterns) noexcept
 	{
-		for (Direction dir = 0; dir < 4; dir++)
-			if (patterns[dir] == PatternType::FIVE)
-				return true;
-		return false;
+		return patterns.contains(PatternType::FIVE);
 	}
 	template<int Pad>
 	bool is_straight_four(const matrix<Sign> &board, Move move, Direction direction)
@@ -171,11 +167,11 @@ namespace ag
 
 	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove)
 	{
+		if (lastMove.row < 0 or lastMove.row >= board.rows() or lastMove.col < 0 or lastMove.col >= board.cols())
+			return GameOutcome::UNKNOWN;
 		assert(board.isSquare());
 		assert(lastMove.sign != Sign::NONE);
-		assert(lastMove.row >= 0 && lastMove.row < board.rows());
-		assert(lastMove.col >= 0 && lastMove.col < board.cols());
-		const PatternTypeGroup patterns = convert_to_patterns(rules, get_raw_patterns<5>(board, lastMove));
+		const TwoPlayerGroup<PatternType> patterns = convert_to_patterns(rules, get_raw_patterns<5>(board, lastMove));
 		if (lastMove.sign == Sign::CROSS)
 		{
 			if (is_a_win(patterns.for_cross))
@@ -204,10 +200,10 @@ namespace ag
 		if (board.at(move.row, move.col) != Sign::NONE)
 			return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
 
-		const RawPatternGroup raw = get_raw_patterns<Pad>(board, move);
-		PatternTypeGroup patterns = convert_to_patterns(GameRules::RENJU, raw);
+		const DirectionGroup<uint32_t> raw = get_raw_patterns<Pad>(board, move);
+		TwoPlayerGroup<PatternType> patterns = convert_to_patterns(GameRules::RENJU, raw);
 
-		Threat threat = ThreatTable::get(GameRules::RENJU).getThreat(patterns);
+		ThreatEncoding threat = ThreatTable::get(GameRules::RENJU).getThreat(patterns);
 		if (threat.forCross() == ThreatType::FORK_3x3)
 		{
 			matrix<Sign> tmp_board(board);
@@ -215,7 +211,7 @@ namespace ag
 				if (patterns.for_cross[dir] == PatternType::OPEN_3)
 				{
 					Board::putMove(tmp_board, move);
-					const PatternEncoding tmp = PatternTable::get(GameRules::RENJU).getPatternData(raw.get(dir));
+					const PatternEncoding tmp = PatternTable::get(GameRules::RENJU).getPatternData(raw[dir]);
 					const BitMask1D<uint16_t> defensive_moves = PatternTable::get(GameRules::RENJU).getDefensiveMoves(tmp, Sign::CIRCLE);
 					bool is_really_an_open3 = false;
 					for (int i = -Pad; i <= Pad; i++)
