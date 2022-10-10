@@ -76,7 +76,7 @@ namespace ag
 // @formatter:on
 
 		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xa5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xa5")), GameOutcome::UNKNOWN);
 	}
 	TEST(TestCaro, Blocked)
 	{
@@ -89,24 +89,21 @@ namespace ag
 					/*  3 */" X _ _ _ _ _ _ _ _ X _ _ _ _ _\n" /*  3 */
 					/*  4 */" ! _ _ _ _ _ _ _ X _ _ _ _ _ _\n" /*  4 */
 					/*  5 */" X _ _ _ _ _ _ ! _ _ _ _ _ _ _\n" /*  5 */
-					/*  6 */" O _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /*  6 */
-					/*  7 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  7 */
-					/*  8 */" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-					/*  9 */" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-					/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-					/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+					/*  6 */" O _ _ _ _ _ X _ _ _ _ _ _ _ X\n" /*  6 */
+					/*  7 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ X\n" /*  7 */
+					/*  8 */" _ _ _ _ X _ _ _ _ _ _ _ _ _ !\n" /*  8 */
+					/*  9 */" _ _ _ O _ _ _ _ _ _ _ _ _ _ X\n" /*  9 */
+					/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X\n" /* 10 */
+					/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X\n" /* 11 */
+					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O\n" /* 12 */
 					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
 		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xa4")), GameOutcome::UNKNOWN);
-#if CARO_OVERLINE_WINS
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xh5")), GameOutcome::CROSS_WIN);
-#else
 		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xh5")), GameOutcome::UNKNOWN);
-#endif
+		EXPECT_EQ(getOutcome_v2(GameRules::CARO, board, Move("Xo8")), GameOutcome::UNKNOWN);
 	}
 //	TEST(TestCaro, Placeholder)
 //	{
