@@ -108,10 +108,13 @@ namespace
 	board_size get_board_size_from_string(const std::string &str)
 	{
 		int height = std::count(str.begin(), str.end(), '\n');		// every line must end with new line character "\n"
-		assert(height != 0);
-		assert(str.size() % height == 0);
+		if (height == 0)
+			throw std::logic_error("get_board_size_from_string() : height is 0");
+		if (str.size() % height != 0)
+			throw std::logic_error("get_board_size_from_string() : string size is not divisible by height");
 		int width = std::count(str.begin(), str.end(), ' ') / height; // every board spot must contain exactly one leading space
-		assert(std::count(str.begin(), str.end(), ' ') == height * width);
+		if (std::count(str.begin(), str.end(), ' ') != height * width)
+			throw std::logic_error("get_board_size_from_string() : number of ' ' does not match the board size");
 		return board_size { height, width };
 	}
 }
@@ -131,6 +134,7 @@ namespace ag
 					break;
 				case '_':
 				case '!': // special case sometimes used in tests to indicate point of interest
+				case '?': // special case sometimes used in tests to indicate point of interest
 					result[counter] = Sign::NONE;
 					counter++;
 					break;
