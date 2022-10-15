@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_SOLVER_PATTERN_HPP_
-#define ALPHAGOMOKU_SOLVER_PATTERN_HPP_
+#ifndef ALPHAGOMOKU_PATTERNS_PATTERN_HPP_
+#define ALPHAGOMOKU_PATTERNS_PATTERN_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
 
@@ -157,7 +157,17 @@ namespace ag
 				assert(this->size() == other.size());
 				m_feature |= other.m_feature;
 			}
+			Pattern subPattern(int start, int length) const noexcept
+			{
+				const uint32_t shift = 2u * start;
+				const uint32_t mask = (1u << (2u * length)) - 1u;
+				return Pattern(length, (m_feature >> shift) & mask);
+			}
+			friend bool operator==(const Pattern &lhs, const Pattern &rhs)
+			{
+				return lhs.m_length == rhs.m_length and lhs.m_feature == rhs.m_feature;
+			}
 	};
 }
 
-#endif /* ALPHAGOMOKU_SOLVER_PATTERN_HPP_ */
+#endif /* ALPHAGOMOKU_PATTERNS_PATTERN_HPP_ */

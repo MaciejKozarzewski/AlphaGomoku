@@ -52,7 +52,7 @@ namespace ag
 
 			T operator[](Direction direction) const noexcept
 			{
-				assert(HORIZONTAL <= dir && dir <= ANTIDIAGONAL);
+				assert(HORIZONTAL <= direction && direction <= ANTIDIAGONAL);
 				switch (direction)
 				{
 					default:
@@ -68,7 +68,7 @@ namespace ag
 			}
 			T& operator[](Direction direction) noexcept
 			{
-				assert(HORIZONTAL <= dir && dir <= ANTIDIAGONAL);
+				assert(HORIZONTAL <= direction && direction <= ANTIDIAGONAL);
 				switch (direction)
 				{
 					default:
@@ -111,6 +111,56 @@ namespace ag
 	{
 			DirectionGroup<T> for_cross;
 			DirectionGroup<T> for_circle;
+	};
+
+	template<typename T, int MaxSize>
+	class ShortVector
+	{
+			std::array<T, MaxSize> m_data;
+			int m_size = 0;
+		public:
+			ShortVector() noexcept = default;
+			ShortVector(std::initializer_list<T> list) :
+				m_size(list.size())
+			{
+				for (int i = 0; i < m_size; i++)
+					m_data[i] = list.begin()[i];
+			}
+			void add(const T &value) noexcept
+			{
+				assert(m_size < MaxSize);
+				m_data[m_size++] = value;
+			}
+			int size() const noexcept
+			{
+				return m_size;
+			}
+			const T& operator[](int index) const noexcept
+			{
+				assert(0 <= index && index < size());
+				return m_data[index];
+			}
+			T& operator[](int index) noexcept
+			{
+				assert(0 <= index && index < size());
+				return m_data[index];
+			}
+			T* begin() noexcept
+			{
+				return m_data.data();
+			}
+			T* end() noexcept
+			{
+				return begin() + size();
+			}
+			const T* begin() const noexcept
+			{
+				return m_data.data();
+			}
+			const T* end() const noexcept
+			{
+				return begin() + size();
+			}
 	};
 
 } /* namespace ag */

@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_SOLVER_PATTERNCALCULATOR_HPP_
-#define ALPHAGOMOKU_SOLVER_PATTERNCALCULATOR_HPP_
+#ifndef ALPHAGOMOKU_PATTERNS_PATTERNCALCULATOR_HPP_
+#define ALPHAGOMOKU_PATTERNS_PATTERNCALCULATOR_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/BitMask.hpp>
@@ -14,6 +14,7 @@
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/patterns/PatternTable.hpp>
 #include <alphagomoku/patterns/ThreatTable.hpp>
+#include <alphagomoku/patterns/DefensiveMoveTable.hpp>
 #include <alphagomoku/patterns/ThreatHistogram.hpp>
 #include <alphagomoku/patterns/common.hpp>
 
@@ -30,15 +31,13 @@ namespace ag
 	{
 		private:
 			GameConfig game_config;
-			int pad;
 			Sign sign_to_move = Sign::NONE;
 			int current_depth = 0;
 
-			BitMask2D<uint32_t> legal_moves_mask;
+			BitMask2D<uint32_t, 32> legal_moves_mask;
 			matrix<int16_t> internal_board;
 			matrix<DirectionGroup<uint32_t>> raw_patterns;
 			matrix<TwoPlayerGroup<PatternType>> pattern_types;
-			matrix<TwoPlayerGroup<BitMask1D<uint16_t>>> defensive_moves;
 
 			matrix<ThreatEncoding> threat_types;
 
@@ -49,6 +48,7 @@ namespace ag
 
 			const PatternTable *pattern_table = nullptr;
 			const ThreatTable *threat_table = nullptr;
+			const DefensiveMoveTable *defensive_move_table = nullptr;
 
 			TimedStat features_init;
 			TimedStat features_class;
@@ -57,11 +57,18 @@ namespace ag
 			TimedStat threats_update;
 
 		public:
+			static constexpr int padding = 5;
+			static constexpr int extended_padding = padding + 1;
+
 			PatternCalculator(GameConfig gameConfig);
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
 
+			GameConfig getConfig() const noexcept
+			{
+				return game_config;
+			}
 			int getCurrentDepth() const noexcept
 			{
 				return current_depth;
@@ -74,13 +81,9 @@ namespace ag
 			{
 				return sign_to_move;
 			}
-			int getPadding() const noexcept
-			{
-				return pad;
-			}
 			Sign signAt(int row, int col) const noexcept
 			{
-				return static_cast<Sign>(internal_board.at(pad + row, pad + col));
+				return static_cast<Sign>(internal_board.at(extended_padding + row, extended_padding + col));
 			}
 			const ThreatHistogram& getThreatHistogram(Sign sign) const noexcept
 			{
@@ -90,9 +93,13 @@ namespace ag
 				else
 					return circle_threats;
 			}
-			uint32_t getRawFeatureAt(int row, int col, Direction dir) const noexcept
+			uint32_t getRawPatternAt(int row, int col, Direction dir) const noexcept
 			{
-				return raw_patterns.at(pad + row, pad + col)[dir];
+				return (raw_patterns.at(extended_padding + row, extended_padding + col)[dir] >> 2) & 4194303u;
+			}
+			uint32_t getExtendedPatternAt(int row, int col, Direction dir) const noexcept
+			{
+				return raw_patterns.at(extended_padding + row, extended_padding + col)[dir];
 			}
 			DirectionGroup<PatternType> getPatternTypeAt(Sign sign, int row, int col) const noexcept
 			{
@@ -118,17 +125,16 @@ namespace ag
 						return threat_types.at(row, col).forCircle();
 				}
 			}
-			BitMask1D<uint16_t> getDefensiveMoves(Sign sign, int row, int col, Direction dir) const noexcept
+			ShortVector<Move, 5> getDefensiveMoves(Sign sign, int row, int col, Direction dir) const noexcept
 			{
-				switch (sign)
-				{
-					default:
-						return BitMask1D<uint16_t>();
-					case Sign::CROSS:
-						return defensive_moves.at(row, col).for_cross[dir];
-					case Sign::CIRCLE:
-						return defensive_moves.at(row, col).for_circle[dir];
-				}
+				const uint32_t extended_pattern = getExtendedPatternAt(row, col, dir);
+				const PatternType threat_to_defend = getPatternTypeAt(invertSign(sign), row, col, dir);
+				const BitMask1D<uint16_t> tmp = defensive_move_table->getMoves(extended_pattern, sign, threat_to_defend);
+				ShortVector<Move, 5> result;
+				for (int i = -extended_padding; i <= extended_padding; i++)
+					if (tmp[i + extended_padding])
+						result.add(Move(row + i * get_row_step(dir), col + i * get_col_step(dir)));
+				return result;
 			}
 			bool isForbidden(Sign sign, int row, int col) noexcept;
 
@@ -149,4 +155,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_SOLVER_PATTERNCALCULATOR_HPP_ */
+#endif /* ALPHAGOMOKU_PATTERNS_PATTERNCALCULATOR_HPP_ */

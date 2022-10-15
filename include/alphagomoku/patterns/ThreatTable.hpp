@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_SOLVER_THREATTABLE_HPP_
-#define ALPHAGOMOKU_SOLVER_THREATTABLE_HPP_
+#ifndef ALPHAGOMOKU_PATTERNS_THREATTABLE_HPP_
+#define ALPHAGOMOKU_PATTERNS_THREATTABLE_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/patterns/PatternTable.hpp>
@@ -84,4 +84,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_SOLVER_THREATTABLE_HPP_ */
+#endif /* ALPHAGOMOKU_PATTERNS_THREATTABLE_HPP_ */

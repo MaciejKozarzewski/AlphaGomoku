@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_SOLVER_PATTERNTABLE_HPP_
-#define ALPHAGOMOKU_SOLVER_PATTERNTABLE_HPP_
+#ifndef ALPHAGOMOKU_PATTERNS_PATTERNTABLE_HPP_
+#define ALPHAGOMOKU_PATTERNS_PATTERNTABLE_HPP_
 
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
@@ -35,11 +35,16 @@ namespace ag
 	struct PatternEncoding
 	{
 		private:
-			uint32_t m_data = 0u;
+			/*
+			 * bits 0:3  - pattern type for cross
+			 * bits 3:6  - pattern type for circle
+			 * bits 6:16 - update mask (omitting central spot)
+			 */
+			uint16_t m_data = 0u;
 		public:
 			PatternEncoding() noexcept = default;
 			PatternEncoding(PatternType cross, PatternType circle) noexcept :
-					m_data(static_cast<uint32_t>(cross) | (static_cast<uint32_t>(circle) << 3))
+					m_data(static_cast<uint16_t>(cross) | (static_cast<uint16_t>(circle) << 3))
 			{
 			}
 			PatternType forCross() const noexcept
@@ -53,36 +58,25 @@ namespace ag
 			bool mustBeUpdated(int index) const noexcept
 			{
 				assert(index >= 0 && index < 11);
-				index += 6;
-				return static_cast<bool>((m_data >> index) & 1);
+				// central spot must always be updated so there is not stored
+				return (index == 5) ? true : static_cast<bool>((m_data >> (index + 6 - static_cast<int>(index > 5))) & 1);
 			}
 			void setUpdateMask(int index, bool b) noexcept
 			{
 				assert(index >= 0 && index < 11);
-				index += 6;
-				m_data &= (~(1 << index));
-				m_data |= (static_cast<uint32_t>(b) << index);
-			}
-			uint32_t getDefensiveMoves(Sign sign) const noexcept
-			{
-				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-				return (sign == Sign::CROSS) ? ((m_data >> 17) & 127) : ((m_data >> 24) & 127);
-			}
-			void setDefensiveMoves(Sign sign, uint32_t maskIndex) noexcept
-			{
-				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-				const uint32_t shift = (sign == Sign::CROSS) ? 17 : 24;
-				m_data &= (~(127u << shift));
-				m_data |= (maskIndex << shift);
+				if (index != 5)
+				{
+					index += 6 - static_cast<int>(index > 5);
+					m_data &= (~(1 << index));
+					m_data |= (static_cast<uint16_t>(b) << index);
+				}
 			}
 	};
 
 	class PatternTable
 	{
 		private:
-			std::vector<PatternEncoding> patterns;
-
-			std::vector<BitMask1D<uint16_t>> defensive_move_mask;
+			std::vector<PatternEncoding> pattern_types;
 			GameRules game_rules;
 		public:
 			PatternTable(GameRules rules);
@@ -92,21 +86,15 @@ namespace ag
 			}
 			PatternEncoding getPatternData(uint32_t pattern) const noexcept
 			{
-				assert(pattern < patterns.size());
-				return patterns[pattern];
-			}
-			BitMask1D<uint16_t> getDefensiveMoves(PatternEncoding enc, Sign sign) const noexcept
-			{
-				return defensive_move_mask[enc.getDefensiveMoves(sign)];
+				assert(pattern < pattern_types.size());
+				return pattern_types[pattern];
 			}
 			static const PatternTable& get(GameRules rules);
 		private:
 			void init_features();
 			void init_update_mask();
-			void init_defensive_moves();
-			size_t add_defensive_move_mask(BitMask1D<uint16_t> mask);
 	};
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_SOLVER_PATTERNTABLE_HPP_ */
+#endif /* ALPHAGOMOKU_PATTERNS_PATTERNTABLE_HPP_ */

@@ -173,28 +173,28 @@ namespace
 	{
 		assert(BOARD_AT(move.row, move.col) == static_cast<int16_t>(Sign::NONE));
 		assert(move.sign == Sign::CROSS);
-		uint32_t result = static_cast<uint32_t>(Sign::CROSS) << (2 * Pad);
+		uint32_t result = static_cast<uint32_t>(Sign::CROSS) << 10;
 		uint32_t shift = 0;
 		switch (direction)
 		{
 			case HORIZONTAL:
-				for (int i = -Pad; i <= Pad; i++, shift += 2)
+				for (int i = -5; i <= 5; i++, shift += 2)
 					result |= (BOARD_AT(move.row, move.col + i) << shift);
 				break;
 			case VERTICAL:
-				for (int i = -Pad; i <= Pad; i++, shift += 2)
+				for (int i = -5; i <= 5; i++, shift += 2)
 					result |= (BOARD_AT(move.row + i, move.col) << shift);
 				break;
 			case DIAGONAL:
-				for (int i = -Pad; i <= Pad; i++, shift += 2)
+				for (int i = -5; i <= 5; i++, shift += 2)
 					result |= (BOARD_AT(move.row + i, move.col + i) << shift);
 				break;
 			case ANTIDIAGONAL:
-				for (int i = -Pad; i <= Pad; i++, shift += 2)
+				for (int i = -5; i <= 5; i++, shift += 2)
 					result |= (BOARD_AT(move.row + i, move.col - i) << shift);
 				break;
 		}
-		for (int i = 0; i < (2 * Pad + 1 - 4); i++, result /= 4)
+		for (int i = 0; i < 7; i++, result /= 4)
 			if ((result & 255u) == 85u)
 				return true;
 		return false;
@@ -208,15 +208,14 @@ namespace ag
 {
 	PatternCalculator::PatternCalculator(GameConfig gameConfig) :
 			game_config(gameConfig),
-			pad(6),//(Pattern::length(gameConfig.rules) - 1) / 2),
 			legal_moves_mask(gameConfig.rows, gameConfig.cols),
-			internal_board(gameConfig.rows + 2 * pad, gameConfig.cols + 2 * pad),
+			internal_board(gameConfig.rows + 2 * extended_padding, gameConfig.cols + 2 * extended_padding),
 			raw_patterns(internal_board.rows(), internal_board.cols()),
 			pattern_types(gameConfig.rows, gameConfig.cols),
-			defensive_moves(gameConfig.rows, gameConfig.cols),
 			threat_types(gameConfig.rows, gameConfig.cols),
 			pattern_table(&PatternTable::get(gameConfig.rules)),
 			threat_table(&ThreatTable::get(gameConfig.rules)),
+			defensive_move_table(&DefensiveMoveTable::get(gameConfig.rules)),
 			features_init("features init  "),
 			features_class("features class "),
 			threats_init("threats init   "),
@@ -228,13 +227,13 @@ namespace ag
 
 	void PatternCalculator::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
-		assert(board.rows() + 2 * pad == internal_board.rows());
-		assert(board.cols() + 2 * pad == internal_board.cols());
+		assert(board.rows() + 2 * extended_padding == internal_board.rows());
+		assert(board.cols() + 2 * extended_padding == internal_board.cols());
 
 		sign_to_move = signToMove;
 		static_assert(sizeof(Sign) == sizeof(int16_t));
 		for (int row = 0; row < board.rows(); row++)
-			std::memcpy(internal_board.data(pad + row) + pad, board.data(row), sizeof(Sign) * board.cols());
+			std::memcpy(internal_board.data(extended_padding + row) + extended_padding, board.data(row), sizeof(Sign) * board.cols());
 
 		current_depth = 0;
 		legal_moves_mask.fill(false);
@@ -250,52 +249,50 @@ namespace ag
 		features_init.stopTimer();
 
 		features_class.startTimer();
-//		classify_feature_types();
+		classify_feature_types();
 		features_class.stopTimer();
 
 		threats_init.startTimer();
-//		prepare_threat_lists();
+		prepare_threat_lists();
 		threats_init.stopTimer();
 	}
 	void PatternCalculator::addMove(Move move) noexcept
 	{
 		assert(signAt(move.row, move.col) == Sign::NONE); // move must be made on empty spot
-		assert(move.sign == sign_to_move);
 		threats_update.startTimer();
-//		update_central_spot(move.row, move.col, ADD_MOVE);
+		update_central_spot(move.row, move.col, ADD_MOVE);
 		threats_update.pauseTimer();
 
-		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(move.sign);
+		internal_board.at(extended_padding + move.row, extended_padding + move.col) = static_cast<int16_t>(move.sign);
 		legal_moves_mask.at(move.row, move.col) = false;
 
 		features_update.startTimer();
-		add_move<6>(raw_patterns, move);
+		add_move<extended_padding>(raw_patterns, move);
 		features_update.stopTimer();
 
 		threats_update.resumeTimer();
-//		update_neighborhood(move.row, move.col);
+		update_neighborhood(move.row, move.col);
 		threats_update.stopTimer();
 
-		sign_to_move = invertSign(sign_to_move);
+		sign_to_move = invertSign(move.sign);
 		current_depth++;
 	}
 	void PatternCalculator::undoMove(Move move) noexcept
 	{
 		assert(signAt(move.row, move.col) == move.sign); // board must contain the move to be undone
-		assert(move.sign == invertSign(sign_to_move));
-		internal_board.at(pad + move.row, pad + move.col) = static_cast<int16_t>(Sign::NONE);
+		internal_board.at(extended_padding + move.row, extended_padding + move.col) = static_cast<int16_t>(Sign::NONE);
 		legal_moves_mask.at(move.row, move.col) = true;
 
 		features_update.startTimer();
-		undo_move<6>(raw_patterns, move);
+		undo_move<extended_padding>(raw_patterns, move);
 		features_update.stopTimer();
 
 		threats_update.startTimer();
-//		update_central_spot(move.row, move.col, UNDO_MOVE);
-//		update_neighborhood(move.row, move.col);
+		update_central_spot(move.row, move.col, UNDO_MOVE);
+		update_neighborhood(move.row, move.col);
 		threats_update.stopTimer();
 
-		sign_to_move = invertSign(sign_to_move);
+		sign_to_move = move.sign;
 		current_depth--;
 		assert(current_depth >= 0);
 	}
@@ -317,19 +314,20 @@ namespace ag
 				for (Direction dir = 0; dir < 4; dir++)
 					if (getPatternTypeAt(Sign::CROSS, row, col, dir) == PatternType::OPEN_3)
 					{
-						const BitMask1D<uint16_t> defensive_moves = getDefensiveMoves(Sign::CIRCLE, row, col, dir);
-						internal_board.at(pad + row, pad + col) = static_cast<int16_t>(Sign::CROSS);
-						for (int i = -5; i <= 5; i++)
+						const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(getRawPatternAt(row, col, dir));
+						internal_board.at(extended_padding + row, extended_padding + col) = static_cast<int16_t>(Sign::CROSS);
+						for (int i = -padding; i <= padding; i++)
 						{
 							const int x = row + i * get_row_step(dir);
 							const int y = col + i * get_col_step(dir);
-							if (i != 0 and defensive_moves[5 + i] == true and is_straight_four<5>(internal_board, Move(Sign::CROSS, x, y), dir))
+							if (promotion_moves[padding + i] == true and signAt(x, y) == Sign::NONE
+									and is_straight_four<extended_padding>(internal_board, Move(Sign::CROSS, x, y), dir))
 							{ // minor optimization as 'is_straight_four' works without adding new move to the pattern calculator
-								internal_board.at(pad + row, pad + col) = static_cast<int16_t>(Sign::NONE);
+								internal_board.at(extended_padding + row, extended_padding + col) = static_cast<int16_t>(Sign::NONE);
 								addMove(Move(row, col, Sign::CROSS));
 								const bool is_forbidden = isForbidden(sign, x, y);
 								undoMove(Move(row, col, Sign::CROSS));
-								internal_board.at(pad + row, pad + col) = static_cast<int16_t>(Sign::CROSS);
+								internal_board.at(extended_padding + row, extended_padding + col) = static_cast<int16_t>(Sign::CROSS);
 
 								if (not is_forbidden)
 								{
@@ -338,7 +336,7 @@ namespace ag
 								}
 							}
 						}
-						internal_board.at(pad + row, pad + col) = static_cast<int16_t>(Sign::NONE);
+						internal_board.at(extended_padding + row, extended_padding + col) = static_cast<int16_t>(Sign::NONE);
 					}
 				if (open3_count >= 2)
 					return true;
@@ -369,10 +367,10 @@ namespace ag
 					break;
 			}
 
-			uint32_t line = getRawFeatureAt(row, col, static_cast<Direction>(i));
-			for (int j = 0; j < 2 * pad + 1; j++)
+			uint32_t line = getRawPatternAt(row, col, static_cast<Direction>(i));
+			for (int j = 0; j < 2 * padding + 1; j++)
 			{
-				if (j == pad)
+				if (j == padding)
 					std::cout << ' ';
 				switch (line % 4)
 				{
@@ -389,11 +387,11 @@ namespace ag
 						std::cout << '|';
 						break;
 				}
-				if (j == pad)
+				if (j == padding)
 					std::cout << ' ';
 				line = line / 4;
 			}
-			std::cout << " : (" << getRawFeatureAt(row, col, static_cast<Direction>(i)) << ") : ";
+			std::cout << " : (" << getRawPatternAt(row, col, static_cast<Direction>(i)) << ") : ";
 			std::cout << toString(getPatternTypeAt(Sign::CROSS, row, col, static_cast<Direction>(i))) << " : ";
 			std::cout << toString(getPatternTypeAt(Sign::CIRCLE, row, col, static_cast<Direction>(i))) << '\n';
 		}
@@ -418,11 +416,11 @@ namespace ag
 			{
 				if (lastMove.sign != Sign::NONE)
 				{
-					if ((i - pad) == lastMove.row && (j - pad) == lastMove.col)
+					if ((i - padding) == lastMove.row && (j - padding) == lastMove.col)
 						std::cout << '>';
 					else
 					{
-						if ((i - pad) == lastMove.row && (j - pad) == lastMove.col + 1)
+						if ((i - padding) == lastMove.row && (j - padding) == lastMove.col + 1)
 							std::cout << '<';
 						else
 							std::cout << ' ';
@@ -448,7 +446,7 @@ namespace ag
 			}
 			if (lastMove.sign != Sign::NONE)
 			{
-				if ((i - pad) == lastMove.row && internal_board.cols() - 1 == lastMove.col)
+				if ((i - padding) == lastMove.row && internal_board.cols() - 1 == lastMove.col)
 					std::cout << '<';
 				else
 					std::cout << ' ';
@@ -470,10 +468,10 @@ namespace ag
 	 */
 	void PatternCalculator::calculate_raw_features() noexcept
 	{
-		horizontal<5>(raw_patterns, internal_board);
-		vertical<5>(raw_patterns, internal_board);
-		diagonal<5>(raw_patterns, internal_board);
-		antidiagonal<5>(raw_patterns, internal_board);
+		horizontal<extended_padding>(raw_patterns, internal_board);
+		vertical<extended_padding>(raw_patterns, internal_board);
+		diagonal<extended_padding>(raw_patterns, internal_board);
+		antidiagonal<extended_padding>(raw_patterns, internal_board);
 	}
 	void PatternCalculator::classify_feature_types() noexcept
 	{
@@ -483,19 +481,13 @@ namespace ag
 				{
 					for (Direction dir = 0; dir < 4; dir++)
 					{
-						const PatternEncoding tmp = pattern_table->getPatternData(getRawFeatureAt(row, col, dir));
+						const PatternEncoding tmp = pattern_table->getPatternData(getRawPatternAt(row, col, dir));
 						pattern_types.at(row, col).for_cross[dir] = tmp.forCross();
 						pattern_types.at(row, col).for_circle[dir] = tmp.forCircle();
-
-						defensive_moves.at(row, col).for_cross[dir] = pattern_table->getDefensiveMoves(tmp, Sign::CROSS);
-						defensive_moves.at(row, col).for_circle[dir] = pattern_table->getDefensiveMoves(tmp, Sign::CIRCLE);
 					}
 				}
 				else
-				{
 					pattern_types.at(row, col) = TwoPlayerGroup<PatternType>();
-					defensive_moves.at(row, col) = TwoPlayerGroup<BitMask1D<uint16_t>>();
-				}
 	}
 	void PatternCalculator::prepare_threat_lists()
 	{
@@ -521,7 +513,7 @@ namespace ag
 		assert(signAt(row, col) == Sign::NONE);
 
 		for (Direction dir = 0; dir < 4; dir++)
-			central_spot_encoding[dir] = pattern_table->getPatternData(getRawFeatureAt(row, col, dir));
+			central_spot_encoding[dir] = pattern_table->getPatternData(getRawPatternAt(row, col, dir));
 
 		if (mode == ADD_MOVE)
 		{ // a stone was added
@@ -531,7 +523,6 @@ namespace ag
 
 			// since this spot is now occupied, there are no threats nor defensive moves
 			pattern_types.at(row, col) = TwoPlayerGroup<PatternType>();
-			defensive_moves.at(row, col) = TwoPlayerGroup<BitMask1D<uint16_t>>();
 			threat_types.at(row, col) = ThreatEncoding();
 		}
 		else
@@ -541,9 +532,6 @@ namespace ag
 			{
 				pattern_types.at(row, col).for_cross[dir] = central_spot_encoding[dir].forCross();
 				pattern_types.at(row, col).for_circle[dir] = central_spot_encoding[dir].forCircle();
-
-				defensive_moves.at(row, col).for_cross[dir] = pattern_table->getDefensiveMoves(central_spot_encoding[dir], Sign::CROSS);
-				defensive_moves.at(row, col).for_circle[dir] = pattern_table->getDefensiveMoves(central_spot_encoding[dir], Sign::CIRCLE);
 			}
 			const ThreatEncoding new_threat = threat_table->getThreat(pattern_types.at(row, col));
 
@@ -554,16 +542,16 @@ namespace ag
 	}
 	void PatternCalculator::update_neighborhood(int row, int col) noexcept
 	{
-		for (int i = -pad; i <= pad; i++)
+		for (int i = -padding; i <= padding; i++)
 			if (i != 0) // central spot has special update procedure
 			{
-				if (central_spot_encoding.horizontal.mustBeUpdated(pad + i))
+				if (central_spot_encoding.horizontal.mustBeUpdated(padding + i))
 					update_feature_types_and_threats(row, col + i, HORIZONTAL);
-				if (central_spot_encoding.vertical.mustBeUpdated(pad + i))
+				if (central_spot_encoding.vertical.mustBeUpdated(padding + i))
 					update_feature_types_and_threats(row + i, col, VERTICAL);
-				if (central_spot_encoding.diagonal.mustBeUpdated(pad + i))
+				if (central_spot_encoding.diagonal.mustBeUpdated(padding + i))
 					update_feature_types_and_threats(row + i, col + i, DIAGONAL);
-				if (central_spot_encoding.antidiagonal.mustBeUpdated(pad + i))
+				if (central_spot_encoding.antidiagonal.mustBeUpdated(padding + i))
 					update_feature_types_and_threats(row + i, col - i, ANTIDIAGONAL);
 			}
 	}
@@ -572,16 +560,13 @@ namespace ag
 		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
 
 		// find new feature type and update appropriate direction in the table
-		const PatternEncoding new_feature_type = pattern_table->getPatternData(getRawFeatureAt(row, col, direction));
+		const PatternEncoding new_feature_type = pattern_table->getPatternData(getRawPatternAt(row, col, direction));
 		pattern_types.at(row, col).for_cross[direction] = new_feature_type.forCross();
 		pattern_types.at(row, col).for_circle[direction] = new_feature_type.forCircle();
 
 		const ThreatEncoding old_threat = threat_types.at(row, col); // check what was the best threat at (row, col) before updating
 		const ThreatEncoding new_threat = threat_table->getThreat(pattern_types.at(row, col)); // find new threat type according to the newly updated feature types
 		threat_types.at(row, col) = new_threat;
-
-		defensive_moves.at(row, col).for_cross[direction] = pattern_table->getDefensiveMoves(new_feature_type, Sign::CROSS);
-		defensive_moves.at(row, col).for_circle[direction] = pattern_table->getDefensiveMoves(new_feature_type, Sign::CIRCLE);
 
 		// update list of threats for cross and circle (if necessary)
 		if (old_threat.forCross() != new_threat.forCross())

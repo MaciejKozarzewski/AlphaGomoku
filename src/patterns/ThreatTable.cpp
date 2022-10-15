@@ -64,7 +64,8 @@ namespace
 			{
 				if (is_fork_3x3(group))
 					return ThreatEncoding(ThreatType::FORK_3x3, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
-				return ThreatEncoding(ThreatType::OPEN_4);
+				else
+					return ThreatEncoding(ThreatType::OPEN_4);
 			}
 			if (is_fork_4x3(group)) // win in 5
 			{
@@ -136,22 +137,22 @@ namespace ag
 		{
 			case GameRules::FREESTYLE:
 			{
-				static ThreatTable table(GameRules::FREESTYLE);
+				static const ThreatTable table(GameRules::FREESTYLE);
 				return table;
 			}
 			case GameRules::STANDARD:
 			{
-				static ThreatTable table(GameRules::STANDARD);
+				static const ThreatTable table(GameRules::STANDARD);
 				return table;
 			}
 			case GameRules::RENJU:
 			{
-				static ThreatTable table(GameRules::RENJU);
+				static const ThreatTable table(GameRules::RENJU);
 				return table;
 			}
 			case GameRules::CARO:
 			{
-				static ThreatTable table(GameRules::CARO);
+				static const ThreatTable table(GameRules::CARO);
 				return table;
 			}
 			default:
