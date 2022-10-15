@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_SOLVER_PATTERNCLASSIFIER_HPP_
-#define ALPHAGOMOKU_SOLVER_PATTERNCLASSIFIER_HPP_
+#ifndef ALPHAGOMOKU_PATTERNS_PATTERNCLASSIFIER_HPP_
+#define ALPHAGOMOKU_PATTERNS_PATTERNCLASSIFIER_HPP_
 
 #include <alphagomoku/patterns/Pattern.hpp>
 
@@ -32,6 +32,7 @@ namespace ag
 			PatternClassifier(GameRules rule, Sign sign);
 			Sign getSign() const noexcept;
 			bool operator()(const Pattern &f) const noexcept;
+			void print() const;
 			void addPattern(const std::string &str);
 			void addPatterns(const std::vector<std::string> &str);
 			void modifyPatternsAND(const std::string &prefix, const std::string &postfix);
@@ -77,4 +78,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_SOLVER_PATTERNCLASSIFIER_HPP_ */
+#endif /* ALPHAGOMOKU_PATTERNS_PATTERNCLASSIFIER_HPP_ */

@@ -138,6 +138,11 @@ namespace ag
 				return true;
 		return false;
 	}
+	void PatternClassifier::print() const
+	{
+		for (size_t i = 0; i < m_matching_rules.size(); i++)
+			std::cout << m_matching_rules[i].toString() << '\n';
+	}
 	void PatternClassifier::addPattern(const std::string &str)
 	{
 		m_matching_rules.emplace_back(str);
@@ -209,17 +214,15 @@ namespace ag
 			addPattern("_XXXX_");
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
-			if (rule == GameRules::CARO)
-				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
 			addPattern("_OOOO_");
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
-			if (rule == GameRules::CARO)
-				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
+		if (rule == GameRules::CARO)
+			modifyPatternsAND("[_|]", "[_|]");
 	}
 	IsDoubleFour::IsDoubleFour(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -229,17 +232,15 @@ namespace ag
 			addPatterns( { "X_XXX_X", "XX_XX_XX", "XXX_X_XXX" });
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
-			if (rule == GameRules::CARO)
-				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
 			addPatterns( { "O_OOO_O", "OO_OO_OO", "OOO_O_OOO" });
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
-			if (rule == GameRules::CARO)
-				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
+		if (rule == GameRules::CARO)
+			modifyPatternsAND("[_|]", "[_|]");
 	}
 	IsHalfOpenFour::IsHalfOpenFour(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -269,17 +270,15 @@ namespace ag
 			addPatterns( { "_XXX__", "_XX_X_", "_X_XX_", "__XXX_" });
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
-			if (rule == GameRules::CARO)
-				modifyPatternsOR("[_|]", "[not X]", "[_|]");
 		}
 		else
 		{
 			addPatterns( { "_OOO__", "_OO_O_", "_O_OO_", "__OOO_" });
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
-			if (rule == GameRules::CARO)
-				modifyPatternsOR("[_|]", "[not O]", "[_|]");
 		}
+		if (rule == GameRules::CARO)
+			modifyPatternsAND("[_|]", "[_|]");
 	}
 	IsHalfOpenThree::IsHalfOpenThree(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
