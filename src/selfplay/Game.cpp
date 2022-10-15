@@ -116,9 +116,9 @@ namespace ag
 		search_data.push_back(state);
 		use_count.push_back(0);
 	}
-	void Game::resolveOutcome()
+	void Game::resolveOutcome(int numberfOfMovesForDraw)
 	{
-		outcome = ag::getOutcome_v2(rules, current_board, getLastMove());
+		outcome = ag::getOutcome_v2(rules, current_board, getLastMove(), numberfOfMovesForDraw);
 		if (outcome != GameOutcome::UNKNOWN)
 			for (size_t i = 0; i < search_data.size(); i++)
 				search_data[i].setOutcome(outcome);

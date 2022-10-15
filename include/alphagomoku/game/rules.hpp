@@ -34,7 +34,10 @@ namespace ag
 	std::string toString(GameOutcome outcome);
 	GameOutcome outcomeFromString(const std::string &str);
 
-	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove);
+	/*
+	 * \brief Returns game outcome given board state and last move. If numberOfMovesForDraw is negative it means that we play until board is full.
+	 */
+	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove, int numberOfMovesForDraw = -1);
 	bool isForbidden(const matrix<Sign> &board, Move move);
 
 } /* namespace ag */

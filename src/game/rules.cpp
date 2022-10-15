@@ -104,6 +104,7 @@ namespace
 				return true;
 		return false;
 	}
+
 }
 
 namespace ag
@@ -165,8 +166,9 @@ namespace ag
 		throw std::logic_error("unknown outcome '" + str + "'");
 	}
 
-	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove)
+	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove, int numberOfMovesForDraw)
 	{
+		assert(board.at(lastMove.row, lastMove.col) != lastMove.sign); // a move must already has been made on board
 		if (lastMove.row < 0 or lastMove.row >= board.rows() or lastMove.col < 0 or lastMove.col >= board.cols())
 			return GameOutcome::UNKNOWN;
 		assert(board.isSquare());
@@ -182,14 +184,11 @@ namespace ag
 			if (is_a_win(patterns.for_circle))
 				return GameOutcome::CIRCLE_WIN;
 		}
-
 		if (rules == GameRules::RENJU and isForbidden(board, lastMove))
 			return GameOutcome::CIRCLE_WIN;
 
-		if (Board::isFull(board))
-			return GameOutcome::DRAW;
-		else
-			return GameOutcome::UNKNOWN;
+		const bool is_draw = (numberOfMovesForDraw > 0) ? (Board::numberOfMoves(board) >= numberOfMovesForDraw) : Board::isFull(board);
+		return is_draw ? GameOutcome::DRAW : GameOutcome::UNKNOWN;
 	}
 	bool isForbidden(const matrix<Sign> &board, Move move)
 	{
@@ -197,8 +196,6 @@ namespace ag
 
 		if (move.sign == Sign::CIRCLE)
 			return false; // circle (or white) doesn't have any forbidden moves
-		if (board.at(move.row, move.col) != Sign::NONE)
-			return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
 
 		const DirectionGroup<uint32_t> raw = get_raw_patterns<Pad>(board, move);
 		TwoPlayerGroup<PatternType> patterns = convert_to_patterns(GameRules::RENJU, raw);
@@ -211,21 +208,21 @@ namespace ag
 				if (patterns.for_cross[dir] == PatternType::OPEN_3)
 				{
 					Board::putMove(tmp_board, move);
-					const PatternEncoding tmp = PatternTable::get(GameRules::RENJU).getPatternData(raw[dir]);
-					const BitMask1D<uint16_t> defensive_moves = PatternTable::get(GameRules::RENJU).getDefensiveMoves(tmp, Sign::CIRCLE);
+					const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(raw[dir]);
 					bool is_really_an_open3 = false;
 					for (int i = -Pad; i <= Pad; i++)
-					{
-						const int x = move.row + i * get_row_step(dir);
-						const int y = move.col + i * get_col_step(dir);
-						if (defensive_moves[Pad + i] == true and tmp_board.at(x, y) == Sign::NONE) // defensive move will never be outside board
-							if (is_straight_four<Pad>(tmp_board, Move(x, y, Sign::CROSS), dir)
-									and not isForbidden(tmp_board, Move(x, y, Sign::CROSS)))
-							{
-								is_really_an_open3 = true;
-								break;
-							}
-					}
+						if (i != 0)
+						{
+							const int x = move.row + i * get_row_step(dir);
+							const int y = move.col + i * get_col_step(dir);
+							if (promotion_moves[Pad + i] == true and tmp_board.at(x, y) == Sign::NONE) // defensive move will never be outside board
+								if (is_straight_four<Pad>(tmp_board, Move(x, y, Sign::CROSS), dir)
+										and not isForbidden(tmp_board, Move(x, y, Sign::CROSS)))
+								{
+									is_really_an_open3 = true;
+									break;
+								}
+						}
 					Board::undoMove(tmp_board, move);
 					if (not is_really_an_open3)
 						patterns.for_cross[dir] = PatternType::NONE;
