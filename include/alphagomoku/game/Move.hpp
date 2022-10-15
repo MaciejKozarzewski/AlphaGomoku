@@ -62,16 +62,16 @@ namespace ag
 					row(r),
 					col(c)
 			{
-				assert(row >= 0 && row < 128);
-				assert(col >= 0 && col < 128);
+				assert(-128 <= row && row < 128);
+				assert(-128 <= col && col < 128);
 			}
 			Move(Sign s, int r, int c) noexcept :
 					sign(s),
 					row(r),
 					col(c)
 			{
-				assert(row >= 0 && row < 128);
-				assert(col >= 0 && col < 128);
+				assert(-128 <= row && row < 128);
+				assert(-128 <= col && col < 128);
 			}
 			Move(int r, int c) noexcept :
 					Move(Sign::NONE, r, c)
