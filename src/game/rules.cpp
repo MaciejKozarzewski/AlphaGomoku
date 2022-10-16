@@ -168,7 +168,6 @@ namespace ag
 
 	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove, int numberOfMovesForDraw)
 	{
-		assert(board.at(lastMove.row, lastMove.col) != lastMove.sign); // a move must already has been made on board
 		if (lastMove.row < 0 or lastMove.row >= board.rows() or lastMove.col < 0 or lastMove.col >= board.cols())
 			return GameOutcome::UNKNOWN;
 		assert(board.isSquare());
@@ -204,6 +203,7 @@ namespace ag
 		if (threat.forCross() == ThreatType::FORK_3x3)
 		{
 			matrix<Sign> tmp_board(board);
+			tmp_board.at(move.row, move.col) = Sign::NONE; // clear the spot that is being checked, just in case it is already occupied
 			for (Direction dir = 0; dir < 4; dir++)
 				if (patterns.for_cross[dir] == PatternType::OPEN_3)
 				{
