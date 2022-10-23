@@ -10,6 +10,7 @@
 #include <alphagomoku/rules/game_rules.hpp>
 
 #include <cinttypes>
+#include <cstdlib>
 #include <cassert>
 #include <cmath>
 #include <fstream>
@@ -44,17 +45,37 @@ namespace ag
 {
 	float randFloat()
 	{
-		static float tmp = 1.0f / 4294967295;
+		static const float tmp = 1.0f / 4294967295;
 		return get_random_int32() * tmp;
 	}
 	double randDouble()
 	{
-		static double tmp = 1.0f / (4294967296ull * 4294967296ull - 1);
+		static const double tmp = 1.0f / (4294967296ull * 4294967296ull - 1);
 		return get_random_int64() * tmp;
 	}
 	float randGaussian()
 	{
-		return 0;
+		thread_local bool is_stored = false;
+		thread_local float stored_value = 0.0f;
+		if (is_stored)
+		{
+			is_stored = false;
+			return stored_value;
+		}
+
+		float x1, x2, w;
+		do
+		{
+			x1 = 2.0f * randFloat() - 1.0f;
+			x2 = 2.0f * randFloat() - 1.0f;
+			w = x1 * x1 + x2 * x2;
+		} while (w >= 1.0f);
+		w = std::sqrt((-2.0f * std::log(w)) / w);
+
+		is_stored = true;
+		stored_value = x2 * w;
+
+		return x1 * w;
 	}
 	int32_t randInt()
 	{
