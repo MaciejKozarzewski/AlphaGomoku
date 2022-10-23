@@ -27,13 +27,13 @@ namespace ag
 		READ,
 		WRITE
 	};
-	template<PrefetchMode mode, int localityHint>
+	template<PrefetchMode Mode, int LocalityHint>
 	void prefetch_memory(const void *ptr) noexcept
 	{
 #if (defined(__GNUC__) && defined(__cplusplus)) || defined(__clang__)
-		__builtin_prefetch(ptr, static_cast<int>(mode), localityHint);
+		__builtin_prefetch(ptr, static_cast<int>(Mode), LocalityHint);
 #elif defined(_MSC_VER)
-		_mm_prefetch(ptr, localiTyHint);
+		_mm_prefetch(ptr, LocaliTyHint);
 #else
 
 #endif
