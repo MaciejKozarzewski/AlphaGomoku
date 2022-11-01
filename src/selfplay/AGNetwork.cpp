@@ -93,6 +93,20 @@ namespace ag
 		value = Value(value_on_cpu->get<float>( { index, 2 }), value_on_cpu->get<float>( { index, 1 }), value_on_cpu->get<float>( { index, 0 }));
 	}
 
+	void AGNetwork::asyncForwardLaunch(int batch_size)
+	{
+		graph.getInput().copyFrom(graph.context(), *input_on_cpu);
+		graph.forward(batch_size);
+	}
+	void AGNetwork::asyncForwardJoin()
+	{
+		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
+		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
+		graph.context().synchronize();
+		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *policy_on_cpu);
+		ml::math::softmaxForwardInPlace(ml::DeviceContext(), *value_on_cpu);
+	}
+
 	void AGNetwork::forward(int batch_size)
 	{
 		graph.getInput().copyFrom(graph.context(), *input_on_cpu);

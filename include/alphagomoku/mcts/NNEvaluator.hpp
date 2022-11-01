@@ -10,7 +10,6 @@
 
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/utils/statistics.hpp>
-#include <alphagomoku/utils/configs.hpp>
 
 #include <string>
 #include <vector>
@@ -19,6 +18,7 @@
 namespace ag
 {
 	class SearchTask;
+	class DeviceConfig;
 }
 
 namespace ag
@@ -28,7 +28,8 @@ namespace ag
 		public:
 			uint64_t batch_sizes = 0;
 			TimedStat pack;
-			TimedStat eval;
+			TimedStat eval_sync;
+			TimedStat eval_async;
 			TimedStat unpack;
 
 			NNEvaluatorStats();
@@ -58,6 +59,7 @@ namespace ag
 		public:
 			NNEvaluator(const DeviceConfig &cfg);
 
+			bool isOnGPU() const noexcept;
 			void clearStats() noexcept;
 			NNEvaluatorStats getStats() const noexcept;
 			int getQueueSize() const noexcept;
@@ -69,6 +71,8 @@ namespace ag
 			void addToQueue(SearchTask &task);
 			void addToQueue(SearchTask &task, int symmetry);
 			void evaluateGraph();
+			void asyncEvaluateGraphLaunch();
+			void asyncEvaluateGraphJoin();
 		private:
 			void pack_to_network(int batch_size);
 			void unpack_from_network(int batch_size);

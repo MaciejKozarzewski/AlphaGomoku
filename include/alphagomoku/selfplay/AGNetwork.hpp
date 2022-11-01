@@ -59,6 +59,8 @@ namespace ag
 			void packTargetData(int index, const matrix<float> &policy, matrix<Value> &actionValues, Value value);
 			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const;
 
+			void asyncForwardLaunch(int batch_size);
+			void asyncForwardJoin();
 			void forward(int batch_size);
 			void backward(int batch_size);
 			std::vector<ml::Scalar> getLoss(int batch_size);

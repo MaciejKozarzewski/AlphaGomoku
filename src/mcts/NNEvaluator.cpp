@@ -9,6 +9,7 @@
 #include <alphagomoku/mcts/SearchTask.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 namespace
 {
@@ -23,16 +24,18 @@ namespace ag
 {
 	NNEvaluatorStats::NNEvaluatorStats() :
 			pack("pack  "),
-			eval("eval  "),
+			eval_sync("eval  "),
+			eval_async("eval_async"),
 			unpack("unpack")
 	{
 	}
 	std::string NNEvaluatorStats::toString() const
 	{
 		std::string result = "----NNEvaluator----\n";
-		result += "avg batch size = " + std::to_string(static_cast<double>(batch_sizes) / eval.getTotalCount()) + '\n';
+		result += "avg batch size = " + std::to_string(static_cast<double>(batch_sizes) / eval_sync.getTotalCount()) + '\n';
 		result += pack.toString() + '\n';
-		result += eval.toString() + '\n';
+		result += eval_sync.toString() + '\n';
+		result += eval_async.toString() + '\n';
 		result += unpack.toString() + '\n';
 		return result;
 	}
@@ -40,7 +43,8 @@ namespace ag
 	{
 		this->batch_sizes += other.batch_sizes;
 		this->pack += other.pack;
-		this->eval += other.eval;
+		this->eval_sync += other.eval_sync;
+		this->eval_async += other.eval_async;
 		this->unpack += other.unpack;
 		return *this;
 	}
@@ -48,7 +52,8 @@ namespace ag
 	{
 		this->batch_sizes /= i;
 		this->pack /= i;
-		this->eval /= i;
+		this->eval_sync /= i;
+		this->eval_async /= i;
 		this->unpack /= i;
 		return *this;
 	}
@@ -58,6 +63,10 @@ namespace ag
 			batch_size(cfg.batch_size),
 			omp_threads(cfg.omp_threads)
 	{
+	}
+	bool NNEvaluator::isOnGPU() const noexcept
+	{
+		return device.isCUDA();
 	}
 	void NNEvaluator::clearStats() noexcept
 	{
@@ -117,13 +126,50 @@ namespace ag
 
 				pack_to_network(batch_size);
 
-				stats.eval.startTimer();
+				stats.eval_sync.startTimer();
 				network.forward(batch_size);
-				stats.eval.stopTimer();
+				stats.eval_sync.stopTimer();
 
 				unpack_from_network(batch_size);
 				task_queue.erase(task_queue.begin(), task_queue.begin() + batch_size);
 			}
+		}
+	}
+	void NNEvaluator::asyncEvaluateGraphLaunch()
+	{
+		if (network.getGraph().numberOfLayers() == 0)
+			throw std::logic_error("graph is empty - the network has not been loaded");
+		ml::Device::cpu().setNumberOfThreads(omp_threads);
+		assert(task_queue.size() <= batch_size);
+		int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
+		if (batch_size > 0)
+		{
+			stats.batch_sizes += batch_size; // statistics
+
+			pack_to_network(batch_size);
+
+			stats.eval_sync.startTimer();
+			stats.eval_async.startTimer();
+			network.asyncForwardLaunch(batch_size);
+			stats.eval_async.pauseTimer();
+		}
+	}
+	void NNEvaluator::asyncEvaluateGraphJoin()
+	{
+		if (network.getGraph().numberOfLayers() == 0)
+			throw std::logic_error("graph is empty - the network has not been loaded");
+		ml::Device::cpu().setNumberOfThreads(omp_threads);
+		assert(task_queue.size() <= batch_size);
+		int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
+		if (batch_size > 0)
+		{
+			stats.eval_async.resumeTimer();
+			network.asyncForwardJoin();
+			stats.eval_async.stopTimer();
+			stats.eval_sync.stopTimer();
+
+			unpack_from_network(batch_size);
+			task_queue.erase(task_queue.begin(), task_queue.begin() + batch_size);
 		}
 	}
 	/*
@@ -151,7 +197,7 @@ namespace ag
 			augment(task_queue[i].ptr->getPolicy(), policy, -task_queue[i].symmetry);
 			// TODO add processing of action values
 			task_queue[i].ptr->setValue(value);
-			task_queue[i].ptr->markAsReady();
+			task_queue[i].ptr->markAsReadyNetwork();
 		}
 	}
 }
