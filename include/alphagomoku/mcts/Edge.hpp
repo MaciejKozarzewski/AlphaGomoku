@@ -12,7 +12,7 @@
 #include <alphagomoku/game/Move.hpp>
 
 #include <cinttypes>
-#include <cstring>
+#include <string>
 #include <cassert>
 
 namespace ag
@@ -26,6 +26,8 @@ namespace ag
 	class Edge
 	{
 		private:
+			static constexpr int virtual_loss_increment = 1;
+
 			Node *node = nullptr; // non-owning
 			float policy_prior = 0.0f;
 			float win_rate = 0.0f;
@@ -126,12 +128,12 @@ namespace ag
 			void increaseVirtualLoss() noexcept
 			{
 				assert(virtual_loss < std::numeric_limits<int16_t>::max());
-				virtual_loss++;
+				virtual_loss += virtual_loss_increment;
 			}
 			void decreaseVirtualLoss() noexcept
 			{
 				assert(virtual_loss > 0);
-				virtual_loss--;
+				virtual_loss -= virtual_loss_increment;
 			}
 			void clearVirtualLoss() noexcept
 			{
