@@ -95,15 +95,14 @@ namespace ag
 		return ag::toString(lhs) + rhs;
 	}
 
-	Move::Move(const std::string &str) :
-			sign(extract_sign(str)),
-			row(extract_row(str)),
-			col(extract_col(str))
+	Location::Location(const std::string &str) :
+			row(extract_row("_" + str)),
+			col(extract_col("_" + str))
 	{
 	}
-	std::string Move::toString() const
+	std::string Location::toString() const
 	{
-		std::string result = ag::toString(sign) + " (";
+		std::string result = "(";
 		if (row < 10)
 			result += ' ';
 		result += std::to_string(row) + ',';
@@ -112,9 +111,24 @@ namespace ag
 		result += std::to_string(col) + ')';
 		return result;
 	}
+	std::string Location::text() const
+	{
+		return static_cast<char>(static_cast<int>('a') + col) + std::to_string(row);
+	}
+
+	Move::Move(const std::string &str) :
+			sign(extract_sign(str)),
+			row(extract_row(str)),
+			col(extract_col(str))
+	{
+	}
+	std::string Move::toString() const
+	{
+		return ag::toString(sign) + " " + location().toString();
+	}
 	std::string Move::text() const
 	{
-		return ag::text(sign) + static_cast<char>(static_cast<int>('a') + col) + std::to_string(row);
+		return ag::text(sign) + location().text();
 	}
 	Move Move::fromText(const std::string &txt, Sign sign)
 	{
