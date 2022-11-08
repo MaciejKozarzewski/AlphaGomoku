@@ -8,14 +8,18 @@
 #ifndef ALPHAGOMOKU_PATTERNS_PATTERNTABLE_HPP_
 #define ALPHAGOMOKU_PATTERNS_PATTERNTABLE_HPP_
 
-#include <alphagomoku/rules/game_rules.hpp>
-#include <alphagomoku/utils/os_utils.hpp>
+#include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/game/rules.hpp>
+#include <alphagomoku/patterns/common.hpp>
 #include <alphagomoku/utils/BitMask.hpp>
-
-#include <array>
-#include <map>
+#include <vector>
+#include <string>
 #include <cassert>
-#include <iostream>
+
+namespace ag
+{
+	enum class GameRules;
+}
 
 namespace ag
 {
@@ -32,44 +36,62 @@ namespace ag
 	};
 	std::string toString(PatternType pt);
 
-	struct PatternEncoding
+	class PatternEncoding
 	{
 		private:
-			/*
-			 * bits 0:3  - pattern type for cross
-			 * bits 3:6  - pattern type for circle
-			 * bits 6:16 - update mask (omitting central spot)
-			 */
-			uint16_t m_data = 0u;
+			uint8_t data = 0u;
 		public:
 			PatternEncoding() noexcept = default;
+			PatternEncoding(PatternEncoding cross, PatternEncoding circle) noexcept :
+					data((cross.data & 0x0F) | (circle.data & 0xF0))
+			{
+			}
 			PatternEncoding(PatternType cross, PatternType circle) noexcept :
-					m_data(static_cast<uint16_t>(cross) | (static_cast<uint16_t>(circle) << 3))
+					data(static_cast<uint8_t>(cross) | (static_cast<uint8_t>(circle) << 4))
+			{
+			}
+			explicit PatternEncoding(PatternType tt) noexcept :
+					PatternEncoding(tt, tt)
 			{
 			}
 			PatternType forCross() const noexcept
 			{
-				return static_cast<PatternType>(m_data & 7);
+				return static_cast<PatternType>(data & 0x0F);
 			}
 			PatternType forCircle() const noexcept
 			{
-				return static_cast<PatternType>((m_data >> 3) & 7);
+				return static_cast<PatternType>(data >> 4);
 			}
-			bool mustBeUpdated(int index) const noexcept
+			void setForCross(PatternType pt) noexcept
 			{
-				assert(index >= 0 && index < 11);
-				// central spot must always be updated so there is not stored
-				return (index == 5) ? true : static_cast<bool>((m_data >> (index + 6 - static_cast<int>(index > 5))) & 1);
+				data = (data & 0xF0) | static_cast<uint8_t>(pt);
 			}
-			void setUpdateMask(int index, bool b) noexcept
+			void setForCircle(PatternType pt) noexcept
 			{
-				assert(index >= 0 && index < 11);
-				if (index != 5)
-				{
-					index += 6 - static_cast<int>(index > 5);
-					m_data &= (~(1 << index));
-					m_data |= (static_cast<uint16_t>(b) << index);
-				}
+				data = (data & 0x0F) | (static_cast<uint8_t>(pt) << 4);
+			}
+	};
+
+	class UpdateMask
+	{
+			uint32_t data = 0;
+		public:
+			UpdateMask() noexcept = default;
+			int get(int index) const noexcept
+			{
+				return (data >> (2 * index)) & 3;
+			}
+			void set(int index, bool cross, bool circle) noexcept
+			{
+				const uint32_t tmp = static_cast<uint32_t>(cross) | (static_cast<uint32_t>(circle) << 1);
+				data = (data & (~(3 << (2 * index)))) | (tmp << (2 * index));
+			}
+			void flip(int length) noexcept
+			{
+				uint32_t tmp = 0;
+				for (int i = 0; i < length; i++)
+					tmp |= (get(i) << (2 * (length - 1 - i)));
+				data = tmp;
 			}
 	};
 
@@ -77,6 +99,7 @@ namespace ag
 	{
 		private:
 			std::vector<PatternEncoding> pattern_types;
+			std::vector<UpdateMask[2]> update_mask;
 			GameRules game_rules;
 		public:
 			PatternTable(GameRules rules);
@@ -84,15 +107,36 @@ namespace ag
 			{
 				return game_rules;
 			}
-			PatternEncoding getPatternData(uint32_t pattern) const noexcept
+			UpdateMask getUpdateMask(uint32_t pattern, Sign newStoneColor) const noexcept
 			{
-				assert(pattern < pattern_types.size());
-				return pattern_types[pattern];
+				assert(pattern < update_mask.size() * 4);
+				assert(newStoneColor == Sign::CROSS || newStoneColor == Sign::CIRCLE);
+				return update_mask[narrow_down(pattern)][newStoneColor == Sign::CIRCLE];
+			}
+			PatternEncoding getPatternType(uint32_t pattern) const noexcept
+			{
+				assert(pattern < pattern_types_new.size() * 4);
+				assert((pattern & 3072u) == 0);
+				return pattern_types[narrow_down(pattern)];
 			}
 			static const PatternTable& get(GameRules rules);
 		private:
 			void init_features();
 			void init_update_mask();
+			/*
+			 * \brief Removes 2 central bits from the 22-bit number producing 20-bit number.
+			 */
+			uint32_t narrow_down(uint32_t x) const noexcept
+			{
+				return (x & 1023u) | ((x & 4190208u) >> 2);
+			}
+			/*
+			 * \brief Inserts 2 zeros in the central position, producing 22-bit number out of 20-bit one.
+			 */
+			uint32_t expand(uint32_t x) const noexcept
+			{
+				return (x & 1023u) | ((x & 1047552u) << 2u);
+			}
 	};
 
 } /* namespace ag */

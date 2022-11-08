@@ -8,9 +8,10 @@
 #ifndef ALPHAGOMOKU_GAME_RULES_HPP_
 #define ALPHAGOMOKU_GAME_RULES_HPP_
 
-#include <string>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/game/Move.hpp>
+
+#include <string>
 
 namespace ag
 {
@@ -19,7 +20,8 @@ namespace ag
 		FREESTYLE,
 		STANDARD,
 		RENJU,
-		CARO
+		CARO5,
+		CARO6
 	};
 	std::string toString(GameRules rules);
 	GameRules rulesFromString(const std::string &str);

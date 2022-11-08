@@ -29,7 +29,9 @@ namespace ag
 				return getOutcomeStandard(board);
 			case GameRules::RENJU:
 				return getOutcomeRenju(board);
-			case GameRules::CARO:
+			case GameRules::CARO5:
+				return getOutcomeCaro(board);
+			case GameRules::CARO6:
 				return getOutcomeCaro(board);
 		}
 	}
@@ -45,7 +47,9 @@ namespace ag
 				return getOutcomeStandard(board, last_move);
 			case GameRules::RENJU:
 				return getOutcomeRenju(board, last_move);
-			case GameRules::CARO:
+			case GameRules::CARO5:
+				return getOutcomeCaro(board, last_move);
+			case GameRules::CARO6:
 				return getOutcomeCaro(board, last_move);
 		}
 	}
@@ -62,7 +66,9 @@ namespace ag
 				return getOutcomeStandard(line);
 			case GameRules::RENJU:
 				return getOutcomeRenju(line);
-			case GameRules::CARO:
+			case GameRules::CARO5:
+				return getOutcomeCaro(line);
+			case GameRules::CARO6:
 				return getOutcomeCaro(line);
 		}
 	}

@@ -13,6 +13,12 @@
 
 namespace ag
 {
+	template<typename T, int N>
+	constexpr T ones() noexcept
+	{
+		return (static_cast<T>(1) << N) - static_cast<T>(1);
+	}
+
 	typedef int Direction;
 	const Direction HORIZONTAL = 0;
 	const Direction VERTICAL = 1;
@@ -91,6 +97,10 @@ namespace ag
 			{
 				return (horizontal == value) or (vertical == value) or (diagonal == value) or (antidiagonal == value);
 			}
+			T max() const noexcept
+			{
+				return std::max(std::max(horizontal, vertical), std::max(diagonal, antidiagonal));
+			}
 			Direction findDirectionOf(T value) const noexcept
 			{
 				if (horizontal == value)
@@ -109,8 +119,8 @@ namespace ag
 	template<typename T>
 	struct TwoPlayerGroup
 	{
-			DirectionGroup<T> for_cross;
-			DirectionGroup<T> for_circle;
+			T for_cross;
+			T for_circle;
 	};
 
 	template<typename T, int MaxSize>
@@ -121,15 +131,29 @@ namespace ag
 		public:
 			ShortVector() noexcept = default;
 			ShortVector(std::initializer_list<T> list) :
-				m_size(list.size())
+					m_size(list.size())
 			{
 				for (int i = 0; i < m_size; i++)
 					m_data[i] = list.begin()[i];
+			}
+			void clear() noexcept
+			{
+				m_size = 0;
 			}
 			void add(const T &value) noexcept
 			{
 				assert(m_size < MaxSize);
 				m_data[m_size++] = value;
+			}
+			void remove(const T &value) noexcept
+			{
+				for (int i = 0; i < size(); i++)
+					if (m_data[i] == value)
+					{
+						std::swap(m_data[i], m_data[m_size - 1]); // move the element to remove to the end
+						m_size--;
+						return;
+					}
 			}
 			int size() const noexcept
 			{

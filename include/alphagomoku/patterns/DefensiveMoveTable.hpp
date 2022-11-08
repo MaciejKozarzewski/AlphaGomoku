@@ -8,12 +8,18 @@
 #ifndef ALPHAGOMOKU_PATTERNS_DEFENSIVEMOVETABLE_HPP_
 #define ALPHAGOMOKU_PATTERNS_DEFENSIVEMOVETABLE_HPP_
 
-#include <alphagomoku/rules/game_rules.hpp>
-#include <alphagomoku/utils/BitMask.hpp>
 #include <alphagomoku/patterns/PatternTable.hpp>
+#include <alphagomoku/utils/BitMask.hpp>
+#include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/game/Move.hpp>
 
 #include <algorithm>
 #include <cassert>
+
+namespace ag
+{
+	enum class GameRules;
+}
 
 namespace ag
 {

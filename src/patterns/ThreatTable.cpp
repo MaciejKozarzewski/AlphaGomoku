@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include <iostream>
+
 namespace
 {
 	using namespace ag;
@@ -62,15 +64,15 @@ namespace
 				return ThreatEncoding(ThreatType::FORK_4x4);
 			if (group.contains(PatternType::OPEN_4)) // potentially win in 3
 			{
-				if (is_fork_3x3(group))
-					return ThreatEncoding(ThreatType::FORK_3x3, ThreatType::OPEN_4); // rare case when at the same spot there is an open four and a fork (in different directions)
+				if (is_fork_3x3(group)) // rare case when at the same spot there is an open four and a fork (in different directions)
+					return ThreatEncoding(ThreatType::FORK_3x3, ThreatType::OPEN_4);
 				else
 					return ThreatEncoding(ThreatType::OPEN_4);
 			}
 			if (is_fork_4x3(group)) // win in 5
 			{
-				if (is_fork_3x3(group))
-					return ThreatEncoding(ThreatType::FORK_3x3, ThreatType::FORK_4x3); // in renju, despite the 4x3 fork being allowed, if there is also 3x3 fork the entire move is forbidden
+				if (is_fork_3x3(group)) // in renju, despite the 4x3 fork being allowed, if there is also 3x3 fork the entire move is forbidden
+					return ThreatEncoding(ThreatType::FORK_3x3, ThreatType::FORK_4x3);
 				else
 					return ThreatEncoding(ThreatType::FORK_4x3);
 			}
@@ -127,9 +129,10 @@ namespace ag
 	}
 
 	ThreatTable::ThreatTable(GameRules rules) :
-			threats(8 * 8 * 8 * 8)
+			threats(8 * 8 * 8 * 8),
+			rules(rules)
 	{
-		init_threats(rules);
+		init_threats();
 	}
 	const ThreatTable& ThreatTable::get(GameRules rules)
 	{
@@ -150,19 +153,24 @@ namespace ag
 				static const ThreatTable table(GameRules::RENJU);
 				return table;
 			}
-			case GameRules::CARO:
+			case GameRules::CARO5:
 			{
-				static const ThreatTable table(GameRules::CARO);
+				static const ThreatTable table(GameRules::CARO5);
+				return table;
+			}
+			case GameRules::CARO6:
+			{
+				static const ThreatTable table(GameRules::CARO6);
 				return table;
 			}
 			default:
-				throw std::logic_error("unknown rule");
+				throw std::logic_error("ThreatTable::get() unknown rule " + std::to_string((int) rules));
 		}
 	}
 	/*
 	 * private
 	 */
-	void ThreatTable::init_threats(GameRules rules)
+	void ThreatTable::init_threats()
 	{
 		for (int f0 = 0; f0 < 8; f0++)
 			for (int f1 = 0; f1 < 8; f1++)

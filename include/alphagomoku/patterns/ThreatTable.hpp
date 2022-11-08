@@ -31,18 +31,21 @@ namespace ag
 	};
 	std::string toString(ThreatType t);
 
-	struct ThreatEncoding
+	class ThreatEncoding
 	{
 		private:
-			uint8_t data = 0u;
+			ThreatType for_cross = ThreatType::NONE;
+			ThreatType for_circle = ThreatType::NONE;
 		public:
 			ThreatEncoding() noexcept = default;
 			ThreatEncoding(ThreatEncoding cross, ThreatEncoding circle) noexcept :
-					data((cross.data & 0x0F) | (circle.data & 0xF0))
+					for_cross(cross.for_cross),
+					for_circle(circle.for_circle)
 			{
 			}
 			ThreatEncoding(ThreatType cross, ThreatType circle) noexcept :
-					data(static_cast<uint8_t>(cross) | (static_cast<uint8_t>(circle) << 4))
+					for_cross(cross),
+					for_circle(circle)
 			{
 			}
 			ThreatEncoding(ThreatType tt) noexcept :
@@ -51,11 +54,19 @@ namespace ag
 			}
 			ThreatType forCross() const noexcept
 			{
-				return static_cast<ThreatType>(data & 0x0F);
+				return for_cross;
 			}
 			ThreatType forCircle() const noexcept
 			{
-				return static_cast<ThreatType>(data >> 4);
+				return for_circle;
+			}
+			void setForCross(ThreatType tt) noexcept
+			{
+				for_cross = tt;
+			}
+			void setForCircle(ThreatType tt) noexcept
+			{
+				for_circle = tt;
 			}
 	};
 
@@ -63,18 +74,25 @@ namespace ag
 	{
 		private:
 			std::vector<ThreatEncoding> threats;
+			GameRules rules;
 		public:
 			ThreatTable(GameRules rules);
-			ThreatEncoding getThreat(TwoPlayerGroup<PatternType> ptg) const noexcept
+			ThreatEncoding getThreat(TwoPlayerGroup<DirectionGroup<PatternType>> ptg) const noexcept
 			{
 				const uint32_t index_cross = get_index(ptg.for_cross);
 				const uint32_t index_circle = get_index(ptg.for_circle);
 				assert(index_cross < threats.size() && index_circle < threats.size());
 				return ThreatEncoding(threats[index_cross], threats[index_circle]);
 			}
+			template<Sign S>
+			ThreatType getThreat(DirectionGroup<PatternType> group) const noexcept
+			{
+				const ThreatEncoding tmp = threats[get_index(group)];
+				return (S == Sign::CROSS) ? tmp.forCross() : tmp.forCircle();
+			}
 			static const ThreatTable& get(GameRules rules);
 		private:
-			void init_threats(GameRules rules);
+			void init_threats();
 			constexpr uint32_t get_index(DirectionGroup<PatternType> group) const noexcept
 			{
 				return static_cast<uint32_t>(group.horizontal) + (static_cast<uint32_t>(group.vertical) << 3)

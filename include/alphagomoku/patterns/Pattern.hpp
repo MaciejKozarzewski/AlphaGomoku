@@ -48,20 +48,7 @@ namespace ag
 			uint32_t m_feature = 0;
 			uint32_t m_length = 0;
 		public:
-			static constexpr int length(GameRules rules) noexcept
-			{
-				switch (rules)
-				{
-					case GameRules::FREESTYLE:
-						return 11;
-					case GameRules::STANDARD:
-					case GameRules::RENJU:
-					case GameRules::CARO:
-						return 11;
-					default:
-						return 0;
-				}
-			}
+			static constexpr int length = 11;
 
 			Pattern() = default;
 			Pattern(int len) :

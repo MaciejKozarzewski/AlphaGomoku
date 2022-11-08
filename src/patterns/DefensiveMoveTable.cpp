@@ -16,13 +16,11 @@ namespace
 
 	constexpr bool is_overline_allowed(GameRules rules, Sign attackerSign) noexcept
 	{
-		constexpr bool caro_is_overline_allowed = CARO_OVERLINE_WINS; // TODO here is the switch between Caro6 and Caro5 (true or false, respectively)
-		return (rules == GameRules::FREESTYLE) or (rules == GameRules::RENJU and attackerSign == Sign::CIRCLE)
-				or (rules == GameRules::CARO and caro_is_overline_allowed);
+		return (rules == GameRules::FREESTYLE) or (rules == GameRules::RENJU and attackerSign == Sign::CIRCLE) or (rules == GameRules::CARO6);
 	}
 	constexpr bool is_blocked_allowed(GameRules rules, Sign sign) noexcept
 	{
-		return rules != GameRules::CARO;
+		return rules != GameRules::CARO5 and rules != GameRules::CARO6;
 	}
 
 	uint32_t sub_pattern(uint32_t line, int start, int length) noexcept
@@ -246,8 +244,6 @@ namespace
 			{
 				static const std::array<int, 6> lengths( { 7, 7, 7, 8, 8, 9 });
 				return lengths[i];
-//				assert(type == 1 || type == 2 || type == 3);
-//				return 6 + type;
 			}
 			static int getMaskOffset() noexcept
 			{
@@ -257,8 +253,6 @@ namespace
 			{
 				static const std::array<int, 6> offsets( { 2, 3, 4, 2, 3, 2 });
 				return offsets[i];
-//				assert(0 <= i && i < 3);
-//				return 2 + i;
 			}
 			static const std::array<uint32_t, 6>& getMasks(Sign attackerSign) noexcept
 			{
@@ -266,16 +260,6 @@ namespace
 				static const std::array<uint32_t, 6> circle( { 8354u, 8738u, 8834u, 41098u, 41482u, 172074u }); // "O_OO!_O", "O_O!O_O", "O_!OO_O", "OO_O!_OO", "OO_!O_OO", "OOO_!_OOO"
 				return (attackerSign == Sign::CROSS) ? cross : circle;
 			}
-//			static const std::array<uint32_t, 2>& getMasksType2(Sign attackerSign) noexcept
-//			{
-//				static const std::array<uint32_t, 2> cross( { 20549u, 20741u }); // "XX_X!_XX", "XX_!X_XX"
-//				static const std::array<uint32_t, 2> circle( { 41098u, 41482u }); // "OO_O!_OO", "OO_!O_OO"
-//				return (attackerSign == Sign::CROSS) ? cross : circle;
-//			}
-//			static uint32_t getMasksType3(Sign attackerSign) noexcept
-//			{
-//				return (attackerSign == Sign::CROSS) ? 86037u : 172074u; //  "XXX_!_XXX" or "OOO_!_OOO"
-//			}
 	};
 
 	class DefendHalfOpenFour
@@ -342,14 +326,6 @@ namespace
 //				__XX!_
 //				 __X!X_
 //				  __!XX_
-//				if (attackerSign == Sign::CROSS)
-//					return std::array<uint32_t, 12>( { 20u, 68u, 80u, 20u, 260u, 272u, 68u, 260u, 320u, 80u, 272u, 320u });
-//				else
-//					return std::array<uint32_t, 12>( { 40u, 136u, 160u, 40u, 520u, 544u, 136u, 520u, 640u, 160u, 544u, 640u });
-//				if (attackerSign == Sign::CROSS)
-//					return std::array<uint32_t, 12>( { 80u, 1088u, 5120u, 20u, 4160u, 17408u, 68u, 1040u, 20480u, 80u, 1088u, 5120u });
-//				else
-//					return std::array<uint32_t, 12>( { 160u, 2176u, 10240u, 40u, 8320u, 34816u, 136u, 2080u, 40960u, 160u, 2176u, 10240u });
 			}
 	};
 
@@ -385,17 +361,17 @@ namespace ag
 			double_four_defense(6, power(4, 4)),
 			game_rules(rules)
 	{
-		double t0 = getTime();
+//		double t0 = getTime();
 		init_five();
 		init_open_four();
 		init_double_four();
-		double t1 = getTime();
+//		double t1 = getTime();
 //		std::cout << (t1 - t0) << std::endl;
 	}
 	BitMask1D<uint16_t> DefensiveMoveTable::getMoves(uint32_t pattern, Sign defenderSign, PatternType threatToDefend) const
 	{
 		const Sign attacker_sign = invertSign(defenderSign);
-		const int center = (Pattern::length(game_rules) - 1) / 2 + 1;
+		const int center = (Pattern::length - 1) / 2 + 1;
 		switch (threatToDefend)
 		{
 			case PatternType::FIVE:
@@ -449,7 +425,7 @@ namespace ag
 						const int shift = begin - DefendFive::getOffset(i / 4); // shift is required as half open four patterns are not aligned with five ones
 						tmp = (shift >= 0) ? (tmp << shift) : (tmp >> (-shift));
 						result |= tmp;
-						if (game_rules != GameRules::CARO)
+						if (game_rules != GameRules::CARO5 and game_rules != GameRules::CARO6)
 							return result; // only in caro it is possible to refute more than one half open four with a single move
 					}
 				}
@@ -496,13 +472,18 @@ namespace ag
 				static const DefensiveMoveTable table(GameRules::RENJU);
 				return table;
 			}
-			case GameRules::CARO:
+			case GameRules::CARO5:
 			{
-				static const DefensiveMoveTable table(GameRules::CARO);
+				static const DefensiveMoveTable table(GameRules::CARO5);
+				return table;
+			}
+			case GameRules::CARO6:
+			{
+				static const DefensiveMoveTable table(GameRules::CARO6);
 				return table;
 			}
 			default:
-				throw std::logic_error("unknown rule");
+				throw std::logic_error("DefensiveMoveTable::get() unknown rule " + std::to_string((int) rules));
 		}
 	}
 	/*
@@ -580,41 +561,6 @@ namespace ag
 				double_four_defense.at(i, j).for_circle = defend_circle(extended_circle, offset, 3);
 			}
 		}
-
-//		for (int i = 0; i < 2; i++)
-//		{
-//			const int length = DefendDoubleFour::getMaskLength(2);
-//			const Pattern cross(length, DefendDoubleFour::getMasksType2(Sign::CIRCLE)[i]); // pattern to defend by cross
-//			const Pattern circle(length, DefendDoubleFour::getMasksType2(Sign::CROSS)[i]); // pattern to defend by circle
-//			for (int j = 0; j < 256; j++)
-//			{
-//				const uint32_t left = j & 0x0000000F;
-//				const uint32_t right = (j & 0x000000F0) << (2 * length);
-//
-//				const Pattern extended_cross(length + 4, left | (cross.encode() << 4) | right);
-//				const Pattern extended_circle(length + 4, left | (circle.encode() << 4) | right);
-//
-//				const int offset = DefendDoubleFour::getOffset(i);
-//				double_four_defense.at(3 + i, j).for_cross = defend_cross(extended_cross, offset, 3);
-//				double_four_defense.at(3 + i, j).for_circle = defend_circle(extended_circle, offset, 3);
-//			}
-//		}
-//
-//		const int length = DefendDoubleFour::getMaskLength(3);
-//		const Pattern cross(length, DefendDoubleFour::getMasksType3(Sign::CIRCLE)); // pattern to defend by cross
-//		const Pattern circle(length, DefendDoubleFour::getMasksType3(Sign::CROSS)); // pattern to defend by circle
-//		for (int j = 0; j < 256; j++)
-//		{
-//			const uint32_t left = j & 0x0000000F;
-//			const uint32_t right = (j & 0x000000F0) << (2 * length);
-//
-//			const Pattern extended_cross(length + 4, left | (cross.encode() << 4) | right);
-//			const Pattern extended_circle(length + 4, left | (circle.encode() << 4) | right);
-//
-//			const int offset = DefendDoubleFour::getOffset(0);
-//			double_four_defense.at(5, j).for_cross = defend_cross(extended_cross, offset, 3);
-//			double_four_defense.at(5, j).for_circle = defend_circle(extended_circle, offset, 3);
-//		}
 	}
 
 } /* namespace ag */

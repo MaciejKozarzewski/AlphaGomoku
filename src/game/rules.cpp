@@ -47,7 +47,7 @@ namespace
 			result.antidiagonal |= (get(board, move.row + i, move.col - i) << shift);
 		}
 		if (board.at(move.row, move.col) != Sign::NONE)
-		{ // the patterns should be calculated for empty spot, so we have to correct it now
+		{ // the patterns should have been calculated for empty spot, so we have to correct it now
 			const uint32_t mask = (((1u << (2u * Pad)) - 1u) << (2 * Pad + 2)) | ((1u << (2 * Pad)) - 1u);
 			result.horizontal &= mask;
 			result.vertical &= mask;
@@ -56,12 +56,12 @@ namespace
 		}
 		return result;
 	}
-	TwoPlayerGroup<PatternType> convert_to_patterns(GameRules rules, DirectionGroup<uint32_t> raw)
+	TwoPlayerGroup<DirectionGroup<PatternType>> convert_to_patterns(GameRules rules, DirectionGroup<uint32_t> raw)
 	{
-		TwoPlayerGroup<PatternType> result;
+		TwoPlayerGroup<DirectionGroup<PatternType>> result;
 		for (Direction dir = 0; dir < 4; dir++)
 		{
-			const PatternEncoding tmp = PatternTable::get(rules).getPatternData(raw[dir]);
+			const PatternEncoding tmp = PatternTable::get(rules).getPatternType(raw[dir]);
 			result.for_cross[dir] = tmp.forCross();
 			result.for_circle[dir] = tmp.forCircle();
 		}
@@ -119,10 +119,12 @@ namespace ag
 				return "STANDARD";
 			case GameRules::RENJU:
 				return "RENJU";
-			case GameRules::CARO:
-				return "CARO";
+			case GameRules::CARO5:
+				return "CARO5";
+			case GameRules::CARO6:
+				return "CARO6";
 			default:
-				throw std::logic_error("unknown rule");
+				throw std::logic_error("toString() unknown rule " + std::to_string((int) rules));
 		}
 	}
 	GameRules rulesFromString(const std::string &str)
@@ -133,8 +135,10 @@ namespace ag
 			return GameRules::STANDARD;
 		if (str == "RENJU")
 			return GameRules::RENJU;
-		if (str == "CARO")
-			return GameRules::CARO;
+		if (str == "CARO5")
+			return GameRules::CARO5;
+		if (str == "CARO6")
+			return GameRules::CARO6;
 		throw std::logic_error("unknown rule '" + str + "'");
 	}
 
@@ -172,7 +176,7 @@ namespace ag
 			return GameOutcome::UNKNOWN;
 		assert(board.isSquare());
 		assert(lastMove.sign != Sign::NONE);
-		const TwoPlayerGroup<PatternType> patterns = convert_to_patterns(rules, get_raw_patterns<5>(board, lastMove));
+		const TwoPlayerGroup<DirectionGroup<PatternType>> patterns = convert_to_patterns(rules, get_raw_patterns<5>(board, lastMove));
 		if (lastMove.sign == Sign::CROSS)
 		{
 			if (is_a_win(patterns.for_cross))
@@ -197,7 +201,7 @@ namespace ag
 			return false; // circle (or white) doesn't have any forbidden moves
 
 		const DirectionGroup<uint32_t> raw = get_raw_patterns<Pad>(board, move);
-		TwoPlayerGroup<PatternType> patterns = convert_to_patterns(GameRules::RENJU, raw);
+		TwoPlayerGroup<DirectionGroup<PatternType>> patterns = convert_to_patterns(GameRules::RENJU, raw);
 
 		ThreatEncoding threat = ThreatTable::get(GameRules::RENJU).getThreat(patterns);
 		if (threat.forCross() == ThreatType::FORK_3x3)

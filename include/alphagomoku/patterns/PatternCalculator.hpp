@@ -13,6 +13,7 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/patterns/PatternTable.hpp>
+#include <alphagomoku/patterns/RawPatterns.hpp>
 #include <alphagomoku/patterns/ThreatTable.hpp>
 #include <alphagomoku/patterns/DefensiveMoveTable.hpp>
 #include <alphagomoku/patterns/ThreatHistogram.hpp>
@@ -27,8 +28,26 @@ namespace ag
 	const UpdateMode ADD_MOVE = 0;
 	const UpdateMode UNDO_MOVE = 1;
 
+	template<typename T>
+	struct Change
+	{
+			T previous = T { };
+			T current = T { };
+			Location location;
+			Change() noexcept = default;
+			Change(T prev, T curr, Location loc) :
+					previous(prev),
+					current(curr),
+					location(loc)
+			{
+			}
+	};
+
 	class PatternCalculator
 	{
+		public:
+			static constexpr int padding = 5;
+			static constexpr int extended_padding = padding + 1;
 		private:
 			GameConfig game_config;
 			Sign sign_to_move = Sign::NONE;
@@ -36,12 +55,13 @@ namespace ag
 
 			BitMask2D<uint32_t, 32> legal_moves_mask;
 			matrix<int16_t> internal_board;
-			matrix<DirectionGroup<uint32_t>> raw_patterns;
-			matrix<TwoPlayerGroup<PatternType>> pattern_types;
+			RawPatterns<extended_padding> raw_patterns;
+			matrix<TwoPlayerGroup<DirectionGroup<PatternType>>> pattern_types;
 
 			matrix<ThreatEncoding> threat_types;
 
 			DirectionGroup<PatternEncoding> central_spot_encoding;
+			DirectionGroup<UpdateMask> update_mask;
 
 			ThreatHistogram cross_threats;
 			ThreatHistogram circle_threats;
@@ -50,21 +70,29 @@ namespace ag
 			const ThreatTable *threat_table = nullptr;
 			const DefensiveMoveTable *defensive_move_table = nullptr;
 
+			std::vector<Change<ThreatEncoding>> changed_threats;
+			Change<Sign> changed_moves;
+
 			TimedStat features_init;
 			TimedStat features_class;
 			TimedStat threats_init;
 			TimedStat features_update;
 			TimedStat threats_update;
-
 		public:
-			static constexpr int padding = 5;
-			static constexpr int extended_padding = padding + 1;
 
 			PatternCalculator(GameConfig gameConfig);
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
 
+			Change<Sign> getChangeOfMoves() const noexcept
+			{
+				return changed_moves;
+			}
+			const std::vector<Change<ThreatEncoding>>& getChangeOfThreats() const noexcept
+			{
+				return changed_threats;
+			}
 			GameConfig getConfig() const noexcept
 			{
 				return game_config;
@@ -95,11 +123,11 @@ namespace ag
 			}
 			uint32_t getRawPatternAt(int row, int col, Direction dir) const noexcept
 			{
-				return (raw_patterns.at(extended_padding + row, extended_padding + col)[dir] >> 2) & 4194303u;
+				return raw_patterns.getRawPatternAt(row, col, dir);
 			}
 			uint32_t getExtendedPatternAt(int row, int col, Direction dir) const noexcept
 			{
-				return raw_patterns.at(extended_padding + row, extended_padding + col)[dir];
+				return raw_patterns.getExtendedPatternAt(row, col, dir);
 			}
 			DirectionGroup<PatternType> getPatternTypeAt(Sign sign, int row, int col) const noexcept
 			{
@@ -113,6 +141,10 @@ namespace ag
 			{
 				return getPatternTypeAt(sign, row, col)[dir];
 			}
+			ThreatEncoding getThreatAt(int row, int col) const noexcept
+			{
+				return threat_types.at(row, col);
+			}
 			ThreatType getThreatAt(Sign sign, int row, int col) const noexcept
 			{
 				switch (sign)
@@ -125,15 +157,15 @@ namespace ag
 						return threat_types.at(row, col).forCircle();
 				}
 			}
-			ShortVector<Move, 5> getDefensiveMoves(Sign sign, int row, int col, Direction dir) const noexcept
+			ShortVector<Location, 6> getDefensiveMoves(Sign sign, int row, int col, Direction dir) const noexcept
 			{
 				const uint32_t extended_pattern = getExtendedPatternAt(row, col, dir);
 				const PatternType threat_to_defend = getPatternTypeAt(invertSign(sign), row, col, dir);
 				const BitMask1D<uint16_t> tmp = defensive_move_table->getMoves(extended_pattern, sign, threat_to_defend);
-				ShortVector<Move, 5> result;
+				ShortVector<Location, 6> result;
 				for (int i = -extended_padding; i <= extended_padding; i++)
 					if (tmp[i + extended_padding])
-						result.add(Move(row + i * get_row_step(dir), col + i * get_col_step(dir)));
+						result.add(Location(row + i * get_row_step(dir), col + i * get_col_step(dir)));
 				return result;
 			}
 			bool isForbidden(Sign sign, int row, int col) noexcept;
@@ -144,13 +176,13 @@ namespace ag
 			void print(Move lastMove = Move()) const;
 			void print_stats() const;
 		private:
-			void calculate_raw_features() noexcept;
 			void classify_feature_types() noexcept;
 			void prepare_threat_lists();
 
-			void update_central_spot(int row, int col, UpdateMode mode) noexcept;
+			template<UpdateMode Mode>
+			void update_central_spot(int row, int col, Sign s) noexcept;
 			void update_neighborhood(int row, int col) noexcept;
-			void update_feature_types_and_threats(int row, int col, Direction direction) noexcept;
+			void update_feature_types_and_threats(int row, int col, Direction direction, int mode) noexcept;
 	};
 
 } /* namespace ag */

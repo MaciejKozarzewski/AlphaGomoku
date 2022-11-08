@@ -194,16 +194,18 @@ namespace ag
 			addPattern("XXXXX");
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
-			if (rule == GameRules::CARO)
+			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not X]", "[_|]");
+			// TODO add support for CARO6
 		}
 		else
 		{
 			addPattern("OOOOO");
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
-			if (rule == GameRules::CARO)
+			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not O]", "[_|]");
+			// TODO add support for CARO6
 		}
 	}
 	IsOpenFour::IsOpenFour(GameRules rule, Sign sign) :
@@ -221,8 +223,9 @@ namespace ag
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 		}
-		if (rule == GameRules::CARO)
+		if (rule == GameRules::CARO5)
 			modifyPatternsAND("[_|]", "[_|]");
+		// TODO add support for CARO6
 	}
 	IsDoubleFour::IsDoubleFour(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -239,8 +242,9 @@ namespace ag
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 		}
-		if (rule == GameRules::CARO)
+		if (rule == GameRules::CARO5)
 			modifyPatternsAND("[_|]", "[_|]");
+		// TODO add support for CARO6
 	}
 	IsHalfOpenFour::IsHalfOpenFour(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -250,16 +254,18 @@ namespace ag
 			addPatterns( { "_XXXX", "X_XXX", "XX_XX", "XXX_X", "XXXX_" });
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
-			if (rule == GameRules::CARO)
+			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not X]", "[_|]");
+			// TODO add support for CARO6
 		}
 		else
 		{
 			addPatterns( { "_OOOO", "O_OOO", "OO_OO", "OOO_O", "OOOO_" });
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
-			if (rule == GameRules::CARO)
+			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not O]", "[_|]");
+			// TODO add support for CARO6
 		}
 	}
 	IsOpenThree::IsOpenThree(GameRules rule, Sign sign) :
@@ -277,8 +283,9 @@ namespace ag
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
 		}
-		if (rule == GameRules::CARO)
+		if (rule == GameRules::CARO5)
 			modifyPatternsAND("[_|]", "[_|]");
+		// TODO add support for CARO6
 	}
 	IsHalfOpenThree::IsHalfOpenThree(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -288,16 +295,18 @@ namespace ag
 			addPatterns( { "__XXX", "_X_XX", "_XX_X", "_XXX_", "X__XX", "X_X_X", "X_XX_", "XX__X", "XX_X_", "XXX__" });
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
-			if (rule == GameRules::CARO)
+			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not X]", "[_|]");
+			// TODO add support for CARO6
 		}
 		else
 		{
 			addPatterns( { "__OOO", "_O_OO", "_OO_O", "_OOO_", "O__OO", "O_O_O", "O_OO_", "OO__O", "OO_O_", "OOO__" });
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
-			if (rule == GameRules::CARO)
+			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not O]", "[_|]");
+			// TODO add support for CARO6
 		}
 	}
 
