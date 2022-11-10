@@ -9,31 +9,46 @@
 #define ALPHAGOMOKU_UTILS_ALIGNEDSTORAGE_HPP_
 
 #include <cstring>
+#include <iostream>
 #include <algorithm>
 #include <cassert>
 
 namespace ag
 {
-	template<typename T, int Alignment = 64>
+	template<typename T, int Alignment = 16>
 	class AlignedStorage
 	{
-			T *m_data = nullptr;
 			size_t m_size = 0;
+			T *m_data = nullptr;
+
+			static void* aligned_new(size_t size, size_t alignment)
+			{
+				if (size == 0)
+					return nullptr;
+				else
+					return ::operator new[](size, std::align_val_t(alignment));
+			}
+			static void aligned_delete(void *ptr, size_t alignment)
+			{
+				if (ptr != nullptr)
+					::operator delete[](ptr, std::align_val_t(alignment));
+			}
 		public:
 			AlignedStorage() noexcept = default;
 			AlignedStorage(size_t size) :
-					m_data(new (std::align_val_t(Alignment)) T[size]),
-					m_size(size)
+					m_size(size),
+					m_data(reinterpret_cast<T*>(aligned_new(sizeInBytes(), Alignment)))
 			{
 			}
 			AlignedStorage(const AlignedStorage &other) :
 					AlignedStorage(other.size())
 			{
-				std::memcpy(this->data(), other.data(), sizeof(T) * size());
+				if (sizeInBytes() > 0)
+					std::memcpy(this->data(), other.data(), sizeInBytes());
 			}
 			AlignedStorage(AlignedStorage &&other) noexcept :
-					m_data(other.m_data),
-					m_size(other.m_size)
+					m_size(other.m_size),
+					m_data(other.m_data)
 			{
 				other.m_data = nullptr;
 			}
@@ -43,10 +58,12 @@ namespace ag
 				{
 					if (this->size() != other.size())
 					{
+						aligned_delete(m_data, Alignment);
 						m_size = other.size();
-						m_data = new (std::align_val_t(Alignment)) T[size()];
+						m_data = reinterpret_cast<T*>(aligned_new(sizeInBytes(), Alignment));
 					}
-					std::memcpy(this->data(), other.data(), sizeof(T) * size());
+					if (sizeInBytes() > 0)
+						std::memcpy(this->data(), other.data(), sizeInBytes());
 				}
 				return *this;
 			}
@@ -58,7 +75,7 @@ namespace ag
 			}
 			~AlignedStorage() noexcept
 			{
-				::operator delete[](m_data, std::align_val_t(Alignment));
+				aligned_delete(m_data, Alignment);
 			}
 
 			size_t size() const noexcept
@@ -93,14 +110,14 @@ namespace ag
 			{
 				return begin() + size();
 			}
-			const T& operator[](int index) const noexcept
+			const T& operator[](size_t index) const noexcept
 			{
-				assert(0 <= index && index < size());
+				assert(index < size());
 				return m_data[index];
 			}
-			T& operator[](int index) noexcept
+			T& operator[](size_t index) noexcept
 			{
-				assert(0 <= index && index < size());
+				assert(index < size());
 				return m_data[index];
 			}
 	};
