@@ -14,6 +14,8 @@
 #include <alphagomoku/utils/ObjectPool.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 
+#include <memory>
+
 namespace ag
 {
 	struct NodeCacheStats
