@@ -164,8 +164,8 @@ namespace ag
 				const BitMask1D<uint16_t> tmp = defensive_move_table->getMoves(extended_pattern, sign, threat_to_defend);
 				ShortVector<Location, 6> result;
 				for (int i = -extended_padding; i <= extended_padding; i++)
-					if (tmp[i + extended_padding])
-						result.add(Location(row + i * get_row_step(dir), col + i * get_col_step(dir)));
+					if (tmp[extended_padding + i]) // the defensive move will not be outside the board
+						result.add(shiftInDirection(dir, i, Location(row, col)));
 				return result;
 			}
 			bool isForbidden(Sign sign, int row, int col) noexcept;

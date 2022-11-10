@@ -313,21 +313,11 @@ namespace
 			}
 			static const std::array<uint32_t, 12>& getMasks(Sign attackerSign) noexcept
 			{
+//				"_XX!__", "_X!X__", "_!XX__", "_XX_!_", "_X!_X_", "_!X_X_", "_X_X!_", "_X_!X_", "_!_XX_", "__XX!_", "__X!X_", "__!XX_"
 				static const std::array<uint32_t, 12> cross( { 20u, 68u, 80u, 20u, 260u, 272u, 68u, 260u, 320u, 80u, 272u, 320u });
 				static const std::array<uint32_t, 12> circle( { 40u, 136u, 160u, 40u, 520u, 544u, 136u, 520u, 640u, 160u, 544u, 640u });
 				return (attackerSign == Sign::CROSS) ? cross : circle;
-//				 _XX!__
-//				  _X!X__
-//				   _!XX__
-//				_XX_!_
-//				  _X!_X_
-//				   _!X_X_
-//				_X_X!_
-//				 _X_!X_
-//				   _!_XX_
-//				__XX!_
-//				 __X!X_
-//				  __!XX_
+
 			}
 	};
 
@@ -449,7 +439,7 @@ namespace ag
 				for (size_t i = 0; i < masks.size(); i++)
 				{
 					const int begin = DefendHalfOpenFour::getOffset(i);
-					if (sub_pattern(pattern, begin, length) == masks[i]) // and check_sides(pattern, begin))
+					if (sub_pattern(pattern, begin, length) == masks[i] and check_sides(pattern, begin))
 					{
 						BitMask1D<uint16_t> tmp = five_defense.at(i / 4, get_index(pattern, begin, begin + length)).get(defenderSign);
 						const int shift = begin - DefendFive::getOffset(i / 4); // shift is required as half open four patterns are not aligned with five ones

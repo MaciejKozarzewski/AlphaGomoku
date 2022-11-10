@@ -20,10 +20,28 @@ namespace ag
 	}
 
 	typedef int Direction;
-	const Direction HORIZONTAL = 0;
-	const Direction VERTICAL = 1;
-	const Direction DIAGONAL = 2;
-	const Direction ANTIDIAGONAL = 3;
+	constexpr Direction HORIZONTAL = 0;
+	constexpr Direction VERTICAL = 1;
+	constexpr Direction DIAGONAL = 2;
+	constexpr Direction ANTIDIAGONAL = 3;
+
+	template<typename T>
+	Location shiftInDirection(Direction dir, int distance, T origin) noexcept
+	{
+		switch (dir)
+		{
+			case HORIZONTAL:
+				return Location(origin.row, origin.col + distance);
+			case VERTICAL:
+				return Location(origin.row + distance, origin.col);
+			case DIAGONAL:
+				return Location(origin.row + distance, origin.col + distance);
+			case ANTIDIAGONAL:
+				return Location(origin.row + distance, origin.col - distance);
+			default:
+				return Location();
+		}
+	}
 
 	inline constexpr int get_row_step(Direction dir) noexcept
 	{

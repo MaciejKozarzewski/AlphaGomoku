@@ -10,28 +10,11 @@
 
 #include <alphagomoku/rules/game_rules.hpp>
 
-#include <array>
-#include <map>
 #include <cassert>
 #include <iostream>
 
 namespace ag
 {
-	inline Sign signFromText(char c) noexcept
-	{
-		switch (c)
-		{
-			case '_':
-				return Sign::NONE;
-			case 'X':
-				return Sign::CROSS;
-			case 'O':
-				return Sign::CIRCLE;
-			default:
-				return Sign::ILLEGAL;
-		}
-	}
-
 	template<typename T>
 	inline T power(T base, T exponent) noexcept
 	{

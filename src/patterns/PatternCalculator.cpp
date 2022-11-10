@@ -46,7 +46,6 @@ namespace ag
 		changed_moves = Change<Sign>();
 
 		sign_to_move = signToMove;
-		static_assert(sizeof(Sign) == sizeof(int16_t));
 		internal_board = board;
 
 		current_depth = 0;
@@ -133,14 +132,13 @@ namespace ag
 						Board::putMove(internal_board, Move(row, col, Sign::CROSS));
 						for (int i = -padding; i <= padding; i++)
 						{
-							const int x = row + i * get_row_step(dir);
-							const int y = col + i * get_col_step(dir);
-							if (promotion_moves[padding + i] == true and signAt(x, y) == Sign::NONE
-									and RawPatternCalculator::isStraightFourAt(internal_board, Move(Sign::CROSS, x, y), dir))
+							const Location loc = shiftInDirection(dir, i, Location(row, col));
+							if (promotion_moves[padding + i] == true and signAt(loc.row, loc.col) == Sign::NONE
+									and RawPatternCalculator::isStraightFourAt(internal_board, Move(Sign::CROSS, loc), dir))
 							{ // minor optimization as 'isStraightFourAt' works without adding new move to the pattern calculator
 								Board::undoMove(internal_board, Move(row, col, Sign::CROSS));
 								addMove(Move(row, col, Sign::CROSS));
-								const bool is_forbidden = isForbidden(sign, x, y);
+								const bool is_forbidden = isForbidden(sign, loc.row, loc.col);
 								undoMove(Move(row, col, Sign::CROSS));
 								Board::putMove(internal_board, Move(row, col, Sign::CROSS));
 
@@ -185,24 +183,10 @@ namespace ag
 			uint32_t line = getExtendedPatternAt(row, col, dir);
 			for (int j = 0; j < 2 * extended_padding + 1; j++)
 			{
-				if (j == padding or j == 1 or j == 2 * extended_padding - 1)
+				if (j == extended_padding or j == 1 or j == 2 * extended_padding)
 					std::cout << ' ';
-				switch (line % 4)
-				{
-					case 0:
-						std::cout << '_';
-						break;
-					case 1:
-						std::cout << 'X';
-						break;
-					case 2:
-						std::cout << 'O';
-						break;
-					case 3:
-						std::cout << '|';
-						break;
-				}
-				if (j == padding)
+				std::cout << text(static_cast<Sign>(line % 4));
+				if (j == extended_padding)
 					std::cout << ' ';
 				line = line / 4;
 			}
@@ -304,7 +288,7 @@ namespace ag
 	template<UpdateMode Mode>
 	void PatternCalculator::update_central_spot(int row, int col, Sign s) noexcept
 	{
-		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
+		assert(internal_board.isInside(row, col));
 
 		for (Direction dir = 0; dir < 4; dir++)
 			update_mask[dir] = pattern_table->getUpdateMask(getNormalPatternAt(row, col, dir), s);
@@ -358,8 +342,8 @@ namespace ag
 	}
 	void PatternCalculator::update_feature_types_and_threats(int row, int col, Direction direction, int mode) noexcept
 	{
-		assert(mode == 1 || mode == 2 || mode == 3); // mode can be either, update CROSS, update CIRCLE or update both
-		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
+		assert(mode == 1 || mode == 2 || mode == 3); // mode can be either update CROSS, update CIRCLE or update both
+		assert(internal_board.isInside(row, col));
 
 		// check what was the best threat at (row, col) before updating
 		const ThreatEncoding old_threat = threat_types.at(row, col);

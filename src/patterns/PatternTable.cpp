@@ -98,12 +98,12 @@ namespace ag
 			update_mask(power(4, Pattern::length - 1)),
 			game_rules(rules)
 	{
-		double t0 = getTime();
+//		double t0 = getTime();
 		init_features();
-		double t1 = getTime();
+//		double t1 = getTime();
 		init_update_mask();
-		double t2 = getTime();
-		std::cout << (t1 - t0) << " " << (t2 - t1) << '\n';
+//		double t2 = getTime();
+//		std::cout << (t1 - t0) << " " << (t2 - t1) << '\n';
 	}
 	const PatternTable& PatternTable::get(GameRules rules)
 	{
