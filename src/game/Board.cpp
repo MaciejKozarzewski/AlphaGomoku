@@ -27,13 +27,13 @@ namespace
 		{
 			default:
 			case ProvenValue::UNKNOWN:
-				return " _ ";
+				return "  _ ";
 			case ProvenValue::LOSS:
-				return ">L<";
+				return " >L<";
 			case ProvenValue::DRAW:
-				return ">D<";
+				return " >D<";
 			case ProvenValue::WIN:
-				return ">W<";
+				return " >W<";
 		}
 	}
 	std::string to_string(float f)
