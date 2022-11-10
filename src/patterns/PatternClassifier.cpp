@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/patterns/PatternClassifier.hpp>
+#include <alphagomoku/patterns/Pattern.hpp>
 
 #include <algorithm>
 
@@ -196,7 +197,8 @@ namespace ag
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not X]", "[_|]");
-			// TODO add support for CARO6
+			if (rule == GameRules::CARO6)
+				modifyPatternsOR("[not O]", "[any]", "[not O");
 		}
 		else
 		{
@@ -205,7 +207,8 @@ namespace ag
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not O]", "[_|]");
-			// TODO add support for CARO6
+			if (rule == GameRules::CARO6)
+				modifyPatternsOR("[not X]", "[any]", "[not X");
 		}
 	}
 	IsOpenFour::IsOpenFour(GameRules rule, Sign sign) :
@@ -216,16 +219,19 @@ namespace ag
 			addPattern("_XXXX_");
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
+			if (rule == GameRules::CARO6)
+				modifyPatternsAND("[not O]", "[not O]");
 		}
 		else
 		{
 			addPattern("_OOOO_");
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
+			if (rule == GameRules::CARO6)
+				modifyPatternsAND("[not X]", "[not X]");
 		}
 		if (rule == GameRules::CARO5)
 			modifyPatternsAND("[_|]", "[_|]");
-		// TODO add support for CARO6
 	}
 	IsDoubleFour::IsDoubleFour(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -235,16 +241,19 @@ namespace ag
 			addPatterns( { "X_XXX_X", "XX_XX_XX", "XXX_X_XXX" });
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
+			if (rule == GameRules::CARO6)
+				modifyPatternsAND("[not O]", "[not O]");
 		}
 		else
 		{
 			addPatterns( { "O_OOO_O", "OO_OO_OO", "OOO_O_OOO" });
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
+			if (rule == GameRules::CARO6)
+				modifyPatternsAND("[not X]", "[not X]");
 		}
 		if (rule == GameRules::CARO5)
 			modifyPatternsAND("[_|]", "[_|]");
-		// TODO add support for CARO6
 	}
 	IsHalfOpenFour::IsHalfOpenFour(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -256,7 +265,8 @@ namespace ag
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not X]", "[_|]");
-			// TODO add support for CARO6
+			if (rule == GameRules::CARO6)
+				modifyPatternsOR("[not O]", "[any]", "[not O");
 		}
 		else
 		{
@@ -265,7 +275,8 @@ namespace ag
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not O]", "[_|]");
-			// TODO add support for CARO6
+			if (rule == GameRules::CARO6)
+				modifyPatternsOR("[not X]", "[any]", "[not X");
 		}
 	}
 	IsOpenThree::IsOpenThree(GameRules rule, Sign sign) :
@@ -276,16 +287,19 @@ namespace ag
 			addPatterns( { "_XXX__", "_XX_X_", "_X_XX_", "__XXX_" });
 			if (rule == GameRules::STANDARD or rule == GameRules::RENJU)
 				modifyPatternsAND("[not X]", "[not X]");
+			if (rule == GameRules::CARO6)
+				modifyPatternsAND("[not O]", "[not O]");
 		}
 		else
 		{
 			addPatterns( { "_OOO__", "_OO_O_", "_O_OO_", "__OOO_" });
 			if (rule == GameRules::STANDARD)
 				modifyPatternsAND("[not O]", "[not O]");
+			if (rule == GameRules::CARO6)
+				modifyPatternsAND("[not X]", "[not X]");
 		}
 		if (rule == GameRules::CARO5)
 			modifyPatternsAND("[_|]", "[_|]");
-		// TODO add support for CARO6
 	}
 	IsHalfOpenThree::IsHalfOpenThree(GameRules rule, Sign sign) :
 			PatternClassifier(rule, sign)
@@ -297,7 +311,8 @@ namespace ag
 				modifyPatternsAND("[not X]", "[not X]");
 			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not X]", "[_|]");
-			// TODO add support for CARO6
+			if (rule == GameRules::CARO6)
+				modifyPatternsOR("[not O]", "[any]", "[not O");
 		}
 		else
 		{
@@ -306,7 +321,8 @@ namespace ag
 				modifyPatternsAND("[not O]", "[not O]");
 			if (rule == GameRules::CARO5)
 				modifyPatternsOR("[_|]", "[not O]", "[_|]");
-			// TODO add support for CARO6
+			if (rule == GameRules::CARO6)
+				modifyPatternsOR("[not X]", "[any]", "[not X");
 		}
 	}
 
