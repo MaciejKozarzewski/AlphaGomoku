@@ -108,7 +108,7 @@ namespace ag
 
 	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove, int numberOfMovesForDraw)
 	{
-		if (lastMove.row < 0 or lastMove.row >= board.rows() or lastMove.col < 0 or lastMove.col >= board.cols())
+		if (not board.isInside(lastMove.row, lastMove.col))
 			return GameOutcome::UNKNOWN;
 		assert(board.isSquare());
 		assert(lastMove.sign != Sign::NONE);
@@ -154,11 +154,10 @@ namespace ag
 					for (int i = -Pad; i <= Pad; i++)
 						if (i != 0)
 						{
-							const int x = move.row + i * get_row_step(dir);
-							const int y = move.col + i * get_col_step(dir);
-							if (promotion_moves[Pad + i] == true and tmp_board.at(x, y) == Sign::NONE) // promotion move will never be outside board
-								if (RawPatternCalculator::isStraightFourAt(tmp_board, Move(x, y, Sign::CROSS), dir)
-										and not isForbidden(tmp_board, Move(x, y, Sign::CROSS)))
+							const Location loc = shiftInDirection(dir, i, move);
+							if (promotion_moves[Pad + i] == true and tmp_board.at(loc.row, loc.col) == Sign::NONE) // promotion move will never be outside board
+								if (RawPatternCalculator::isStraightFourAt(tmp_board, Move(loc, Sign::CROSS), dir)
+										and not isForbidden(tmp_board, Move(loc, Sign::CROSS)))
 								{
 									is_really_an_open3 = true;
 									break;
