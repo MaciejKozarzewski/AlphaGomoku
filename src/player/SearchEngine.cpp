@@ -6,13 +6,16 @@
  */
 
 #include <alphagomoku/player/SearchEngine.hpp>
+#include <alphagomoku/player/SearchThread.hpp>
+#include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/Logger.hpp>
-#include <alphagomoku/protocols/GomocupProtocol.hpp>
+#include <alphagomoku/protocols/Protocol.hpp>
+#include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <libml/utils/json.hpp>
 
 #include <filesystem>
@@ -21,13 +24,16 @@
 
 namespace ag
 {
+	/*
+	 * NNEvaluatorPool
+	 */
 	NNEvaluatorPool::NNEvaluatorPool(const EngineSettings &settings)
 	{
 		for (size_t i = 0; i < settings.getDeviceConfigs().size(); i++)
 		{
 			evaluators.push_back(std::make_unique<NNEvaluator>(settings.getDeviceConfigs().at(i)));
 			evaluators.back()->useSymmetries(settings.isUsingSymmetries());
-			evaluators.back()->loadGraph(settings.getPathToNetwork());
+			evaluators.back()->loadGraph(settings.getPathToConvNetwork());
 			free_evaluators.push_back(i);
 		}
 	}
@@ -68,136 +74,9 @@ namespace ag
 			evaluators[i]->clearStats();
 	}
 
-	SearchThread::SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators) :
-			settings(settings),
-			tree(tree),
-			evaluator_pool(evaluators),
-			search(settings.getGameConfig(), settings.getSearchConfig())
-	{
-	}
-	SearchThread::~SearchThread()
-	{
-		stop();
-		join();
-	}
-	void SearchThread::start()
-	{
-		if (isRunning())
-			throw std::logic_error("the search thread is already running");
-
-		{ /* artificial scope for lock */
-			std::lock_guard lock(search_mutex);
-			is_running = true;
-		}
-		search_future = std::async(std::launch::async, [this]()
-		{	this->run();});
-	}
-	void SearchThread::stop() noexcept
-	{
-		std::lock_guard lock(search_mutex);
-		is_running = false;
-	}
-	void SearchThread::join() const
-	{
-		if (search_future.valid())
-			search_future.wait();
-	}
-	bool SearchThread::isRunning() const noexcept
-	{
-		std::lock_guard lock(search_mutex);
-		if (search_future.valid())
-		{
-			std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
-			return search_status != std::future_status::ready;
-		}
-		else
-			return false;
-	}
-	void SearchThread::run()
-	{
-		try
-		{
-			search.clearStats();
-
-			{ /* artificial scope for lock */
-				TreeLock lock(tree);
-				if (isStopConditionFulfilled())
-					return;
-			}
-
-			while (true)
-			{
-				{ /* artificial scope for lock */
-					TreeLock lock(tree);
-					search.select(tree);
-				}
-				search.solve();
-
-				NNEvaluator &evaluator = evaluator_pool.get();
-				search.scheduleToNN(evaluator);
-				evaluator.evaluateGraph();
-				evaluator_pool.release(evaluator);
-
-				search.generateEdges(tree); // this step doesn't require locking the tree
-				{ /* artificial scope for lock */
-					TreeLock lock(tree);
-					search.expand(tree);
-					search.backup(tree);
-					if (isStopConditionFulfilled())
-						break;
-				}
-				search.tune();
-				std::lock_guard lock(search_mutex);
-				if (is_running == false)
-					break;
-			}
-			TreeLock lock(tree);
-			search.cleanup(tree);
-		} catch (std::exception &e)
-		{
-			Logger::write(std::string("SearchThread::run() threw ") + e.what());
-		}
-	}
-	SearchStats SearchThread::getSearchStats() const noexcept
-	{
-		return search.getStats();
-	}
 	/*
-	 * private
+	 * SearchEngine
 	 */
-	bool SearchThread::isStopConditionFulfilled() const
-	{
-		// assuming tree is locked
-		if (tree.getNodeCount() == 0)
-			return false; // there must be at least one node (root node) in the tree
-		if (tree.getMemory() >= settings.getMaxMemory())
-		{
-			Logger::write("Reached memory limit");
-			return true;
-		}
-		if (tree.getNodeCount() >= settings.getMaxNodes())
-		{
-			Logger::write("Reached node count limit");
-			return true;
-		}
-		if (tree.getMaximumDepth() >= settings.getMaxDepth())
-		{
-			Logger::write("Reached depth limit");
-			return true;
-		}
-		if (tree.isProven())
-		{
-			Logger::write("Tree is proven");
-			return true;
-		}
-		if (tree.hasSingleNonLosingMove())
-		{
-			Logger::write("There is single non-losing move");
-			return true;
-		}
-		return false;
-	}
-
 	SearchEngine::SearchEngine(const EngineSettings &settings) :
 			settings(settings),
 			nn_evaluators(settings),
@@ -226,6 +105,7 @@ namespace ag
 	void SearchEngine::startSearch()
 	{
 		assert(isSearchFinished());
+		nn_evaluators.clearStats();
 		setup_search_threads();
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->start();
@@ -293,6 +173,12 @@ namespace ag
 				{
 					switch (proven_values.at(i, j))
 					{
+						case ProvenValue::LOSS:
+							result += " >L<";
+							break;
+						case ProvenValue::DRAW:
+							result += " >D<";
+							break;
 						case ProvenValue::UNKNOWN:
 						{
 							int t = (int) (1000 * policy.at(i, j));
@@ -310,12 +196,6 @@ namespace ag
 							}
 							break;
 						}
-						case ProvenValue::LOSS:
-							result += " >L<";
-							break;
-						case ProvenValue::DRAW:
-							result += " >D<";
-							break;
 						case ProvenValue::WIN:
 							result += " >W<";
 							break;

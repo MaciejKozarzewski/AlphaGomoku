@@ -6,6 +6,9 @@
  */
 
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
+#include <alphagomoku/selfplay/GameGenerator.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
+
 #include <libml/hardware/Device.hpp>
 #include <libml/utils/json.hpp>
 

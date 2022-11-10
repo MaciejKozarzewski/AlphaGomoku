@@ -5,11 +5,16 @@
  *      Author: Maciej Kozarzewski
  */
 #include <alphagomoku/player/ProgramManager.hpp>
-#include <alphagomoku/version.hpp>
+#include <alphagomoku/player/EngineSettings.hpp>
+#include <alphagomoku/player/SearchEngine.hpp>
+#include <alphagomoku/player/SearchThread.hpp>
+#include <alphagomoku/player/EngineController.hpp>
+#include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
+#include <alphagomoku/version.hpp>
 
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/protocols/ExtendedGomocupProtocol.hpp>
@@ -18,6 +23,7 @@
 #include <alphagomoku/player/controllers/dispatcher.hpp>
 
 #include <filesystem>
+#include <iostream>
 
 namespace
 {
@@ -290,10 +296,13 @@ namespace ag
 		std::string launch_path = argument_parser.getLaunchPath();
 		config["swap2_openings_file"] = launch_path + config["swap2_openings_file"].getString();
 		launch_path += "networks" + path_separator;
-		config["networks"]["freestyle"] = launch_path + config["networks"]["freestyle"].getString();
-		config["networks"]["standard"] = launch_path + config["networks"]["standard"].getString();
-		config["networks"]["renju"] = launch_path + config["networks"]["renju"].getString();
-		config["networks"]["caro"] = launch_path + config["networks"]["caro"].getString();
+
+		const std::array<std::string, 5> tmp = { "freestyle", "standard", "renju", "caro5", "caro6" };
+		for (auto iter = tmp.begin(); iter < tmp.end(); iter++)
+		{
+			config["conv_networks"][*iter] = launch_path + config["conv_networks"][*iter].getString();
+			config["nnue_networks"][*iter] = launch_path + config["nnue_networks"][*iter].getString();
+		}
 	}
 
 	void ProgramManager::setup_protocol()
@@ -416,7 +425,8 @@ namespace ag
 				return cfg.rows == 20 and cfg.cols == 20;
 			case GameRules::STANDARD:
 			case GameRules::RENJU:
-			case GameRules::CARO:
+			case GameRules::CARO5:
+			case GameRules::CARO6:
 				return cfg.rows == 15 and cfg.cols == 15;
 			default:
 				return false;

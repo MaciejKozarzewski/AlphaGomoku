@@ -8,6 +8,8 @@
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
+#include <alphagomoku/utils/configs.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
 #include <libml/utils/json.hpp>
 #include <libml/utils/serialization.hpp>
 

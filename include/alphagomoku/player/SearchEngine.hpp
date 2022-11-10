@@ -10,16 +10,21 @@
 
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
-#include <alphagomoku/mcts/Search.hpp>
-#include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
-#include <alphagomoku/mcts/EdgeGenerator.hpp>
-#include <alphagomoku/player/EngineSettings.hpp>
-#include <alphagomoku/protocols/Protocol.hpp>
 #include <libml/utils/json.hpp>
 
 #include <iostream>
 #include <future>
+
+namespace ag
+{
+	class SearchThread;
+	class EdgeSelector;
+	class EdgeGenerator;
+	class EngineSettings;
+	class NNEvaluator;
+	class NNEvaluatorStats;
+	class SearchSummary;
+}
 
 namespace ag
 {
@@ -36,32 +41,6 @@ namespace ag
 			void release(const NNEvaluator &queue) const;
 			NNEvaluatorStats getStats() const noexcept;
 			void clearStats() noexcept;
-	};
-
-	class SearchThread
-	{
-		private:
-			const EngineSettings &settings;
-			Tree &tree;
-			const NNEvaluatorPool &evaluator_pool;
-
-			Search search;
-			std::future<void> search_future;
-
-			mutable std::mutex search_mutex;
-			bool is_running = false;
-		public:
-			SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators);
-			~SearchThread();
-			void start();
-			void stop() noexcept;
-			void join() const;
-			bool isRunning() const noexcept;
-			void run();
-
-			SearchStats getSearchStats() const noexcept;
-		private:
-			bool isStopConditionFulfilled() const;
 	};
 
 	class SearchEngine

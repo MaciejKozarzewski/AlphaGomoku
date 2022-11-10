@@ -9,10 +9,8 @@
 #define ALPHAGOMOKU_SELFPLAY_GAME_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/utils/configs.hpp>
-#include <alphagomoku/selfplay/SearchData.hpp>
+#include <alphagomoku/game/rules.hpp>
 
 #include <vector>
 #include <cinttypes>
@@ -22,6 +20,8 @@ class SerializedObject;
 namespace ag
 {
 	class EvaluationRequest;
+	class SearchData;
+	class GameConfig;
 } /* namespace ag */
 
 namespace ag

@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_UTILS_BITMASK_HPP_
 #define ALPHAGOMOKU_UTILS_BITMASK_HPP_
 
-#include <vector>
+#include <array>
 #include <string>
 #include <cassert>
 

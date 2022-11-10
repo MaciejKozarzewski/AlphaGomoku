@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_EVALUATION_EVALUATIONMANAGER_HPP_
 
 #include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <alphagomoku/selfplay/EvaluationGame.hpp>
+#include <alphagomoku/selfplay/GameBuffer.hpp>
 
 #include <cinttypes>
 #include <string>
@@ -18,6 +18,9 @@
 namespace ag
 {
 	class EvaluationManager;
+	class EvaluationGame;
+	class GameConfig;
+	class SelfplayConfig;
 } /* namespace ag */
 
 namespace ag

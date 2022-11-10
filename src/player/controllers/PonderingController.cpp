@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/player/controllers/PonderingController.hpp>
+#include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
 

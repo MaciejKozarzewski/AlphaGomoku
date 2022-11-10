@@ -7,6 +7,8 @@
 
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
+#include <alphagomoku/selfplay/EvaluationGame.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
 

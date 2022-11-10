@@ -8,11 +8,14 @@
 #ifndef ALPHAGOMOKU_SELFPLAY_GAMEBUFFER_HPP_
 #define ALPHAGOMOKU_SELFPLAY_GAMEBUFFER_HPP_
 
-#include <alphagomoku/selfplay/Game.hpp>
-
 #include <mutex>
 #include <string>
 #include <vector>
+
+namespace ag
+{
+	class Game;
+}
 
 namespace ag
 {

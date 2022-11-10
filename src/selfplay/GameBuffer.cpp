@@ -6,6 +6,8 @@
  */
 
 #include <alphagomoku/selfplay/GameBuffer.hpp>
+#include <alphagomoku/selfplay/Game.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <libml/utils/json.hpp>

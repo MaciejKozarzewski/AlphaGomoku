@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
@@ -154,7 +155,7 @@ namespace ag
 
 			if (is_request_scheduled == true)
 			{
-				if (request.isReady() == false)
+				if (request.isReadyNetwork() == false)
 					return false;
 				is_request_scheduled = false;
 				if (fabsf(request.getValue().win - request.getValue().loss) < (0.05f + opening_trials * 0.01f))

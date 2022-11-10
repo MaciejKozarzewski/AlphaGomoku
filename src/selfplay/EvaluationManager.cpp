@@ -6,6 +6,9 @@
  */
 
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
+#include <alphagomoku/selfplay/EvaluationGame.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 #include <thread>
 

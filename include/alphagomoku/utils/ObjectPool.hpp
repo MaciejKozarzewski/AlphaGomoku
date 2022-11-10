@@ -9,11 +9,8 @@
 #define ALPHAGOMOKU_UTILS_OBJECTPOOL_HPP_
 
 #include <vector>
-#include <memory>
 #include <algorithm>
-#include <map>
 #include <cassert>
-#include <iostream>
 
 namespace ag
 {

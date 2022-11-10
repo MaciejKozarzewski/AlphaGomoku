@@ -8,16 +8,19 @@
 #ifndef ENGINEMANAGER_HPP_
 #define ENGINEMANAGER_HPP_
 
-#include <alphagomoku/protocols/GomocupProtocol.hpp>
-#include <alphagomoku/player/EngineSettings.hpp>
+#include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
-#include <alphagomoku/player/SearchEngine.hpp>
-#include <alphagomoku/player/EngineController.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
 
-#include <iostream>
 #include <fstream>
 #include <future>
+
+namespace ag
+{
+	class SearchEngine;
+	class EngineSettings;
+	class EngineController;
+}
 
 namespace ag
 {

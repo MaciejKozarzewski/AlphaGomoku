@@ -11,12 +11,11 @@
 #include <alphagomoku/mcts/Edge.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Value.hpp>
+
 #include <string>
-#include <memory>
 #include <cassert>
 #include <cinttypes>
-#include <math.h>
-#include <cstring>
+#include <cmath>
 
 namespace ag
 {

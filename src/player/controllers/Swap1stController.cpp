@@ -8,6 +8,7 @@
 #include <alphagomoku/player/controllers/Swap1stController.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
+#include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 
 namespace ag
