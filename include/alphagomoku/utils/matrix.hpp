@@ -10,7 +10,6 @@
 
 #include <vector>
 #include <cassert>
-#include <memory>
 
 namespace ag
 {

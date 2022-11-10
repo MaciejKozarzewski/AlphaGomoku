@@ -9,7 +9,6 @@
 #define ALPHAGOMOKU_UTILS_ALIGNEDSTORAGE_HPP_
 
 #include <cstring>
-#include <iostream>
 #include <algorithm>
 #include <cassert>
 
