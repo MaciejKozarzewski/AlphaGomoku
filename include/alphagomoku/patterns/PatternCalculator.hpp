@@ -13,7 +13,7 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/patterns/PatternTable.hpp>
-#include <alphagomoku/patterns/RawPatterns.hpp>
+#include <alphagomoku/patterns/RawPatternCalculator.hpp>
 #include <alphagomoku/patterns/ThreatTable.hpp>
 #include <alphagomoku/patterns/DefensiveMoveTable.hpp>
 #include <alphagomoku/patterns/ThreatHistogram.hpp>
@@ -54,8 +54,8 @@ namespace ag
 			int current_depth = 0;
 
 			BitMask2D<uint32_t, 32> legal_moves_mask;
-			matrix<int16_t> internal_board;
-			RawPatterns<extended_padding> raw_patterns;
+			matrix<Sign> internal_board;
+			RawPatternCalculator raw_patterns;
 			matrix<TwoPlayerGroup<DirectionGroup<PatternType>>> pattern_types;
 
 			matrix<ThreatEncoding> threat_types;
@@ -111,7 +111,7 @@ namespace ag
 			}
 			Sign signAt(int row, int col) const noexcept
 			{
-				return static_cast<Sign>(internal_board.at(extended_padding + row, extended_padding + col));
+				return internal_board.at(row, col);
 			}
 			const ThreatHistogram& getThreatHistogram(Sign sign) const noexcept
 			{
@@ -121,11 +121,11 @@ namespace ag
 				else
 					return circle_threats;
 			}
-			uint32_t getRawPatternAt(int row, int col, Direction dir) const noexcept
+			NormalPattern getNormalPatternAt(int row, int col, Direction dir) const noexcept
 			{
-				return raw_patterns.getRawPatternAt(row, col, dir);
+				return raw_patterns.getNormalPatternAt(row, col, dir);
 			}
-			uint32_t getExtendedPatternAt(int row, int col, Direction dir) const noexcept
+			ExtendedPattern getExtendedPatternAt(int row, int col, Direction dir) const noexcept
 			{
 				return raw_patterns.getExtendedPatternAt(row, col, dir);
 			}
@@ -159,7 +159,7 @@ namespace ag
 			}
 			ShortVector<Location, 6> getDefensiveMoves(Sign sign, int row, int col, Direction dir) const noexcept
 			{
-				const uint32_t extended_pattern = getExtendedPatternAt(row, col, dir);
+				const ExtendedPattern extended_pattern = getExtendedPatternAt(row, col, dir);
 				const PatternType threat_to_defend = getPatternTypeAt(invertSign(sign), row, col, dir);
 				const BitMask1D<uint16_t> tmp = defensive_move_table->getMoves(extended_pattern, sign, threat_to_defend);
 				ShortVector<Location, 6> result;

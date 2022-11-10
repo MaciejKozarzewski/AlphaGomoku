@@ -8,7 +8,16 @@
 #ifndef ALPHAGOMOKU_PATTERNS_PATTERNCLASSIFIER_HPP_
 #define ALPHAGOMOKU_PATTERNS_PATTERNCLASSIFIER_HPP_
 
-#include <alphagomoku/patterns/Pattern.hpp>
+#include <alphagomoku/game/rules.hpp>
+
+#include <array>
+#include <vector>
+#include <string>
+
+namespace ag
+{
+	class Pattern;
+}
 
 namespace ag
 {

@@ -23,58 +23,10 @@ namespace ag
 
 namespace ag
 {
-	class DefensiveMoves
-	{
-			std::array<int8_t, 5> m_offsets;
-			int8_t m_length = 0;
-		public:
-			DefensiveMoves() noexcept = default;
-			DefensiveMoves(BitMask1D<uint16_t> mask, int center = 6) noexcept
-			{
-				for (int i = 0; i < mask.size(); i++)
-					if (mask[i])
-						add(i - center);
-			}
-			DefensiveMoves(std::initializer_list<int> list) :
-					m_length(list.size())
-			{
-				for (int i = 0; i < m_length; i++)
-					m_offsets[i] = list.begin()[i];
-			}
-			void add(int offset) noexcept
-			{
-				assert(m_length < 5);
-				m_offsets[m_length++] = offset;
-			}
-			int length() const noexcept
-			{
-				return m_length;
-			}
-			int operator[](int index) const noexcept
-			{
-				assert(0 <= index && index < length());
-				return m_offsets[index];
-			}
-			void sort() noexcept
-			{
-				std::sort(m_offsets.begin(), m_offsets.begin() + m_length);
-			}
-			void flip() noexcept
-			{
-				for (int i = 0; i < 5; i++)
-					m_offsets[i] = -m_offsets[i];
-			}
-			void shift(int s) noexcept
-			{
-				for (int i = 0; i < 5; i++)
-					m_offsets[i] += s;
-			}
-	};
-
 	/*
 	 * \brief Returns list of moves that can be used to promote an open three into a four (intended only for cross in renju rule).
 	 */
-	BitMask1D<uint16_t> getOpenThreePromotionMoves(uint32_t pattern) noexcept;
+	BitMask1D<uint16_t> getOpenThreePromotionMoves(NormalPattern pattern) noexcept;
 
 	class DefensiveMoveTable
 	{
@@ -100,7 +52,7 @@ namespace ag
 			{
 				return game_rules;
 			}
-			BitMask1D<uint16_t> getMoves(uint32_t pattern, Sign defenderSign, PatternType threatToDefend) const;
+			BitMask1D<uint16_t> getMoves(ExtendedPattern pattern, Sign defenderSign, PatternType threatToDefend) const;
 			static const DefensiveMoveTable& get(GameRules rules);
 		private:
 			void init_five();

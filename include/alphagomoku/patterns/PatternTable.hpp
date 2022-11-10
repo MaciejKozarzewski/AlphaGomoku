@@ -8,18 +8,14 @@
 #ifndef ALPHAGOMOKU_PATTERNS_PATTERNTABLE_HPP_
 #define ALPHAGOMOKU_PATTERNS_PATTERNTABLE_HPP_
 
+#include <alphagomoku/patterns/RawPattern.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/rules.hpp>
-#include <alphagomoku/patterns/common.hpp>
 #include <alphagomoku/utils/BitMask.hpp>
+
 #include <vector>
 #include <string>
 #include <cassert>
-
-namespace ag
-{
-	enum class GameRules;
-}
 
 namespace ag
 {
@@ -107,16 +103,16 @@ namespace ag
 			{
 				return game_rules;
 			}
-			UpdateMask getUpdateMask(uint32_t pattern, Sign newStoneColor) const noexcept
+			UpdateMask getUpdateMask(NormalPattern pattern, Sign newStoneColor) const noexcept
 			{
-				assert(pattern < update_mask.size() * 4);
+				assert(narrow_down(pattern) < update_mask.size());
 				assert(newStoneColor == Sign::CROSS || newStoneColor == Sign::CIRCLE);
 				return update_mask[narrow_down(pattern)][newStoneColor == Sign::CIRCLE];
 			}
-			PatternEncoding getPatternType(uint32_t pattern) const noexcept
+			PatternEncoding getPatternType(NormalPattern pattern) const noexcept
 			{
-				assert(pattern < pattern_types_new.size() * 4);
-				assert((pattern & 3072u) == 0);
+				assert(narrow_down(pattern) < pattern_types.size());
+				assert((pattern & 3072u) == 0); // central spot must be empty
 				return pattern_types[narrow_down(pattern)];
 			}
 			static const PatternTable& get(GameRules rules);

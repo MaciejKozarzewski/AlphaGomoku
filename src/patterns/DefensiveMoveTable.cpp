@@ -10,6 +10,8 @@
 #include <alphagomoku/patterns/common.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <x86intrin.h>
+
 namespace
 {
 	using namespace ag;
@@ -334,25 +336,53 @@ namespace
 namespace ag
 {
 
-	BitMask1D<uint16_t> getOpenThreePromotionMoves(uint32_t pattern) noexcept
+	BitMask1D<uint16_t> getOpenThreePromotionMoves(NormalPattern pattern) noexcept
 	{
-		// masks   "_XXX__", "_XX_X_", "_X_XX_", "__XXX_"
-		// results "!___!!", "!__!_!", "!_!__!", "!!___!"
-		pattern |= (static_cast<uint32_t>(Sign::CROSS) << 10); // place cross at the center
-		const std::array<uint32_t, 4> masks = { 84u, 276u, 324u, 336u };
-		const std::array<uint16_t, 4> results = { 49u, 41u, 37u, 35u };
-		const int length = 6;
-		for (int j = -5; j <= 5; j++)
-		{
-			const uint32_t tmp = sub_pattern(pattern, 6 + j, length);
-			for (size_t i = 0; i < masks.size(); i++)
-				if (tmp == masks[i])
-				{
-					const int shift = 6 + j;
-					return (shift >= 0) ? (results[i] << shift) : (results[i] >> (-shift));
-				}
-		}
+		// patterns "_XXX__", "_XX_X_", "_X_XX_", "__XXX_"
+		// results  "!___!!", "!__!_!", "!_!__!", "!!___!"
+		// each occurs three times appropriately shifted, with central spot empty
+		// last four are just a padding to make the array length divisible by 8
+		static const std::array<uint32_t, 16> patterns = { 320u, 4352u, 20480u, 80u, 16640u, 69632u, 272u, 4160u, 81920u, 320u, 4352u, 20480u,
+				0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu };
+		static const std::array<uint32_t, 16> masks = { 65520u, 262080u, 1048320u, 16380u, 262080u, 1048320u, 16380u, 65520u, 1048320u, 16380u,
+				65520u, 262080u, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu };
+		static const std::array<uint16_t, 16> results = { 196u, 392u, 784u, 82u, 328u, 656u, 74u, 148u, 592u, 70u, 140u, 280u, 0u, 0u, 0u, 0u };
+
+#ifdef __AVX2__
+		const __m256i val = _mm256_set1_epi32(pattern);
+		const __m256i p0 = _mm256_loadu_si256((__m256i*) (patterns.data()));
+		const __m256i p1 = _mm256_loadu_si256((__m256i*) (patterns.data() + 8));
+		const __m256i m0 = _mm256_loadu_si256((__m256i*) (masks.data()));
+		const __m256i m1 = _mm256_loadu_si256((__m256i*) (masks.data() + 8));
+		const __m256i cmp0 = _mm256_cmpeq_epi32(p0, _mm256_and_si256(val, m0));
+		const __m256i cmp1 = _mm256_cmpeq_epi32(p1, _mm256_and_si256(val, m1));
+		const __m256i tmp = _mm256_permute4x64_epi64(_mm256_packs_epi32(cmp0, cmp1), 0b11'01'10'00);
+		const int mask = _mm256_movemask_epi8(tmp);
+		assert(mask != 0);
+		return results[_bit_scan_forward(mask) / 2];
+#elif defined(__SSE2__)
+		const __m128i val = _mm_set1_epi32(pattern);
+		const __m128i p0 = _mm_loadu_si128((__m128i*) (patterns.data()));
+		const __m128i p1 = _mm_loadu_si128((__m128i*) (patterns.data() + 4));
+		const __m128i p2 = _mm_loadu_si128((__m128i*) (patterns.data() + 8));
+		const __m128i m0 = _mm_loadu_si128((__m128i*) (masks.data()));
+		const __m128i m1 = _mm_loadu_si128((__m128i*) (masks.data() + 4));
+		const __m128i m2 = _mm_loadu_si128((__m128i*) (masks.data() + 8));
+		const __m128i cmp0 = _mm_cmpeq_epi32(p0, _mm_and_si128(val, m0));
+		const __m128i cmp1 = _mm_cmpeq_epi32(p1, _mm_and_si128(val, m1));
+		const __m128i cmp2 = _mm_cmpeq_epi32(p2, _mm_and_si128(val, m2));
+		const __m128i tmp0 = _mm_packs_epi32(cmp0, cmp1);
+		const __m128i tmp1 = _mm_packs_epi32(cmp2, _mm_setzero_si128());
+		const int mask = _mm_movemask_epi8(_mm_packs_epi16(tmp0, tmp1));
+		assert(mask != 0);
+		return results[_bit_scan_forward(mask)];
+#else
+		for (int i = 0; i < 12; i++)
+			if ((pattern & masks[i]) == patterns[i])
+				return results[i];
+		assert(false); // this method should only be used if there is an open three
 		return BitMask1D<uint16_t>();
+#endif
 	}
 
 	DefensiveMoveTable::DefensiveMoveTable(GameRules rules) :
@@ -368,7 +398,7 @@ namespace ag
 //		double t1 = getTime();
 //		std::cout << (t1 - t0) << std::endl;
 	}
-	BitMask1D<uint16_t> DefensiveMoveTable::getMoves(uint32_t pattern, Sign defenderSign, PatternType threatToDefend) const
+	BitMask1D<uint16_t> DefensiveMoveTable::getMoves(ExtendedPattern pattern, Sign defenderSign, PatternType threatToDefend) const
 	{
 		const Sign attacker_sign = invertSign(defenderSign);
 		const int center = (Pattern::length - 1) / 2 + 1;

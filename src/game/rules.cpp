@@ -25,38 +25,7 @@ namespace
 			result += text(static_cast<Sign>(pattern & 3));
 		return result;
 	}
-	uint32_t get(const matrix<Sign> &board, int row, int col) noexcept
-	{
-		if (row < 0 or row >= board.rows() or col < 0 or col >= board.cols())
-			return 3;
-		else
-			return static_cast<uint32_t>(board.at(row, col));
-	}
-	template<int Pad>
-	DirectionGroup<uint32_t> get_raw_patterns(const matrix<Sign> &board, Move move) noexcept
-	{
-		assert(board.isSquare());
-		assert(move.sign != ag::Sign::NONE);
-		DirectionGroup<uint32_t> result = { 0u, 0u, 0u, 0u };
-		uint32_t shift = 0;
-		for (int i = -Pad; i <= Pad; i++, shift += 2)
-		{
-			result.horizontal |= (get(board, move.row, move.col + i) << shift);
-			result.vertical |= (get(board, move.row + i, move.col) << shift);
-			result.diagonal |= (get(board, move.row + i, move.col + i) << shift);
-			result.antidiagonal |= (get(board, move.row + i, move.col - i) << shift);
-		}
-		if (board.at(move.row, move.col) != Sign::NONE)
-		{ // the patterns should have been calculated for empty spot, so we have to correct it now
-			const uint32_t mask = (((1u << (2u * Pad)) - 1u) << (2 * Pad + 2)) | ((1u << (2 * Pad)) - 1u);
-			result.horizontal &= mask;
-			result.vertical &= mask;
-			result.diagonal &= mask;
-			result.antidiagonal &= mask;
-		}
-		return result;
-	}
-	TwoPlayerGroup<DirectionGroup<PatternType>> convert_to_patterns(GameRules rules, DirectionGroup<uint32_t> raw)
+	TwoPlayerGroup<DirectionGroup<PatternType>> convert_to_patterns(GameRules rules, DirectionGroup<NormalPattern> raw)
 	{
 		TwoPlayerGroup<DirectionGroup<PatternType>> result;
 		for (Direction dir = 0; dir < 4; dir++)
@@ -72,39 +41,6 @@ namespace
 	{
 		return patterns.contains(PatternType::FIVE);
 	}
-	template<int Pad>
-	bool is_straight_four(const matrix<Sign> &board, Move move, Direction direction)
-	{
-		assert(board.isSquare());
-		assert(board.at(move.row, move.col) == Sign::NONE);
-		assert(move.sign == ag::Sign::CROSS); // this method is intended only for cross (or black) in renju rule
-		uint32_t result = static_cast<uint32_t>(move.sign) << (2 * Pad);
-		uint32_t shift = 0;
-		switch (direction)
-		{
-			case HORIZONTAL:
-				for (int i = -Pad; i <= Pad; i++, shift += 2)
-					result |= (get(board, move.row, move.col + i) << shift);
-				break;
-			case VERTICAL:
-				for (int i = -Pad; i <= Pad; i++, shift += 2)
-					result |= (get(board, move.row + i, move.col) << shift);
-				break;
-			case DIAGONAL:
-				for (int i = -Pad; i <= Pad; i++, shift += 2)
-					result |= (get(board, move.row + i, move.col + i) << shift);
-				break;
-			case ANTIDIAGONAL:
-				for (int i = -Pad; i <= Pad; i++, shift += 2)
-					result |= (get(board, move.row + i, move.col - i) << shift);
-				break;
-		}
-		for (int i = 0; i < (2 * Pad + 1 - 4); i++, result /= 4)
-			if ((result & 255u) == 85u)
-				return true;
-		return false;
-	}
-
 }
 
 namespace ag
@@ -176,15 +112,16 @@ namespace ag
 			return GameOutcome::UNKNOWN;
 		assert(board.isSquare());
 		assert(lastMove.sign != Sign::NONE);
-		const TwoPlayerGroup<DirectionGroup<PatternType>> patterns = convert_to_patterns(rules, get_raw_patterns<5>(board, lastMove));
+		const DirectionGroup<NormalPattern> raw_patterns = RawPatternCalculator::getPatternsAt<NormalPattern>(board, lastMove);
+		const TwoPlayerGroup<DirectionGroup<PatternType>> pattern_types = convert_to_patterns(rules, raw_patterns);
 		if (lastMove.sign == Sign::CROSS)
 		{
-			if (is_a_win(patterns.for_cross))
+			if (is_a_win(pattern_types.for_cross))
 				return GameOutcome::CROSS_WIN;
 		}
 		else
 		{
-			if (is_a_win(patterns.for_circle))
+			if (is_a_win(pattern_types.for_circle))
 				return GameOutcome::CIRCLE_WIN;
 		}
 		if (rules == GameRules::RENJU and isForbidden(board, lastMove))
@@ -200,27 +137,27 @@ namespace ag
 		if (move.sign == Sign::CIRCLE)
 			return false; // circle (or white) doesn't have any forbidden moves
 
-		const DirectionGroup<uint32_t> raw = get_raw_patterns<Pad>(board, move);
-		TwoPlayerGroup<DirectionGroup<PatternType>> patterns = convert_to_patterns(GameRules::RENJU, raw);
+		const DirectionGroup<NormalPattern> raw_patterns = RawPatternCalculator::getPatternsAt<NormalPattern>(board, move);
+		DirectionGroup<PatternType> pattern_types = convert_to_patterns(GameRules::RENJU, raw_patterns).for_cross;
 
-		ThreatEncoding threat = ThreatTable::get(GameRules::RENJU).getThreat(patterns);
-		if (threat.forCross() == ThreatType::FORK_3x3)
+		ThreatType threat_type = ThreatTable::get(GameRules::RENJU).getThreat<Sign::CROSS>(pattern_types);
+		if (threat_type == ThreatType::FORK_3x3)
 		{
 			matrix<Sign> tmp_board(board);
 			tmp_board.at(move.row, move.col) = Sign::NONE; // clear the spot that is being checked, just in case it is already occupied
 			for (Direction dir = 0; dir < 4; dir++)
-				if (patterns.for_cross[dir] == PatternType::OPEN_3)
+				if (pattern_types[dir] == PatternType::OPEN_3)
 				{
 					Board::putMove(tmp_board, move);
-					const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(raw[dir]);
+					const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(raw_patterns[dir]);
 					bool is_really_an_open3 = false;
 					for (int i = -Pad; i <= Pad; i++)
 						if (i != 0)
 						{
 							const int x = move.row + i * get_row_step(dir);
 							const int y = move.col + i * get_col_step(dir);
-							if (promotion_moves[Pad + i] == true and tmp_board.at(x, y) == Sign::NONE) // defensive move will never be outside board
-								if (is_straight_four<Pad>(tmp_board, Move(x, y, Sign::CROSS), dir)
+							if (promotion_moves[Pad + i] == true and tmp_board.at(x, y) == Sign::NONE) // promotion move will never be outside board
+								if (RawPatternCalculator::isStraightFourAt(tmp_board, Move(x, y, Sign::CROSS), dir)
 										and not isForbidden(tmp_board, Move(x, y, Sign::CROSS)))
 								{
 									is_really_an_open3 = true;
@@ -229,12 +166,12 @@ namespace ag
 						}
 					Board::undoMove(tmp_board, move);
 					if (not is_really_an_open3)
-						patterns.for_cross[dir] = PatternType::NONE;
+						pattern_types[dir] = PatternType::NONE;
 				}
-			threat = ThreatTable::get(GameRules::RENJU).getThreat(patterns); // recalculating threat as some open threes may have turned out to be fake ones
+			threat_type = ThreatTable::get(GameRules::RENJU).getThreat<Sign::CROSS>(pattern_types); // recalculating threat as some open threes may have turned out to be fake ones
 		}
 
-		if (threat.forCross() == ThreatType::OVERLINE or threat.forCross() == ThreatType::FORK_4x4 or threat.forCross() == ThreatType::FORK_3x3)
+		if (threat_type == ThreatType::OVERLINE or threat_type == ThreatType::FORK_4x4 or threat_type == ThreatType::FORK_3x3)
 			return true;
 		else
 			return false;

@@ -66,6 +66,20 @@ namespace ag
 				return Sign::NONE;
 		}
 	}
+	Sign signFromText(char c) noexcept
+	{
+		switch (c)
+		{
+			case '_':
+				return Sign::NONE;
+			case 'X':
+				return Sign::CROSS;
+			case 'O':
+				return Sign::CIRCLE;
+			default:
+				return Sign::ILLEGAL;
+		}
+	}
 	std::string text(Sign sign)
 	{
 		switch (sign)

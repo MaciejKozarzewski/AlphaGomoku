@@ -122,6 +122,10 @@ namespace ag
 			{
 				return rows() == cols();
 			}
+			bool isInside(int row, int col) const noexcept
+			{
+				return 0 <= row and row < rows() and 0 <= col and col < cols();
+			}
 
 			template<typename U>
 			friend bool equalSize(const matrix<T> &lhs, const matrix<U> &rhs) noexcept

@@ -55,6 +55,12 @@ namespace ag
 		return result / 2;
 	}
 	template<typename T>
+	T roundToMultipleOf(T x, T mul) noexcept
+	{
+		const T remainder = x % mul;
+		return (remainder == 0) ? x : (x + mul - remainder);
+	}
+	template<typename T>
 	T popcount(T x) noexcept
 	{
 		return std::bitset<8 * sizeof(T)>(x).count();

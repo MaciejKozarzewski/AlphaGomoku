@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/patterns/PatternTable.hpp>
+#include <alphagomoku/patterns/Pattern.hpp>
 #include <alphagomoku/patterns/PatternClassifier.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/BitMask.hpp>
@@ -213,11 +214,11 @@ namespace ag
 								secondary_line.mergeWith(base_line);
 								if (secondary_line.isValid())
 								{
-									const PatternEncoding original = getPatternType(secondary_line.encode());
+									const PatternEncoding original = getPatternType(NormalPattern(secondary_line.encode()));
 									secondary_line.set(Pattern::length - 1 - spot_index, Sign::CROSS);
-									const PatternEncoding cross_altered = getPatternType(secondary_line.encode());
+									const PatternEncoding cross_altered = getPatternType(NormalPattern(secondary_line.encode()));
 									secondary_line.set(Pattern::length - 1 - spot_index, Sign::CIRCLE);
-									const PatternEncoding circle_altered = getPatternType(secondary_line.encode());
+									const PatternEncoding circle_altered = getPatternType(NormalPattern(secondary_line.encode()));
 
 									if (original.forCross() != cross_altered.forCross())
 										cross_flag = true;
