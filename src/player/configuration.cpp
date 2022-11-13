@@ -24,10 +24,19 @@ namespace
 		result["use_logging"] = false;
 		result["always_ponder"] = false;
 		result["swap2_openings_file"] = "swap2_openings.json";
-		result["networks"]["freestyle"] = "freestyle_10x128.bin";
-		result["networks"]["standard"] = "standard_10x128.bin";
-		result["networks"]["renju"] = "";
-		result["networks"]["caro"] = "";
+
+		result["conv_networks"]["freestyle"] = "freestyle_conv_10x128.bin";
+		result["conv_networks"]["standard"] = "standard_conv_10x128.bin";
+		result["conv_networks"]["renju"] = "renju_conv_10x128.bin";
+		result["conv_networks"]["caro5"] = "caro5_conv_10x128.bin";
+		result["conv_networks"]["caro6"] = "caro6_conv_10x128.bin";
+
+		result["nnue_networks"]["freestyle"] = "freestyle_nnue_32x8x1.bin";
+		result["nnue_networks"]["standard"] = "standard_nnue_32x8x1.bin";
+		result["nnue_networks"]["renju"] = "renju_nnue_32x8x1.bin";
+		result["nnue_networks"]["caro5"] = "caro5_nnue_32x8x1.bin";
+		result["nnue_networks"]["caro6"] = "caro6_nnue_32x8x1.bin";
+
 		result["use_symmetries"] = true;
 		result["search_threads"] = 1;
 		result["devices"][0] = ag::DeviceConfig().toJson();
@@ -155,7 +164,7 @@ namespace ag
 		result["search_options"]["max_batch_size"] = max_batch_size;
 		result["search_options"]["expansion_prior_treshold"] = 1.0e-4f;
 		result["search_options"]["max_children"] = 30;
-		result["search_options"]["vcf_solver_level"] = 2;
+		result["search_options"]["vcf_solver_level"] = 4;
 
 		return result;
 	}

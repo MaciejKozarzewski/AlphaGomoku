@@ -95,27 +95,14 @@ namespace
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
+		const std::array<int, 4> values = { 2, 0, 1, 3 }; // ordering LOSS < DRAW < UNKNOWN < WIN
 
-		bool has_draw_child = false;
-		int unknown_count = 0;
+		int result = values[static_cast<int>(ProvenValue::LOSS)];
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-		{
-			unknown_count += static_cast<int>(edge->getProvenValue() == ProvenValue::UNKNOWN);
-			if (edge->getProvenValue() == ProvenValue::WIN)
-			{
-				node->setProvenValue(ProvenValue::WIN);
-				return;
-			}
-			if (edge->getProvenValue() == ProvenValue::DRAW)
-				has_draw_child = true;
-		}
-		if (unknown_count == 0)
-		{
-			if (has_draw_child)
-				node->setProvenValue(ProvenValue::DRAW);
-			else
-				node->setProvenValue(ProvenValue::LOSS);
-		}
+			result = std::max(result, values[static_cast<int>(edge->getProvenValue())]);
+
+		const std::array<ProvenValue, 4> convert_back = { ProvenValue::LOSS, ProvenValue::DRAW, ProvenValue::UNKNOWN, ProvenValue::WIN };
+		return node->setProvenValue(convert_back[result]);
 	}
 }
 
@@ -127,7 +114,7 @@ namespace ag
 	}
 	int64_t Tree::getMemory() const noexcept
 	{
-		return node_cache.getMemory();
+		return node_cache.getMemory() + (shared_hash_table == nullptr) ? 0 : shared_hash_table->getMemory();
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove, bool forceRemoveRootNode)
 	{
@@ -138,11 +125,15 @@ namespace ag
 		{
 			GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
 			node_cache = NodeCache(game_config, tree_config);
+			shared_hash_table = std::make_shared<tss::SharedHashTable<4>>(newBoard.rows(), newBoard.cols(), 1 << 24);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
 		else
+		{
+			shared_hash_table->increaseGeneration();
 			node_cache.cleanup(newBoard, signToMove);
+		}
 
 		base_board = newBoard;
 		base_depth = Board::numberOfMoves(newBoard);
@@ -190,16 +181,22 @@ namespace ag
 			return std::all_of(root_node->begin(), root_node->end(), [](const Edge &edge)
 			{	return edge.isProven();});
 	}
+	bool Tree::hasSingleMove() const noexcept
+	{
+		if (root_node == nullptr)
+			return false;
+		else
+			return root_node->numberOfEdges() == 1;
+	}
 	bool Tree::hasSingleNonLosingMove() const noexcept
 	{
 		if (root_node == nullptr)
 			return false;
 		else
 		{
-			return root_node->numberOfEdges() == 1;
-//			int non_losing_edges = std::count_if(root_node->begin(), root_node->end(), [](const Edge &edge)
-//			{	return edge.getProvenValue() != ProvenValue::LOSS;});
-//			return non_losing_edges == 1;
+			int non_losing_edges = std::count_if(root_node->begin(), root_node->end(), [](const Edge &edge)
+			{	return edge.getProvenValue() != ProvenValue::LOSS;});
+			return non_losing_edges == 1;
 		}
 	}
 
@@ -236,7 +233,7 @@ namespace ag
 	}
 	ExpandOutcome Tree::expand(SearchTask &task)
 	{
-		assert(task.isReady());
+		assert(task.getEdges().size() > 0);
 
 		Node *node_to_add = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in the cache
 		if (node_to_add == nullptr) // not found in the cache
@@ -271,7 +268,7 @@ namespace ag
 	}
 	void Tree::backup(const SearchTask &task)
 	{
-		assert(task.isReady());
+		assert(task.isReadyNetwork() or task.isReadyABSearch());
 		const Value value = task.getValue();
 		for (int i = 0; i < task.visitedPathLength(); i++)
 		{
@@ -333,6 +330,10 @@ namespace ag
 		print_node(root_node, max_print_depth, sort, top_n, 0);
 	}
 
+	std::shared_ptr<tss::SharedHashTable<4>> Tree::getSharedHashTable() noexcept
+	{
+		return shared_hash_table;
+	}
 	const matrix<Sign>& Tree::getBoard() const noexcept
 	{
 		return base_board;

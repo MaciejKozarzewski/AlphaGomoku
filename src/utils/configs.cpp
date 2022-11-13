@@ -56,13 +56,14 @@ namespace ag
 	TreeConfig::TreeConfig(const Json &cfg) :
 			initial_cache_size(get_value<int>(cfg, "initial_cache_size", Defaults::initial_cache_size)),
 			edge_bucket_size(get_value<int>(cfg, "edge_bucket_size", Defaults::edge_bucket_size)),
-			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size))
+			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size)),
+			tss_hash_table_size(get_value<int>(cfg, "tss_hash_table_size", Defaults::tss_hash_table_size))
 	{
 	}
 	Json TreeConfig::toJson() const
 	{
 		return Json( { { "initial_cache_size", initial_cache_size }, { "edge_bucket_size", edge_bucket_size },
-				{ "node_bucket_size", node_bucket_size } });
+				{ "node_bucket_size", node_bucket_size }, { "tss_hash_table_size", tss_hash_table_size } });
 	}
 
 	SearchConfig::SearchConfig(const Json &cfg) :

@@ -18,7 +18,7 @@ namespace ag
 {
 	SearchStats::SearchStats() :
 			select("select  "),
-			evaluate("evaluate"),
+			solve("solve   "),
 			schedule("schedule"),
 			generate("generate"),
 			expand("expand  "),
@@ -34,7 +34,7 @@ namespace ag
 		result += "nb_network_evaluations = " + std::to_string(nb_network_evaluations) + '\n';
 		result += "nb_node_count = " + std::to_string(nb_node_count) + '\n';
 		result += select.toString() + '\n';
-		result += evaluate.toString() + '\n';
+		result += solve.toString() + '\n';
 		result += schedule.toString() + '\n';
 		result += generate.toString() + '\n';
 		result += expand.toString() + '\n';
@@ -44,7 +44,7 @@ namespace ag
 	SearchStats& SearchStats::operator+=(const SearchStats &other) noexcept
 	{
 		this->select += other.select;
-		this->evaluate += other.evaluate;
+		this->solve += other.solve;
 		this->schedule += other.schedule;
 		this->generate += other.generate;
 		this->expand += other.expand;
@@ -60,7 +60,7 @@ namespace ag
 	SearchStats& SearchStats::operator/=(int i) noexcept
 	{
 		this->select /= i;
-		this->evaluate /= i;
+		this->solve /= i;
 		this->schedule /= i;
 		this->generate /= i;
 		this->expand /= i;
@@ -75,18 +75,21 @@ namespace ag
 	}
 	double SearchStats::getTotalTime() const noexcept
 	{
-		return select.getTotalTime() + evaluate.getTotalTime() + schedule.getTotalTime() + generate.getTotalTime() + expand.getTotalTime()
+		return select.getTotalTime() + solve.getTotalTime() + schedule.getTotalTime() + generate.getTotalTime() + expand.getTotalTime()
 				+ backup.getTotalTime();
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
-			vct_solver(gameOptions, searchOptions.vcf_solver_max_positions),
 			vcf_solver(gameOptions, searchOptions.vcf_solver_max_positions),
+			ts_search(gameOptions, searchOptions.vcf_solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{
 	}
-
+	int64_t Search::getMemory() const noexcept
+	{
+		return sizeof(this) + ts_search.getMemory();
+	}
 	const SearchConfig& Search::getConfig() const noexcept
 	{
 		return search_config;
@@ -94,20 +97,24 @@ namespace ag
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
-		vct_solver.clearStats();
-//		vcf_solver.clearStats();
+		ab_search.clearStats();
+		vcf_solver.clearStats();
+		ts_search.clearStats();
 		last_tuning_point.time = getTime();
 		last_tuning_point.node_count = stats.nb_node_count;
 	}
 	SearchStats Search::getStats() const noexcept
 	{
-		vct_solver.print_stats();
+//		vcf_solver.print_stats();
+//		ts_search.print_stats();
 		return stats;
 	}
 
 	void Search::select(Tree &tree, int maxSimulations)
 	{
 		assert(maxSimulations > 0);
+		ts_search.setSharedTable(tree.getSharedHashTable());
+
 		const int batch_size = get_batch_size(tree.getSimulationCount());
 
 		active_task_count = 0;
@@ -140,9 +147,9 @@ namespace ag
 	{
 		for (int i = 0; i < active_task_count; i++)
 		{
-			TimerGuard timer(stats.evaluate);
-			vct_solver.solve(search_tasks[i], search_config.vcf_solver_level);
+			TimerGuard timer(stats.solve);
 //			vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level);
+			ts_search.solve(search_tasks[i], search_config.vcf_solver_level);
 		}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
@@ -150,8 +157,8 @@ namespace ag
 		for (int i = 0; i < active_task_count; i++)
 		{
 			TimerGuard timer(stats.schedule);
-			if (search_tasks[i].isReady() == false)
-			{
+			if (search_tasks[i].getProvenValue() == ProvenValue::UNKNOWN)
+			{ // schedule only those tasks that haven't already been solved by AB search
 				stats.nb_network_evaluations++;
 				evaluator.addToQueue(search_tasks.at(i));
 			}
@@ -195,10 +202,11 @@ namespace ag
 		const int64_t evaluated_nodes = stats.nb_node_count - last_tuning_point.node_count;
 		if (elapsed_time >= 0.5 or evaluated_nodes >= 1000)
 		{
+//			ts_search.print_stats();
 			const double speed = evaluated_nodes / elapsed_time;
-			if (stats.nb_node_count > 1)
-				vct_solver.tune(speed);
+//			if (stats.nb_node_count > 1)
 //				vcf_solver.tune(speed);
+//				ts_search.tune(speed);
 			last_tuning_point.time = getTime();
 			last_tuning_point.node_count = stats.nb_node_count;
 		}

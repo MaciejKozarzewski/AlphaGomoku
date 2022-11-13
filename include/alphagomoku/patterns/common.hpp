@@ -8,6 +8,8 @@
 #ifndef ALPHAGOMOKU_PATTERNS_COMMON_HPP_
 #define ALPHAGOMOKU_PATTERNS_COMMON_HPP_
 
+#include <alphagomoku/game/Move.hpp>
+
 #include <cinttypes>
 #include <cassert>
 

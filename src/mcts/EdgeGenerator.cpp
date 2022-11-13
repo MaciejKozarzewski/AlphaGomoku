@@ -16,7 +16,7 @@ namespace
 {
 	using namespace ag;
 
-	void renormalize_edges(std::vector<Edge> &edges) noexcept
+	void renormalize_policy(std::vector<Edge> &edges) noexcept
 	{
 		float sum_priors = 0.0f;
 		for (size_t i = 0; i < edges.size(); i++)
@@ -37,7 +37,7 @@ namespace
 			}
 		}
 	}
-	void exclude_weak_moves(std::vector<Edge> &edges, size_t max_edges) noexcept
+	void prune_low_policy_moves(std::vector<Edge> &edges, size_t max_edges) noexcept
 	{
 		if (edges.size() <= max_edges)
 			return;
@@ -47,10 +47,33 @@ namespace
 		edges.erase(edges.begin() + max_edges, edges.end());
 	}
 
-	bool contains_winning_edge(const std::vector<Edge> &edges) noexcept
+	void create_moves_from_prior(SearchTask &task) noexcept
 	{
-		return std::any_of(edges.begin(), edges.end(), [](const Edge &edge)
-		{	return edge.getProvenValue() == ProvenValue::WIN;});
+		switch (task.getProvenValue())
+		{
+			case ProvenValue::UNKNOWN:
+			case ProvenValue::DRAW:
+				for (auto edge = task.getPriorEdges().begin(); edge < task.getPriorEdges().end(); edge++)
+					if (edge->getProvenValue() != ProvenValue::LOSS) // no need to use memory by adding losing edges
+						task.addEdge(*edge);
+				break;
+			case ProvenValue::LOSS:
+				for (auto edge = task.getPriorEdges().begin(); edge < task.getPriorEdges().end(); edge++)
+					task.addEdge(*edge); // we must add all losing moves
+				break;
+			case ProvenValue::WIN:
+				for (auto edge = task.getPriorEdges().begin(); edge < task.getPriorEdges().end(); edge++)
+					if (edge->getProvenValue() == ProvenValue::WIN) // we just need winning edges here
+						task.addEdge(*edge);
+				break;
+		}
+	}
+	void create_moves_from_policy(SearchTask &task, float policyThreshold) noexcept
+	{
+		for (int row = 0; row < task.getBoard().rows(); row++)
+			for (int col = 0; col < task.getBoard().cols(); col++)
+				if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policyThreshold)
+					task.addEdge(Move(row, col, task.getSignToMove()), task.getPolicy().at(row, col));
 	}
 	void check_terminal_conditions(SearchTask &task, Edge &edge)
 	{
@@ -63,41 +86,26 @@ namespace
 
 		edge.setProvenValue(convertProvenValue(outcome, task.getSignToMove()));
 	}
-	void assign_policy_and_Q(const SearchTask &task, Edge &edge) noexcept
+	void update_proven_move_policy_and_value(const SearchTask &task, Edge &edge) noexcept
 	{
 		const Move move = edge.getMove();
-		const auto iter = std::find_if(task.getProvenEdges().begin(), task.getProvenEdges().end(), [move](const Edge &e)
-		{	return e.getMove() == move;}); // check if this edge is one of the proven edges
-
-		// if the edge is among proven ones assign found proven value, if not assume unknown proven value
-		const ProvenValue pv = (iter == task.getProvenEdges().end()) ? ProvenValue::UNKNOWN : iter->getProvenValue();
-
-		switch (pv)
+		switch (edge.getProvenValue())
 		{
 			case ProvenValue::UNKNOWN:
-			{
 				edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
-				edge.setValue(task.getActionValues().at(move.row, move.col));
 				break;
-			}
 			case ProvenValue::LOSS:
-			{
 				edge.setPolicyPrior(0.0f);
 				edge.setValue(Value(0.0f, 0.0f, 1.0f));
 				break;
-			}
 			case ProvenValue::DRAW:
-			{
 				edge.setPolicyPrior(task.getPolicy().at(move.row, move.col));
 				edge.setValue(Value(0.0f, 1.0f, 0.0f));
 				break;
-			}
 			case ProvenValue::WIN:
-			{
 				edge.setPolicyPrior(1.0e3f);
 				edge.setValue(Value(1.0f, 0.0f, 0.0f));
 				break;
-			}
 		}
 	}
 	bool is_in_center_square(const SearchTask &task, int size, int row, int col)
@@ -140,22 +148,17 @@ namespace ag
 	}
 	void BaseGenerator::generate(SearchTask &task) const
 	{
-		assert(task.isReady());
+		assert(task.isReadyNetwork() or task.isReadyABSearch());
 
-		for (int row = 0; row < task.getBoard().rows(); row++)
-			for (int col = 0; col < task.getBoard().cols(); col++)
-				if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policy_threshold)
-					task.addEdge(Move(row, col, task.getSignToMove()));
+		create_moves_from_policy(task, policy_threshold);
 
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 		{
 			check_terminal_conditions(task, *edge);
-			assign_policy_and_Q(task, *edge);
+			update_proven_move_policy_and_value(task, *edge);
 		}
-
-		exclude_weak_moves(task.getEdges(), max_edges);
-
-		renormalize_edges(task.getEdges());
+		prune_low_policy_moves(task.getEdges(), max_edges);
+		renormalize_policy(task.getEdges());
 		assert(task.getEdges().size() > 0);
 	}
 
@@ -175,38 +178,29 @@ namespace ag
 	}
 	void SolverGenerator::generate(SearchTask &task) const
 	{
-		assert(task.isReady());
-
-		if (task.mustDefend())
-		{ // the edges added by the solver are the only non-losing edges
-			for (size_t i = 0; i < task.getProvenEdges().size(); i++)
-				task.addEdge(task.getProvenEdges()[i]);
+		if (task.mustDefend() or (task.isReadyABSearch() and task.getPriorEdges().size() > 0))
+		{ // we have some prior moves generated by the AB search, use them
+			create_moves_from_prior(task);
 		}
 		else
+		{ // no moves were generated in AB search, use policy to create them
+			assert(task.isReadyNetwork());
+			create_moves_from_policy(task, policy_threshold);
+		}
+		// loop over all added moves to update policy and value for those that are proven
+		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+			update_proven_move_policy_and_value(task, *edge);
+		if (not task.mustDefend())
+			prune_low_policy_moves(task.getEdges(), max_edges);
+		renormalize_policy(task.getEdges());
+
+		if (task.getEdges().size() == 0) // TODO remove this later
 		{
-			if (contains_winning_edge(task.getProvenEdges()))
-			{
-				for (auto iter = task.getProvenEdges().begin(); iter < task.getProvenEdges().end(); iter++)
-					if (iter->getProvenValue() == ProvenValue::WIN)
-						task.addEdge(*iter);
-			}
-			else
-			{
-				for (int row = 0; row < task.getBoard().rows(); row++)
-					for (int col = 0; col < task.getBoard().cols(); col++)
-						if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policy_threshold)
-							task.addEdge(Move(row, col, task.getSignToMove()));
-			}
+			std::cout << "---no-moves-generated---\n";
+			std::cout << task.toString() << '\n';
+			exit(-1);
 		}
 
-		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
-			assign_policy_and_Q(task, *edge);
-
-		exclude_weak_moves(task.getEdges(), max_edges);
-
-		renormalize_edges(task.getEdges());
-//		std::cout << "after\n";
-//		std::cout << task.toString() << '\n';
 		assert(task.getEdges().size() > 0);
 	}
 
@@ -222,23 +216,20 @@ namespace ag
 	}
 	void NoisyGenerator::generate(SearchTask &task) const
 	{
-		assert(task.isReady());
+		assert(task.isReadyNetwork() or task.isReadyABSearch());
 
 		if (task.getRelativeDepth() == 0)
 		{
-			for (int row = 0; row < task.getBoard().rows(); row++)
-				for (int col = 0; col < task.getBoard().cols(); col++)
-					if (task.getBoard().at(row, col) == Sign::NONE)
-						task.addEdge(Move(row, col, task.getSignToMove()));
+			create_moves_from_policy(task, 0.0f);
 
 			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 			{
 				check_terminal_conditions(task, *edge);
-				assign_policy_and_Q(task, *edge);
+				update_proven_move_policy_and_value(task, *edge);
 				Move m = edge->getMove();
 				edge->setPolicyPrior((1.0f - noise_weight) * edge->getPolicyPrior() + noise_weight * noise_matrix.at(m.row, m.col));
 			}
-			renormalize_edges(task.getEdges());
+			renormalize_policy(task.getEdges());
 			assert(task.getEdges().size() > 0);
 		}
 		else
@@ -256,22 +247,19 @@ namespace ag
 	}
 	void BalancedGenerator::generate(SearchTask &task) const
 	{
-		assert(task.isReady());
+		assert(task.isReadyNetwork() or task.isReadyABSearch());
 
 		if (task.getAbsoluteDepth() < balance_depth)
 		{
-			for (int row = 0; row < task.getBoard().rows(); row++)
-				for (int col = 0; col < task.getBoard().cols(); col++)
-					if (task.getBoard().at(row, col) == Sign::NONE)
-						task.addEdge(Move(row, col, task.getSignToMove()));
+			create_moves_from_policy(task, 0.0f);
 
 			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 			{
 				check_terminal_conditions(task, *edge);
-				assign_policy_and_Q(task, *edge);
+				update_proven_move_policy_and_value(task, *edge);
 			}
 
-			renormalize_edges(task.getEdges());
+			renormalize_policy(task.getEdges());
 			assert(task.getEdges().size() > 0);
 		}
 		else
@@ -289,7 +277,7 @@ namespace ag
 	}
 	void CenterExcludingGenerator::generate(SearchTask &task) const
 	{
-		assert(task.isReady());
+		assert(task.isReadyNetwork() or task.isReadyABSearch());
 
 		if (task.getRelativeDepth() == 0)
 		{
@@ -301,10 +289,10 @@ namespace ag
 			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 			{
 				check_terminal_conditions(task, *edge);
-				assign_policy_and_Q(task, *edge);
+				update_proven_move_policy_and_value(task, *edge);
 			}
 
-			renormalize_edges(task.getEdges());
+			renormalize_policy(task.getEdges());
 			assert(task.getEdges().size() > 0);
 		}
 		else
@@ -322,7 +310,7 @@ namespace ag
 	}
 	void CenterOnlyGenerator::generate(SearchTask &task) const
 	{
-		assert(task.isReady());
+		assert(task.isReadyNetwork() or task.isReadyABSearch());
 
 		if (task.getRelativeDepth() == 0)
 		{
@@ -334,10 +322,10 @@ namespace ag
 			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 			{
 				check_terminal_conditions(task, *edge);
-				assign_policy_and_Q(task, *edge);
+				update_proven_move_policy_and_value(task, *edge);
 			}
 
-			renormalize_edges(task.getEdges());
+			renormalize_policy(task.getEdges());
 			assert(task.getEdges().size() > 0);
 		}
 		else
@@ -354,7 +342,7 @@ namespace ag
 	}
 	void SymmetricalExcludingGenerator::generate(SearchTask &task) const
 	{
-		assert(task.isReady());
+		assert(task.isReadyNetwork() or task.isReadyABSearch());
 
 		if (task.getRelativeDepth() == 0)
 		{
@@ -379,10 +367,10 @@ namespace ag
 			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 			{
 				check_terminal_conditions(task, *edge);
-				assign_policy_and_Q(task, *edge);
+				update_proven_move_policy_and_value(task, *edge);
 			}
 
-			renormalize_edges(task.getEdges());
+			renormalize_policy(task.getEdges());
 			assert(task.getEdges().size() > 0);
 		}
 		else

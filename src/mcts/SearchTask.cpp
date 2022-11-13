@@ -7,6 +7,7 @@
 
 #include <alphagomoku/mcts/SearchTask.hpp>
 
+#include <cstring>
 #include <cassert>
 
 namespace ag
@@ -18,7 +19,7 @@ namespace ag
 	void SearchTask::set(const matrix<Sign> &base, Sign signToMove)
 	{
 		visited_path.clear();
-		proven_edges.clear();
+		prior_edges.clear();
 		edges.clear();
 		board = base;
 		sign_to_move = signToMove;
@@ -32,7 +33,9 @@ namespace ag
 			action_values = matrix<Value>(base.rows(), base.cols());
 		value = Value();
 		proven_value = ProvenValue::UNKNOWN;
-		is_ready = false;
+		is_ready_abs = false;
+		is_ready_network = false;
+		must_defend = false;
 	}
 
 	void SearchTask::append(Node *node, Edge *edge)
@@ -55,33 +58,27 @@ namespace ag
 		assert(q != nullptr);
 		std::memcpy(reinterpret_cast<float*>(action_values.data()), q, action_values.sizeInBytes());
 	}
-	void SearchTask::addProvenEdges(const std::vector<Move> &moves, Sign sign, ProvenValue pv)
-	{
-		for (size_t i = 0; i < moves.size(); i++)
-			this->addProvenEdge(Move(sign, moves[i]), pv);
-	}
-	void SearchTask::addProvenEdge(Move move, ProvenValue pv)
+	void SearchTask::addPriorEdge(Move move, Value v, ProvenValue pv)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(proven_edges.begin(), proven_edges.end(), [move](const Edge &edge)
-		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(prior_edges.begin(), prior_edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;
 		e.setMove(move);
+		e.setValue(v);
 		e.setProvenValue(pv);
-		proven_edges.push_back(e);
+		prior_edges.push_back(e);
 	}
-	void SearchTask::addEdge(Move move)
+	void SearchTask::addEdge(Move move, float policyPrior)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge)
-		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;
 		e.setMove(move);
-//		e.setProvenValue(pv);
+		e.setPolicyPrior(policyPrior);
 		edges.push_back(e);
 	}
 	std::string SearchTask::toString() const
@@ -93,19 +90,25 @@ namespace ag
 			result += "---" + getPair(i).edge->toString() + '\n';
 		}
 		result += "sign to move = " + getSignToMove() + '\n';
-		if (is_ready)
+		if (is_ready_network or is_ready_abs)
 		{
+			if (is_ready_network)
+				result += "evaluated by neural network\n";
+			if (is_ready_abs)
+				result += "evaluated by alpha-beta search\n";
+			if (must_defend)
+				result += "must defend\n";
 			result += "value = " + value.toString() + '\n';
 			result += "proven value = " + ag::toString(proven_value) + '\n';
 			result += Board::toString(board, policy);
 		}
 		else
-			result += Board::toString(board);
-		if (proven_edges.size() > 0)
+			result += Board::toString(board, true);
+		if (prior_edges.size() > 0)
 		{
-			result += "Proven moves:\n";
-			for (size_t i = 0; i < proven_edges.size(); i++)
-				result += proven_edges[i].getMove().toString() + " : " + proven_edges[i].toString() + '\n';
+			result += "Prior moves:\n";
+			for (size_t i = 0; i < prior_edges.size(); i++)
+				result += prior_edges[i].getMove().toString() + " : " + prior_edges[i].toString() + '\n';
 		}
 		if (edges.size() > 0)
 		{

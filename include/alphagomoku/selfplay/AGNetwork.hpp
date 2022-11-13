@@ -66,7 +66,6 @@ namespace ag
 			std::vector<ml::Scalar> getLoss(int batch_size);
 
 			void changeLearningRate(float lr);
-			ml::Graph& getGraph();
 
 			/**
 			 * This method makes the network non-trainable and then optimizes for inference.
@@ -75,13 +74,19 @@ namespace ag
 
 			void saveToFile(const std::string &path) const;
 			void loadFromFile(const std::string &path);
+			void unloadGraph();
+			bool isLoaded() const noexcept;
+
+			void synchronize();
+			void moveTo(ml::Device device);
+			ml::Shape getInputShape() const;
 
 			int getBatchSize() const noexcept;
 			void setBatchSize(int batchSize);
 
 		private:
 			void create_network(const TrainingConfig &trainingOptions);
-			void allocate_tensors();
+			void reallocate_tensors();
 	};
 }
 

@@ -32,6 +32,7 @@ namespace ag
 	std::string NNEvaluatorStats::toString() const
 	{
 		std::string result = "----NNEvaluator----\n";
+		result += "total samples = " + std::to_string(batch_sizes) + '\n';
 		result += "avg batch size = " + std::to_string(static_cast<double>(batch_sizes) / eval_sync.getTotalCount()) + '\n';
 		result += pack.toString() + '\n';
 		result += eval_sync.toString() + '\n';
@@ -92,13 +93,12 @@ namespace ag
 	{
 		network.loadFromFile(path);
 		network.setBatchSize(batch_size);
-		network.getGraph().moveTo(device);
-		available_symmetries = 4 + 4 * static_cast<int>(is_square(network.getGraph().getInputShape()));
+		network.moveTo(device);
+		available_symmetries = 4 + 4 * static_cast<int>(is_square(network.getInputShape()));
 	}
 	void NNEvaluator::unloadGraph()
 	{
-		network.getGraph().context().synchronize();
-		network.getGraph().clear();
+		network.unloadGraph();
 	}
 	void NNEvaluator::addToQueue(SearchTask &task)
 	{
@@ -114,7 +114,7 @@ namespace ag
 	}
 	void NNEvaluator::evaluateGraph()
 	{
-		if (network.getGraph().numberOfLayers() == 0)
+		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
 		while (task_queue.size() > 0)
@@ -137,7 +137,7 @@ namespace ag
 	}
 	void NNEvaluator::asyncEvaluateGraphLaunch()
 	{
-		if (network.getGraph().numberOfLayers() == 0)
+		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
 		assert(task_queue.size() <= batch_size);
@@ -156,7 +156,7 @@ namespace ag
 	}
 	void NNEvaluator::asyncEvaluateGraphJoin()
 	{
-		if (network.getGraph().numberOfLayers() == 0)
+		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
 		assert(task_queue.size() <= batch_size);
@@ -178,7 +178,7 @@ namespace ag
 	void NNEvaluator::pack_to_network(int batch_size)
 	{
 		TimerGuard timer(stats.pack);
-		matrix<Sign> board(network.getGraph().getInputShape()[1], network.getGraph().getInputShape()[2]);
+		matrix<Sign> board(network.getInputShape()[1], network.getInputShape()[2]);
 		for (int i = 0; i < batch_size; i++)
 		{
 			augment(board, task_queue[i].ptr->getBoard(), task_queue[i].symmetry);
@@ -188,7 +188,7 @@ namespace ag
 	void NNEvaluator::unpack_from_network(int batch_size)
 	{
 		TimerGuard timer(stats.unpack);
-		matrix<float> policy(network.getGraph().getInputShape()[1], network.getGraph().getInputShape()[2]);
+		matrix<float> policy(network.getInputShape()[1], network.getInputShape()[2]);
 		matrix<Value> action_values;
 		Value value;
 		for (int i = 0; i < batch_size; i++)

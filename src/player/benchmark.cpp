@@ -31,8 +31,8 @@ namespace
 		for (size_t i = 0; i < networks.size(); i++)
 		{
 			networks[i].loadFromFile(path);
-			networks[i].getGraph().moveTo(config.device);
 			networks[i].setBatchSize(batch_size.back());
+			networks[i].moveTo(config.device);
 		}
 
 		int total_samples = 0;

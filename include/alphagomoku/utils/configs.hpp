@@ -49,11 +49,13 @@ namespace ag
 					static constexpr int initial_cache_size = 65536;
 					static constexpr int edge_bucket_size = 100000;
 					static constexpr int node_bucket_size = 10000;
+					static constexpr int tss_hash_table_size = 1048576;
 			};
 		public:
 			int initial_cache_size = Defaults::initial_cache_size;
 			int edge_bucket_size = Defaults::edge_bucket_size;
 			int node_bucket_size = Defaults::node_bucket_size;
+			int tss_hash_table_size = Defaults::tss_hash_table_size;
 
 			TreeConfig() = default;
 			TreeConfig(const Json &cfg);

@@ -259,7 +259,7 @@ namespace ag
 			result.principal_variation.erase(result.principal_variation.begin(), result.principal_variation.begin() + listOfMoves.size());
 		}
 		for (size_t i = 0; i < search_threads.size(); i++)
-			result.number_of_nodes += search_threads[i]->getSearchStats().evaluate.getTotalCount();
+			result.number_of_nodes += search_threads[i]->getSearchStats().solve.getTotalCount();
 		return result;
 	}
 	/*

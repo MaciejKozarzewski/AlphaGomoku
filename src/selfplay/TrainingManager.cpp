@@ -136,7 +136,7 @@ namespace ag
 		AGNetwork model;
 		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(epoch) + ".bin");
 		model.setBatchSize(config.training_config.device_config.batch_size);
-		model.getGraph().moveTo(config.training_config.device_config.device);
+		model.moveTo(config.training_config.device_config.device);
 		const double learning_rate = config.training_config.learning_rate.getValue(epoch);
 		std::cout << "Using learning rate " << learning_rate << '\n';
 		model.changeLearningRate(learning_rate);
@@ -146,7 +146,7 @@ namespace ag
 		metadata["learning_steps"] = supervised_learning_manager.saveProgress()["learning_steps"];
 
 		model.saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
-		model.getGraph().moveTo(ml::Device::cpu());
+		model.moveTo(ml::Device::cpu());
 		model.optimize();
 		model.saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + "_opt.bin");
 		std::cout << "Training finished\n";
@@ -161,7 +161,7 @@ namespace ag
 		AGNetwork model;
 		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
 		model.setBatchSize(config.training_config.device_config.batch_size);
-		model.getGraph().moveTo(config.training_config.device_config.device);
+		model.moveTo(config.training_config.device_config.device);
 
 		supervised_learning_manager.validate(model, buffer);
 		std::cout << "Validation finished\n";

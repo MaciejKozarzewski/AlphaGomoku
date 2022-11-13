@@ -13,6 +13,7 @@
 #include <alphagomoku/mcts/EdgeSelector.hpp>
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
+#include <alphagomoku/tss/SharedHashTable.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
@@ -50,7 +51,8 @@ namespace ag
 			mutable std::mutex tree_mutex;
 
 			NodeCache node_cache;
-			Node *root_node = nullptr;
+			std::shared_ptr<tss::SharedHashTable<4>> shared_hash_table;
+			Node *root_node = nullptr; // non-owning
 
 			std::unique_ptr<EdgeSelector> edge_selector;
 			std::unique_ptr<EdgeGenerator> edge_generator;
@@ -73,6 +75,7 @@ namespace ag
 			int getMaximumDepth() const noexcept;
 			bool isProven() const noexcept;
 			bool hasAllMovesProven() const noexcept;
+			bool hasSingleMove() const noexcept;
 			bool hasSingleNonLosingMove() const noexcept;
 
 			SelectOutcome select(SearchTask &task);
@@ -83,6 +86,7 @@ namespace ag
 			void cancelVirtualLoss(const SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 
+			std::shared_ptr<tss::SharedHashTable<4>> getSharedHashTable() noexcept;
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
 

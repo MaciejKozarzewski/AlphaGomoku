@@ -60,15 +60,14 @@ namespace ag
 
 			matrix<ThreatEncoding> threat_types;
 
-			DirectionGroup<PatternEncoding> central_spot_encoding;
 			DirectionGroup<UpdateMask> update_mask;
 
 			ThreatHistogram cross_threats;
 			ThreatHistogram circle_threats;
 
-			const PatternTable *pattern_table = nullptr;
-			const ThreatTable *threat_table = nullptr;
-			const DefensiveMoveTable *defensive_move_table = nullptr;
+			const PatternTable *pattern_table = nullptr; // non-owning
+			const ThreatTable *threat_table = nullptr; // non-owning
+			const DefensiveMoveTable *defensive_move_table = nullptr; // non-owning
 
 			std::vector<Change<ThreatEncoding>> changed_threats;
 			Change<Sign> changed_moves;

@@ -14,7 +14,7 @@
 
 namespace
 {
-	float getVloss(const ag::Edge *edge) noexcept
+	float getVirtualLoss(const ag::Edge *edge) noexcept
 	{
 		return static_cast<float>(edge->getVisits()) / (1.0e-6f + edge->getVisits() + edge->getVirtualLoss());
 	}
@@ -55,15 +55,16 @@ namespace ag
 		assert(node->isLeaf() == false);
 		const float parent_value = getQ(node, style_factor);
 		const float sqrt_visit = exploration_constant * sqrtf(node->getVisits());
+		const float cbrt_visit = exploration_constant * cbrtf(node->getVisits());
+		const float log_visit = exploration_constant * logf(node->getVisits());
 
 		Edge *selected = node->end();
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			if (edge->isProven() == false)
 			{
-				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVloss(edge) : parent_value; // init to parent
-//				const float Q = getQ(edge, style_factor) * getVloss(edge); // init to loss
-
+				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVirtualLoss(edge) : parent_value; // init to parent
+//				const float Q = getQ(edge, style_factor) * getVirtualLoss(edge); // init to loss
 				const float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
 
 				if (Q + U > bestValue)
@@ -72,7 +73,7 @@ namespace ag
 					bestValue = Q + U;
 				}
 			}
-		assert(selected != node->end()); // this must never happen
+		assert(selected != node->end()); // there should always be some best edge
 		return selected;
 	}
 
@@ -97,7 +98,8 @@ namespace ag
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			if (edge->isProven() == false)
 			{
-				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVloss(edge) : parent_value;
+//				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVirtualLoss(edge) : parent_value; // init to parent
+				const float Q = getQ(edge, style_factor) * getVirtualLoss(edge); // init to loss
 				const float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
 				const float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
 
@@ -107,7 +109,7 @@ namespace ag
 					bestValue = Q + U + P;
 				}
 			}
-		assert(selected != node->end()); // this must never happen
+		assert(selected != node->end()); // there should always be some best edge
 		return selected;
 	}
 
@@ -130,14 +132,14 @@ namespace ag
 			float bestValue = std::numeric_limits<float>::lowest();
 			for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			{
-				const float Q = getBalance(edge) * getVloss(edge);
+				const float Q = getBalance(edge) * getVirtualLoss(edge);
 				if (Q > bestValue)
 				{
 					selected = edge;
 					bestValue = Q;
 				}
 			}
-			assert(selected != node->end()); // this must never happen
+			assert(selected != node->end()); // there should always be some best edge
 			return selected;
 		}
 		else
@@ -167,7 +169,7 @@ namespace ag
 				bestValue = Q;
 			}
 		}
-		assert(selected != node->end()); // this must never happen
+		assert(selected != node->end()); // there should always be some best edge
 		return selected;
 	}
 
@@ -189,7 +191,7 @@ namespace ag
 				bestValue = edge->getVisits();
 			}
 		}
-		assert(selected != node->end()); // this must never happen
+		assert(selected != node->end()); // there should always be some best edge
 		return selected;
 	}
 
@@ -217,7 +219,7 @@ namespace ag
 				bestValue = value;
 			}
 		}
-		assert(selected != node->end()); // this must never happen
+		assert(selected != node->end()); // there should always be some best edge
 		return selected;
 	}
 

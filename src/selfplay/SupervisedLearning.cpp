@@ -69,7 +69,7 @@ namespace ag
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
-		ml::Shape shape = model.getGraph().getInputShape();
+		ml::Shape shape = model.getInputShape();
 		int batch_size = shape[0];
 		int rows = shape[1];
 		int cols = shape[2];
@@ -118,7 +118,7 @@ namespace ag
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
-		ml::Shape shape = model.getGraph().getInputShape();
+		ml::Shape shape = model.getInputShape();
 		int batch_size = shape[0];
 		int rows = shape[1];
 		int cols = shape[2];

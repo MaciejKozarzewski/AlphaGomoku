@@ -14,9 +14,8 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/solver/VCTSolver.hpp>
-#include <alphagomoku/vcf_solver/VCTSolver.hpp>
 #include <alphagomoku/vcf_solver/VCFSolver.hpp>
+#include <alphagomoku/tss/ThreatSpaceSearch.hpp>
 
 #include <cinttypes>
 #include <string>
@@ -35,7 +34,7 @@ namespace ag
 	struct SearchStats
 	{
 			TimedStat select;
-			TimedStat evaluate;
+			TimedStat solve;
 			TimedStat schedule;
 			TimedStat generate;
 			TimedStat expand;
@@ -60,8 +59,8 @@ namespace ag
 			std::vector<SearchTask> search_tasks;
 			int active_task_count = 0;
 
-			ag::experimental::VCTSolver vct_solver;
-			VCFSolver vcf_solver;
+			solver::VCFSolver vcf_solver;
+			tss::ThreatSpaceSearch ts_search;
 
 			GameConfig game_config;
 			SearchConfig search_config;
@@ -72,11 +71,11 @@ namespace ag
 					double time = 0.0;
 					uint64_t node_count = 0;
 			};
-
 			TuningPoint last_tuning_point;
 		public:
 			Search(GameConfig gameOptions, SearchConfig searchOptions);
 
+			int64_t getMemory() const noexcept;
 			const SearchConfig& getConfig() const noexcept;
 			void clearStats() noexcept;
 			SearchStats getStats() const noexcept;
