@@ -90,7 +90,7 @@ namespace ag
 				Score add_own_4x3_forks();
 				int add_own_half_open_fours();
 				Score try_solve_own_fork_4x3(Location move);
-				void check_open_four_in_renju(Location move, Direction direction);
+				Score try_solve_foul_attack(Location move);
 
 				bool is_caro_rule() const noexcept;
 				Sign get_own_sign() const noexcept;
