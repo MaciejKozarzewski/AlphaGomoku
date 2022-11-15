@@ -33,7 +33,7 @@ namespace ag
 			action_values = matrix<Value>(base.rows(), base.cols());
 		value = Value();
 		proven_value = ProvenValue::UNKNOWN;
-		is_ready_abs = false;
+		is_ready_solver = false;
 		is_ready_network = false;
 		must_defend = false;
 	}
@@ -90,11 +90,11 @@ namespace ag
 			result += "---" + getPair(i).edge->toString() + '\n';
 		}
 		result += "sign to move = " + getSignToMove() + '\n';
-		if (is_ready_network or is_ready_abs)
+		if (is_ready_network or is_ready_solver)
 		{
 			if (is_ready_network)
 				result += "evaluated by neural network\n";
-			if (is_ready_abs)
+			if (is_ready_solver)
 				result += "evaluated by alpha-beta search\n";
 			if (must_defend)
 				result += "must defend\n";

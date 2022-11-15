@@ -81,10 +81,11 @@ namespace ag
 				}
 				NNEvaluator &evaluator = evaluator_pool.get();
 				if(evaluator.isOnGPU())
-				{ // run Ab search asynchronously to the network evaluation
+				{ // run solver asynchronously to the network evaluation
+					search.solve(false);
 					search.scheduleToNN(evaluator);
 					evaluator.asyncEvaluateGraphLaunch();
-					search.solve();
+					search.solve(true);
 					evaluator.asyncEvaluateGraphJoin();
 				}
 				else

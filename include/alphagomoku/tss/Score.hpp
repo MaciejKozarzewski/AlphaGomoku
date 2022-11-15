@@ -49,6 +49,7 @@ namespace ag
 		enum class ProvenScore
 		{
 			LOSS, /* the position was proven to be a loss */
+			NO_SOLUTION, /* it was not possible to prove this position */
 			DRAW, /* the position was proven to be a draw */
 			UNKNOWN, /* the position has no proof yet */
 			WIN /* the position was proven to be a win */
@@ -60,6 +61,8 @@ namespace ag
 			{
 				case ProvenScore::LOSS:
 					return ProvenScore::WIN;
+				case ProvenScore::NO_SOLUTION:
+					return ProvenScore::NO_SOLUTION;
 				case ProvenScore::DRAW:
 					return ProvenScore::DRAW;
 				default:
@@ -72,7 +75,7 @@ namespace ag
 
 		class Score
 		{
-				uint16_t m_data; // 2 bits for proven score, 14 bits for evaluation shifted by +8000
+				uint16_t m_data; // 3 bits for proven score, 13 bits for evaluation shifted by +4000
 				Score(uint16_t raw) :
 						m_data(raw)
 				{
@@ -91,10 +94,10 @@ namespace ag
 				{
 				}
 				Score(ProvenScore ps, int evaluation) :
-						m_data(static_cast<uint16_t>(ps) << 14)
+						m_data(static_cast<uint16_t>(ps) << 13)
 				{
-					assert(-8000 <= evaluation && evaluation <= 8000);
-					m_data |= static_cast<uint16_t>(8000 + evaluation);
+					assert(-4000 <= evaluation && evaluation <= 4000);
+					m_data |= static_cast<uint16_t>(4000 + evaluation);
 				}
 				void increaseDistanceToWinOrLoss() noexcept
 				{
@@ -112,11 +115,11 @@ namespace ag
 				}
 				int getEval() const noexcept
 				{
-					return (m_data & 16383) - 8000;
+					return (m_data & 8191) - 4000;
 				}
 				ProvenScore getProvenScore() const noexcept
 				{
-					return static_cast<ProvenScore>(m_data >> 14);
+					return static_cast<ProvenScore>(m_data >> 13);
 				}
 				bool isProven() const noexcept
 				{
@@ -137,11 +140,11 @@ namespace ag
 
 				static Score min_value() noexcept
 				{
-					return Score(ProvenScore::LOSS, -8000);
+					return Score(ProvenScore::LOSS, -4000);
 				}
 				static Score max_value() noexcept
 				{
-					return Score(ProvenScore::WIN, +8000);
+					return Score(ProvenScore::WIN, +4000);
 				}
 
 				static Score loss() noexcept
@@ -151,6 +154,10 @@ namespace ag
 				static Score loss_in(int plys) noexcept
 				{
 					return Score(ProvenScore::LOSS, +plys);
+				}
+				static Score no_solution() noexcept
+				{
+					return Score(ProvenScore::NO_SOLUTION);
 				}
 				static Score forbidden() noexcept
 				{
@@ -225,6 +232,8 @@ namespace ag
 					{
 						case ProvenScore::LOSS:
 							return "LOSS in " + std::to_string(getEval());
+						case ProvenScore::NO_SOLUTION:
+							return "NO_SOLUTION";
 						case ProvenScore::DRAW:
 							return "DRAW";
 						default:

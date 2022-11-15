@@ -47,7 +47,7 @@ namespace ag
 			ProvenValue proven_value = ProvenValue::UNKNOWN;
 
 			bool is_ready_network = false; /**< flag indicating whether the task has been evaluated by neural network and can be used for edge generation */
-			bool is_ready_abs = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
+			bool is_ready_solver = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
 			bool must_defend = false; /**< flag indicating whether the player to move must defend a threat from the opponent */
 		public:
 			SearchTask(GameRules rules);
@@ -122,9 +122,9 @@ namespace ag
 			{
 				return is_ready_network;
 			}
-			bool isReadyABSearch() const noexcept
+			bool isReadySolver() const noexcept
 			{
-				return is_ready_abs;
+				return is_ready_solver;
 			}
 			bool mustDefend() const noexcept
 			{
@@ -160,9 +160,9 @@ namespace ag
 			{
 				is_ready_network = true;
 			}
-			void markAsReadyABSearch() noexcept
+			void markAsReadySolver() noexcept
 			{
-				is_ready_abs = true;
+				is_ready_solver = true;
 			}
 			void setMustDefendFlag(bool flag) noexcept
 			{

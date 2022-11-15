@@ -124,6 +124,11 @@ namespace ag
 			{
 				return fabsf(win) + fabsf(draw) + fabsf(loss);
 			}
+			bool isValid() const noexcept
+			{
+				return (0.0f <= win and win <= 1.0f) and (0.0f <= draw and draw <= 1.0f) and (0.0f <= loss and loss <= 1.0f)
+						and (fabs(1.0f - win - draw - loss) < 0.001f);
+			}
 	};
 
 	Value convertOutcome(GameOutcome outcome, Sign signToMove);

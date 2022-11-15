@@ -143,10 +143,10 @@ namespace ag
 			T for_circle;
 	};
 
-	template<typename T, int MaxSize>
+	template<typename T, int N>
 	class ShortVector
 	{
-			std::array<T, MaxSize> m_data;
+			std::array<T, N> m_data;
 			int m_size = 0;
 		public:
 			ShortVector() noexcept = default;
@@ -156,28 +156,59 @@ namespace ag
 				for (int i = 0; i < m_size; i++)
 					m_data[i] = list.begin()[i];
 			}
+			bool contains(const T &value) const noexcept
+			{
+				for (int i = 0; i < size(); i++)
+					if (m_data[i] == value)
+						return true;
+				return false;
+			}
+			int find(const T &value) const noexcept
+			{
+				for (int i = 0; i < size(); i++)
+					if (m_data[i] == value)
+						return i;
+				return -1;
+			}
 			void clear() noexcept
 			{
 				m_size = 0;
 			}
 			void add(const T &value) noexcept
 			{
-				assert(m_size < MaxSize);
+				assert(m_size < capacity());
 				m_data[m_size++] = value;
+			}
+			template<int M>
+			void add(const ShortVector<T, M> &other) noexcept
+			{
+				assert(size() + M <= N);
+				for (int i = 0; i < other.size(); i++)
+					add(other[i]);
 			}
 			void remove(const T &value) noexcept
 			{
 				for (int i = 0; i < size(); i++)
 					if (m_data[i] == value)
 					{
-						std::swap(m_data[i], m_data[m_size - 1]); // move the element to remove to the end
+						m_data[i] = m_data[m_size - 1]; // move the element to remove to the end
 						m_size--;
 						return;
 					}
 			}
+			void remove(int index) noexcept
+			{
+				assert(0 <= index && index < m_size - 1);
+				m_data[index] = m_data[m_size - 1]; // move the element to remove to the end
+				m_size--;
+			}
 			int size() const noexcept
 			{
 				return m_size;
+			}
+			int capacity() const noexcept
+			{
+				return N;
 			}
 			const T& operator[](int index) const noexcept
 			{

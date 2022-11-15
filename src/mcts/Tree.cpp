@@ -95,14 +95,15 @@ namespace
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		const std::array<int, 4> values = { 2, 0, 1, 3 }; // ordering LOSS < DRAW < UNKNOWN < WIN
+
+		static constexpr std::array<int, 4> values = { 2, 0, 1, 3 }; // ordering LOSS < DRAW < UNKNOWN < WIN
 
 		int result = values[static_cast<int>(ProvenValue::LOSS)];
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			result = std::max(result, values[static_cast<int>(edge->getProvenValue())]);
 
-		const std::array<ProvenValue, 4> convert_back = { ProvenValue::LOSS, ProvenValue::DRAW, ProvenValue::UNKNOWN, ProvenValue::WIN };
-		return node->setProvenValue(convert_back[result]);
+		static constexpr std::array<ProvenValue, 4> convert_back = { ProvenValue::LOSS, ProvenValue::DRAW, ProvenValue::UNKNOWN, ProvenValue::WIN };
+		node->setProvenValue(convert_back[result]);
 	}
 }
 
@@ -268,7 +269,7 @@ namespace ag
 	}
 	void Tree::backup(const SearchTask &task)
 	{
-		assert(task.isReadyNetwork() or task.isReadyABSearch());
+		assert(task.isReadyNetwork() or task.isReadySolver());
 		const Value value = task.getValue();
 		for (int i = 0; i < task.visitedPathLength(); i++)
 		{

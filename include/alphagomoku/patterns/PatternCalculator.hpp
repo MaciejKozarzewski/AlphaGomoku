@@ -60,8 +60,6 @@ namespace ag
 
 			matrix<ThreatEncoding> threat_types;
 
-			DirectionGroup<UpdateMask> update_mask;
-
 			ThreatHistogram cross_threats;
 			ThreatHistogram circle_threats;
 
@@ -156,11 +154,11 @@ namespace ag
 						return threat_types.at(row, col).forCircle();
 				}
 			}
-			ShortVector<Location, 6> getDefensiveMoves(Sign sign, int row, int col, Direction dir) const noexcept
+			ShortVector<Location, 6> getDefensiveMoves(Sign defenderSign, int row, int col, Direction dir) const noexcept
 			{
 				const ExtendedPattern extended_pattern = getExtendedPatternAt(row, col, dir);
-				const PatternType threat_to_defend = getPatternTypeAt(invertSign(sign), row, col, dir);
-				const BitMask1D<uint16_t> tmp = defensive_move_table->getMoves(extended_pattern, sign, threat_to_defend);
+				const PatternType threat_to_defend = getPatternTypeAt(invertSign(defenderSign), row, col, dir);
+				const BitMask1D<uint16_t> tmp = defensive_move_table->getMoves(extended_pattern, defenderSign, threat_to_defend);
 				ShortVector<Location, 6> result;
 				for (int i = -extended_padding; i <= extended_padding; i++)
 					if (tmp[extended_padding + i]) // the defensive move will not be outside the board
@@ -177,10 +175,7 @@ namespace ag
 		private:
 			void classify_feature_types() noexcept;
 			void prepare_threat_lists();
-
-			template<UpdateMode Mode>
-			void update_central_spot(int row, int col, Sign s) noexcept;
-			void update_neighborhood(int row, int col) noexcept;
+			void update_around(int row, int col, Sign s, UpdateMode mode) noexcept;
 			void update_feature_types_and_threats(int row, int col, Direction direction, int mode) noexcept;
 	};
 

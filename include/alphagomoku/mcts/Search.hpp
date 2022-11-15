@@ -81,7 +81,7 @@ namespace ag
 			SearchStats getStats() const noexcept;
 
 			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
-			void solve();
+			void solve(bool full = true);
 			void scheduleToNN(NNEvaluator &evaluator);
 			void generateEdges(const Tree &tree);
 			void expand(Tree &tree);

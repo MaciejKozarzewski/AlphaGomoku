@@ -25,6 +25,11 @@ namespace
 		return size * (size - 1) / 2;
 	}
 
+	bool is_proven(Score s) noexcept
+	{
+		return s.isLoss() or s.isDraw() or s.isWin();
+	}
+
 	ProvenValue convertProvenValue(Score score) noexcept
 	{
 		switch (score.getProvenScore())
@@ -58,16 +63,18 @@ namespace
 
 	void fill(SearchTask &task, const ActionList &actions, Score score)
 	{
+		task.getPriorEdges().clear();
 		task.setMustDefendFlag(actions.must_defend);
 		for (auto iter = actions.begin(); iter < actions.end(); iter++)
 //			task.addPriorEdge(iter->move, convertEvaluation(iter->score), convertProvenValue(iter->score));
 			task.addPriorEdge(iter->move, Value(), convertProvenValue(iter->score));
 
-		if (score.isProven())
+//		if (score.isProven())
+		if (is_proven(score))
 		{
 			task.setProvenValue(convertProvenValue(score));
 			task.setValue(convertEvaluation(score));
-			task.markAsReadyABSearch();
+			task.markAsReadySolver();
 		}
 	}
 }
@@ -175,7 +182,7 @@ namespace ag
 		{
 			shared_table = table;
 		}
-		void ThreatSpaceSearch::solve(SearchTask &task, int level)
+		void ThreatSpaceSearch::solve(SearchTask &task, TssMode mode, int maxPositions)
 		{
 //			static double start = getTime();
 //			if (getTime() - start > 55)
@@ -190,54 +197,58 @@ namespace ag
 			stats.setup.stopTimer();
 
 			TimerGuard tg(stats.solve);
-
+			max_positions = maxPositions;
+			search_mode = mode;
 			position_counter = 0;
 
 			ActionList actions = action_stack.getRoot();
 			Score score;
-			if (level == 0)
-			{  // only check win or draw conditions using static solver
-				TimerGuard tg(stats.move_generation);
-				score = threat_generator.generate(actions, 0);
-				if (score.isProven())
-					fill(task, actions, score);
-			}
-			if (level == 1)
-			{  // try to statically solve position and generate moves
-				TimerGuard tg(stats.move_generation);
-				score = threat_generator.generate(actions);
-				if (score.isProven() or actions.must_defend)
-					fill(task, actions, score);
-			}
-			if (level >= 2)
+			switch (mode)
 			{
-				if (shared_table == nullptr)
-					throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
-
-//				stats.evaluate.startTimer();
-//				evaluator.refresh(pattern_calculator); // set up NNUE state
-//				stats.evaluate.stopTimer();
-
-				hash_key = shared_table->getHashFunction().getHash(task.getBoard()); // set up hash key
-
-				const int max_depth = std::min(255, game_config.rows * game_config.cols - pattern_calculator.getCurrentDepth());
-				for (int depth = 1; depth <= max_depth; depth += 4)
+				case TssMode::BASIC:
+				case TssMode::STATIC:
 				{
-//					double t0 = getTime();
-					score = recursive_solve(depth, Score::min_value(), Score::max_value(), actions);
-//					std::cout << "depth " << depth << ", nodes " << position_counter << ", score " << score << ", time " << (getTime() - t0) << "s\n";
-					if (score.isProven())
-						break; // there is no point in further search if we have found some proven score
-					if (position_counter >= max_positions)
-						break; // the limit of nodes was exceeded
-					if (actions.size() == 0)
-						break; // apparently there are no threats to make
+					TimerGuard tg(stats.move_generation);
+					score = threat_generator.generate(actions, static_cast<GeneratorMode>(search_mode));
+					if (score.isProven() or actions.must_defend)
+						fill(task, actions, score);
+					break;
 				}
-//				score = recursive_solve(max_depth, Score::min_value(), Score::max_value(), actions);
+				case TssMode::VCF:
+				case TssMode::VCT:
+				{
+					if (shared_table == nullptr)
+						throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
 
-//				score = threat_generator.generate(actions); // FIXME
-				fill(task, actions, score);
+//					stats.evaluate.startTimer();
+//					evaluator.refresh(pattern_calculator); // set up NNUE state
+//					stats.evaluate.stopTimer();
+
+					hash_key = shared_table->getHashFunction().getHash(task.getBoard()); // set up hash key
+					const int max_depth = std::min(127, game_config.rows * game_config.cols - pattern_calculator.getCurrentDepth());
+//					if (mode == TssMode::VCF)
+					score = recursive_solve(max_depth, Score::min_value(), Score::max_value(), actions); // depth-first search
+//						score = vcf_search(max_depth, actions, true); // depth-first search
+//					else
+//					{
+//						for (int depth = 1; depth <= max_depth; depth += 4)
+//						{ // iterative deepening loop
+////							double t0 = getTime();
+//							score = recursive_solve(depth, Score::min_value(), Score::max_value(), actions);
+////							std::cout << "depth " << depth << ", nodes " << position_counter << ", score " << score << ", time " << (getTime() - t0) << "s\n";
+//							if (score.isProven())
+//								break; // there is no point in further search if we have found some proven score
+//							if (position_counter >= max_positions)
+//								break; // the limit of nodes was exceeded
+//							if (actions.size() == 0)
+//								break; // apparently there are no threats to make
+//						}
+//					}
+					fill(task, actions, score);
+					break;
+				}
 			}
+
 //			if (actions.size() == 0)
 //			{
 //				std::cout << score.toString() << " at " << position_counter << '\n';
@@ -245,11 +256,12 @@ namespace ag
 //				pattern_calculator.print();
 //				pattern_calculator.printAllThreats();
 //				actions.print();
+//				std::cout << task.toString();
 //				exit(-1);
 //			}
 
 			stats.total_positions += position_counter;
-			stats.hits += static_cast<int>(score.isProven());
+			stats.hits += static_cast<int>(is_proven(score));
 		}
 		void ThreatSpaceSearch::tune(float speed)
 		{
@@ -369,7 +381,7 @@ namespace ag
 
 			{ // threat generator is combined with static solver
 //				TimerGuard tg(stats.move_generation);
-				const Score static_score = threat_generator.generate(actions);
+				const Score static_score = threat_generator.generate(actions, static_cast<GeneratorMode>(search_mode));
 				if (static_score.isProven())
 					return static_score;
 				apply_ordering(actions, hash_move, killers.get(pattern_calculator.getCurrentDepth()));
@@ -391,7 +403,8 @@ namespace ag
 
 			const Score original_alpha = alpha;
 
-			Score score = Score::min_value(); // setup initial value of the score
+//			Score score = Score::min_value(); // setup initial value of the score
+			Score score = actions.must_defend ? Score::min_value() : Score::no_solution(); // setup initial value of the score
 			for (int i = 0; i < actions.size(); i++)
 			{
 				position_counter++;
@@ -426,8 +439,9 @@ namespace ag
 			//  - no actions were generated, or
 			//  - all actions are losing but we don't have to defend
 			// we need to override the score with something, for example with static evaluation
-			if (actions.size() == 0 or (score.isLoss() and not actions.must_defend))
-				score = evaluate();
+//			if (actions.size() == 0 or (score.isLoss() and not actions.must_defend))
+//				score = evaluate();
+//			score = Score((int) (2000 * evaluator.forward()) - 1000);
 
 			{ // insert new data to the hash table
 //				TimerGuard tg(stats.hashtable);
@@ -444,8 +458,56 @@ namespace ag
 				}
 				shared_table->insert(hash_key, SharedTableData(actions.must_defend, actions.has_initiative, bound, depthRemaining, score, best_move));
 
-				killers.insert(best_move, pattern_calculator.getCurrentDepth());
+//				killers.insert(best_move, pattern_calculator.getCurrentDepth());
 			}
+
+			return score;
+		}
+		Score ThreatSpaceSearch::vcf_search(int depthRemaining, ActionList &actions, bool isAttacker)
+		{
+			actions.clear();
+			const Score static_score = threat_generator.generate(actions, GeneratorMode::VCF);
+			if (static_score.isProven())
+				return static_score;
+
+			Score score = actions.must_defend ? Score::min_value() : Score::no_solution(); // setup initial value of the score
+			for (int i = 0; i < actions.size(); i++)
+			{
+				position_counter++;
+
+				const Move move = actions[i].move;
+				Score action_score;
+
+				shared_table->getHashFunction().updateHash(hash_key, move);
+				const SharedTableData tt_entry = shared_table->seek(hash_key);
+				const Bound tt_bound = tt_entry.bound();
+				stats.shared_cache_calls++;
+				stats.shared_cache_hits += (tt_bound != Bound::NONE);
+				if (tt_entry.score().isProven())
+					action_score = -tt_entry.score();
+				else
+				{
+					if (position_counter < max_positions)
+					{
+						ActionList next_ply_actions(actions, actions[i]);
+						pattern_calculator.addMove(move);
+						action_score = -vcf_search(depthRemaining - 1, next_ply_actions, not isAttacker);
+						pattern_calculator.undoMove(move);
+					}
+				}
+				shared_table->getHashFunction().updateHash(hash_key, move);
+
+				action_score.increaseDistanceToWinOrLoss();
+				actions[i].score = action_score; // required for recovering of the search results
+				score = std::max(score, action_score);
+
+				if (action_score.isWin()) // or (not isAttacker and not score.isLoss()))
+					break;
+			}
+
+			const Move best_move = std::max_element(actions.begin(), actions.end())->move;
+			shared_table->insert(hash_key,
+					SharedTableData(actions.must_defend, actions.has_initiative, Bound::EXACT, depthRemaining, score, best_move));
 
 			return score;
 		}
@@ -453,7 +515,7 @@ namespace ag
 		{
 			return m.sign == pattern_calculator.getSignToMove() and pattern_calculator.signAt(m.row, m.col) == Sign::NONE;
 		}
-		void ThreatSpaceSearch::apply_ordering(ActionList &actions, Move hashMove, const ShortVector<Move, 2> &killers) const noexcept
+		void ThreatSpaceSearch::apply_ordering(ActionList &actions, Move hashMove, const ShortVector<Move, 4> &killers) const noexcept
 		{
 			int offset = static_cast<int>(actions.moveCloserToFront(hashMove, 0));
 			for (int i = 0; i < killers.size(); i++)

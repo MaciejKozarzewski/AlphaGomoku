@@ -82,8 +82,7 @@ namespace ag
 //		features_update.stopTimer();
 
 //		threats_update.startTimer();
-		update_central_spot<ADD_MOVE>(move.row, move.col, move.sign);
-		update_neighborhood(move.row, move.col);
+		update_around(move.row, move.col, move.sign, ADD_MOVE);
 //		threats_update.stopTimer();
 
 		sign_to_move = invertSign(sign_to_move);
@@ -102,8 +101,7 @@ namespace ag
 //		features_update.stopTimer();
 
 //		threats_update.startTimer();
-		update_central_spot<UNDO_MOVE>(move.row, move.col, move.sign);
-		update_neighborhood(move.row, move.col);
+		update_around(move.row, move.col, move.sign, UNDO_MOVE);
 //		threats_update.stopTimer();
 
 		sign_to_move = invertSign(sign_to_move);
@@ -284,16 +282,15 @@ namespace ag
 				else
 					threat_types.at(row, col) = ThreatEncoding();
 	}
-
-	template<UpdateMode Mode>
-	void PatternCalculator::update_central_spot(int row, int col, Sign s) noexcept
+	void PatternCalculator::update_around(int row, int col, Sign s, UpdateMode mode) noexcept
 	{
 		assert(internal_board.isInside(row, col));
 
+		DirectionGroup<UpdateMask> update_mask;
 		for (Direction dir = 0; dir < 4; dir++)
 			update_mask[dir] = pattern_table->getUpdateMask(getNormalPatternAt(row, col, dir), s);
 
-		if (Mode == ADD_MOVE)
+		if (mode == ADD_MOVE)
 		{ // a stone was added
 			assert(signAt(row, col) == s);
 			const ThreatEncoding old_threat = threat_types.at(row, col);
@@ -308,7 +305,7 @@ namespace ag
 		}
 		else
 		{ // a stone was removed
-			assert(Mode == UNDO_MOVE);
+			assert(mode == UNDO_MOVE);
 			assert(signAt(row, col) == Sign::NONE);
 			for (Direction dir = 0; dir < 4; dir++)
 			{
@@ -324,9 +321,7 @@ namespace ag
 
 			changed_threats.emplace_back(ThreatEncoding(), new_threat, Location(row, col));
 		}
-	}
-	void PatternCalculator::update_neighborhood(int row, int col) noexcept
-	{
+
 		for (int i = -padding; i <= padding; i++)
 			if (i != 0) // central spot has special update procedure
 			{

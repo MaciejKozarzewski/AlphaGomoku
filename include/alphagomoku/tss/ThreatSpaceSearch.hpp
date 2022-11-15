@@ -11,7 +11,8 @@
 #include <alphagomoku/tss/ActionList.hpp>
 #include <alphagomoku/tss/SharedHashTable.hpp>
 #include <alphagomoku/tss/ThreatGenerator.hpp>
-#include <alphagomoku/ab_search/KillerHeuristic.hpp>
+#include <alphagomoku/tss/KillerHeuristic.hpp>
+//#include <alphagomoku/ab_search/nnue/NNUE.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/configs.hpp>
@@ -63,6 +64,14 @@ namespace ag
 				std::string toString() const;
 		};
 
+		enum class TssMode
+		{
+			BASIC, /* only game end conditions are checked */
+			STATIC, /* static solver and move generator is used */
+			VCF, /* depth-first VCF search is used */
+			VCT /* iterative deepening VCT search is used */
+		};
+
 		class ThreatSpaceSearch
 		{
 			private:
@@ -70,6 +79,7 @@ namespace ag
 
 				int number_of_moves_for_draw; // after that number of moves, a draw will be concluded
 				int max_positions; // maximum number of positions that will be searched
+				TssMode search_mode = TssMode::BASIC;
 
 				double position_counter = 0.0;
 
@@ -77,7 +87,7 @@ namespace ag
 				PatternCalculator pattern_calculator;
 				ThreatGenerator threat_generator;
 //				nnue::InferenceNNUE evaluator;
-				KillerHeuristics<2> killers;
+				KillerHeuristics<4> killers;
 
 				std::shared_ptr<tss::SharedHashTable<4>> shared_table;
 				tss::HashKey<128> hash_key;
@@ -92,13 +102,7 @@ namespace ag
 
 				int64_t getMemory() const noexcept;
 				void setSharedTable(std::shared_ptr<tss::SharedHashTable<4>> table) noexcept;
-				/*
-				 * \brief
-				 *  level = 0 - only game end conditions are checked
-				 *  level = 1 - static solver and move generator is used
-				 *  level = 2 - full recursive search is run
-				 */
-				void solve(SearchTask &task, int level = 2);
+				void solve(SearchTask &task, TssMode mode, int maxPositions);
 				void tune(float speed);
 
 				TSSStats getStats() const;
@@ -112,8 +116,9 @@ namespace ag
 				}
 			private:
 				Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions);
+				Score vcf_search(int depthRemaining, ActionList &actions, bool isAttacker);
 				bool is_move_legal(Move m) const noexcept;
-				void apply_ordering(ActionList &actions, Move hashMove, const ShortVector<Move, 2> &killers) const noexcept;
+				void apply_ordering(ActionList &actions, Move hashMove, const ShortVector<Move, 4> &killers) const noexcept;
 				Score evaluate();
 		};
 

@@ -139,8 +139,9 @@ namespace ag
 	{
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
+		if (task_queue.size() > batch_size)
+			throw std::logic_error("task queue size is larger than batch size");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
-		assert(task_queue.size() <= batch_size);
 		int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
 		if (batch_size > 0)
 		{
@@ -158,8 +159,9 @@ namespace ag
 	{
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
+		if (task_queue.size() > batch_size)
+			throw std::logic_error("task queue size is larger than batch size");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
-		assert(task_queue.size() <= batch_size);
 		int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
 		if (batch_size > 0)
 		{

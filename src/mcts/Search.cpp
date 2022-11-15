@@ -97,7 +97,6 @@ namespace ag
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
-		ab_search.clearStats();
 		vcf_solver.clearStats();
 		ts_search.clearStats();
 		last_tuning_point.time = getTime();
@@ -143,22 +142,27 @@ namespace ag
 			}
 		}
 	}
-	void Search::solve()
+	void Search::solve(bool full)
 	{
+		const tss::TssMode level = static_cast<tss::TssMode>(search_config.vcf_solver_level);
+		const tss::TssMode mode = full ? level : std::min(level, tss::TssMode::VCF);
+		const int positions = full ? search_config.vcf_solver_max_positions : 50;
+
 		for (int i = 0; i < active_task_count; i++)
-		{
-			TimerGuard timer(stats.solve);
-//			vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level);
-			ts_search.solve(search_tasks[i], search_config.vcf_solver_level);
-		}
+			if (not search_tasks[i].isReadySolver())
+			{
+				TimerGuard timer(stats.solve);
+//				vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level, search_config.vcf_solver_max_positions);
+				ts_search.solve(search_tasks[i], mode, positions);
+			}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
 	{
 		for (int i = 0; i < active_task_count; i++)
 		{
 			TimerGuard timer(stats.schedule);
-			if (search_tasks[i].getProvenValue() == ProvenValue::UNKNOWN)
-			{ // schedule only those tasks that haven't already been solved by AB search
+			if (not search_tasks[i].isReadySolver())
+			{ // schedule only those tasks that haven't already been solved by the solver
 				stats.nb_network_evaluations++;
 				evaluator.addToQueue(search_tasks.at(i));
 			}
