@@ -64,7 +64,7 @@ namespace ag
 					m_data |= static_cast<uint64_t>(hasInitiative) << 1ull; // 1 bit
 					m_data |= static_cast<uint64_t>(bound) << 2ull; // 2 bits
 					// omitting 4 bits for generation (it is set by the hashtable, not by the user)
-					m_data |= static_cast<uint64_t>(std::max(0, std::min(255, depth))) << 8ull; // 8 bits
+					m_data |= static_cast<uint64_t>(128 + std::max(-128, std::min(127, depth))) << 8ull; // 8 bits
 					m_data |= static_cast<uint64_t>(Score::to_short(score)) << 16ull; // 16 bits
 					m_data |= static_cast<uint64_t>(bestMove.toShort()) << 32ull; // 16 bits
 					// omitting 16 bits for key (it is set by the hashtable, not by the user)
@@ -91,7 +91,7 @@ namespace ag
 				}
 				int depth() const noexcept
 				{
-					return (m_data >> 8ull) & 255ull;
+					return static_cast<int>((m_data >> 8ull) & 255ull) - 128;
 				}
 				Score score() const noexcept
 				{
