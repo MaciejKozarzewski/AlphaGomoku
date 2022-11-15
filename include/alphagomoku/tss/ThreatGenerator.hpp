@@ -30,6 +30,14 @@ namespace ag
 {
 	namespace tss
 	{
+		enum class GeneratorMode
+		{
+			BASIC,
+			STATIC,
+			VCF,
+			VCT
+		};
+
 		class ThreatGenerator
 		{
 			private:
@@ -64,28 +72,25 @@ namespace ag
 				void setDrawAfter(int moves) noexcept;
 				void setHashMove(Move m) noexcept;
 				void setKillerMoves(const ShortVector<Move, 4> &killers) noexcept;
-				Score generate(ActionList &actions, int level = 3);
+				Score generate(ActionList &actions, GeneratorMode mode);
 			private:
 				template<AddMode Mode>
 				void add_move(Location location, Score s = Score()) noexcept;
 				template<AddMode Mode>
 				void add_moves(const std::vector<Location> &locations, Score s = Score()) noexcept;
-				/*
-				 * \brief Marks defensive moves and returns the number of them.
-				 */
-				int create_defensive_moves(Location location, Direction dir);
+				template<AddMode Mode, typename T>
+				void add_moves(const T begin, const T end, Score s = Score()) noexcept;
+				ShortVector<Location, 6> get_defensive_moves(Location location, Direction dir);
 				Result try_win_in_1();
 				Result try_draw_in_1();
 				Result defend_loss_in_2();
 				Result try_win_in_3();
 				Result defend_loss_in_4();
 				Result try_win_in_5();
-				Result defend_loss_in_6();
 				Score add_own_4x3_forks();
 				int add_own_half_open_fours();
 				Score try_solve_own_fork_4x3(Location move);
 				void check_open_four_in_renju(Location move, Direction direction);
-				bool is_4x3_fork_winning(int row, int col, Sign sign);
 
 				bool is_caro_rule() const noexcept;
 				Sign get_own_sign() const noexcept;
