@@ -92,7 +92,6 @@ namespace ag
 				Score try_solve_own_fork_4x3(Location move);
 				Score try_solve_foul_attack(Location move);
 
-				bool is_caro_rule() const noexcept;
 				Sign get_own_sign() const noexcept;
 				Sign get_opponent_sign() const noexcept;
 				ThreatType get_own_threat_at(int row, int col) const noexcept;

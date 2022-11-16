@@ -443,15 +443,16 @@ namespace ag
 			assert(actions->size() == 0);
 			assert(actions->must_defend == false && actions->has_initiative == false);
 
-			if (pattern_calculator.getThreatHistogram(get_own_sign()).hasAnyFour())
-			{ // any four that we can make may help to gain initiative
-				actions->has_initiative = true;
-				const Score best_score = add_own_4x3_forks();
-				if (best_score.isWin())
-					return Result(false, best_score);
-				else
-					add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
-			}
+			const bool has_any_four = pattern_calculator.getThreatHistogram(get_own_sign()).hasAnyFour();
+//			if (pattern_calculator.getThreatHistogram(get_own_sign()).hasAnyFour())
+//			{ // any four that we can make may help to gain initiative
+//				actions->has_initiative = true;
+//				const Score best_score = add_own_4x3_forks();
+//				if (best_score.isWin())
+//					return Result(false, best_score);
+//				else
+//					add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
+//			}
 
 			if (game_config.rules != GameRules::RENJU)
 			{
@@ -469,7 +470,7 @@ namespace ag
 					const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 
 					defensive_moves.get_intersection_with(tmp);
-					if (defensive_moves.is_empty() and not actions->has_initiative)
+					if (defensive_moves.is_empty() and not has_any_four)
 					{ // we already proven that the threats are not refutable
 						add_moves<EXCLUDE_DUPLICATE>(opp_open_four); // we must always produce some moves, even if the threat is not refutable
 						return Result(false, Score::loss_in(4));
@@ -504,7 +505,7 @@ namespace ag
 						defensive_moves.get_intersection_with(storage);
 					}
 
-					if (defensive_moves.is_empty() and not actions->has_initiative)
+					if (defensive_moves.is_empty() and not has_any_four)
 					{ // we already proven that the threats are not refutable
 						add_moves<EXCLUDE_DUPLICATE>(opp_fork_4x4); // we must always produce some moves, even if the threat is not refutable
 						return Result(false, Score::loss_in(4));
@@ -527,7 +528,7 @@ namespace ag
 				}
 
 				if (is_anything_forbidden_for(get_opponent_sign()))
-				{ // in renju there might be an open four inside a legal 3x3 fork
+				{ // in renju there might be an open four hidden inside a legal 3x3 fork
 				  // it is very rare (approximately 1 in 400.000 positions) but easy to check
 					const std::vector<Location> &opp_fork_3x3 = get_copy(get_opponent_threats(ThreatType::FORK_3x3));
 					for (auto move = opp_fork_3x3.begin(); move < opp_fork_3x3.end(); move++)
@@ -558,6 +559,15 @@ namespace ag
 							}
 					}
 				}
+			}
+			if (actions->must_defend)
+			{
+				actions->has_initiative = has_any_four;
+				const Score best_score = add_own_4x3_forks();
+				if (best_score.isWin())
+					return Result(false, best_score);
+				add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
+				return Result(false);
 			}
 			return Result();
 		}
@@ -599,6 +609,7 @@ namespace ag
 		}
 		int ThreatGenerator::add_own_half_open_fours()
 		{
+			// TODO we can further exclude half open fours where the opponent can create a winning threat in response
 			int hidden_count = 0;
 			if (is_anything_forbidden_for(get_own_sign()))
 			{ // in renju rule there might be a half-open four hidden inside a legal 3x3 fork - only for cross (black) player
@@ -662,10 +673,10 @@ namespace ag
 		Score ThreatGenerator::try_solve_foul_attack(Location move)
 		{
 			if (is_anything_forbidden_for(get_opponent_sign()))
-			{
+			{ // only if the opponent can have any forbidden moves, so in renju and for cross (black) player
 				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move.row, move.col);
 				if (group.count(PatternType::HALF_OPEN_4) != 1)
-					return Score(); // there is no half open four in here or it is a 4x4 fork
+					return Score(); // there is no half open four in here, or it is a 4x4 fork
 
 				const Direction dir = group.findDirectionOf(PatternType::HALF_OPEN_4);
 				const ShortVector<Location, 6> tmp = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move.row, move.col, dir); // we intentionally want to have all moves, including forbidden ones
@@ -679,7 +690,7 @@ namespace ag
 					case ThreatType::FORK_3x3:
 					{
 						const DirectionGroup<PatternType> tmp = pattern_calculator.getPatternTypeAt(get_opponent_sign(), response.row, response.col);
-						// if own half open three is in the same direction as opponent open three, they may influence each other
+						// if own half open four is in the same direction as opponent open three, they may influence each other
 						// it is quite rare (approximately 1 in 100.000 positions)
 						// and anyway, by creating the half open four we would most likely make the 3x3 fork legal, or remove it at all
 						if (tmp[dir] != PatternType::OPEN_3 and is_opponent_3x3_fork_forbidden(response))
@@ -694,10 +705,6 @@ namespace ag
 			return Score();
 		}
 
-		bool ThreatGenerator::is_caro_rule() const noexcept
-		{
-			return game_config.rules == GameRules::CARO5 or game_config.rules == GameRules::CARO6;
-		}
 		Sign ThreatGenerator::get_own_sign() const noexcept
 		{
 			return pattern_calculator.getSignToMove();
