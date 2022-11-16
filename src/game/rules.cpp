@@ -136,6 +136,8 @@ namespace ag
 
 		if (move.sign == Sign::CIRCLE)
 			return false; // circle (or white) doesn't have any forbidden moves
+		if (board.at(move.row, move.col) != Sign::NONE)
+			return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
 
 		const DirectionGroup<NormalPattern> raw_patterns = RawPatternCalculator::getPatternsAt<NormalPattern>(board, move);
 		DirectionGroup<PatternType> pattern_types = convert_to_patterns(GameRules::RENJU, raw_patterns).for_cross;
