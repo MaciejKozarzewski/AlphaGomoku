@@ -191,16 +191,14 @@ namespace ag
 				for (int i = 0; i < size(); i++)
 					if (m_data[i] == value)
 					{
-						m_data[i] = m_data[m_size - 1]; // move the element to remove to the end
-						m_size--;
+						m_data[i] = m_data[--m_size]; // move the element to remove to the end and decrement size
 						return;
 					}
 			}
 			void remove(int index) noexcept
 			{
-				assert(0 <= index && index < m_size - 1);
-				m_data[index] = m_data[m_size - 1]; // move the element to remove to the end
-				m_size--;
+				assert(0 <= index && index < m_size);
+				m_data[index] = m_data[--m_size]; // move the element to remove to the end and decrement size
 			}
 			int size() const noexcept
 			{
