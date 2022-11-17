@@ -111,13 +111,11 @@ namespace ag
 				}
 				void add(Move move) noexcept
 				{
-					m_children[m_size].init(move, ProvenScore::UNKNOWN);
-					m_size++;
+					m_children[m_size++].init(move, ProvenScore::UNKNOWN);
 				}
 				void add(Move move, Score s) noexcept
 				{
-					m_children[m_size].init(move, s);
-					m_size++;
+					m_children[m_size++].init(move, s);
 				}
 				void removeAction(size_t index) noexcept
 				{
@@ -128,9 +126,7 @@ namespace ag
 				}
 				bool moveCloserToFront(Move move, int offset) noexcept
 				{
-					if (offset >= size())
-						return false;
-					for (int i = 0; i < size(); i++)
+					for (int i = offset + 1; i < size(); i++)
 						if (m_children[i].move == move)
 						{
 							std::swap(m_children[offset], m_children[i]); // move it closer to the front
