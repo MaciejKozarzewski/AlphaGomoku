@@ -63,6 +63,7 @@ namespace ag
 				GameConfig game_config;
 				PatternCalculator &pattern_calculator;
 				std::vector<Location> temporary_list;
+				mutable std::vector<std::pair<Location, bool>> forbidden_moves_cache;
 
 				BitMask2D<uint32_t, 32> moves;
 				ActionList *actions = nullptr;
@@ -90,7 +91,6 @@ namespace ag
 				Score add_own_4x3_forks();
 				int add_own_half_open_fours();
 				Score try_solve_own_fork_4x3(Location move);
-				Score try_solve_foul_attack(Location move);
 
 				Sign get_own_sign() const noexcept;
 				Sign get_opponent_sign() const noexcept;
@@ -98,11 +98,8 @@ namespace ag
 				ThreatType get_opponent_threat_at(int row, int col) const noexcept;
 				const std::vector<Location>& get_own_threats(ThreatType tt) const noexcept;
 				const std::vector<Location>& get_opponent_threats(ThreatType tt) const noexcept;
-				bool is_own_4x4_fork_forbidden() const noexcept;
-				bool is_opponent_4x4_fork_forbidden() const noexcept;
-				bool is_own_3x3_fork_forbidden(Location m) const noexcept;
-				bool is_opponent_3x3_fork_forbidden(Location m) const noexcept;
 				bool is_anything_forbidden_for(Sign sign) const noexcept;
+				bool is_forbidden(Sign sign, Location loc) const noexcept;
 				const std::vector<Location>& get_copy(const std::vector<Location> &list);
 				bool is_move_valid(Move m) const noexcept;
 		};

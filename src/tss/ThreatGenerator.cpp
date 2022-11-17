@@ -101,6 +101,7 @@ namespace ag
 {
 	namespace tss
 	{
+
 		ThreatGenerator::ThreatGenerator(GameConfig gameConfig, PatternCalculator &calc) :
 				game_config(gameConfig),
 				pattern_calculator(calc),
@@ -108,12 +109,14 @@ namespace ag
 				number_of_moves_for_draw(gameConfig.rows * gameConfig.cols)
 		{
 			temporary_list.reserve(64);
+			forbidden_moves_cache.reserve(32);
 		}
 		Score ThreatGenerator::generate(ActionList &actions, GeneratorMode mode)
 		{
 			assert(this->actions == nullptr);
 			this->actions = &actions;
 			moves.fill(false);
+			forbidden_moves_cache.clear();
 
 			actions.clear();
 			Result result = try_win_in_1();
@@ -184,7 +187,7 @@ namespace ag
 				int i = 0;
 				while (i < result.size())
 				{
-					if (pattern_calculator.isForbidden(get_own_sign(), result[i].row, result[i].col))
+					if (is_forbidden(get_own_sign(), result[i]))
 						result.remove(i);
 					else
 						i++;
@@ -194,7 +197,7 @@ namespace ag
 			{
 				if (is_anything_forbidden_for(get_opponent_sign()))
 				{ // in renju there may be an additional defensive move against cross (black) open four that is blocked by a forbidden move on one end
-				  // it is moderately frequent (approximately 1 in 1000 positions)
+				  // it is moderately frequent (approximately 1 in 1000 positions) but we must check this in order to have correct results
 					const PatternType pt = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move.row, move.col, dir);
 					if (pt == PatternType::OPEN_4)
 					{
@@ -203,13 +206,13 @@ namespace ag
 						if ((raw & 65520u) == 1344u)
 							type = -1; // detected pattern '_XXX!_', if an empty spot on the left is forbidden then the spot on the right is also a defensive move
 						if ((raw & 4193280u) == 344064u)
-							type = +1; // detected pattern '_!XXX_', opposite situation to the above one
+							type = +1; // detected pattern '_!XXX_', like above but flipped horizontally
 
 						if (type != 0)
 						{ // we confirmed that the type of open four is the 'straight four' one
 							const Location loc = shiftInDirection(dir, 4 * type, move); // get position of the other side of the open four (4 spots away)
-							if (pattern_calculator.isForbidden(get_opponent_sign(), loc.row, loc.col))
-								result.add(shiftInDirection(dir, -1 * type, move)); // the additional defensive move, next to the existing one
+							if (is_forbidden(get_opponent_sign(), loc))
+								result.add(shiftInDirection(dir, -1 * type, move)); // add additional defensive move, next to the existing one
 						}
 					}
 				}
@@ -223,7 +226,7 @@ namespace ag
 
 			const std::vector<Location> &own_fives = get_own_threats(ThreatType::FIVE);
 			if (own_fives.size() > 0)
-			{
+			{ // rare (approximately 1 in 600 positions, in renju 1 in 200)
 				actions->has_initiative = true;
 				add_moves<EXCLUDE_DUPLICATE>(own_fives, Score::win_in(1));
 				return Result(false, Score::win_in(1));
@@ -266,7 +269,7 @@ namespace ag
 					// overall it is extremely unlikely that we really had to get here to find a draw (less than 1 in 10.000.000 positions)
 					for (auto move = temporary_list.begin(); move < temporary_list.end(); move++)
 					{
-						if (is_own_3x3_fork_forbidden(*move))
+						if (is_forbidden(get_own_sign(), *move))
 							add_move<EXCLUDE_DUPLICATE>(*move, Score::loss_in(1));
 						else
 						{ // found non-forbidden 3x3 fork, can play it to draw
@@ -285,7 +288,7 @@ namespace ag
 								add_move<EXCLUDE_DUPLICATE>(Location(row, col), Score::draw());
 								return Result(false, Score::draw());
 							}
-					return Result(false, Score::draw()); // the game ends up with a draw, it doesn't matter if there is any move to play or not
+					return Result(false, Score::draw()); // the game ends up with a draw even if there is no move to play
 				}
 			}
 			return Result();
@@ -295,11 +298,12 @@ namespace ag
 			assert(actions->size() == 0);
 			assert(actions->must_defend == false && actions->has_initiative == false);
 
-			const std::vector<Location> &opponent_fives = get_copy(get_opponent_threats(ThreatType::FIVE)); // this must be copied as later check for forbidden moves may change the order of elements
-			if (opponent_fives.size() == 0)
+			if (get_opponent_threats(ThreatType::FIVE).size() == 0)
 				return Result();
-			else
-				actions->must_defend = true;
+
+			// we must copy as the check for forbidden moves may reorder the elements in the original list
+			const std::vector<Location> &opponent_fives = get_copy(get_opponent_threats(ThreatType::FIVE));
+			actions->must_defend = true;
 
 			DefensiveMoves defensive_moves;
 			for (auto move = opponent_fives.begin(); move < opponent_fives.end(); move++)
@@ -310,79 +314,67 @@ namespace ag
 
 				defensive_moves.get_intersection_with(tmp);
 				if (defensive_moves.is_empty())
-				{
-					add_moves<EXCLUDE_DUPLICATE>(opponent_fives); // we must always produce some moves, even if the threat is not refutable
+				{ // surprisingly not common (approximately 1 in 3000 positions)
+					add_moves<EXCLUDE_DUPLICATE>(opponent_fives, Score::loss_in(2)); // we must always produce some moves, even if the threat is not refutable
 					return Result(false, Score::loss_in(2));
 				}
 			}
+
 			Score best_score = Score::min_value();
-			for (auto iter = defensive_moves.get_list().begin(); iter < defensive_moves.get_list().end(); iter++)
+			for (auto move = defensive_moves.get_list().begin(); move < defensive_moves.get_list().end(); move++)
 			{
 				Score response_score;
-				switch (get_own_threat_at(iter->row, iter->col))
+				switch (get_own_threat_at(move->row, move->col))
 				{
 					case ThreatType::FORK_3x3:
 					{
-						assert(is_own_3x3_fork_forbidden(*iter) == false); // forbidden move should have been excluded earlier
+						assert(is_forbidden(get_own_sign(), *move) == false); // forbidden moves should have been excluded earlier
 						if (is_anything_forbidden_for(get_own_sign()))
-						{ // relevant only for renju rule
-							const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), iter->row, iter->col);
-							if (group.contains(PatternType::OPEN_4))
-							{ // there is an open four hidden inside a legal 3x3 fork
-								actions->has_initiative = true;
-								response_score = Score::win_in(3);
-							}
+						{ // relevant only for renju rule and cross (black) player
+							const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
+							if (group.contains(PatternType::OPEN_4)) // there is an open four hidden inside a legal 3x3 fork
+								response_score = Score::win_in(3); // extremely rare (approximately 1 in 60.000.000 positions)
 						}
 						else
 						{ // for rules other than renju
-							if (not pattern_calculator.getThreatHistogram(get_opponent_sign()).hasAnyFour())
-							{ // we have 3x3 fork while the opponent has no four
-								actions->has_initiative = true;
-								response_score = Score::win_in(5);
-							}
+							if (not pattern_calculator.getThreatHistogram(get_opponent_sign()).hasAnyFour()) // we have 3x3 fork while the opponent has no four
+								response_score = Score::win_in(5); // rare (approximately 1 in 4000 positions)
 						}
 						break;
 					}
 					case ThreatType::FORK_4x3:
-					{
-						const Score solution = try_solve_own_fork_4x3(*iter);
+					{ // rare (approximately 1 in 700 positions)
+						const Score solution = try_solve_own_fork_4x3(*move);
 						if (solution.isWin())
-						{ // found a surely winning 4x3 fork
-							actions->has_initiative = true;
-							response_score = solution;
-						}
+							response_score = solution; // found a surely winning 4x3 fork
 						break;
 					}
 					case ThreatType::FORK_4x4:
-					{
-						assert(is_own_4x4_fork_forbidden() == false); // forbidden move should have been excluded earlier
-						actions->has_initiative = true;
+					{ // rare (approximately 1 in 3000 positions)
+						assert(is_anything_forbidden_for(get_own_sign()) == false); // forbidden moves should have been excluded earlier
 						response_score = Score::win_in(3);
 						break;
 					}
 					case ThreatType::OPEN_4:
-					{
-						actions->has_initiative = true;
+					{ // rare (approximately 1 in 500 positions)
 						response_score = Score::win_in(3);
 						break;
 					}
 					default:
 					{
-						const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), iter->row, iter->col);
+						const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
 						if (group.contains(PatternType::HALF_OPEN_4))
-						{
+						{ // quite common (approximately 1 in 40 positions)
 							actions->has_initiative = true;  // there is some half-open four to make in a response (may help gain initiative)
-							if (is_anything_forbidden_for(get_opponent_sign()))
-							{
-								const Score solution = try_solve_foul_attack(*iter);
-								if (solution.isWin())
-									response_score = solution;
-							}
+							// in renju it is possible that this half-open four would create a foul attack
+							// it is rare (approximately 1 in 9000 positions), would require a special method to check so we skip it
 						}
 						break;
 					}
 				}
-				add_move<EXCLUDE_DUPLICATE>(*iter, response_score);
+				if (response_score.isWin()) // overall not common (approximately 1 in 250 positions)
+					actions->has_initiative = true;
+				add_move<EXCLUDE_DUPLICATE>(*move, response_score);
 				best_score = std::max(best_score, response_score);
 			}
 			return Result(false, best_score); // although there is no proven score, we don't have to continue checking another threats
@@ -394,12 +386,14 @@ namespace ag
 			int hidden_open_four_count = 0;
 			if (is_anything_forbidden_for(get_own_sign()))
 			{ // in renju there might be an open four hidden inside a legal 3x3 fork
-			  // it is very rare (approximately 1 in 500.000 positions) but easy to check so we do it
+			  // it is very rare (approximately 1 in 500.000 positions) but we must check this in order to have correct results
+
+				// we must copy as the check for forbidden moves may reorder the elements in the original list
 				const std::vector<Location> &opp_fork_3x3 = get_copy(get_own_threats(ThreatType::FORK_3x3));
 				for (auto move = opp_fork_3x3.begin(); move < opp_fork_3x3.end(); move++)
 				{
-					const DirectionGroup<PatternType> patterns = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
-					if (patterns.contains(PatternType::OPEN_4) and not is_own_3x3_fork_forbidden(*move))
+					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
+					if (group.contains(PatternType::OPEN_4) and not is_forbidden(get_own_sign(), *move))
 					{
 						hidden_open_four_count++;
 						add_move<EXCLUDE_DUPLICATE>(*move, Score::win_in(3));
@@ -410,14 +404,14 @@ namespace ag
 			const std::vector<Location> &own_open_four = get_own_threats(ThreatType::OPEN_4);
 			add_moves<EXCLUDE_DUPLICATE>(own_open_four, Score::win_in(3));
 			if (hidden_open_four_count + own_open_four.size() > 0)
-			{
+			{ // frequent in renju (1 in 20) but rare otherwise (approximately 1 in 450 positions)
 				actions->has_initiative = true;
 				return Result(false, Score::win_in(3));
 			}
 
 			const std::vector<Location> &own_fork_4x4 = get_own_threats(ThreatType::FORK_4x4);
-			if (own_fork_4x4.size() > 0 and not is_own_4x4_fork_forbidden())
-			{
+			if (own_fork_4x4.size() > 0 and not is_anything_forbidden_for(get_own_sign()))
+			{ // rare (approximately 1 in 1700 positions)
 				actions->has_initiative = true;
 				add_moves<EXCLUDE_DUPLICATE>(own_fork_4x4, Score::win_in(3));
 				return Result(false, Score::win_in(3));
@@ -425,16 +419,50 @@ namespace ag
 
 			if (is_anything_forbidden_for(get_opponent_sign()))
 			{ // in renju, we might be able to create a threat of five where the opponent will have a forbidden move - only for circle (white) player
+			  // it is quite frequent (approximately 1 in 300 positions) and we can successfully solve ~98% of such positions
+
+				// we must copy as the check for forbidden moves may reorder the elements in the original list
 				const std::vector<Location> &own_half_open_four = get_copy(get_own_threats(ThreatType::HALF_OPEN_4));
 				for (auto move = own_half_open_four.begin(); move < own_half_open_four.end(); move++)
-				{
-					const Score solution = try_solve_foul_attack(*move);
-					if (solution.isWin())
+				{ // we take advantage of the fact that in renju, half-open fours always come in pairs, for example !XX!X
+				  // we can loop over available half-open fours and check if any of them is on the spot forbidden for the opponent
+				  // only then we check its defensive moves to find that other half-open four from the pair that would create this foul attack
+				  // such approach saves a lot of lookups to the defensive moves table which are costly
+					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
+					assert(group.count(PatternType::HALF_OPEN_4) == 1);
+					const Direction dir = group.findDirectionOf(PatternType::HALF_OPEN_4);
+
+					bool is_winning = false;
+					switch (get_opponent_threat_at(move->row, move->col))
 					{
-						add_move<EXCLUDE_DUPLICATE>(*move, solution);
-						return Result(false, solution);
+						default:
+							break;
+						case ThreatType::FORK_3x3:
+						{ // if own half-open four is in the same direction as opponent open three, they may influence each other
+						  // it is quite rare (approximately 1 in 100.000 positions) and very complicated to check so we skip it
+						  // and anyway, by creating the half-open four we would most likely make the 3x3 fork legal, or remove it at all
+							const DirectionGroup<PatternType> tmp = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
+							if (tmp[dir] != PatternType::OPEN_3 and is_forbidden(get_opponent_sign(), *move))
+								is_winning = true;
+							break;
+						}
+						case ThreatType::FORK_4x4:
+						case ThreatType::OVERLINE:
+							is_winning = true;
+							break;
+					}
+
+					if (is_winning)
+					{
+						const ShortVector<Location, 6> tmp = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move->row, move->col, dir); // we intentionally want to have all moves, including forbidden ones
+						assert(tmp.size() == 2); // in renju rule, there should be exactly two defensive moves to half-open four
+						// one of them will be at the same spot where we have just created this threat, we want to check that other one
+						const Location original = (tmp[0] == *move) ? tmp[1] : tmp[0];
+						add_move<EXCLUDE_DUPLICATE>(original, Score::win_in(3));
+						return Result(false, Score::win_in(3));
 					}
 				}
+				// there are also half-open fours hidden inside legal 3x3 forks, but they are less than 0.5% of all half-open fours, so we don't check it here
 			}
 			return Result();
 		}
@@ -465,14 +493,14 @@ namespace ag
 				for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
 				{
 					actions->must_defend = true;
-					const DirectionGroup<PatternType> patterns = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
-					const Direction direction = patterns.findDirectionOf(PatternType::OPEN_4);
+					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
+					const Direction direction = group.findDirectionOf(PatternType::OPEN_4);
 					const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 
 					defensive_moves.get_intersection_with(tmp);
 					if (defensive_moves.is_empty() and not has_any_four)
-					{ // we already proven that the threats are not refutable
-						add_moves<EXCLUDE_DUPLICATE>(opp_open_four); // we must always produce some moves, even if the threat is not refutable
+					{ // we already proved that the threats are not refutable
+						add_moves<EXCLUDE_DUPLICATE>(opp_open_four, Score::loss_in(4)); // we must always produce some moves, even if the threat is not refutable
 						return Result(false, Score::loss_in(4));
 					}
 				}
@@ -482,32 +510,32 @@ namespace ag
 				for (auto move = opp_fork_4x4.begin(); move < opp_fork_4x4.end(); move++)
 				{
 					actions->must_defend = true;
-					const DirectionGroup<PatternType> patterns = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
+					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
 
 					// at first resolve open and double fours, as they all must be refuted by a single move
 					for (Direction dir = 0; dir < 4; dir++)
-						if (patterns[dir] == PatternType::OPEN_4 or patterns[dir] == PatternType::DOUBLE_4)
+						if (group[dir] == PatternType::OPEN_4 or group[dir] == PatternType::DOUBLE_4)
 							defensive_moves.get_intersection_with(get_defensive_moves(*move, dir));
 
-					// then resolve half open fours
+					// then resolve half-open fours
 					// this case is more complicated as we actually only need to refute all but one of them
 					// we would need to check all combinations and pick the one that has the largest intersection with the defensive moves
 					// and then test it against all combinations for other forks.
 					// 4x4 forks containing half-open fours are quite frequent (approximately than 1 in 60 positions)
-					// but it's too complicated to check exactly, we approximate the result by taking union of defensive moves to all half open fours
+					// but it's too complicated to check exactly, we approximate the result by taking union of defensive moves to all half-open fours
 					// it produces more moves than necessary but at least it will not overlook any
-					if (patterns.count(PatternType::HALF_OPEN_4) > 0)
+					if (group.count(PatternType::HALF_OPEN_4) > 0)
 					{
 						storage.clear();
 						for (Direction dir = 0; dir < 4; dir++)
-							if (patterns[dir] == PatternType::HALF_OPEN_4)
+							if (group[dir] == PatternType::HALF_OPEN_4)
 								get_union(storage, get_defensive_moves(*move, dir));
 						defensive_moves.get_intersection_with(storage);
 					}
 
 					if (defensive_moves.is_empty() and not has_any_four)
-					{ // we already proven that the threats are not refutable
-						add_moves<EXCLUDE_DUPLICATE>(opp_fork_4x4); // we must always produce some moves, even if the threat is not refutable
+					{ // we already proved that the threats are not refutable (approximately 1 in 700 positions)
+						add_moves<EXCLUDE_DUPLICATE>(opp_fork_4x4, Score::loss_in(4)); // we must always produce some moves, even if the threat is not refutable
 						return Result(false, Score::loss_in(4));
 					}
 				}
@@ -520,8 +548,8 @@ namespace ag
 					for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
 					{
 						actions->must_defend = true;
-						const DirectionGroup<PatternType> patterns = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
-						const Direction direction = patterns.findDirectionOf(PatternType::OPEN_4);
+						const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
+						const Direction direction = group.findDirectionOf(PatternType::OPEN_4);
 						const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 						add_moves<EXCLUDE_DUPLICATE>(tmp.begin(), tmp.end());
 					}
@@ -529,30 +557,33 @@ namespace ag
 
 				if (is_anything_forbidden_for(get_opponent_sign()))
 				{ // in renju there might be an open four hidden inside a legal 3x3 fork
-				  // it is very rare (approximately 1 in 400.000 positions) but easy to check
+				  // it is very rare (approximately 1 in 400.000 positions) but cheap to check
+
+					// we must copy as the check for forbidden moves may reorder the elements in the original list
 					const std::vector<Location> &opp_fork_3x3 = get_copy(get_opponent_threats(ThreatType::FORK_3x3));
 					for (auto move = opp_fork_3x3.begin(); move < opp_fork_3x3.end(); move++)
 					{
-						const DirectionGroup<PatternType> patterns = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
-						if (patterns.contains(PatternType::OPEN_4) and not is_opponent_3x3_fork_forbidden(*move))
+						const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
+						if (group.contains(PatternType::OPEN_4) and not is_forbidden(get_opponent_sign(), *move))
 						{
 							actions->must_defend = true;
-							const Direction direction = patterns.findDirectionOf(PatternType::OPEN_4);
+							const Direction direction = group.findDirectionOf(PatternType::OPEN_4);
 							const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 							add_moves<EXCLUDE_DUPLICATE>(tmp.begin(), tmp.end());
 						}
 					}
 				}
 
-				if (not is_opponent_4x4_fork_forbidden())
+				if (not is_anything_forbidden_for(get_opponent_sign()))
 				{
+					// we must copy as the check for forbidden moves may reorder the elements in the original list
 					const std::vector<Location> &opp_fork_4x4 = get_copy(get_opponent_threats(ThreatType::FORK_4x4));
 					for (auto move = opp_fork_4x4.begin(); move < opp_fork_4x4.end(); move++)
 					{
 						actions->must_defend = true;
-						const DirectionGroup<PatternType> patterns = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
+						const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
 						for (Direction dir = 0; dir < 4; dir++)
-							if (is_a_four(patterns[dir]))
+							if (is_a_four(group[dir]))
 							{
 								const ShortVector<Location, 6> tmp = get_defensive_moves(*move, dir);
 								add_moves<EXCLUDE_DUPLICATE>(tmp.begin(), tmp.end());
@@ -561,7 +592,7 @@ namespace ag
 				}
 			}
 			if (actions->must_defend)
-			{
+			{ // TODO actually all those move should be added before any defensive ones, but as for now it would be tricky to implement
 				actions->has_initiative = has_any_four;
 				const Score best_score = add_own_4x3_forks();
 				if (best_score.isWin())
@@ -577,7 +608,8 @@ namespace ag
 			Score best_score = add_own_4x3_forks();
 
 			if (not is_anything_forbidden_for(get_own_sign()))
-			{ // in renju, for cross (black) player it is possible that in 3x3 fork some open 3 can't be converted to a four because they will be forbidden for some reason, so we check only circle (white)
+			{ // in renju, for cross (black) player it is possible that in 3x3 fork some open 3 can't be converted to a four because they will be forbidden for some reason
+			  // so we check only for circle (white) player
 				if (pattern_calculator.getThreatHistogram(get_opponent_sign()).hasAnyFour() == false)
 				{
 					const std::vector<Location> &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
@@ -601,7 +633,7 @@ namespace ag
 			for (auto iter = own_fork_4x3.begin(); iter < own_fork_4x3.end(); iter++)
 			{
 				const Score solution = try_solve_own_fork_4x3(*iter);
-				add_move<OVERRIDE_DUPLICATE>(*iter, solution);
+				add_move<OVERRIDE_DUPLICATE>(*iter, solution); // the move might have been added earlier as defensive move, so we must override its score
 				if (solution.isProven())
 					result = std::max(result, solution);
 			}
@@ -609,44 +641,76 @@ namespace ag
 		}
 		int ThreatGenerator::add_own_half_open_fours()
 		{
-			// TODO we can further exclude half open fours where the opponent can create a winning threat in response
 			int hidden_count = 0;
 			if (is_anything_forbidden_for(get_own_sign()))
 			{ // in renju rule there might be a half-open four hidden inside a legal 3x3 fork - only for cross (black) player
-			  // it is rare (approximately 1 in 50.000 positions) but easy to check
+			  // it is rare (approximately 1 in 60.000 positions) but cheap to check
+
+				// we must copy as the check for forbidden moves may reorder the elements in the original list
 				const std::vector<Location> &own_fork_3x3 = get_copy(get_own_threats(ThreatType::FORK_3x3));
 				for (auto move = own_fork_3x3.begin(); move < own_fork_3x3.end(); move++)
-				{ // loop over 3x3 forks
+				{
 					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
-					if (group.contains(PatternType::HALF_OPEN_4) and not is_own_3x3_fork_forbidden(*move))
+					if (group.contains(PatternType::HALF_OPEN_4) and not is_forbidden(get_own_sign(), *move))
 					{
-						for (Direction dir = 0; dir < 4; dir++)
-							if (group[dir] == PatternType::HALF_OPEN_4)
-							{
-								add_move<EXCLUDE_DUPLICATE>(*move);
-								hidden_count++;
-							}
+						add_move<EXCLUDE_DUPLICATE>(*move);
+						hidden_count++;
 					}
 				}
 			}
-			add_moves<EXCLUDE_DUPLICATE>(get_own_threats(ThreatType::HALF_OPEN_4)); // half open four is a threat of win in 1
+
+			// in theory we can exclude half-open fours where the opponent can create a winning threat in response
+			// they are rare (less than 0.5% of all half-open fours) and the check is very costly so we don't do this
+//			const std::vector<Location> &own_half_open_fours = get_own_threats(ThreatType::HALF_OPEN_4);
+//			for (auto move = own_half_open_fours.begin(); move < own_half_open_fours.end(); move++)
+//			{
+//				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
+//				const Direction dir = group.findDirectionOf(PatternType::HALF_OPEN_4);
+//				ShortVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move->row, move->col, dir);
+//				defensive_moves.remove(*move); // excluding move at the spot that we occupied to create this threat
+//
+//				ThreatType best_opponent_threat = ThreatType::NONE;
+//				for (auto iter = defensive_moves.begin(); iter < defensive_moves.end(); iter++)
+//					best_opponent_threat = std::max(best_opponent_threat, get_opponent_threat_at(iter->row, iter->col));
+//
+//				switch (best_opponent_threat)
+//				{
+//					default:
+//					{
+//						hidden_count++;
+//						add_move<EXCLUDE_DUPLICATE>(*move);
+//						break;
+//					}
+//					case ThreatType::FORK_4x4:
+//					case ThreatType::OPEN_4:
+//					case ThreatType::FIVE:
+//						break;
+//				}
+//			}
+//			return hidden_count;
+			add_moves<EXCLUDE_DUPLICATE>(get_own_threats(ThreatType::HALF_OPEN_4)); // half-open four is a threat of win in 1
 			return hidden_count + get_own_threats(ThreatType::HALF_OPEN_4).size();
 		}
 		Score ThreatGenerator::try_solve_own_fork_4x3(Location move)
 		{
 			assert(get_own_threat_at(move.row, move.col) == ThreatType::FORK_4x3);
 			if (is_anything_forbidden_for(get_own_sign())) // unfortunately it is very often (approximately i in 30 positions)
-				return Score(); // there is a possibility that inside the three there will later be a forbidden move -> too complicated to check statically
+				return Score(); // there is a possibility that inside the three there will later be a forbidden move, it's too complicated to check statically
 
-			const DirectionGroup<PatternType> own_patterns = pattern_calculator.getPatternTypeAt(get_own_sign(), move.row, move.col);
-			const Direction direction_of_own_four = own_patterns.findDirectionOf(PatternType::HALF_OPEN_4);
-			ShortVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move.row, move.col,
-					direction_of_own_four);
-			defensive_moves.remove(move);
+			const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move.row, move.col);
+			const Direction direction = group.findDirectionOf(PatternType::HALF_OPEN_4);
+			ShortVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move.row, move.col, direction);
+			defensive_moves.remove(move); // excluding move at the spot that we occupied to create this threat
 
 			ThreatType best_opponent_threat = ThreatType::NONE;
 			for (auto iter = defensive_moves.begin(); iter < defensive_moves.end(); iter++)
-				best_opponent_threat = std::max(best_opponent_threat, get_opponent_threat_at(iter->row, iter->col));
+			{
+				const ThreatType tt = get_opponent_threat_at(iter->row, iter->col);
+				// in renju we don't want to consider forbidden responses but taking simple max would include them and potentially hide allowed responses (which have lower level threats)
+				// but 3x3 fork can be included as it does not form a danger for us anyway
+				if ((tt != ThreatType::FORK_4x4 and tt != ThreatType::OVERLINE) or not is_anything_forbidden_for(get_opponent_sign()))
+					best_opponent_threat = std::max(best_opponent_threat, tt);
+			}
 
 			switch (best_opponent_threat)
 			{
@@ -657,52 +721,16 @@ namespace ag
 					return Score::win_in(5); // opponent cannot make any four in response to our threat
 				case ThreatType::FORK_3x3: // in renju, rarely (approximately 1 in 7000 positions) it happens that the win is in 3 plys instead of in 5, because the 3x3 fork is forbidden
 					return Score::win_in(5); // but it is not worth checking, it is a win anyway, doesn't matter if longer or shorter
-				case ThreatType::HALF_OPEN_4: // rare (approximately 1 in 300 positions)
-				case ThreatType::FORK_4x3: // very rare (approximately 1 in 5000 positions)
+				case ThreatType::HALF_OPEN_4: // moderately rare (approximately 1 in 300 positions)
+				case ThreatType::FORK_4x3: // rare (approximately 1 in 5000 positions)
 					return Score(); // too complicated to check statically
-				case ThreatType::FORK_4x4:
-					return is_anything_forbidden_for(get_opponent_sign()) ? Score::win_in(3) : Score::loss_in(4); // in renju there is a single defensive move to a five, so if it is forbidden it's a loss
+				case ThreatType::FORK_4x4: // rare (approximately 1 in 4500 positions)
 				case ThreatType::OPEN_4:
-					return Score::loss_in(4); // opponent can make open four
-				case ThreatType::FIVE:
-					return Score::loss_in(2); // opponent can make a five
+					return Score::loss_in(4); // opponent will create a 'win in 3' type of threat
+				case ThreatType::FIVE: // actually this should never happen, as if the opponent has any five it should have been handled earlier in 'defend_loss_in_2()'
 				case ThreatType::OVERLINE:
-					return is_anything_forbidden_for(get_opponent_sign()) ? Score::win_in(3) : Score::loss_in(2); // in renju there is a single defensive move to a five, so if it is forbidden it's a loss
+					return Score::loss_in(2); // opponent will create winning threat in response
 			}
-		}
-		Score ThreatGenerator::try_solve_foul_attack(Location move)
-		{
-			if (is_anything_forbidden_for(get_opponent_sign()))
-			{ // only if the opponent can have any forbidden moves, so in renju and for cross (black) player
-				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move.row, move.col);
-				if (group.count(PatternType::HALF_OPEN_4) != 1)
-					return Score(); // there is no half open four in here, or it is a 4x4 fork
-
-				const Direction dir = group.findDirectionOf(PatternType::HALF_OPEN_4);
-				const ShortVector<Location, 6> tmp = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move.row, move.col, dir); // we intentionally want to have all moves, including forbidden ones
-				assert(tmp.size() == 2); // in renju rule, there should be exactly two defensive moves to half open four
-				// one of the defensive moves will be at the same spot where we have just created this threat, we want to check that other one
-				const Location response = (tmp[0] == move) ? tmp[1] : tmp[0];
-				switch (get_opponent_threat_at(response.row, response.col))
-				{
-					default:
-						break;
-					case ThreatType::FORK_3x3:
-					{
-						const DirectionGroup<PatternType> tmp = pattern_calculator.getPatternTypeAt(get_opponent_sign(), response.row, response.col);
-						// if own half open four is in the same direction as opponent open three, they may influence each other
-						// it is quite rare (approximately 1 in 100.000 positions)
-						// and anyway, by creating the half open four we would most likely make the 3x3 fork legal, or remove it at all
-						if (tmp[dir] != PatternType::OPEN_3 and is_opponent_3x3_fork_forbidden(response))
-							return Score::win_in(3);
-						break;
-					}
-					case ThreatType::FORK_4x4:
-					case ThreatType::OVERLINE:
-						return Score::win_in(3);
-				}
-			}
-			return Score();
 		}
 
 		Sign ThreatGenerator::get_own_sign() const noexcept
@@ -729,29 +757,23 @@ namespace ag
 		{
 			return pattern_calculator.getThreatHistogram(get_opponent_sign()).get(tt);
 		}
-		bool ThreatGenerator::is_own_4x4_fork_forbidden() const noexcept
-		{
-			return is_anything_forbidden_for(get_own_sign());
-		}
-		bool ThreatGenerator::is_opponent_4x4_fork_forbidden() const noexcept
-		{
-			return is_anything_forbidden_for(get_opponent_sign());
-		}
-		bool ThreatGenerator::is_own_3x3_fork_forbidden(Location m) const noexcept
-		{
-			if (is_anything_forbidden_for(get_own_sign()))
-				return pattern_calculator.isForbidden(get_own_sign(), m.row, m.col);
-			return false;
-		}
-		bool ThreatGenerator::is_opponent_3x3_fork_forbidden(Location m) const noexcept
-		{
-			if (is_anything_forbidden_for(get_opponent_sign()))
-				return pattern_calculator.isForbidden(get_opponent_sign(), m.row, m.col);
-			return false;
-		}
 		bool ThreatGenerator::is_anything_forbidden_for(Sign sign) const noexcept
 		{
 			return (game_config.rules == GameRules::RENJU) and (sign == Sign::CROSS);
+		}
+		bool ThreatGenerator::is_forbidden(Sign sign, Location loc) const noexcept
+		{
+			if (is_anything_forbidden_for(sign))
+			{ // caching forbidden moves is not that much useful, it has about 7% hit rate
+			  // and saves less than 0.04% of pattern recalculations
+				for (size_t i = 0; i < forbidden_moves_cache.size(); i++)
+					if (forbidden_moves_cache[i].first == loc)
+						return forbidden_moves_cache[i].second;
+				const bool result = pattern_calculator.isForbidden(sign, loc.row, loc.col);
+				forbidden_moves_cache.push_back(std::pair<Location, bool>(loc, result));
+				return result;
+			}
+			return false;
 		}
 		const std::vector<Location>& ThreatGenerator::get_copy(const std::vector<Location> &list)
 		{
