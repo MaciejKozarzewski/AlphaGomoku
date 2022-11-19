@@ -58,6 +58,7 @@ namespace ag
 					CompressedBoard(const matrix<Sign> &board) noexcept;
 					bool operator==(const matrix<Sign> &board) const noexcept;
 					bool isTransitionPossibleFrom(const CompressedBoard &board) const noexcept;
+					int moveCount() const noexcept;
 			};
 			struct Entry
 			{
@@ -106,7 +107,7 @@ namespace ag
 			 */
 			void clear() noexcept;
 			/**
-			 * \brief Removes entries taht can no longer apper given the current board state.
+			 * \brief Removes entries that can no longer appear given the current board state.
 			 * All entries are moved to the temporary buffer to be used again.
 			 */
 			void cleanup(const matrix<Sign> &newBoard, Sign signToMove) noexcept;

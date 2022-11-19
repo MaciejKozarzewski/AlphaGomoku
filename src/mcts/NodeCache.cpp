@@ -111,6 +111,13 @@ namespace ag
 		}
 		return result == 0;
 	}
+	int NodeCache::CompressedBoard::moveCount() const noexcept
+	{
+		int result = 0;
+		for (size_t i = 0; i < data.size(); i++)
+			result += popcount(data[i]);
+		return result;
+	}
 
 	NodeCache::NodeCache(GameConfig gameConfig, TreeConfig treeConfig) :
 			edge_pool(treeConfig.edge_bucket_size, gameConfig.rows * gameConfig.cols),
@@ -161,7 +168,8 @@ namespace ag
 	}
 	uint64_t NodeCache::getMemory() const noexcept
 	{
-		return sizeof(Entry) * storedNodes() + sizeof(Entry*) * bins.size() + sizeof(Edge) * storedEdges();
+		// technically not correct as it calculates the amount of used memory (instead of allocated)
+		return sizeof(*this) + sizeof(Entry) * storedNodes() + sizeof(Entry*) * bins.size() + sizeof(Edge) * storedEdges();
 	}
 	int NodeCache::allocatedEdges() const noexcept
 	{
@@ -200,9 +208,9 @@ namespace ag
 		{
 			Entry *current = bins[i];
 			while (current != nullptr)
-			{
+			{ // loop over all elements in the list
 				Entry *next = current->next_entry;
-				move_to_buffer(current);
+				move_to_buffer(current); // entries are not deleted but are moved to a buffer to be reused
 				current = next;
 			}
 			bins[i] = nullptr;
@@ -219,18 +227,19 @@ namespace ag
 		const CompressedBoard new_board(newBoard);
 		for (size_t i = 0; i < bins.size(); i++)
 		{
-			Entry *current = bins[i];
-			bins[i] = nullptr;
+			Entry *current = bins[i]; // attach whole list to a temporary pointer
+			bins[i] = nullptr; // clear the original pointer in the table
 			while (current != nullptr)
-			{
+			{ // loop over all elements in the list
 				Entry *next = current->next_entry;
 				if (current->board.isTransitionPossibleFrom(new_board))
-				{
+				{ // if stored board state can still appear in the future, append it back to the original list in the table
+				  // such procedure is shuffling the elements in the lists but it is fine
 					current->next_entry = bins[i];
 					bins[i] = current;
 				}
 				else
-					move_to_buffer(current);
+					move_to_buffer(current); // entries are not deleted but are moved to a buffer to be reused
 				current = next;
 			}
 		}
@@ -259,12 +268,15 @@ namespace ag
 
 		TimerGuard timer(stats.insert);
 
+		// at first create new entry and assign the board state to it
 		Entry *new_entry = get_new_entry();
 		new_entry->board = CompressedBoard(board);
 
+		// then calculate hash of the position and assign it to the new entry
 		const uint64_t hash = hashing.getHash(board, signToMove);
 		new_entry->hash = hash;
 
+		// now insert the new entry to the beginning of the linked list at a position given by the hash value
 		const size_t bin_index = hash & bin_index_mask;
 		new_entry->next_entry = bins[bin_index];
 		bins[bin_index] = new_entry;
@@ -276,6 +288,7 @@ namespace ag
 		new_entry->edge_block = edge_pool.allocate(numberOfEdges);
 		new_entry->node.setEdges(new_entry->edge_block.get(), numberOfEdges);
 		new_entry->node.setDepth(Board::numberOfMoves(board));
+//		new_entry->node.setDepth(new_entry->board.moveCount());
 		new_entry->node.setSignToMove(signToMove);
 
 		return &(new_entry->node);
@@ -288,15 +301,15 @@ namespace ag
 		const uint64_t hash = hashing.getHash(board, signToMove);
 
 		const size_t bin_index = hash & bin_index_mask;
-		Entry *current = bins[bin_index];
-		bins[bin_index] = nullptr;
+		Entry *current = bins[bin_index]; // attach whole list to a temporary pointer
+		bins[bin_index] = nullptr; // clear the original pointer in the table
 		while (current != nullptr)
-		{
+		{ // loop over all elements in the list
 			Entry *next = current->next_entry;
 			if (current->hash == hash and current->board == board and current->node.getSignToMove() == signToMove)
 				move_to_buffer(current);
 			else
-			{
+			{ // such procedure is shuffling the elements in the lists but it is fine
 				current->next_entry = bins[bin_index];
 				bins[bin_index] = current;
 			}
