@@ -115,7 +115,8 @@ namespace ag
 	}
 	int64_t Tree::getMemory() const noexcept
 	{
-		return node_cache.getMemory() + (shared_hash_table == nullptr) ? 0 : shared_hash_table->getMemory();
+		int64_t result = (shared_hash_table == nullptr) ? 0 : shared_hash_table->getMemory();
+		return result + node_cache.getMemory();
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove, bool forceRemoveRootNode)
 	{
@@ -124,9 +125,9 @@ namespace ag
 
 		if (not equalSize(base_board, newBoard))
 		{
-			GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
+			const GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
 			node_cache = NodeCache(game_config, tree_config);
-			shared_hash_table = std::make_shared<tss::SharedHashTable<4>>(newBoard.rows(), newBoard.cols(), 1 << 24);
+			shared_hash_table = std::make_shared<tss::SharedHashTable<4>>(newBoard.rows(), newBoard.cols(), tree_config.tss_hash_table_size);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
@@ -195,9 +196,9 @@ namespace ag
 			return false;
 		else
 		{
-			int non_losing_edges = std::count_if(root_node->begin(), root_node->end(), [](const Edge &edge)
+			const int non_losing_edges_count = std::count_if(root_node->begin(), root_node->end(), [](const Edge &edge)
 			{	return edge.getProvenValue() != ProvenValue::LOSS;});
-			return non_losing_edges == 1;
+			return non_losing_edges_count == 1;
 		}
 	}
 
@@ -213,11 +214,11 @@ namespace ag
 			edge->increaseVirtualLoss();
 
 			node = edge->getNode();
-			if (node == nullptr) // edge appears to be a leaf
-			{
+			if (node == nullptr)
+			{ // edge appears to be a leaf
 				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
-				if (node != nullptr) // if found in the cache
-					edge->setNode(node); // link that edge to the found node
+				if (node != nullptr)
+					edge->setNode(node); // if found in the cache, link that edge to the found node
 				// if not found in the cache it means that the edge is really a leaf
 			}
 
@@ -237,8 +238,8 @@ namespace ag
 		assert(task.getEdges().size() > 0);
 
 		Node *node_to_add = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in the cache
-		if (node_to_add == nullptr) // not found in the cache
-		{
+		if (node_to_add == nullptr)
+		{ // not found in the cache
 			const int number_of_edges = task.getEdges().size();
 			assert(number_of_edges > 0);
 
@@ -256,8 +257,7 @@ namespace ag
 			return ExpandOutcome::SUCCESS;
 		}
 		else
-		{
-			// this can happen if the same state was encountered from different paths
+		{ // this can happen if the same state was encountered from different paths
 			if (task.visitedPathLength() > 0) // in a rare case it could be that the root node has already been expanded by some other thread
 			{ // but if not
 				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
