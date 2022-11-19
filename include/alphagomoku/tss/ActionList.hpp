@@ -109,13 +109,9 @@ namespace ag
 					return std::any_of(begin(), end(), [m](const Action &action)
 					{	return action.move.location() == m;});
 				}
-				void add(Move move) noexcept
+				void add(Move move, Score score = Score()) noexcept
 				{
-					m_children[m_size++].init(move, ProvenScore::UNKNOWN);
-				}
-				void add(Move move, Score s) noexcept
-				{
-					m_children[m_size++].init(move, s);
+					m_children[m_size++].init(move, score);
 				}
 				void removeAction(size_t index) noexcept
 				{
@@ -124,9 +120,9 @@ namespace ag
 						m_children[i - 1] = m_children[i];
 					m_size--;
 				}
-				bool moveCloserToFront(Move move, int offset) noexcept
+				bool moveCloserToFront(Move move, size_t offset) noexcept
 				{
-					for (int i = offset + 1; i < size(); i++)
+					for (int i = offset; i < size(); i++)
 						if (m_children[i].move == move)
 						{
 							std::swap(m_children[offset], m_children[i]); // move it closer to the front

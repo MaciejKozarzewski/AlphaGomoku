@@ -82,8 +82,8 @@ namespace ag
 				template<AddMode Mode, typename T>
 				void add_moves(const T begin, const T end, Score s = Score()) noexcept;
 				ShortVector<Location, 6> get_defensive_moves(Location location, Direction dir);
-				Result try_win_in_1();
 				Result try_draw_in_1();
+				Result try_win_in_1();
 				Result defend_loss_in_2();
 				Result try_win_in_3();
 				Result defend_loss_in_4();

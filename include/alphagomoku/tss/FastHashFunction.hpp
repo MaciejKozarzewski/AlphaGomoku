@@ -169,7 +169,7 @@ namespace ag
 				}
 				int64_t getMemory() const noexcept
 				{
-					return sizeof(this) + m_keys.size() * sizeof(HashKey<Bits> );
+					return m_keys.size() * sizeof(HashKey<Bits> );
 				}
 				HashKey<Bits> getHash(const matrix<Sign> &board) const noexcept
 				{

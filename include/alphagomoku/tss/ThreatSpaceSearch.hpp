@@ -68,8 +68,8 @@ namespace ag
 		{
 			BASIC, /* only game end conditions are checked */
 			STATIC, /* static solver and move generator is used */
-			VCF, /* depth-first VCF search is used */
-			VCT /* iterative deepening VCT search is used */
+			DEPTH_FIRST, /* depth-first VCF search is used */
+			ITERATIVE_DEEPENING /* iterative deepening VCF search is used */
 		};
 
 		class ThreatSpaceSearch
@@ -115,8 +115,8 @@ namespace ag
 						std::cout << "SharedHashTable load factor = " << shared_table->loadFactor(true) << '\n';
 				}
 			private:
+				template<bool IsIterativeDeepening>
 				Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions);
-				Score vcf_search(int depthRemaining, ActionList &actions, bool isAttacker);
 				bool is_move_legal(Move m) const noexcept;
 				void apply_ordering(ActionList &actions, Move hashMove, const ShortVector<Move, 4> &killers) const noexcept;
 				Score evaluate();

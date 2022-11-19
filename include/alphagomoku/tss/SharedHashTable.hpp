@@ -116,6 +116,12 @@ namespace ag
 						HashKey<64> m_key;
 						SharedTableData m_value;
 					public:
+						Entry() noexcept = default;
+						Entry(const HashKey<128> &key, SharedTableData value) noexcept :
+								m_key(key.getHigh() ^ value),
+								m_value(value)
+						{
+						}
 						HashKey<64> getKey() const noexcept
 						{
 							return m_key ^ m_value;
@@ -123,11 +129,6 @@ namespace ag
 						SharedTableData getValue() const noexcept
 						{
 							return m_value;
-						}
-						void set(const HashKey<128> &key, SharedTableData value) noexcept
-						{
-							m_key = key.getHigh() ^ value;
-							m_value = value;
 						}
 						bool key_matches(const HashKey<128> &key) const noexcept
 						{
@@ -149,7 +150,7 @@ namespace ag
 				}
 				int64_t getMemory() const noexcept
 				{
-					return sizeof(this) + m_hashtable.sizeInBytes() + m_hash_function.getMemory();
+					return m_hashtable.sizeInBytes() + m_hash_function.getMemory();
 				}
 				const FastHashFunction<128>& getHashFunction() const noexcept
 				{
@@ -177,6 +178,7 @@ namespace ag
 				void insert(const HashKey<128> &hash, SharedTableData value) noexcept
 				{
 					value.set_generation_and_key(m_base_generation, hash.getLow());
+					const Entry new_entry(hash, value);
 
 					std::array<Entry, N> &bucket = m_hashtable[hash.getLow() & m_mask];
 					// first check if this position is already stored in the bucket
@@ -186,7 +188,7 @@ namespace ag
 							const Entry entry = bucket[i]; // copy entry to stack to prevent surprises from read/write race
 							if (entry.key_matches(hash))
 							{
-								bucket[i].set(hash, value);
+								bucket[i] = new_entry;
 								return;
 							}
 						}
@@ -199,7 +201,7 @@ namespace ag
 						if (get_value_of(entry) < get_value_of(*found))
 							found = &bucket[i];
 					}
-					found->set(hash, value);
+					*found = new_entry;
 				}
 				void prefetch(const HashKey<128> &hash) const noexcept
 				{
