@@ -15,6 +15,7 @@
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/vcf_solver/VCFSolver.hpp>
+#include <alphagomoku/vcf_solver/VCTSolver.hpp>
 #include <alphagomoku/tss/ThreatSpaceSearch.hpp>
 
 #include <cinttypes>
@@ -60,6 +61,7 @@ namespace ag
 			int active_task_count = 0;
 
 			solver::VCFSolver vcf_solver;
+			solver::VCTSolver vct_solver;
 			tss::ThreatSpaceSearch ts_search;
 
 			GameConfig game_config;

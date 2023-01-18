@@ -55,7 +55,7 @@ namespace ag
 		std::lock_guard lock(search_mutex);
 		if (search_future.valid())
 		{
-			std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
+			const std::future_status search_status = search_future.wait_for(std::chrono::milliseconds(0));
 			return search_status != std::future_status::ready;
 		}
 		else
@@ -79,20 +79,21 @@ namespace ag
 					TreeLock lock(tree);
 					search.select(tree);
 				}
+				SpeedSummary info;
 				NNEvaluator &evaluator = evaluator_pool.get();
-				if(evaluator.isOnGPU())
+				if (evaluator.isOnGPU())
 				{ // run solver asynchronously to the network evaluation
 					search.solve(false);
 					search.scheduleToNN(evaluator);
 					evaluator.asyncEvaluateGraphLaunch();
 					search.solve(true);
-					evaluator.asyncEvaluateGraphJoin();
+					info = evaluator.asyncEvaluateGraphJoin();
 				}
 				else
 				{
 					search.solve();
 					search.scheduleToNN(evaluator);
-					evaluator.evaluateGraph();
+					info = evaluator.evaluateGraph();
 				}
 				evaluator_pool.release(evaluator);
 

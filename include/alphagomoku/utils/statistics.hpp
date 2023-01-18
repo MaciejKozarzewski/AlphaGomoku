@@ -22,6 +22,7 @@ namespace ag
 
 			std::string m_name;
 			time_point m_timer_start;
+			time_point m_timer_stop;
 			int64_t m_total_time = 0;
 			int64_t m_total_count = 0;
 			bool m_is_measuring = false;
@@ -36,9 +37,19 @@ namespace ag
 			{
 				return m_name;
 			}
+			/*
+			 * \brief Get total time in seconds.
+			 */
 			double getTotalTime() const noexcept
 			{
 				return m_total_time * 1.0e-9;
+			}
+			/*
+			 * \brief Get time of the last measurement in seconds.
+			 */
+			double getLastTime() const noexcept
+			{
+				return std::chrono::duration<int64_t, std::nano>(m_timer_stop - m_timer_start).count() * 1.0e-9;
 			}
 			uint64_t getTotalCount() const noexcept
 			{
@@ -76,6 +87,7 @@ namespace ag
 				assert(isMeasuring() == false);
 				m_is_measuring = true;
 				m_timer_start = getTime();
+				m_timer_stop = m_timer_start;
 			}
 			/**
 			 * \brief Pause current time measurement.
@@ -84,7 +96,8 @@ namespace ag
 			void pauseTimer() noexcept
 			{
 				assert(isMeasuring());
-				m_total_time += std::chrono::duration<int64_t, std::nano>(getTime() - m_timer_start).count();
+				m_timer_stop = getTime();
+				m_total_time += std::chrono::duration<int64_t, std::nano>(m_timer_stop - m_timer_start).count();
 				m_is_paused = true;
 			}
 			/**
@@ -94,6 +107,7 @@ namespace ag
 			{
 				assert(isMeasuring() && isPaused());
 				m_timer_start = getTime();
+				m_timer_stop = m_timer_start;
 				m_is_paused = false;
 			}
 			/**
@@ -102,7 +116,8 @@ namespace ag
 			void stopTimer() noexcept
 			{
 				assert(isMeasuring());
-				m_total_time += std::chrono::duration<int64_t, std::nano>(getTime() - m_timer_start).count();
+				m_timer_stop = getTime();
+				m_total_time += std::chrono::duration<int64_t, std::nano>(m_timer_stop - m_timer_start).count();
 				m_total_count++;
 				m_is_measuring = false;
 			}

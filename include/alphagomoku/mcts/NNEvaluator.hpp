@@ -28,14 +28,22 @@ namespace ag
 		public:
 			uint64_t batch_sizes = 0;
 			TimedStat pack;
-			TimedStat eval_sync;
-			TimedStat eval_async;
+			TimedStat launch;
+			TimedStat compute;
+			TimedStat wait;
 			TimedStat unpack;
 
 			NNEvaluatorStats();
 			std::string toString() const;
 			NNEvaluatorStats& operator+=(const NNEvaluatorStats &other) noexcept;
 			NNEvaluatorStats& operator/=(int i) noexcept;
+	};
+
+	struct SpeedSummary
+	{
+			int batch_size = 0;
+			double compute_time = 0.0;
+			double wait_time = 0.0;
 	};
 
 	class NNEvaluator
@@ -70,9 +78,9 @@ namespace ag
 			void unloadGraph();
 			void addToQueue(SearchTask &task);
 			void addToQueue(SearchTask &task, int symmetry);
-			void evaluateGraph();
+			SpeedSummary evaluateGraph();
 			void asyncEvaluateGraphLaunch();
-			void asyncEvaluateGraphJoin();
+			SpeedSummary asyncEvaluateGraphJoin();
 		private:
 			void pack_to_network(int batch_size);
 			void unpack_from_network(int batch_size);
