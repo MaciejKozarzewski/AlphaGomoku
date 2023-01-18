@@ -43,7 +43,7 @@ namespace ag
 		eval_cond.wait(lock, [this]() // @suppress("Invalid arguments")
 				{	return free_evaluators.size() > 0;});
 
-		int idx = free_evaluators.back();
+		const int idx = free_evaluators.back();
 		free_evaluators.pop_back();
 		return *(evaluators.at(idx));
 	}
@@ -259,7 +259,7 @@ namespace ag
 			result.principal_variation.erase(result.principal_variation.begin(), result.principal_variation.begin() + listOfMoves.size());
 		}
 		for (size_t i = 0; i < search_threads.size(); i++)
-			result.number_of_nodes += search_threads[i]->getSearchStats().solve.getTotalCount(); // TODO taking the number of solver calls might not be the best estimation of the node count
+			result.number_of_nodes += search_threads[i]->getSearchStats().nb_node_count;
 		return result;
 	}
 	/*
@@ -269,7 +269,7 @@ namespace ag
 	{
 		if (settings.getThreadNum() > static_cast<int>(search_threads.size()))
 		{
-			int num_to_add = settings.getThreadNum() - static_cast<int>(search_threads.size());
+			const int num_to_add = settings.getThreadNum() - static_cast<int>(search_threads.size());
 			for (int i = 0; i < num_to_add; i++)
 				search_threads.push_back(std::make_unique<SearchThread>(settings, tree, nn_evaluators));
 		}
