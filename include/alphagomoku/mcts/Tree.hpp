@@ -66,6 +66,7 @@ namespace ag
 			Tree(TreeConfig treeOptions);
 			int64_t getMemory() const noexcept;
 
+			void clear();
 			void setBoard(const matrix<Sign> &newBoard, Sign signToMove, bool forceRemoveRootNode = false);
 			void setEdgeSelector(const EdgeSelector &selector);
 			void setEdgeGenerator(const EdgeGenerator &generator);

@@ -118,11 +118,14 @@ namespace ag
 		int64_t result = (shared_hash_table == nullptr) ? 0 : shared_hash_table->getMemory();
 		return result + node_cache.getMemory();
 	}
+	void Tree::clear()
+	{
+		node_cache.clear();
+		if (shared_hash_table != nullptr)
+			shared_hash_table->clear();
+	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove, bool forceRemoveRootNode)
 	{
-		if (forceRemoveRootNode and node_cache.seek(newBoard, signToMove) != nullptr)
-			node_cache.remove(newBoard, signToMove);
-
 		if (not equalSize(base_board, newBoard))
 		{
 			const GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
@@ -141,6 +144,8 @@ namespace ag
 		base_depth = Board::numberOfMoves(newBoard);
 		sign_to_move = signToMove;
 
+		if (forceRemoveRootNode and node_cache.seek(newBoard, signToMove) != nullptr)
+			node_cache.remove(newBoard, signToMove);
 		root_node = node_cache.seek(newBoard, signToMove);
 		max_depth = 0;
 	}
