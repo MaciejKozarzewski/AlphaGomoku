@@ -22,7 +22,7 @@ This document describes the details of how protocols are implemented in AlphaGom
 \section{Gomocup Protocol}
 Here are listed all Gomocup protocol \cite{newprotocol} commands that are implemented in AG with description how they work in this particular program.
 
-The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [C],[R].
+The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [C],[R] or C,R.
 
 \textbf{Note:} In order to use this protocol in AG, field "protocol" in the configuration file must be set to "gomocup".
 
@@ -227,7 +227,7 @@ The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [
 \label{cmd_suggest}
 If \texttt{INFO analysis{\_}mode} is set to \texttt{1}, engine will answer \texttt{BEGIN}, \texttt{BOARD} and \texttt{TURN} commands with \texttt{SUGGEST} [C],[R] instead of [C],[R] and will not change its internal state.
 
-\textbf{Note:} AG do not explicitly wait for the manager to send \texttt{PLAY} command in response.
+\textbf{Note:} The manager can send any command in response to \texttt{SUGGEST} except \texttt{TURN} and \texttt{TAKEBACK}.
 
 \textbf{Note:} Pondering is never started automatically after \texttt{SUGGEST} response.
 
@@ -253,7 +253,7 @@ If path specified in the command does not exist in the tree for any reason, the 
 \textbf{Note:} Sending excessive amounts of \texttt{INFO evaluate} commands during the search is discouraged as it can degrade engine performance.
 
 \subsubsection{INFO rule [x]}
-\label{cmd_info_rule}
+\label{cmd_exinfo_rule}
 In addition to the possible values in base Gomocup protocol, one more new value is allowed:
 \begin{enumerate}[leftmargin=7.5em]
 	\item[\text{$[x]=8$}]{caro rule (OXXXXXO is not a win). Currently not implemented.}
@@ -334,73 +334,19 @@ This command starts the search in pondering mode for [value] milliseconds. The p
 This command stops the current search. If it was regular search, either the best move will be returned or \texttt{SUGGEST} message will be sent, depending on the \texttt{INFO analysis{\_}mode} settings. If it was pondering search it is simply stopped and no output is produced. Such interrupted pondering can be launched again by another \texttt{PONDER} command.
 
 
-\subsection{SWAP2BOARD}
-\label{cmd_swap2board}
-This command is used for swap2 opening rule. It is described on Gomocup webpage and was included here for completeness. It has three cases:
+\subsection{BALANCE [n]}
+\label{cmd_balance}
+\textbf{Note:} Currently not implemented in AG.
 
-\textbf{Case 1.} The manager asks for the first three stones:\\
-\texttt{SWAP2BOARD}\\
+This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it searches for [n] moves that create the most balanced position (balanced position is such where neither player has an advantage). For example\\
+\texttt{BALANCE 2} \\
+\texttt{[C1],[R1],2} \\
+\texttt{[C2],[R2],1} \\
+\texttt{[C3],[R3],2} \\
 \texttt{DONE}\\
-The engine answers with three moves separated by spaces, for example\\
-\texttt{7,7 8,7 9,9}
+will order the engine to find two moves that balance this 3-stone position. Value of [n] must be sctictly positive. Only [n]=1 and [n]=2 are required but the engine is encouraged to accept any values of [n]. If the rule is renju, the moves must be sent in the order they were played. For other rules the ordering may be random.
 
-\textbf{Case 2.} The manager sends the coordinates of the first three stones and asks for the choice of options:\\
-\texttt{SWAP2BOARD}\\
-\texttt{C1,R1}\\
-\texttt{C2,R2}\\
-\texttt{C3,R3}\\
-\texttt{DONE}\\
-The engine answers with one of the following:
-\begin{enumerate}[leftmargin=7.5em]
-\item[\texttt{SWAP}]{if the engine decides to swap}
-\item[\texttt{[C4],[R4]}]{output the coordinate of the 4th move if the engine decides to stay with white color}
-\item[\texttt{[C4],[R4] [C5],[R5]}]{output the coordinates of the 4th and 5th stones if the engine decides to put two stones and let the opponent choose the color}
-\end{enumerate}
-
-\textbf{Case 3.} The manager sends the coordinates of the first five stones and asks for the choice of options:\\
-\texttt{SWAP2BOARD}\\
-\texttt{C1,R1}\\
-\texttt{C2,R2}\\
-\texttt{C3,R3}\\
-\texttt{C4,R4}\\
-\texttt{C5,R5}\\
-\texttt{DONE}\\
-The engine answers with one of the following:
-\begin{enumerate}[leftmargin=7.5em]
-\item[\texttt{SWAP}]{if the engine decides to swap}
-\item[\texttt{[C6][R6]}]{output the coordinate of the 6th move if the engine decides to stay with white color}
-\end{enumerate}
-
-After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
-
-\textbf{Note:} Each step of the \texttt{SWAP2BOARD} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
-
-
-\subsection{SWAPBOARD}
-\label{cmd_swapboard}
-This command is used for swap opening rule. It is very similar to the \texttt{SWAP2BOARD} but it only has two cases:
-
-\textbf{Case 1.} The manager asks for the first three stones:\\
-\texttt{SWAPBOARD}\\
-\texttt{DONE}\\
-The engine answers with three moves separated by spaces, for example\\
-\texttt{7,7 8,7 9,9}
-
-\textbf{Case 2.} The manager sends the coordinates of the first three stones and asks for the choice of options:\\
-\texttt{SWAPBOARD}\\
-\texttt{C1,R1}\\
-\texttt{C2,R2}\\
-\texttt{C3,R3}\\
-\texttt{DONE}\\
-The engine answers with one of the following:
-\begin{enumerate}[leftmargin=7.5em]
-\item[\texttt{SWAP}]{if the engine decides to swap}
-\item[\texttt{[C4],[R4]}]{output the coordinate of the 4th move if the engine decides to stay with white color}
-\end{enumerate}
-
-After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
-
-\textbf{Note:} Each step of the \texttt{SWAPBOARD} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+\textbf{Note:} Execution of \texttt{BALANCE} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
 
 
 \subsection{SHOWFORBID}
@@ -421,24 +367,9 @@ If the rule is not renju or there are no forbidden moves on board, engine should
 \textbf{Note:} Execution of \texttt{SHOWFORBID} command is \textbf{not} considered to be a "turn", so the engine \textbf{does not have to} obey the time controls. It is recommended (but not required) for the engine to be able to respond to this command at any time.
 
 
-\subsection{BALANCE [n]}
-\label{cmd_balance}
-\textbf{Note:} Currently not implemented in AG.
-
-This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it searches for [n] moves that create the most balanced position (balanced position is such where neither player has an advantage). For example\\
-\texttt{BALANCE 2} \\
-\texttt{[C1],[R1],2} \\
-\texttt{[C2],[R2],1} \\
-\texttt{[C3],[R3],2} \\
-\texttt{DONE}\\
-will order the engine to find two moves that balance this 3-stone position. Value of [n] must be sctictly positive. Only [n]=1 and [n]=2 are required but the engine is encouraged to accept any values of [n]. If the rule is renju, the moves must be sent in the order they were played. For other rules the ordering may be random.
-
-\textbf{Note:} Execution of \texttt{BALANCE} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
-
-
 \subsection{CLEARHASH}
 \label{cmd_clearhash}
-Upon receiving this command the engine should clear its internal memory, so that the next search would start "fresh", without any data collected in previous searches. For example in $\alpha$-$\beta$ engines, this command probably will mean clearing the hashtable. This command must not be sent during the search and the engine is allowed to completely "forget" current board state after receving this command.
+Upon receiving this command the engine should clear its internal memory, so that the next search would start "fresh", without any data collected in previous searches. For example in $\alpha$-$\beta$ engines, this command probably will mean clearing the hashtable. Sending this command during the search will stop it.
 
 \textbf{Note:} AG does not have such kind of hashtable like in $\alpha$-$\beta$ engines, but still there is some cache that will be cleared upon receiving this command.
 
@@ -448,6 +379,700 @@ Upon receiving this command the engine should clear its internal memory, so that
 The engine should answer to this command with the version number of implemented protocol.\\
 \texttt{PROTOCOLVERSION} \\
 \texttt{[major],[minor]} \\
+
+
+\newpage
+\subsection{SWAP1STBOARD}
+\label{cmd_swap1st}
+This command is used for swap after first opening rule \cite{renju_opening_rules}. It has two cases:
+
+\subsubsection{Case 1}
+The manager asks for the first stone:\\
+\texttt{SWAP1STBOARD}\\
+\texttt{DONE}\\
+The engine answers with single move\\
+\texttt{C1,R1}
+
+\subsubsection{Case 2}
+The manager sends the coordinates of the first stone and asks for the choice of options:\\
+\texttt{SWAP1STBOARD}\\
+\texttt{C1,R1}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C2,R2}]{the coordinates of the 2nd move if the engine decides to stay with white color}
+\end{enumerate}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{SWAP1ST} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{SWAPBOARD}
+\label{cmd_swap}
+This command is used for swap opening rule \cite{gomoku_opening_rules}. It has two cases:
+
+\subsubsection{Case 1}
+The manager asks for the first three stones:\\
+\texttt{SWAPBOARD}\\
+\texttt{DONE}\\
+The engine answers with three moves separated by spaces:\\
+\texttt{C1,R1 C2,R2 C3,R3}
+
+\subsubsection{Case 2}
+The manager sends the coordinates of the first three stones and asks for the choice of options:\\
+\texttt{SWAPBOARD}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C4,R4}]{the coordinate of the 4th move if the engine decides to stay with white color}
+\end{enumerate}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{SWAPBOARD} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{SWAP2BOARD}
+\label{cmd_swap2board}
+This command is used for swap-2 opening rule \cite{renju_opening_rules}. It is described on Gomocup webpage and was included here for completeness. It has three cases:
+
+\subsubsection{Case 1}
+The manager asks for the first three stones:\\
+\texttt{SWAP2BOARD}\\
+\texttt{DONE}\\
+The engine answers with three moves separated by spaces:\\
+\texttt{C1,R1 C2,R2 C3,R3}
+
+\subsubsection{Case 2}
+The manager sends the coordinates of the first three stones and asks for the choice of options:\\
+\texttt{SWAP2BOARD}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C4,R4}]{the coordinates of the 4th move if the engine decides to stay with white color}
+\item[\texttt{C4,R4 C5,R5}]{the coordinates of the 4th and 5th stones if the engine decides to put two stones and let the opponent choose the color}
+\end{enumerate}
+
+\subsubsection{Case 3}
+The manager sends the coordinates of the first five stones and asks for the choice of options:\\
+\texttt{SWAP2BOARD}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{C5,R5}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C6,R6}]{the coordinates of the 6th move if the engine decides to stay with white color}
+\end{enumerate}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{SWAP2BOARD} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{SWAP5}
+\label{cmd_swap5}
+This command is used for swap-5 opening rule \cite{renju_opening_rules}. It has three steps:
+
+\subsubsection{SWAP5STEP1}
+The manager asks for the first stone:\\
+\texttt{SWAP5STEP1}\\
+\texttt{DONE}\\
+The engine answers with a single move, for example\\
+\texttt{C1,R1}
+
+\subsubsection{SWAP5STEP2}
+This case will be repeated several times, each time the command will be sent to the appropriate player. The manager sends the coordinates of already placed stones (from 1 to 5) and asks for the choice of options:\\
+\texttt{SWAP5STEP2}\\
+\texttt{C1,R1}\\
+\texttt{...}\\
+\texttt{CN,RN}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C,R}]{the coordinates of the next move if the engine decides to stay with the current color}
+\end{enumerate}
+
+\subsubsection{SWAP5STEP3}
+This case will be repeated several times, each time the command will be sent to the appropriate player. The manager sends the coordinates of already placed stones (from 1 to 5) and the engine must respond with the next move:\\
+\texttt{SWAP5STEP3}\\
+\texttt{C1,R1}\\
+\texttt{...}\\
+\texttt{CN,RN}\\
+\texttt{DONE}\\
+The engine answers with a single move, for example\\
+\texttt{C,R}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{SWAP5BOARD} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{PROBOARD}
+\label{cmd_pro}
+This command is used for pro opening rule \cite{gomoku_opening_rules}. It has three cases:
+
+\subsubsection{Case 1}
+The manager asks for the first stone:\\
+\texttt{PROBOARD}\\
+\texttt{DONE}\\
+The engine answers with a single move at the center of the board i.e. (width/2),(height/2) rounded down to the nearest integer. \\
+\texttt{C1,R1}
+
+\subsubsection{Case 2}
+This case will be repeated several times, each time the command will be sent to the appropriate player. The manager sends the coordinates of already placed stones (from 1 to 5) and asks for the choice of options:\\
+\texttt{PROBOARD}\\
+\texttt{C1,R1}\\
+\texttt{DONE}\\
+The engine answers with the coordinates of the second move:
+\texttt{C2,R2}
+
+\subsubsection{Case 3}
+This case will be repeated several times, each time the command will be sent to the appropriate player. The manager sends the coordinates of already placed stones (from 1 to 5) and the engine must respond with the next move:\\
+\texttt{PROBOARD}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{DONE}\\
+The engine answers with a single move that must be outside the central 5x5 square (center is defined by the position of the first stone), for example\\
+\texttt{C3,R3}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{PROBOARD} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{LONGPROBOARD}
+\label{cmd_longpro}
+This command is used for long pro opening rule \cite{gomoku_opening_rules}. It is almost exactly like the \texttt{PRO} but the third move must be made outside of the central 7x7 square (instead of 5x5).
+
+
+\subsection{RIF}
+\label{cmd_rif}
+This command is used for RIF opening rule \cite{renju_opening_rules}. It has five steps:
+
+\subsubsection{RIFSTEP1}
+The manager asks for the first three stones forming one of the 26 Renju openings (or any three stones for rules other than Renju):\\
+\texttt{RIFSTEP1}\\
+\texttt{DONE}\\
+The engine answers with three moves separated by spaces, for example\\
+\texttt{C1,R1 C2,R2 C3,R3}
+
+\subsubsection{RIFSTEP2}
+The manager sends the coordinates of the first three stones and asks for the choice of options:\\
+\texttt{RIFSTEP2}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C4,R4}]{output the coordinate of the 4th move if the engine decides to stay with the current color}
+\end{enumerate}
+
+\subsubsection{RIFSTEP3}
+If one of the player chosed to swap in the Case 2, the other player will be sent this variant. The manager sends the coordinates of the first three stones and asks for the 4th move:\\
+\texttt{RIFSTEP3}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with the coordinates of the 4th move:\\
+\texttt{C4,R4}
+
+\subsubsection{RIFSTEP4}
+The manager sends the coordinates of four stones:\\
+\texttt{RIFSTEP4}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{DONE}\\
+The engine answers with two candidates for the 5th move separated by spaces (moves must not be symmetrical), for example\\
+\texttt{C5a,R5a C5b,R5b}
+
+\subsubsection{RIFSTEP5}
+The manager sends the coordinates of four stones along with the two candidates for 5th move:\\
+\texttt{RIFSTEP5}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{DONE}\\
+\texttt{C5a,R5a C5b,R5b}\\
+The engine answers with two moves, first must be one of the two offered 5th moves, while the other is the 6th move, for example\\
+\texttt{C5,R5 C6,R6}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{RIF} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{YAMAGUCHI}
+\label{cmd_yamaguchi}
+This command is used for Yamaguchi opening rule \cite{renju_opening_rules}. It has five steps:
+
+\subsubsection{YAMAGUCHISTEP1}
+The manager asks for the first three stones forming one of the 26 Renju openings (or any three stones for rules other than Renju):\\
+\texttt{YAMAGUCHISTEP1}\\
+\texttt{DONE}\\
+The engine answers with three moves separated by spaces and the number of offered 5th moves\\
+\texttt{C1,R1 C2,R2 C3,R3 N}
+
+\subsubsection{YAMAGUCHISTEP2}
+The manager sends the coordinates of the first three stones along with the number of offered 5th moves and asks for the choice of options:\\
+\texttt{YAMAGUCHISTEP2 N}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C4,R4}]{output the coordinate of the 4th move if the engine decides to stay with the current color}
+\end{enumerate}
+
+\subsubsection{YAMAGUCHISTEP3}
+If one of the player chosed to swap in the Case 2, the other player will be sent this variant. The manager sends the coordinates of the first three stones along with the number of offered 5th moves and asks for the 4th move:\\
+\texttt{YAMAGUCHISTEP3 N}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with the coordinates of the 4th move:\\
+\texttt{C4,R4}
+
+\subsubsection{YAMAGUCHISTEP4}
+The manager sends the coordinates of four stones along with the number of offered 5th moves:\\
+\texttt{YAMAGUCHISTEP4 N}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{DONE}\\
+The engine answers with N candidates for the 5th move separated by spaces (moves must not be symmetrical)\\
+\texttt{C5a,R5a C5b,R5b C5c,R5c ...}
+
+\subsubsection{YAMAGUCHISTEP5}
+The manager sends the coordinates of four stones along with the candidates for 5th move:\\
+\texttt{YAMAGUCHISTEP5 N}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{PLAY}\\
+\texttt{C5a,R5a C5b,R5b C5c,R5c ...}
+The engine answers with two moves, first must be one of the offered 5th moves, while the other is the 6th move, for example\\
+\texttt{C5,R5 C6,R6}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{YAMAGUCHI} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{SOOSYRV}
+\label{cmd_soosyrv}
+This command is used for Soosyrv-N opening rule \cite{renju_opening_rules}. It has six steps:
+
+\subsubsection{SOOSYRVSTEP1}
+The manager asks for the first three stones forming one of the 26 Renju openings (or any three stones for rules other than Renju):\\
+\texttt{SOOSYRVSTEP1 N}\\
+\texttt{DONE}\\
+The engine answers with three moves separated by spaces, for example\\
+\texttt{C1,R1 C2,R2 C3,R3}
+
+\subsubsection{SOOSYRVSTEP2}
+The manager sends the coordinates of the first three stones along with the maximum number of offered 5th moves and asks for the choice of options:\\
+\texttt{SOOSYRVSTEP2 N}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C4,R4} \texttt{M}]{the coordinate of the 4th move and the number of offered 5th moves (from 1 to N) if the engine decides to stay with the current color}
+\end{enumerate}
+
+\subsubsection{SOOSYRVSTEP3}
+If one of the player chosed to swap in the Case 2, the other player will be sent this variant. The manager sends the coordinates of the first three stones along with the actual number of offered 5th moves and asks for the 4th move:\\
+\texttt{SOOSYRVSTEP3 N}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with the coordinates of the 4th move and the number of offered 5th moves (from 1 to N):\\
+\texttt{C4,R4 \texttt{M}}
+
+\subsubsection{SOOSYRVSTEP4}
+The manager sends the coordinates of four stones along with the actual number of offered 5th moves (specified in the previous cases):\\
+\texttt{SOOSYRVSTEP4 M}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[C5a,R5a C5b,R5b C5c,R5c ...]{M candidates for the 5th move separated by spaces (moves must not be symmetrical)}
+\end{enumerate}
+
+\subsubsection{SOOSYRVSTEP5}
+If one of the player chosed to swap in the Case 4, the other player will be sent this variant. The manager sends the coordinates of four stones along with the actual number of offered 5th moves (specified in the previous cases):\\
+\texttt{SOOSYRVSTEP5 M}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{DONE}\\
+The engine answers with N candidates for the 5th move separated by spaces (moves must not be symmetrical)\\
+\texttt{C5a,R5a C5b,R5b C5c,R5c ...}
+
+\subsubsection{SOOSYRVSTEP6}
+The manager sends the coordinates of four stones along with the candidates for 5th move:\\
+\texttt{SOOSYRVSTEP6 M}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{DONE}\\
+\texttt{C5a,R5a C5b,R5b C5c,R5c ...}
+The engine answers with two moves, first must be one of the offered 5th moves, while the other is the 6th move:\\
+\texttt{C5,R5 C6,R6}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{SOOSYRV} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{TARAGUCHI}
+\label{cmd_taraguchi}
+This command is used for Taraguchi opening rule \cite{renju_opening_rules}. It has two steps:
+
+\subsubsection{TARAGUCHISTEP1}
+The manager sends the coordinates of the first few stones along with the information how many 5th moves can be allowed:\\
+\texttt{TARAGUCHISTEP1 N}\\
+\texttt{C1,R1}\\
+\texttt{...}\\
+\texttt{CN,RN}\\
+\texttt{DONE}\\
+The engine answers with:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{C,R}]{the coordinates of the next move, 1st, 2nd, 3rd, 4th and 5th move must be within 1x1 (center), 3x3, 5x5, 7x7 and 9x9 central square, respectively. 6th move can be placed anywhere on the board}
+\end{enumerate}
+
+\subsubsection{TARAGUCHISTEP2}
+If the opponent swapped colors in step 1 the manager will send this variant to the other player:\\
+\texttt{TARAGUCHISTEP2 N}\\
+\texttt{C1,R1}\\
+\texttt{...}\\
+\texttt{CN,RN}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C,R}]{the coordinates of the next move, 2nd, 3rd, 4th and 5th move must be within 3x3, 5x5, 7x7 and 9x9 central square, respectively. 6th move can be placed anywhere on the board}
+\end{enumerate}
+
+\subsubsection{TARAGUCHISTEP3}
+If one of the player chosed to swap in the Case 4, the other player will be sent this variant. The manager sends the coordinates of four stones along with the actual number of offered 5th moves (specified in the previous cases):\\
+\texttt{TARAGUCHISTEP3 N}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{DONE}\\
+The engine answers with:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{C5a,R5a C5b,R5b ...}]{the coordinates of N candidates for the 5th move separated by spaces (moves must not be symmetrical)}
+\texttt{}
+\end{enumerate}
+
+\subsubsection{TARAGUCHISTEP4}
+The manager sends the coordinates of four stones along with the candidates for 5th move:\\
+\texttt{TARAGUCHISTEP4 N}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{DONE}\\
+\texttt{C5a,R5a C5b,R5b ...}
+The engine answers with two moves, first must be one of the offered 5th moves, while the other is the 6th move:\\
+\texttt{C5,R5 C6,R6}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{TARAGUCHI} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{SAKATA}
+\label{cmd_sakata}
+This command is used for SAKATA opening rule \cite{renju_opening_rules}. It has three steps:
+
+\subsubsection{SAKATASTEP1}
+The manager asks for the first three stones forming one of the 26 Renju openings (or any three stones for rules other than Renju):\\
+\texttt{SAKATASTEP1}\\
+\texttt{DONE}\\
+The engine answers with three moves separated by spaces, for example\\
+\texttt{C1,R1 C2,R2 C3,R3}
+
+\subsubsection{SAKATASTEP2}
+The manager sends the coordinates of the first three stones:\\
+\texttt{SAKATASTEP2}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with two moves:\\
+\texttt{C4,R4 C5,R5} the coordinate of the 4th move (within 7x7 central square) and 5th move (within 9x9 central square)
+
+\subsubsection{SAKATASTEP3}
+The manager sends the coordinates of the first five stones:\\
+\texttt{SAKATASTEP3}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{C4,R4}\\
+\texttt{C5,R5}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C6,R6}]{the coordinates of the 6th move if the engine decides to stay with white color}
+\end{enumerate}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{SAKATA} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{TARANNIKOV}
+\label{cmd_tarannikov}
+This command is used for SAKATA opening rule \cite{renju_opening_rules}. It has two steps:
+
+\subsubsection{TARANNIKOVSTEP1}
+The manager sends the coordinates of the first few stones along with the information how many 5th moves can be allowed:\\
+\texttt{TARANNIKOVSTEP1}\\
+\texttt{C1,R1}\\
+\texttt{...}\\
+\texttt{CN,RN}\\
+\texttt{DONE}\\
+The engine answers with:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{C,R}]{the coordinates of the next move, 1st, 2nd, 3rd, 4th and 5th move must be within 1x1 (center), 3x3, 5x5, 7x7 and 9x9 central square, respectively. 6th move can be placed anywhere on the board}
+\end{enumerate}
+
+\subsubsection{TARANNIKOVSTEP2}
+If the opponent swapped colors in step 1 the manager will send this variant to the other player:\\
+\texttt{TARANNIKOVSTEP2}\\
+\texttt{C1,R1}\\
+\texttt{...}\\
+\texttt{CN,RN}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C,R}]{the coordinates of the next move, 2nd, 3rd, 4th and 5th move must be within 3x3, 5x5, 7x7 and 9x9 central square, respectively. 6th move can be placed anywhere on the board}
+\end{enumerate}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{TARANNIKOV} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+\subsection{LIANHUAN}
+\label{cmd_lianhuan}
+This command is used for LianHuan opening rule \cite{renju_opening_rules}. It has two steps:
+
+\subsubsection{LIANHUANSTEP1}
+The manager sends the coordinates of the first few stones:\\
+\texttt{LIANHUANSTEP1}\\
+\texttt{C1,R1}\\
+\texttt{...}\\
+\texttt{CN,RN}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{C,R}]{the coordinates of the next move}
+\item[\texttt{Ca,Ra Cb,Rb}]{the coordinates of two next moves}
+\end{enumerate}
+
+\subsubsection{LIANHUANSTEP2}
+If the opponent placed two moves in step 1 the player has the ability to swap:\\
+\texttt{LIANHUANSTEP2}\\
+\texttt{C1,R1}\\
+\texttt{C2,R2}\\
+\texttt{C3,R3}\\
+\texttt{DONE}\\
+The engine answers with one of the following:
+\begin{enumerate}[leftmargin=7.5em]
+\item[\texttt{SWAP}]{if the engine decides to swap}
+\item[\texttt{C,R}]{the coordinates of the next move}
+\item[\texttt{Ca,Ra Cb,Rb}]{the coordinates of two next moves}
+\end{enumerate}
+
+After the opening stage, the stones on the board will be treated as an opening for a traditional Gomocup match, and the manager will communicate with the engine using the classical Gomocup protocol in the rest of the match.
+
+\textbf{Note:} Each step of the \texttt{LIANHUAN} command is considered to be a "turn", so the engine must obey the time controls (including \texttt{timeout{\_}turn}).
+
+
+
+\newpage
+\section{YixinBoard Protocol}
+This protocol implements all commands from the base Gomocup protocol. Additionally it introduces new commands. Sometimes extends how the original ones work.
+
+The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [C],[R].
+
+The commands are case-insensitive (usually sent as lowercase).
+
+\textbf{Note:} In order to use this protocol in AG, field "protocol" in the configuration file must be set to "yixinboard".
+
+\subsection{start [x] or start [C],[R]}
+\label{cmd_yxstart}
+Single command that behaves as \texttt{START [x]} or \texttt{RECTSTART [C] [R]} in the original Gomocup protocol. It can also be used as replacement to the \texttt{RESTART} command (i.e. to clear the board).
+
+
+\subsection{yxboard}
+\label{cmd_yxboard}
+This command is implemented exactly like in the specification \cite{yixinboard}.
+
+
+\subsection{Additional INFO keys}
+\label{cmd_ysinfo_extension1}
+In addition to the keys described in the original Gomocup protocol, also the following will be recognized.
+
+\subsubsection{INFO rule [x]}
+\label{cmd_yxinfo_rule}
+Specifies the rules used for the game. A bitmask that can have several possible values:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{five or more wins - freestyle rule. Supported only for 20x20 board.}
+	\item[\text{$[x]=1$}]{exactly five wins - standard rule. Supported only for 15x15 board.}
+	\item[\text{$[x]=2$}]{renju rule. Currently not implemented.}
+\end{enumerate}
+
+\textbf{Note:} This setting cannot be changed during the search.
+
+\subsubsection{INFO usedatabase [x]}
+Controls the usage of move database. The allowed values are:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{engine will use database}
+	\item[\text{$[x]=1$}]{engine will not use database}
+\end{enumerate}
+
+\subsubsection{INFO max{\_}depth [x]}
+Sets maximum search depth. 
+
+\textbf{Note:} If \text{$[x]<0$} the search depth is unlimited.
+
+\textbf{Note:} Since AG evaluates multiple nodes in parallel, it will stop as soon as the limit is reached but may exceed it by small amount.
+
+\subsubsection{INFO max{\_}node [x]}
+Sets maximum number of nodes.
+
+\textbf{Note:} If \text{$[x]<0$} the search depth is unlimited.
+
+\textbf{Note:} Since AG evaluates multiple nodes in parallel, it will stop as soon as the limit is reached but may exceed it by small amount.
+
+\subsubsection{INFO time{\_}increment [x]}
+Sets amount of time that is added after each move (see Fischer time controls \cite{fischer}).
+
+\textbf{Note:} Must not be negative.
+
+\subsubsection{INFO caution{\_}factor [x]}
+Controls the style of the search. Allowed values are:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=4$}]{defensive - AG will try to maximize the probability of not losing, $P_{win} + P_{draw}$.}
+	\item[\text{$[x]=3$}]{AG will try to maximize $P_{win} + \frac{3}{4}P_{draw}$.}
+	\item[\text{$[x]=2$}]{classic - AG will try to maximize the expectation outcome, $P_{win} + \frac{1}{2}P_{draw}$.
+	
+	\textbf{Note:} In general, this is the strongest setting.}
+	\item[\text{$[x]=1$}]{AG will try to maximize $P_{win} + \frac{1}{4}P_{draw}$.}
+	\item[\text{$[x]=0$}]{offensive - AG will try to maximize the probability of winning, $P_{win}$.}
+\end{enumerate}
+
+\subsubsection{INFO pondering [x]}
+Toggles the automatic pondering after each move. This command overrides the value of "auto{\_}pondering" loaded from the configuration file. Allowed values are:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{automatic pondering is turned off}
+	\item[\text{$[x]=1$}]{automatic pondering is turned on}
+\end{enumerate}
+
+\textbf{Note:} This option does not start/stop the pondering by itself, only allows/forbids the engine to automatically start pondering.
+
+\textbf{Note:} Pondering is never started automatically if \texttt{INFO analysis{\_}mode} is set to 1.
+
+\subsubsection{INFO nbest{\_}sym [x]}
+Sets the number of moves to be searched during \texttt{yxnbest} search.
+
+\subsubsection{INFO checkmate [x]}
+Controls the search type. Allowed values are:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{global search}
+	\item[\text{$[x]=1$}]{VCT1 search}
+	\item[\text{$[x]=2$}]{VCT2 search}
+\end{enumerate}
+
+\subsubsection{INFO thread{\_}num [x]}
+Sets maximum nuber of threads an engine can use. This command overrides the value of "thread{\_}num" loaded from the configuration file. Must be greater than 0. 
+
+\textbf{Note:} If number of threads is changed during the search, AG would not adjust its number of threads until the search ends.
+
+\subsubsection{Default values}
+Some parameters have default values so the engine works even if no \texttt{INFO} was sent:
+\begin{itemize}
+\item{\textbf{rule} = 0 (freestyle rule)}
+\item{\textbf{usedatabase} = 0 (disabled)}
+\item{\textbf{max{\_}depth } = 2147483647 (effectively no limit)}
+\item{\textbf{max{\_}nodes} = 2147483647 (effectively no limit)}
+\item{\textbf{time{\_}increment} = 0 ("sudden death" \cite{suddendeath} type time controls)}
+\item{\textbf{caution{\_}factor} = 2 (classic)}
+\item{\textbf{pondering} = as loaded from configuration file}
+\item{\textbf{nbest{\_}sym} = 0}
+\item{\textbf{checkmate} = 0 (global search)}
+\item{\textbf{thread{\_}num} = as loaded from configuration file}
+\end{itemize}
+
+\subsection{yxhashclear}
+This command is implemented exactly like in the protocol description.
+
+\textbf{Note:} AG does not have a hashtable like $\alpha$-$\beta$ engines. This command clears the search tree instead, which achieves similar result.
+
+\subsection{yxhashdump}
+This command is used to save the hashtable to a file specified by the next line. For example:
+\\
+\texttt{yxhashdump}\\
+\texttt{somepath/file}
+
+\textbf{Note:} Currently not implemented in AG as it would require serialization of the entire search tree which is too complex for now.
+
+\subsection{yxhashload}
+This command is used to load the hashtable from a file specified by the next line. For example:
+\\
+\texttt{yxhashload}\\
+\texttt{somepath/file}
+
+\textbf{Note:} Currently not implemented in AG as it would require serialization of the entire search tree which is too complex for now.
+
+\subsection{yxshowhashusage}
+The engine should respond with a \texttt{MESSAGE} with information about hash usage.
+
+\textbf{Note:} Currently not implemented in AG as it does not have a hashtable like $\alpha$-$\beta$ engines.
+
 
 
 \begin{thebibliography}{99}
@@ -462,6 +1087,14 @@ Kai Sun, Tianyi Hao, \href{https://gomocup.org/news/experimental-tournament-upda
 
 \bibitem{suddendeath}
 \href{https://en.wikipedia.org/wiki/Time_control#Sudden_death}{Time control - Wikipedia}
+
+\bibitem{yixinboard}
+\href{https://github.com/accreator/Yixin-protocol/blob/master/protocol.pdf}{YixinBoard protocol}
+
+\bibitem{renju_opening_rules}
+\href{https://www.renju.net/rule/}{Renju opening rules}
+\bibitem{gomoku_opening_rules}
+\href{http://gomokuworld.com/gomoku/2}{Gomoku opening rules}
 
 \end{thebibliography}
 
