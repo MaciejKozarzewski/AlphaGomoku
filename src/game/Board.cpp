@@ -212,14 +212,17 @@ namespace ag
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<ProvenValue> &pv)
 	{
+		assert(equalSize(board, pv));
 		return board_to_string(board, pv);
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<float> &policy)
 	{
+		assert(equalSize(board, policy));
 		return board_to_string(board, policy);
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<Value> &actionValues)
 	{
+		assert(equalSize(board, actionValues));
 		return board_to_string(board, actionValues);
 	}
 
