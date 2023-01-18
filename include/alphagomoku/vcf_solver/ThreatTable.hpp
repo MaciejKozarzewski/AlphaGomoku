@@ -13,7 +13,7 @@
 
 #include <cinttypes>
 
-namespace ag
+namespace ag::solver
 {
 	enum class ThreatType_v3 : int8_t
 	{

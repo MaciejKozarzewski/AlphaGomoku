@@ -27,7 +27,7 @@ namespace
 	}
 }
 
-namespace ag
+namespace ag::solver
 {
 
 	SolverStats::SolverStats() :
@@ -101,18 +101,20 @@ namespace ag
 			upper_measurement(tuning_step * max_positions)
 	{
 	}
-	void VCFSolver::solve(SearchTask &task, int level)
+	void VCFSolver::solve(SearchTask &task, int level, int pos)
 	{
 		stats.setup.startTimer();
 		feature_extractor.setBoard(task.getBoard(), task.getSignToMove());
 		stats.setup.stopTimer();
+//		feature_extractor.print();
+//		feature_extractor.printAllThreats();
 
 		{ // artificial scope for timer guard
 			TimerGuard tg(stats.static_solve);
-			bool success = static_solve_1ply_win(task);
+			bool success = static_solve_1ply_draw(task);
 			if (success)
 				return;
-			success = static_solve_1ply_draw(task);
+			success = static_solve_1ply_win(task);
 			if (success)
 				return;
 
@@ -150,17 +152,17 @@ namespace ag
 		recursive_solve_2(nodes_buffer.front(), true);
 		stats.total_positions += position_counter;
 
-//		std::cout << "depth = " << root_depth << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked "
-//				<< position_counter << " positions, total = " << total_positions << "\n";
+//		std::cout << ", result = " << static_cast<int>(nodes_buffer.front().solved_value) << ", checked " << position_counter << " positions\n";
 		if (nodes_buffer.front().solved_value == SolvedValue::LOSS)
 		{
 			stats.recursive_hits++;
-			task.getProvenEdges().clear(); // delete any edges that could have been added in 'static_solve_block_4()'
+			task.getPriorEdges().clear(); // delete any edges that could have been added in 'static_solve_block_4()'
 			for (auto iter = nodes_buffer.front().begin(); iter < nodes_buffer.front().end(); iter++)
 				if (iter->solved_value == SolvedValue::WIN)
-					task.addProvenEdge(Move(sign_to_move, iter->move), ProvenValue::WIN);
+					task.addPriorEdge(Move(sign_to_move, iter->move), Value(1.0f), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.markAsReady();
+			task.setProvenValue(ProvenValue::WIN);
+			task.markAsReadySolver();
 		}
 	}
 	void VCFSolver::tune(float speed)
@@ -265,9 +267,10 @@ namespace ag
 		if (own_five.size() > 0) // can make a five
 		{
 			for (auto iter = own_five.begin(); iter < own_five.end(); iter++)
-				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN);
+				task.addPriorEdge(Move(sign_to_move, *iter), Value(1.0f), ProvenValue::WIN);
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.markAsReady();
+			task.setProvenValue(ProvenValue::WIN);
+			task.markAsReadySolver();
 			stats.static_hits++;
 			return true;
 		}
@@ -284,9 +287,10 @@ namespace ag
 				for (int col = 0; col < game_config.cols; col++)
 					if (feature_extractor.signAt(row, col) == Sign::NONE)
 						m = Move(sign_to_move, row, col);
-			task.addProvenEdge(m, ProvenValue::DRAW);
+			task.addPriorEdge(m, Value(0.0f, 1.0f), ProvenValue::DRAW);
 			task.setValue(Value(0.0f, 1.0, 0.0f));
-			task.markAsReady();
+			task.setProvenValue(ProvenValue::DRAW);
+			task.markAsReadySolver();
 			stats.static_hits++;
 			return true;
 		}
@@ -303,15 +307,16 @@ namespace ag
 			case 1:
 			{
 				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
-					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
+					task.addPriorEdge(Move(sign_to_move, *iter), Value(), ProvenValue::UNKNOWN);
 				return true;
 			}
 			default:
 			{
 				for (auto iter = opponent_five.begin(); iter < opponent_five.end(); iter++)
-					task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::LOSS);
+					task.addPriorEdge(Move(sign_to_move, *iter), Value(0.0f, 0.0f, 1.0f), ProvenValue::LOSS);
 				task.setValue(Value(0.0f, 0.0, 1.0f));
-				task.markAsReady(); // the state is provably losing, there is no need to further evaluate it
+				task.setProvenValue(ProvenValue::LOSS);
+				task.markAsReadySolver(); // the state is provably losing, there is no need to further evaluate it
 				stats.static_hits++;
 				return true;
 			}
@@ -324,9 +329,10 @@ namespace ag
 		if (own_open_four.size() > 0) // we can make an open four, but it was already checked that opponent cannot make any five
 		{
 			for (auto iter = own_open_four.begin(); iter < own_open_four.end(); iter++)
-				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::WIN); // it is a win in 3 plys
+				task.addPriorEdge(Move(sign_to_move, *iter), Value(1.0f), ProvenValue::WIN); // it is a win in 3 plys
 			task.setValue(Value(1.0f, 0.0, 0.0f));
-			task.markAsReady();
+			task.setProvenValue(ProvenValue::WIN);
+			task.markAsReadySolver();
 			stats.static_hits++;
 			return true;
 		}
@@ -341,17 +347,17 @@ namespace ag
 		if (opponent_open_four.size() > 0) // opponent can make an open four, but no fives. We also cannot make any five or open four
 		{
 			for (auto iter = opponent_open_four.begin(); iter < opponent_open_four.end(); iter++)
-				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
+				task.addPriorEdge(Move(sign_to_move, *iter), Value(), ProvenValue::UNKNOWN);
 			for (auto iter = opponent_half_open_four.begin(); iter < opponent_half_open_four.end(); iter++)
-				task.addProvenEdge(Move(sign_to_move, *iter), ProvenValue::UNKNOWN);
+				task.addPriorEdge(Move(sign_to_move, *iter), Value(), ProvenValue::UNKNOWN);
 
 			for (auto iter = own_half_open_four.begin(); iter < own_half_open_four.end(); iter++)
 			{
 				Move move_to_be_added(sign_to_move, *iter);
-				bool is_already_added = std::any_of(task.getProvenEdges().begin(), task.getProvenEdges().end(), [move_to_be_added](const Edge &edge)
+				bool is_already_added = std::any_of(task.getPriorEdges().begin(), task.getPriorEdges().end(), [move_to_be_added](const Edge &edge)
 				{	return edge.getMove() == move_to_be_added;}); // find if such move has been added in any of two loops above
 				if (not is_already_added) // move must not be added twice
-					task.addProvenEdge(move_to_be_added, ProvenValue::UNKNOWN);
+					task.addPriorEdge(move_to_be_added, Value(), ProvenValue::UNKNOWN);
 			}
 		}
 	}

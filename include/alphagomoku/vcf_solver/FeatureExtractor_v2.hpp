@@ -21,7 +21,7 @@ namespace ag
 	class SearchTask;
 }
 
-namespace ag
+namespace ag::solver
 {
 	struct FeatureGroup
 	{
@@ -30,17 +30,17 @@ namespace ag
 			uint32_t diagonal;
 			uint32_t antidiagonal;
 
-			uint32_t get(Direction dir) const noexcept
+			uint32_t get(ag::solver::Direction dir) const noexcept
 			{
 				switch (dir)
 				{
-					case Direction::HORIZONTAL:
+					case ag::solver::Direction::HORIZONTAL:
 						return horizontal;
-					case Direction::VERTICAL:
+					case ag::solver::Direction::VERTICAL:
 						return vertical;
-					case Direction::DIAGONAL:
+					case ag::solver::Direction::DIAGONAL:
 						return diagonal;
-					case Direction::ANTIDIAGONAL:
+					case ag::solver::Direction::ANTIDIAGONAL:
 						return antidiagonal;
 					default:
 						return 0;
@@ -59,34 +59,34 @@ namespace ag
 			{
 				return max(max(horizontal, vertical), max(diagonal, antidiagonal));
 			}
-			Threat get(Direction dir) const noexcept
+			Threat get(ag::solver::Direction dir) const noexcept
 			{
 				switch (dir)
 				{
-					case Direction::HORIZONTAL:
+					case ag::solver::Direction::HORIZONTAL:
 						return horizontal;
-					case Direction::VERTICAL:
+					case ag::solver::Direction::VERTICAL:
 						return vertical;
-					case Direction::DIAGONAL:
+					case ag::solver::Direction::DIAGONAL:
 						return diagonal;
-					case Direction::ANTIDIAGONAL:
+					case ag::solver::Direction::ANTIDIAGONAL:
 						return antidiagonal;
 					default:
 						return Threat();
 				}
 			}
-			Threat& get(Direction dir) noexcept
+			Threat& get(ag::solver::Direction dir) noexcept
 			{
 				switch (dir)
 				{
 					default:
-					case Direction::HORIZONTAL:
+					case ag::solver::Direction::HORIZONTAL:
 						return horizontal;
-					case Direction::VERTICAL:
+					case ag::solver::Direction::VERTICAL:
 						return vertical;
-					case Direction::DIAGONAL:
+					case ag::solver::Direction::DIAGONAL:
 						return diagonal;
-					case Direction::ANTIDIAGONAL:
+					case ag::solver::Direction::ANTIDIAGONAL:
 						return antidiagonal;
 				}
 			}
@@ -150,8 +150,8 @@ namespace ag
 				}
 			}
 
-			uint32_t getFeatureAt(int row, int col, Direction dir) const noexcept;
-			ThreatType getThreatAt(Sign sign, int row, int col, Direction dir) const noexcept;
+			uint32_t getFeatureAt(int row, int col, ag::solver::Direction dir) const noexcept;
+			ag::solver::ThreatType getThreatAt(Sign sign, int row, int col, ag::solver::Direction dir) const noexcept;
 
 			void printFeature(int row, int col) const;
 			void printThreat(int row, int col) const;
@@ -163,12 +163,12 @@ namespace ag
 
 			void print_stats() const;
 		private:
-			uint32_t get_feature_at(int row, int col, Direction dir) const noexcept;
+			uint32_t get_feature_at(int row, int col, ag::solver::Direction dir) const noexcept;
 			void calc_all_features() noexcept;
 			void get_threat_lists();
 
 			void update_threats(int row, int col);
-			void update_threat_at(const FeatureTable &table, int row, int col, Direction direction);
+			void update_threat_at(const FeatureTable &table, int row, int col, ag::solver::Direction direction);
 			void update_central_threat(const FeatureTable &table, int row, int col);
 
 			void remove_single_threat(Move move, std::vector<Move> &list) noexcept
@@ -183,37 +183,37 @@ namespace ag
 			}
 
 			template<Sign sign>
-			void remove_threat(ThreatType threat, Move move) noexcept
+			void remove_threat(ag::solver::ThreatType threat, Move move) noexcept
 			{
 				switch (threat)
 				{
 					default:
 						break;
-					case ThreatType::HALF_OPEN_FOUR:
+					case ag::solver::ThreatType::HALF_OPEN_FOUR:
 						remove_single_threat(move, (sign == Sign::CROSS) ? cross_half_open_four : circle_half_open_four);
 						break;
-					case ThreatType::OPEN_FOUR:
+					case ag::solver::ThreatType::OPEN_FOUR:
 						remove_single_threat(move, (sign == Sign::CROSS) ? cross_open_four : circle_open_four);
 						break;
-					case ThreatType::FIVE:
+					case ag::solver::ThreatType::FIVE:
 						remove_single_threat(move, (sign == Sign::CROSS) ? cross_five : circle_five);
 						break;
 				}
 			}
 			template<Sign sign>
-			void add_threat(ThreatType threat, Move move) noexcept
+			void add_threat(ag::solver::ThreatType threat, Move move) noexcept
 			{
 				switch (threat)
 				{
 					default:
 						break;
-					case ThreatType::HALF_OPEN_FOUR:
+					case ag::solver::ThreatType::HALF_OPEN_FOUR:
 						add_single_threat(move, (sign == Sign::CROSS) ? cross_half_open_four : circle_half_open_four);
 						break;
-					case ThreatType::OPEN_FOUR:
+					case ag::solver::ThreatType::OPEN_FOUR:
 						add_single_threat(move, (sign == Sign::CROSS) ? cross_open_four : circle_open_four);
 						break;
-					case ThreatType::FIVE:
+					case ag::solver::ThreatType::FIVE:
 						add_single_threat(move, (sign == Sign::CROSS) ? cross_five : circle_five);
 						break;
 				}

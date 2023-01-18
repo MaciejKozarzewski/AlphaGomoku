@@ -13,6 +13,7 @@
 namespace
 {
 	using namespace ag;
+	using namespace ag::solver;
 	uint32_t get_feature_length(GameRules rules)
 	{
 		switch (rules)
@@ -21,7 +22,8 @@ namespace
 				return 4;
 			case GameRules::STANDARD:
 			case GameRules::RENJU:
-			case GameRules::CARO:
+			case GameRules::CARO5:
+			case GameRules::CARO6:
 				return 5;
 			default:
 				return 0;
@@ -109,21 +111,21 @@ namespace
 	}
 }
 
-namespace ag
+namespace ag::solver
 {
 
-	std::string toString(ThreatType t)
+	std::string toString(ag::solver::ThreatType t)
 	{
 		switch (t)
 		{
 			default:
-			case ThreatType::NONE:
+			case ag::solver::ThreatType::NONE:
 				return "NONE";
-			case ThreatType::HALF_OPEN_FOUR:
+			case ag::solver::ThreatType::HALF_OPEN_FOUR:
 				return "HALF_OPEN_FOUR";
-			case ThreatType::OPEN_FOUR:
+			case ag::solver::ThreatType::OPEN_FOUR:
 				return "OPEN_FOUR";
-			case ThreatType::FIVE:
+			case ag::solver::ThreatType::FIVE:
 				return "FIVE";
 		}
 	}

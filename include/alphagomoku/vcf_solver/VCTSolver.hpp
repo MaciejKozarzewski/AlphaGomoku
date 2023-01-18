@@ -12,9 +12,9 @@
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
+#include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/vcf_solver/FastHashTable.hpp>
 #include <alphagomoku/vcf_solver/VCFSolver.hpp>
-#include <alphagomoku/vcf_solver/FeatureExtractor_v3.hpp>
 
 #include <cassert>
 
@@ -23,53 +23,8 @@ namespace ag
 	class SearchTask;
 }
 
-namespace ag
+namespace ag::solver
 {
-//	enum class SolvedValue : int8_t
-//	{
-//		UNKNOWN,
-//		UNSOLVED,
-//		LOSS,
-//		WIN
-//	};
-//	inline std::string toString(SolvedValue sv)
-//	{
-//		switch (sv)
-//		{
-//			default:
-//			case SolvedValue::UNKNOWN:
-//				return "UNKNOWN";
-//			case SolvedValue::UNSOLVED:
-//				return "UNSOLVED";
-//			case SolvedValue::LOSS:
-//				return "LOSS";
-//			case SolvedValue::WIN:
-//				return "WIN";
-//		}
-//	}
-//
-//	struct SolverStats
-//	{
-//			TimedStat setup;
-//			TimedStat static_solve;
-//			TimedStat recursive_solve;
-//
-//			SolverStats();
-//			std::string toString() const;
-//	};
-//
-//	class Measurement
-//	{
-//			std::vector<std::pair<int, float>> m_values;
-//			int m_param_value;
-//		public:
-//			Measurement(int paramValue) noexcept;
-//			void clear() noexcept;
-//			int getParamValue() const noexcept;
-//			void update(int x, float y) noexcept;
-//			std::pair<float, float> predict(int x) const noexcept;
-//			std::string toString() const;
-//	};
 
 	class VCTSolver
 	{
@@ -110,7 +65,7 @@ namespace ag
 
 			GameConfig game_config;
 
-			FeatureExtractor_v3 feature_extractor;
+			PatternCalculator feature_extractor;
 			FastHashTable<uint32_t, SolvedValue, 4> hashtable;
 
 			size_t step_counter = 0;
@@ -138,9 +93,9 @@ namespace ag
 			void prepare_moves_for_defender(InternalNode &node);
 			void recursive_solve(InternalNode &node, bool isAttackingSide);
 
-			const std::vector<Move>& get_attacker_threats(ThreatType_v3 tt) const noexcept;
-			const std::vector<Move>& get_defender_threats(ThreatType_v3 tt) const noexcept;
-			void add_children_nodes(InternalNode &node, const std::vector<Move> &moves, int8_t prior = 0) noexcept;
+			const std::vector<Location>& get_own_threats(ag::ThreatType tt) const noexcept;
+			const std::vector<Location>& get_opponent_threats(ag::ThreatType tt) const noexcept;
+			void add_children_nodes(InternalNode &node, const std::vector<Location> &moves, int8_t prior = 0) noexcept;
 			void delete_children_nodes(InternalNode &node) noexcept;
 			void update_hint_table(const InternalNode &node) noexcept;
 			int get_node_value(const InternalNode &node) const noexcept;

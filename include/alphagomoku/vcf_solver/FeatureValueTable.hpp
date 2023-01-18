@@ -13,7 +13,7 @@
 #include <vector>
 #include <cinttypes>
 
-namespace ag
+namespace ag::solver
 {
 
 	template<uint32_t N>

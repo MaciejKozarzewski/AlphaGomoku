@@ -14,7 +14,7 @@
 #include <array>
 #include <cassert>
 
-namespace ag
+namespace ag::solver
 {
 	enum class FeatureType : int8_t
 	{

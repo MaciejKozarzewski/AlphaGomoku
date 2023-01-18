@@ -11,7 +11,7 @@
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/vcf_solver/FeatureTable.hpp>
 
-namespace ag
+namespace ag::solver
 {
 	class FeatureTable_v2
 	{

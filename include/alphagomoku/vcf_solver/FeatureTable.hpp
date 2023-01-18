@@ -10,7 +10,7 @@
 
 #include <alphagomoku/rules/game_rules.hpp>
 
-namespace ag
+namespace ag::solver
 {
 	enum class Direction
 	{
@@ -23,29 +23,29 @@ namespace ag
 	enum class ThreatType
 	{
 		NONE,
-//		OPEN_THREE,
+		OPEN_THREE,
 		HALF_OPEN_FOUR,
 		OPEN_FOUR,
-		FIVE
-//		FORBIDDEN,
-//		DOUBLE_THREE,
-//		FOUR_THREE,
-//		DOUBLE_FOUR
+		FIVE,
+		FORBIDDEN,
+		DOUBLE_THREE,
+		FOUR_THREE,
+		DOUBLE_FOUR
 	};
 
-	std::string toString(ThreatType t);
+	std::string toString(ag::solver::ThreatType t);
 
 	struct Threat
 	{
-			ThreatType for_cross = ThreatType::NONE;
-			ThreatType for_circle = ThreatType::NONE;
+			ag::solver::ThreatType for_cross = ag::solver::ThreatType::NONE;
+			ag::solver::ThreatType for_circle = ag::solver::ThreatType::NONE;
 			Threat() = default;
 			Threat(uint8_t encoding) :
-					for_cross(static_cast<ThreatType>(encoding & 15)),
-					for_circle(static_cast<ThreatType>((encoding >> 4) & 15))
+					for_cross(static_cast<ag::solver::ThreatType>(encoding & 15)),
+					for_circle(static_cast<ag::solver::ThreatType>((encoding >> 4) & 15))
 			{
 			}
-			Threat(ThreatType cross, ThreatType circle) :
+			Threat(ag::solver::ThreatType cross, ag::solver::ThreatType circle) :
 					for_cross(cross),
 					for_circle(circle)
 			{

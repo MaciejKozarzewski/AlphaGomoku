@@ -19,6 +19,7 @@
 namespace
 {
 	using namespace ag;
+	using namespace ag::solver;
 
 	template<int Pad>
 	void horizontal(matrix<FeatureGroup> &features, const matrix<int16_t> &board) noexcept
@@ -202,7 +203,8 @@ namespace
 				return 4;
 			case GameRules::STANDARD:
 			case GameRules::RENJU:
-			case GameRules::CARO:
+			case GameRules::CARO5:
+			case GameRules::CARO6:
 				return 5;
 			default:
 				return 0;
@@ -227,9 +229,14 @@ namespace
 				static FeatureTable table(GameRules::RENJU);
 				return table;
 			}
-			case GameRules::CARO:
+			case GameRules::CARO5:
 			{
-				static FeatureTable table(GameRules::CARO);
+				static FeatureTable table(GameRules::CARO5);
+				return table;
+			}
+			case GameRules::CARO6:
+			{
+				static FeatureTable table(GameRules::CARO6);
 				return table;
 			}
 			default:
@@ -238,7 +245,7 @@ namespace
 	}
 }
 
-namespace ag
+namespace ag::solver
 {
 
 	FeatureExtractor_v2::FeatureExtractor_v2(GameConfig gameConfig) :
@@ -299,7 +306,7 @@ namespace ag
 					break;
 			}
 
-			uint32_t line = get_feature_at(row, col, static_cast<Direction>(i));
+			uint32_t line = get_feature_at(row, col, static_cast<ag::solver::Direction>(i));
 			for (int j = 0; j < 2 * pad + 1; j++)
 			{
 				if (j == pad)
@@ -327,11 +334,11 @@ namespace ag
 		}
 	}
 
-	uint32_t FeatureExtractor_v2::getFeatureAt(int row, int col, Direction dir) const noexcept
+	uint32_t FeatureExtractor_v2::getFeatureAt(int row, int col, ag::solver::Direction dir) const noexcept
 	{
 		return features.at(pad + row, pad + col).get(dir);
 	}
-	ThreatType FeatureExtractor_v2::getThreatAt(Sign sign, int row, int col, Direction dir) const noexcept
+	ThreatType FeatureExtractor_v2::getThreatAt(Sign sign, int row, int col, ag::solver::Direction dir) const noexcept
 	{
 		switch (sign)
 		{
@@ -349,36 +356,36 @@ namespace ag
 		const FeatureTable &table = get_feature_table(game_config.rules);
 		std::cout << "Threat for cross at  (" << row << ", " << col << ") = ";
 		for (int i = 0; i < 4; i++)
-			std::cout << ag::toString(table.getThreat(get_feature_at(row, col, static_cast<Direction>(i))).for_cross) << ", ";
+			std::cout << ag::solver::toString(table.getThreat(get_feature_at(row, col, static_cast<ag::solver::Direction>(i))).for_cross) << ", ";
 		std::cout << "in map = ";
 		for (int i = 0; i < 4; i++)
-			std::cout << ag::toString(getThreatAt(Sign::CROSS, row, col, static_cast<Direction>(i))) << ", ";
+			std::cout << ag::solver::toString(getThreatAt(Sign::CROSS, row, col, static_cast<ag::solver::Direction>(i))) << ", ";
 		std::cout << '\n';
 
 		std::cout << "Threat for circle at (" << row << ", " << col << ") = ";
 		for (int i = 0; i < 4; i++)
-			std::cout << ag::toString(table.getThreat(get_feature_at(row, col, static_cast<Direction>(i))).for_circle) << ", ";
+			std::cout << ag::solver::toString(table.getThreat(get_feature_at(row, col, static_cast<ag::solver::Direction>(i))).for_circle) << ", ";
 		std::cout << "in map = ";
 		for (int i = 0; i < 4; i++)
-			std::cout << ag::toString(getThreatAt(Sign::CIRCLE, row, col, static_cast<Direction>(i))) << ", ";
+			std::cout << ag::solver::toString(getThreatAt(Sign::CIRCLE, row, col, static_cast<ag::solver::Direction>(i))) << ", ";
 		std::cout << '\n';
 	}
 	void FeatureExtractor_v2::printAllThreats() const
 	{
 		std::cout << "Threats-for-cross-----------\n";
 		for (size_t i = 0; i < cross_five.size(); i++)
-			std::cout << cross_five[i].toString() << " : " << ag::toString(ThreatType::FIVE) << '\n';
+			std::cout << cross_five[i].toString() << " : " << ag::solver::toString(ThreatType::FIVE) << '\n';
 		for (size_t i = 0; i < cross_open_four.size(); i++)
-			std::cout << cross_open_four[i].toString() << " : " << ag::toString(ThreatType::OPEN_FOUR) << '\n';
+			std::cout << cross_open_four[i].toString() << " : " << ag::solver::toString(ThreatType::OPEN_FOUR) << '\n';
 		for (size_t i = 0; i < cross_half_open_four.size(); i++)
-			std::cout << cross_half_open_four[i].toString() << " : " << ag::toString(ThreatType::HALF_OPEN_FOUR) << '\n';
+			std::cout << cross_half_open_four[i].toString() << " : " << ag::solver::toString(ThreatType::HALF_OPEN_FOUR) << '\n';
 		std::cout << "Threats-for-circle----------\n";
 		for (size_t i = 0; i < circle_five.size(); i++)
-			std::cout << circle_five[i].toString() << " : " << ag::toString(ThreatType::FIVE) << '\n';
+			std::cout << circle_five[i].toString() << " : " << ag::solver::toString(ThreatType::FIVE) << '\n';
 		for (size_t i = 0; i < circle_open_four.size(); i++)
-			std::cout << circle_open_four[i].toString() << " : " << ag::toString(ThreatType::OPEN_FOUR) << '\n';
+			std::cout << circle_open_four[i].toString() << " : " << ag::solver::toString(ThreatType::OPEN_FOUR) << '\n';
 		for (size_t i = 0; i < circle_half_open_four.size(); i++)
-			std::cout << circle_half_open_four[i].toString() << " : " << ag::toString(ThreatType::HALF_OPEN_FOUR) << std::endl;
+			std::cout << circle_half_open_four[i].toString() << " : " << ag::solver::toString(ThreatType::HALF_OPEN_FOUR) << std::endl;
 	}
 	void FeatureExtractor_v2::print(Move lastMove) const
 	{
@@ -459,7 +466,8 @@ namespace ag
 				break;
 			case GameRules::STANDARD:
 			case GameRules::RENJU:
-			case GameRules::CARO:
+			case GameRules::CARO5:
+			case GameRules::CARO6:
 				add_move<5>(features, internal_board, move);
 				break;
 			default:
@@ -482,7 +490,8 @@ namespace ag
 				break;
 			case GameRules::STANDARD:
 			case GameRules::RENJU:
-			case GameRules::CARO:
+			case GameRules::CARO5:
+			case GameRules::CARO6:
 				undo_move<5>(features, internal_board, move);
 				break;
 			default:
@@ -506,7 +515,7 @@ namespace ag
 	/*
 	 * private
 	 */
-	uint32_t FeatureExtractor_v2::get_feature_at(int row, int col, Direction dir) const noexcept
+	uint32_t FeatureExtractor_v2::get_feature_at(int row, int col, ag::solver::Direction dir) const noexcept
 	{
 		return features.at(pad + row, pad + col).get(dir);
 	}
@@ -523,7 +532,8 @@ namespace ag
 				break;
 			case GameRules::STANDARD:
 			case GameRules::RENJU:
-			case GameRules::CARO:
+			case GameRules::CARO5:
+			case GameRules::CARO6:
 				horizontal<5>(features, internal_board);
 				vertical<5>(features, internal_board);
 				diagonal<5>(features, internal_board);
@@ -551,7 +561,7 @@ namespace ag
 				{
 					for (int i = 0; i < 4; i++)
 					{
-						const Direction dir = static_cast<Direction>(i);
+						const ag::solver::Direction dir = static_cast<ag::solver::Direction>(i);
 						threats.at(row, col).get(dir) = table.getThreat(get_feature_at(row, col, dir));
 					}
 
@@ -573,26 +583,26 @@ namespace ag
 
 		for (int i = std::min(row, pad); i > 0; i--) // update rows above and the center spot
 		{
-			UPDATE_THREAT_AT(row - i, col - i, Direction::DIAGONAL)
-			UPDATE_THREAT_AT(row - i, col, Direction::VERTICAL)
-			UPDATE_THREAT_AT(row - i, col + i, Direction::ANTIDIAGONAL)
+			UPDATE_THREAT_AT(row - i, col - i, ag::solver::Direction::DIAGONAL)
+			UPDATE_THREAT_AT(row - i, col, ag::solver::Direction::VERTICAL)
+			UPDATE_THREAT_AT(row - i, col + i, ag::solver::Direction::ANTIDIAGONAL)
 		}
 		for (int i = col - pad; i < col; i++) // update the same row on the left of the placed move
-			UPDATE_THREAT_AT(row, i, Direction::HORIZONTAL)
+			UPDATE_THREAT_AT(row, i, ag::solver::Direction::HORIZONTAL)
 
 		update_central_threat(table, row, col);
 
 		for (int i = col + 1; i <= col + pad; i++) // update the same row on the right of the placed move
-			UPDATE_THREAT_AT(row, i, Direction::HORIZONTAL)
+			UPDATE_THREAT_AT(row, i, ag::solver::Direction::HORIZONTAL)
 		for (int i = 1; i <= std::min(game_config.rows - 1 - row, pad); i++) // update rows below
 		{
-			UPDATE_THREAT_AT(row + i, col - i, Direction::ANTIDIAGONAL)
-			UPDATE_THREAT_AT(row + i, col, Direction::VERTICAL)
-			UPDATE_THREAT_AT(row + i, col + i, Direction::DIAGONAL)
+			UPDATE_THREAT_AT(row + i, col - i, ag::solver::Direction::ANTIDIAGONAL)
+			UPDATE_THREAT_AT(row + i, col, ag::solver::Direction::VERTICAL)
+			UPDATE_THREAT_AT(row + i, col + i, ag::solver::Direction::DIAGONAL)
 		}
 #undef UPDATE_THREAT_AT
 	}
-	void FeatureExtractor_v2::update_threat_at(const FeatureTable &table, int row, int col, Direction direction)
+	void FeatureExtractor_v2::update_threat_at(const FeatureTable &table, int row, int col, ag::solver::Direction direction)
 	{
 		assert(row >= 0 && row < game_config.rows && col >= 0 && col < game_config.cols);
 		assert(signAt(row, col) == Sign::NONE);
@@ -633,7 +643,7 @@ namespace ag
 		{
 			for (int i = 0; i < 4; i++)
 			{
-				const Direction dir = static_cast<Direction>(i);
+				const ag::solver::Direction dir = static_cast<ag::solver::Direction>(i);
 				threats.at(row, col).get(dir) = table.getThreat(get_feature_at(row, col, dir));
 			}
 			const Threat new_best_threat = threats.at(row, col).best();

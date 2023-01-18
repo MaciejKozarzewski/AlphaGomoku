@@ -14,6 +14,7 @@
 namespace
 {
 	using namespace ag;
+	using namespace ag::solver;
 
 	constexpr Sign signFromText(char c) noexcept
 	{
@@ -135,7 +136,8 @@ namespace
 				return 9;
 			case GameRules::STANDARD:
 			case GameRules::RENJU:
-			case GameRules::CARO:
+			case GameRules::CARO5:
+						case GameRules::CARO6:
 				return 11;
 			default:
 				return 0;
@@ -175,7 +177,7 @@ namespace
 						else
 							return is_five;
 					}
-					case GameRules::CARO:
+					case GameRules::CARO5:
 					{
 						const bool is_five = is_match(shrink_by<2>(feature), five);
 						const bool is_blocked_five = is_match(feature, blocked_five);
@@ -213,7 +215,7 @@ namespace
 						else
 							return is_five;
 					}
-					case GameRules::CARO:
+					case GameRules::CARO5:
 					{
 						const bool is_five = is_match(shrink_by<2>(feature), open_four);
 						const bool is_blocked_five = is_match(feature, blocked);
@@ -251,7 +253,7 @@ namespace
 						else
 							return is_five;
 					}
-					case GameRules::CARO:
+					case GameRules::CARO5:
 					{
 						const bool is_five = is_match(shrink_by<2>(feature), open_four);
 						const bool is_blocked_five = is_match(feature, blocked);
@@ -289,7 +291,7 @@ namespace
 						else
 							return is_five;
 					}
-					case GameRules::CARO:
+					case GameRules::CARO5:
 					{
 						const bool is_five = is_match(shrink_by<2>(feature), open_four);
 						const bool is_blocked_five = is_match(feature, blocked);
@@ -317,7 +319,7 @@ namespace
 	}
 }
 
-namespace ag
+namespace ag::solver
 {
 
 	FeatureTable_v2::FeatureTable_v2(GameRules rules) :

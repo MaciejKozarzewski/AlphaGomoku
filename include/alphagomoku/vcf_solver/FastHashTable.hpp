@@ -16,7 +16,7 @@
 #include <vector>
 #include <cassert>
 
-namespace ag
+namespace ag::solver
 {
 	template<typename KeyType, typename ValueType, int N = 4>
 	class FastHashTable

@@ -14,6 +14,7 @@
 namespace
 {
 	using namespace ag;
+	using namespace ag::solver;
 
 	std::array<FeatureType, 4> make_feature_type_group(int f0, int f1, int f2, int f3) noexcept
 	{

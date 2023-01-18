@@ -22,7 +22,7 @@ namespace ag
 	class SearchTask;
 }
 
-namespace ag
+namespace ag::solver
 {
 	enum class SolvedValue : int8_t
 	{
@@ -125,7 +125,7 @@ namespace ag
 		public:
 			VCFSolver(GameConfig gameConfig, int maxPositions = 100);
 
-			void solve(SearchTask &task, int level = 0);
+			void solve(SearchTask &task, int level = 0, int pos = 0);
 			void tune(float speed);
 
 			SolverStats getStats() const;
