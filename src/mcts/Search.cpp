@@ -81,6 +81,7 @@ namespace ag
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
 			vcf_solver(gameOptions, searchOptions.vcf_solver_max_positions),
+			vct_solver(gameOptions, searchOptions.vcf_solver_max_positions),
 			ts_search(gameOptions, searchOptions.vcf_solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
@@ -88,7 +89,7 @@ namespace ag
 	}
 	int64_t Search::getMemory() const noexcept
 	{
-		return sizeof(this) + ts_search.getMemory();
+		return ts_search.getMemory();
 	}
 	const SearchConfig& Search::getConfig() const noexcept
 	{
@@ -97,7 +98,7 @@ namespace ag
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
-		vcf_solver.clearStats();
+//		vcf_solver.clearStats();
 		ts_search.clearStats();
 		last_tuning_point.time = getTime();
 		last_tuning_point.node_count = stats.nb_node_count;
@@ -145,15 +146,16 @@ namespace ag
 	void Search::solve(bool full)
 	{
 		const tss::TssMode level = static_cast<tss::TssMode>(search_config.vcf_solver_level);
-		const tss::TssMode mode = full ? level : std::min(level, tss::TssMode::VCF);
-		const int positions = full ? search_config.vcf_solver_max_positions : 50;
+		const int positions = full ? search_config.vcf_solver_max_positions : 100;
 
 		for (int i = 0; i < active_task_count; i++)
 			if (not search_tasks[i].isReadySolver())
 			{
 				TimerGuard timer(stats.solve);
-//				vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level, search_config.vcf_solver_max_positions);
-				ts_search.solve(search_tasks[i], mode, positions);
+				if (search_config.vcf_solver_level >= 10)
+					vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level - 10, search_config.vcf_solver_max_positions);
+				else
+					ts_search.solve(search_tasks[i], level, positions);
 			}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
@@ -208,6 +210,7 @@ namespace ag
 		{
 //			ts_search.print_stats();
 			const double speed = evaluated_nodes / elapsed_time;
+//			std::cout << speed << '\n';
 //			if (stats.nb_node_count > 1)
 //				vcf_solver.tune(speed);
 //				ts_search.tune(speed);

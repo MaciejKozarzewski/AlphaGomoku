@@ -592,7 +592,7 @@ namespace ag
 				}
 			}
 			if (actions->must_defend)
-			{ // TODO actually all those move should be added before any defensive ones, but as for now it would be tricky to implement
+			{ // TODO actually all those moves should be added before any defensive ones, but as for now it would be tricky to implement
 				actions->has_initiative = has_any_four;
 				const Score best_score = add_own_4x3_forks();
 				if (best_score.isWin())
@@ -614,7 +614,7 @@ namespace ag
 				const int fork_4x4_count = is_anything_forbidden_for(get_opponent_sign()) ? 0 : get_opponent_threats(ThreatType::FORK_4x4).size();
 				const int fork_4x3_count = get_opponent_threats(ThreatType::FORK_4x3).size();
 				const int half_open_4_count = get_opponent_threats(ThreatType::HALF_OPEN_4).size();
-				if (open_4_count + fork_4x4_count + fork_4x3_count + half_open_4_count == 0)
+				if ((open_4_count + fork_4x4_count + fork_4x3_count + half_open_4_count) == 0)
 				{ // opponent has no four to make
 					const std::vector<Location> &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
 					add_moves<EXCLUDE_DUPLICATE>(own_fork_3x3, Score::win_in(5));

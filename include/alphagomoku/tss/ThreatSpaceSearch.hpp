@@ -116,7 +116,9 @@ namespace ag
 				}
 			private:
 				template<bool IsIterativeDeepening>
-				Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions);
+				Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isAttacker, bool isRoot);
+
+				Score vcf_search(int depthRemaining, ActionList &actions, bool isAttacker);
 				bool is_move_legal(Move m) const noexcept;
 				void apply_ordering(ActionList &actions, Move hashMove, const ShortVector<Move, 4> &killers) const noexcept;
 				Score evaluate();

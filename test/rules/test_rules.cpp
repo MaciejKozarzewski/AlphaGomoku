@@ -32,7 +32,7 @@ namespace
 				return 6;
 			case ag::GameRules::RENJU:
 				return 0; // TODO
-			case ag::GameRules::CARO:
+			case ag::GameRules::CARO5:
 				return 7;
 			default:
 				return 0;
