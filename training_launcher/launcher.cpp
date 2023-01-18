@@ -5,10 +5,6 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/vcf_solver/FeatureExtractor.hpp>
-#include <alphagomoku/vcf_solver/FeatureTable.hpp>
-#include <alphagomoku/vcf_solver/FastHashTable.hpp>
-#include <alphagomoku/vcf_solver/VCFSolver.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
@@ -16,10 +12,13 @@
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
+#include <alphagomoku/selfplay/SearchData.hpp>
+#include <alphagomoku/selfplay/EvaluationGame.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
@@ -27,9 +26,11 @@
 #include <alphagomoku/utils/ObjectPool.hpp>
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <libml/graph/Graph.hpp>
+#include <libml/Scalar.hpp>
 #include <libml/hardware/Device.hpp>
 #include <libml/utils/json.hpp>
 #include <libml/utils/serialization.hpp>
+#include <libml/losses/LossFunction.hpp>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -45,7 +46,7 @@ void benchmark_features()
 {
 	std::vector<matrix<Sign>> boards_15x15;
 	std::vector<Sign> signs_to_move_15x15;
-	boards_15x15.push_back(boardFromString(" X X O X X X O X O X X _ O X _\n"
+	boards_15x15.push_back(Board::fromString(" X X O X X X O X O X X _ O X _\n"
 			" X _ _ _ O X O O X X X O _ _ X\n"
 			" X O O _ O X X O X O _ X O _ O\n"
 			" O X X O X X O O X O O X X _ O\n"
@@ -62,7 +63,7 @@ void benchmark_features()
 			" X _ X O _ _ O X _ O O X O _ O\n"));
 	signs_to_move_15x15.push_back(Sign::CROSS);
 
-	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -79,7 +80,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_15x15.push_back(Sign::CIRCLE);
 
-	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
+	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
 					" _ _ _ _ _ O X X X X O X _ _ X\n"// 1
 					" _ _ _ _ _ _ O _ O X _ O _ O _\n"// 2
 					" _ _ _ _ _ _ _ X O _ X O O _ _\n"// 3
@@ -96,7 +97,7 @@ void benchmark_features()
 					" _ _ _ _ _ _ _ _ _ _ _ X _ X _\n"));// 14
 	signs_to_move_15x15.push_back(Sign::CROSS);
 
-	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
+	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
 					" _ _ _ _ _ O X X X X O _ _ _ _\n"// 1
 					" _ _ _ _ _ _ O _ O X _ O _ _ _\n"// 2
 					" _ _ _ _ _ _ _ X O _ X _ O _ _\n"// 3
@@ -113,7 +114,7 @@ void benchmark_features()
 					" _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"));// 14
 	signs_to_move_15x15.push_back(Sign::CIRCLE);
 
-	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" // 0
+	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" // 0
 					" _ _ _ _ _ _ _ _ O _ X _ _ _ _\n"// 1
 					" _ _ _ _ _ _ _ _ _ X O O O _ _\n"// 2
 					" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n"// 3
@@ -130,7 +131,7 @@ void benchmark_features()
 					" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));// 14
 	signs_to_move_15x15.push_back(Sign::CIRCLE);
 
-	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ O _ O O _ O _ _ _ _\n"
@@ -147,7 +148,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_15x15.push_back(Sign::CROSS);
 
-	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ O _ _ O _ _ _ _\n"
@@ -164,7 +165,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_15x15.push_back(Sign::CROSS);
 
-	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ O X O _ _ _\n"
@@ -181,7 +182,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_15x15.push_back(Sign::CROSS);
 
-	boards_15x15.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -201,7 +202,7 @@ void benchmark_features()
 	std::vector<matrix<Sign>> boards_20x20;
 	std::vector<Sign> signs_to_move_20x20;
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -223,7 +224,7 @@ void benchmark_features()
 			" _ _ _ _ _ X _ O _ _ _ O _ X _ _ _ _ _ _\n"));
 	signs_to_move_20x20.push_back(Sign::CROSS);
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -245,7 +246,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_20x20.push_back(Sign::CIRCLE);
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -267,7 +268,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_20x20.push_back(Sign::CROSS);
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ O _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
@@ -289,7 +290,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ O _ O X X X O X _ _ _ _\n"));
 	signs_to_move_20x20.push_back(Sign::CROSS);
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ X _ _ _ X _ _ _ _ _ _ _ _\n"
@@ -311,7 +312,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_20x20.push_back(Sign::CIRCLE);
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -333,7 +334,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_20x20.push_back(Sign::CROSS);
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -355,7 +356,7 @@ void benchmark_features()
 			" _ _ _ _ _ X _ O _ _ _ O _ X _ X O _ _ _\n"));
 	signs_to_move_20x20.push_back(Sign::CIRCLE);
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -377,7 +378,7 @@ void benchmark_features()
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
 	signs_to_move_20x20.push_back(Sign::CROSS);
 
-	boards_20x20.push_back(boardFromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n"
@@ -403,13 +404,13 @@ void benchmark_features()
 	std::cout << "15x15 board\n";
 	for (size_t r = 0; r < rules.size(); r++)
 	{
-		FeatureExtractor extractor_15x15(GameConfig(rules[r], 15, 15));
+//		FeatureExtractor extractor_15x15(GameConfig(rules[r], 15, 15));
 
 		double start = getTime();
 		for (int i = 0; i < 100000; i++)
 		{
-			for (size_t j = 0; j < boards_15x15.size(); j++)
-				extractor_15x15.setBoard(boards_15x15[j], signs_to_move_15x15[j]);
+//			for (size_t j = 0; j < boards_15x15.size(); j++)
+//				extractor_15x15.setBoard(boards_15x15[j], signs_to_move_15x15[j]);
 		}
 		double stop = getTime();
 
@@ -419,13 +420,13 @@ void benchmark_features()
 	std::cout << "20x20 board\n";
 	for (size_t r = 0; r < rules.size(); r++)
 	{
-		FeatureExtractor extractor_20x20(GameConfig(rules[r], 20, 20));
+//		FeatureExtractor extractor_20x20(GameConfig(rules[r], 20, 20));
 
 		double start = getTime();
 		for (int i = 0; i < 100000; i++)
 		{
-			for (size_t j = 0; j < boards_20x20.size(); j++)
-				extractor_20x20.setBoard(boards_20x20[j], signs_to_move_20x20[j]);
+//			for (size_t j = 0; j < boards_20x20.size(); j++)
+//				extractor_20x20.setBoard(boards_20x20[j], signs_to_move_20x20[j]);
 		}
 		double stop = getTime();
 
@@ -479,81 +480,81 @@ void check_all_dataset(const std::string &path, int counter)
 
 void find_proven_positions(const std::string &path, int index)
 {
-	size_t all_positions = 0;
-	size_t all_games = 0;
-	size_t proven_positions = 0;
-
-	GameConfig game_config(GameRules::STANDARD, 15, 15);
-	matrix<Sign> board(game_config.rows, game_config.cols);
-	FeatureExtractor extractor(game_config);
-	VCFSolver solver(game_config);
-
-	std::vector<std::pair<uint16_t, float>> list_of_moves;
-	matrix<float> policy(board.rows(), board.cols());
-
-	GameBuffer buffer(path + "buffer_" + std::to_string(index) + ".bin");
-
-	SearchTask task1(game_config.rules);
-	SearchTask task2(game_config.rules);
-	task1.reset(board, Sign::CROSS);
-	task2.reset(board, Sign::CROSS);
-
-	extractor.solve(task1, 2);
-	solver.solve(task2, 2);
-
-	TimedStat t_extractor("extractor");
-	TimedStat t_solver("solver   ");
-
-	std::cout << "start\n";
-	for (int i = 0; i < buffer.size(); i++)
-	{
-		all_games++;
-		all_positions += buffer.getFromBuffer(i).getNumberOfSamples();
-		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
-		{
-			buffer.getFromBuffer(i).getSample(j).getBoard(board);
-			Sign sign_to_move = buffer.getFromBuffer(i).getSample(j).getMove().sign;
-
-			task1.reset(board, sign_to_move);
-			task2.reset(board, sign_to_move);
-
-			t_extractor.startTimer();
-			extractor.solve(task1, 2);
-			t_extractor.stopTimer();
-//			solver.solve(task2, 2);
+//	size_t all_positions = 0;
+//	size_t all_games = 0;
+//	size_t proven_positions = 0;
 //
-//			if (task1.isReady() != task2.isReady())
-//			{
-//				std::cout << i << " " << j << '\n';
-//				std::cout << task1.toString() << '\n';
-//				std::cout << "----------------------------------------\n";
-//				std::cout << task2.toString() << '\n';
-//				return;
-//			}
-			if (task1.isReady())
-				proven_positions++;
-		}
-	}
-	std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
-	std::cout << t_extractor.toString() << '\n';
-
-	proven_positions = 0;
-	for (int i = 0; i < buffer.size(); i++)
-		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
-		{
-			buffer.getFromBuffer(i).getSample(j).getBoard(board);
-			Sign sign_to_move = buffer.getFromBuffer(i).getSample(j).getMove().sign;
-
-			task2.reset(board, sign_to_move);
-			t_solver.startTimer();
-			solver.solve(task2, 2);
-			t_solver.stopTimer();
-
-			if (task2.isReady())
-				proven_positions++;
-		}
-	std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
-	std::cout << t_solver.toString() << '\n';
+//	GameConfig game_config(GameRules::STANDARD, 15, 15);
+//	matrix<Sign> board(game_config.rows, game_config.cols);
+//	FeatureExtractor extractor(game_config);
+//	VCFSolver solver(game_config);
+//
+//	std::vector<std::pair<uint16_t, float>> list_of_moves;
+//	matrix<float> policy(board.rows(), board.cols());
+//
+//	GameBuffer buffer(path + "buffer_" + std::to_string(index) + ".bin");
+//
+//	SearchTask task1(game_config.rules);
+//	SearchTask task2(game_config.rules);
+//	task1.reset(board, Sign::CROSS);
+//	task2.reset(board, Sign::CROSS);
+//
+//	extractor.solve(task1, 2);
+//	solver.solve(task2, 2);
+//
+//	TimedStat t_extractor("extractor");
+//	TimedStat t_solver("solver   ");
+//
+//	std::cout << "start\n";
+//	for (int i = 0; i < buffer.size(); i++)
+//	{
+//		all_games++;
+//		all_positions += buffer.getFromBuffer(i).getNumberOfSamples();
+//		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+//		{
+//			buffer.getFromBuffer(i).getSample(j).getBoard(board);
+//			Sign sign_to_move = buffer.getFromBuffer(i).getSample(j).getMove().sign;
+//
+//			task1.reset(board, sign_to_move);
+//			task2.reset(board, sign_to_move);
+//
+//			t_extractor.startTimer();
+//			extractor.solve(task1, 2);
+//			t_extractor.stopTimer();
+////			solver.solve(task2, 2);
+////
+////			if (task1.isReady() != task2.isReady())
+////			{
+////				std::cout << i << " " << j << '\n';
+////				std::cout << task1.toString() << '\n';
+////				std::cout << "----------------------------------------\n";
+////				std::cout << task2.toString() << '\n';
+////				return;
+////			}
+//			if (task1.isReady())
+//				proven_positions++;
+//		}
+//	}
+//	std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
+//	std::cout << t_extractor.toString() << '\n';
+//
+//	proven_positions = 0;
+//	for (int i = 0; i < buffer.size(); i++)
+//		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+//		{
+//			buffer.getFromBuffer(i).getSample(j).getBoard(board);
+//			Sign sign_to_move = buffer.getFromBuffer(i).getSample(j).getMove().sign;
+//
+//			task2.reset(board, sign_to_move);
+//			t_solver.startTimer();
+//			solver.solve(task2, 2);
+//			t_solver.stopTimer();
+//
+//			if (task2.isReady())
+//				proven_positions++;
+//		}
+//	std::cout << proven_positions << " / " << all_positions << " in " << all_games << " games\n";
+//	std::cout << t_solver.toString() << '\n';
 }
 
 void test_evaluate()
@@ -688,12 +689,288 @@ void test_expand()
 //	std::cout << '\n';
 }
 
+void run_calibration()
+{
+	GameBuffer buffer("/home/maciek/alphagomoku/standard_test_2/train_buffer/buffer_19.bin");
+	std::cout << buffer.getStats().toString() << '\n';
+
+	AGNetwork network;
+//	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
+	network.loadFromFile("/home/maciek/alphagomoku/standard_test/small_network2.bin");
+	network.optimize();
+//	return;
+//	network.saveToFile("/home/maciek/alphagomoku/standard_test_2/small_network_opt.bin");
+//	return;
+	network.setBatchSize(256);
+	network.moveTo(ml::Device::cuda(1));
+
+	matrix<Sign> board(15, 15);
+	int counter = 0;
+	while (true)
+	{
+		int this_batch = 0;
+		while (this_batch < network.getBatchSize())
+		{
+			const SearchData &sample = buffer.getFromBuffer(counter % buffer.size()).getSample();
+			sample.getBoard(board);
+			network.packInputData(this_batch, board, sample.getMove().sign);
+
+			counter++;
+			this_batch++;
+		}
+		network.forward(this_batch);
+		const bool is_ready = network.collectCalibrationStats();
+		std::cout << "collected " << counter << " samples, is ready = " << is_ready << '\n';
+		if (is_ready)
+			break;
+	}
+	ml::Device::cpu().setNumberOfThreads(1);
+	network.quantize();
+//	network.saveToFile("/home/maciek/alphagomoku/standard_test_2/network_int8.bin");
+//	network.saveCalibrationStats("/home/maciek/alphagomoku/standard_test_2/table.bin");
+}
+
+void run_quantization()
+{
+	AGNetwork network;
+	network.loadFromFile("/home/maciek/alphagomoku/standard_test/network.bin");
+//	network.optimize();
+	network.setBatchSize(4);
+	network.moveTo(ml::Device::cpu());
+	network.forward(4);
+
+//	network.quantize("/home/maciek/alphagomoku/standard_test/table.bin");
+}
+
+matrix<float> prepare_policy_target(const SearchData &sample)
+{
+	matrix<float> policy(sample.rows(), sample.cols());
+	matrix<ProvenValue> proven_values(sample.rows(), sample.cols());
+
+	sample.getPolicy(policy);
+	sample.getActionProvenValues(proven_values);
+	for (int i = 0; i < policy.size(); i++)
+	{
+		switch (proven_values[i])
+		{
+			case ProvenValue::UNKNOWN:
+				break;
+			case ProvenValue::LOSS:
+				policy[i] = 1.0e-6f;
+				break;
+			case ProvenValue::DRAW:
+				break;
+			case ProvenValue::WIN:
+				policy[i] = 1e6f;
+				break;
+
+		}
+	}
+	normalize(policy);
+	return policy;
+}
+
+void run_training()
+{
+	GameBuffer buffer("/home/maciek/alphagomoku/standard_test/train_buffer/buffer_0.bin");
+	std::cout << buffer.getStats().toString() << '\n';
+
+	GameConfig game_config(GameRules::STANDARD, 15);
+	TrainingConfig training_config;
+	training_config.blocks = 5;
+	training_config.filters = 64;
+	training_config.device_config.batch_size = 32;
+	training_config.l2_regularization = 0.00005;
+
+	AGNetwork network(game_config, training_config);
+	network.moveTo(ml::Device::cuda(0));
+
+	const int steps = 1000;
+
+	ml::Shape shape = network.getInputShape();
+	int batch_size = shape[0];
+	int rows = shape[1];
+	int cols = shape[2];
+
+	std::vector<int> training_sample_order = permutation(buffer.size());
+	size_t training_sample_index = 0;
+
+	matrix<Sign> board(rows, cols);
+	matrix<Sign> board_copy(rows, cols);
+	for (int e = 0; e < 100; e++)
+	{
+		float policy_loss = 0.0f;
+		float value_loss = 0.0f;
+		for (int i = 0; i < steps; i++)
+		{
+			if ((i + 1) % (steps / 10) == 0)
+				std::cout << i + 1 << '\n';
+			for (int b = 0; b < batch_size; b++)
+			{
+				const SearchData &sample = buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample();
+				training_sample_index++;
+				if (training_sample_index >= training_sample_order.size())
+				{
+					training_sample_order = permutation(training_sample_order.size());
+					training_sample_index = 0;
+				}
+
+				sample.getBoard(board);
+				matrix<float> policy_target = prepare_policy_target(sample);
+				matrix<Value> q_target(15, 15);
+				const Value value_target = convertOutcome(sample.getOutcome(), sample.getMove().sign);
+
+				const int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
+				augment(board, r);
+				augment(policy_target, r);
+				augment(q_target, r);
+
+				network.packInputData(b, board, sample.getMove().sign);
+				network.packTargetData(b, policy_target, q_target, value_target);
+			}
+			network.forward(batch_size);
+			network.backward(batch_size);
+
+			const std::vector<ml::Scalar> loss = network.getLoss(batch_size);
+			policy_loss += loss.at(0).get<float>();
+			value_loss += loss.at(1).get<float>();
+		}
+		std::cout << e << " " << policy_loss / steps << " " << value_loss / steps << '\n';
+		network.saveToFile("/home/maciek/alphagomoku/standard_test/small_network2.bin");
+	}
+}
+
 int main(int argc, char *argv[])
 {
-	TrainingManager tm("/home/maciek/alphagomoku/small_20x20f/", "/home/maciek/alphagomoku/run2022_20x20f/");
-	for (int i = 0; i < 22; i++)
-		tm.runIterationSL();
+	std::cout << "START" << std::endl;
+//	TrainingManager tm("/home/maciek/alphagomoku/standard_test_2/");
+//	for (int i = 0; i < 100; i++)
+//		tm.runIterationRL();
+//	return 0;
+//	{
+//		AGNetwork network;
+//		network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
+//		network.setBatchSize(1);
+//		network.moveTo(ml::Device::cpu());
+//
+//		matrix<Sign> board(15, 15);
+////		board = Board::fromString(" O _ O X X O O X O _ _ X _ _ _\n"
+////				" _ X O X O X O X X X O O _ _ _\n"
+////				" X O X O X O X O X O X O X _ _\n"
+////				" O O X O X O X O X O X O X _ _\n"
+////				" O X O X X O O X X O O O X _ _\n"
+////				" X X X X O X X X O X X X O _ _\n"
+////				" O O X O X O O X X O O X O O _\n"
+////				" O O X O X O X O O X O O X X _\n"
+////				" O X O X O X O X X O X O X O _\n"
+////				" O X O X O X O X O O X O X X _\n"
+////				" X O X O X O O X X X O X O O _\n"
+////				" X O X O X O X O X X O O X X _\n"
+////				" O _ X O O X X O X O X X X O _\n"
+////				" _ _ O X O O X X O O X O O _ _\n"
+////				" _ X _ _ X X O X O _ O O X _ _\n");
+//		network.packInputData(0, board, Sign::CIRCLE);
+//		network.forward(1);
+//
+//		matrix<float> policy(15, 15);
+//		matrix<Value> action_values(15, 15);
+//		Value value;
+//
+//		network.unpackOutput(0, policy, action_values, value);
+//		std::cout << '\n';
+//		std::cout << "Value = " << value.toString() << '\n'; //<< " (" << value_target.toString() << ")\n";
+////		std::cout << "Proven value = " << toString(buffer.getFromBuffer(0).getSample(20 + i).getProvenValue()) << "\n";
+//		std::cout << Board::toString(board, policy) << '\n';
+//
+//		board.clear();
+//		std::cout << '\n' << Board::toString(board, policy) << '\n';
+//		return 0;
+//	}
+
+//	run_calibration();
+//	run_quantization();
+//	run_training();
 	return 0;
+
+	GameBuffer buffer("/home/maciek/alphagomoku/standard_test_2/valid_buffer/buffer_19.bin");
+	std::cout << buffer.getStats().toString() << '\n';
+//
+//	std::cout << buffer.getFromBuffer(0).getS() << '\n';
+//
+	AGNetwork network;
+//	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
+	network.loadFromFile("/home/maciek/alphagomoku/standard_test/network_opt.bin");
+	network.convertToHalfFloats();
+
+//	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/network_int8.bin");
+////	return 0;
+////	network.optimize();
+	network.setBatchSize(10);
+	network.moveTo(ml::Device::cpu());
+//
+	matrix<Sign> board(15, 15);
+	board = Board::fromString(" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ O O _ X _ X _ _ _ _ _\n"
+			" _ _ O X O O O O X _ _ _ _ _ _\n"
+			" _ _ _ X _ O _ O X X _ _ _ _ _\n"
+			" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+//	board.at(7, 7) = Sign::CIRCLE;
+	for (int i = 0; i < 10; i++)
+	{
+		buffer.getFromBuffer(i).getSample(0).getBoard(board);
+		const Sign sign_to_move = buffer.getFromBuffer(i).getSample(0).getMove().sign;
+		network.packInputData(i, board, sign_to_move);
+	}
+//
+	network.forward(10);
+//
+	matrix<float> policy(15, 15);
+	matrix<Value> action_values(15, 15);
+	Value value;
+//
+	for (int i = 0; i < 10; i++)
+	{
+		const Value value_target = convertOutcome(buffer.getFromBuffer(i).getSample(0).getOutcome(),
+				buffer.getFromBuffer(i).getSample(0).getMove().sign);
+		const Value minimax = buffer.getFromBuffer(i).getSample(0).getMinimaxValue();
+		buffer.getFromBuffer(i).getSample(0).getBoard(board);
+		network.unpackOutput(i, policy, action_values, value);
+		std::cout << '\n';
+		std::cout << "Value   = " << value.toString() << " (" << value_target.toString() << ")\n";
+		std::cout << "minimax = " << minimax.toString() << "\n";
+		std::cout << "Proven value = " << toString(buffer.getFromBuffer(i).getSample(0).getProvenValue()) << "\n";
+		std::cout << Board::toString(board, policy) << '\n';
+		buffer.getFromBuffer(i).getSample(0).getPolicy(policy);
+		std::cout << '\n' << Board::toString(board, policy) << '\n';
+		std::cout << buffer.getFromBuffer(i).getSample(0).getMove().text() << '\n';
+	}
+
+//	network.collectCalibrationStats();
+
+//	GameBuffer buffer("/home/maciek/alphagomoku/standard_test_2/valid_buffer/buffer_0.bin");
+//	std::cout << buffer.getStats().toString() << '\n';
+//
+//	for (int i = 0; i < buffer.size(); i++)
+//		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+//			buffer.getFromBuffer(i).getSample(j).print();
+
+	std::cout << "END" << std::endl;
+	return 0;
+
+//	TrainingManager tm("/home/maciek/alphagomoku/small_20x20f/", "/home/maciek/alphagomoku/run2022_20x20f/");
+//	for (int i = 0; i < 22; i++)
+//		tm.runIterationSL();
+//	return 0;
 
 //	test_evaluate();
 //	return 0;

@@ -79,6 +79,10 @@ namespace ag
 
 		matrix<Sign> board(rows, cols);
 		matrix<Sign> board_copy(rows, cols);
+
+		matrix<float> policy_target;
+		matrix<Value> action_values_target;
+		Value value_target;
 		for (int i = 0; i < steps; i++)
 		{
 			if ((i + 1) % (steps / 10) == 0)
@@ -94,12 +98,19 @@ namespace ag
 				}
 
 				sample.getBoard(board);
-				matrix<float> policy_target = prepare_policy_target(sample);
-				matrix<Value> action_values_target = prepare_action_values_target(sample);
-				Value value_target = prepare_value_target(sample);
+				policy_target = prepare_policy_target(sample);
+				action_values_target = prepare_action_values_target(sample);
+				value_target = prepare_value_target(sample);
 
 				if (config.augment_training_data)
 					augment_data(board, policy_target, action_values_target);
+
+//				sample.print();
+//				std::cout << "Training target\n";
+//				std::cout << Board::toString(board) << '\n';
+//				std::cout << Board::toString(board, policy_target) << '\n';
+//				std::cout << Board::toString(board, action_values_target) << '\n';
+//				std::cout << "Value target = " << value_target.toString() << '\n';
 
 				model.packInputData(b, board, sample.getMove().sign);
 				model.packTargetData(b, policy_target, action_values_target, value_target);
@@ -151,16 +162,6 @@ namespace ag
 				model.packInputData(this_batch, board, sample.getMove().sign);
 				model.packTargetData(this_batch, policy_target, action_values_target, value_target);
 
-//				sample.getBoard(board);
-//				sample.getPolicy(policy);
-//				if (config.augment_training_data)
-//				{
-//					int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
-//					augment(board, r);
-//					augment(policy, r);
-//				}
-//
-//				model.packData(this_batch, board, policy, sample.getOutcome(), sample.getMove().sign);
 				counter++;
 				this_batch++;
 			}

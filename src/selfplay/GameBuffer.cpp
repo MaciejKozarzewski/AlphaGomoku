@@ -139,6 +139,16 @@ namespace ag
 				return false;
 		return true;
 	}
+	const std::vector<int>& GameBuffer::getGameLengthStats() const noexcept
+	{
+		return game_length_stats;
+	}
+	void GameBuffer::updateGameLengthStats(const std::vector<int> &indices)
+	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		for (size_t i = 0; i < indices.size(); i++)
+			game_length_stats[indices[i]]++;
+	}
 	std::string GameBuffer::generatePGN(bool fullGameHistory)
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);

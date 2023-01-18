@@ -11,6 +11,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <libml/graph/Graph.hpp>
+#include <libml/inference/calibration.hpp>
 #include <libml/utils/json.hpp>
 #include <libml/utils/serialization.hpp>
 
@@ -25,7 +26,8 @@ namespace ml
 
 namespace ag
 {
-	enum class GameOutcome;
+	enum class GameOutcome
+	;
 	struct Value;
 	struct GameConfig;
 	struct TrainingConfig;
@@ -49,6 +51,7 @@ namespace ag
 			int rows = 0;
 			int cols = 0;
 
+			std::unique_ptr<ml::CalibrationTable> calibration_table;
 		public:
 			AGNetwork() = default;
 			AGNetwork(const GameConfig &gameOptions, const TrainingConfig &trainingOptions);
@@ -66,11 +69,15 @@ namespace ag
 			std::vector<ml::Scalar> getLoss(int batch_size);
 
 			void changeLearningRate(float lr);
+			bool collectCalibrationStats();
+			void saveCalibrationStats(const std::string &path) const;
 
 			/**
 			 * This method makes the network non-trainable and then optimizes for inference.
 			 */
 			void optimize();
+			void convertToHalfFloats();
+			void quantize(const std::string path = std::string());
 
 			void saveToFile(const std::string &path) const;
 			void loadFromFile(const std::string &path);
@@ -83,8 +90,7 @@ namespace ag
 
 			int getBatchSize() const noexcept;
 			void setBatchSize(int batchSize);
-
-		private:
+//		private:
 			void create_network(const TrainingConfig &trainingOptions);
 			void reallocate_tensors();
 	};

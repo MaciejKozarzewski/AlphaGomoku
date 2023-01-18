@@ -23,20 +23,22 @@ namespace
 namespace ag
 {
 	NNEvaluatorStats::NNEvaluatorStats() :
-			pack("pack  "),
-			eval_sync("eval  "),
-			eval_async("eval_async"),
-			unpack("unpack")
+			pack("pack   "),
+			launch("launch "),
+			compute("compute"),
+			wait("wait   "),
+			unpack("unpack ")
 	{
 	}
 	std::string NNEvaluatorStats::toString() const
 	{
 		std::string result = "----NNEvaluator----\n";
 		result += "total samples = " + std::to_string(batch_sizes) + '\n';
-		result += "avg batch size = " + std::to_string(static_cast<double>(batch_sizes) / eval_sync.getTotalCount()) + '\n';
+		result += "avg batch size = " + std::to_string(static_cast<double>(batch_sizes) / compute.getTotalCount()) + '\n';
 		result += pack.toString() + '\n';
-		result += eval_sync.toString() + '\n';
-		result += eval_async.toString() + '\n';
+		result += launch.toString() + '\n';
+		result += compute.toString() + '\n';
+		result += wait.toString() + '\n';
 		result += unpack.toString() + '\n';
 		return result;
 	}
@@ -44,8 +46,9 @@ namespace ag
 	{
 		this->batch_sizes += other.batch_sizes;
 		this->pack += other.pack;
-		this->eval_sync += other.eval_sync;
-		this->eval_async += other.eval_async;
+		this->launch += other.launch;
+		this->compute += other.compute;
+		this->wait += other.wait;
 		this->unpack += other.unpack;
 		return *this;
 	}
@@ -53,8 +56,9 @@ namespace ag
 	{
 		this->batch_sizes /= i;
 		this->pack /= i;
-		this->eval_sync /= i;
-		this->eval_async /= i;
+		this->launch /= i;
+		this->compute /= i;
+		this->wait /= i;
 		this->unpack /= i;
 		return *this;
 	}
@@ -112,67 +116,72 @@ namespace ag
 		assert(abs(symmetry) <= available_symmetries);
 		task_queue.push_back( { &task, symmetry });
 	}
-	void NNEvaluator::evaluateGraph()
+	SpeedSummary NNEvaluator::evaluateGraph()
 	{
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
+		SpeedSummary result;
 		while (task_queue.size() > 0)
 		{
-			int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
+			const int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
 			if (batch_size > 0)
 			{
 				stats.batch_sizes += batch_size; // statistics
 
 				pack_to_network(batch_size);
 
-				stats.eval_sync.startTimer();
+				stats.compute.startTimer();
 				network.forward(batch_size);
-				stats.eval_sync.stopTimer();
+				stats.compute.stopTimer();
+				result.batch_size += batch_size;
+				result.compute_time += stats.compute.getLastTime();
 
 				unpack_from_network(batch_size);
 				task_queue.erase(task_queue.begin(), task_queue.begin() + batch_size);
 			}
 		}
+		return result;
 	}
 	void NNEvaluator::asyncEvaluateGraphLaunch()
 	{
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
-		if (task_queue.size() > batch_size)
+		if (task_queue.size() > (size_t) batch_size)
 			throw std::logic_error("task queue size is larger than batch size");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
-		int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
+		const int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
 		if (batch_size > 0)
 		{
 			stats.batch_sizes += batch_size; // statistics
 
 			pack_to_network(batch_size);
 
-			stats.eval_sync.startTimer();
-			stats.eval_async.startTimer();
+			stats.launch.startTimer();
 			network.asyncForwardLaunch(batch_size);
-			stats.eval_async.pauseTimer();
+			stats.launch.stopTimer();
+			stats.compute.startTimer();
 		}
 	}
-	void NNEvaluator::asyncEvaluateGraphJoin()
+	SpeedSummary NNEvaluator::asyncEvaluateGraphJoin()
 	{
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
-		if (task_queue.size() > batch_size)
+		if (task_queue.size() > (size_t) batch_size)
 			throw std::logic_error("task queue size is larger than batch size");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
-		int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
+		const int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
 		if (batch_size > 0)
 		{
-			stats.eval_async.resumeTimer();
+			stats.wait.startTimer();
 			network.asyncForwardJoin();
-			stats.eval_async.stopTimer();
-			stats.eval_sync.stopTimer();
+			stats.wait.stopTimer();
+			stats.compute.stopTimer();
 
 			unpack_from_network(batch_size);
 			task_queue.erase(task_queue.begin(), task_queue.begin() + batch_size);
 		}
+		return SpeedSummary( { batch_size, stats.compute.getLastTime(), stats.wait.getLastTime() });
 	}
 	/*
 	 * private

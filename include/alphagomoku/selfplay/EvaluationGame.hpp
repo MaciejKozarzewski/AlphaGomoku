@@ -34,6 +34,7 @@ namespace ag
 			std::string name;
 			Sign sign = Sign::NONE;
 			int simulations = 0;
+			int nn_evals = 0;
 		public:
 			Player(const GameConfig &gameOptions, const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
 			void setSign(Sign s) noexcept;

@@ -31,7 +31,8 @@ namespace ag
 				GAME_NOT_STARTED,
 				PREPARE_OPENING,
 				GAMEPLAY_SELECT_SOLVE_EVALUATE,
-				GAMEPLAY_EXPAND_AND_BACKUP
+				GAMEPLAY_EXPAND_AND_BACKUP,
+				HANDLE_SEARCH_END
 			};
 			GameBuffer &game_buffer;
 			NNEvaluator &nn_evaluator;
@@ -50,7 +51,9 @@ namespace ag
 			int simulations_max = 0;
 			int positions_skip = 1;
 			bool use_opening = false;
+
 			bool perform_full_search = false;
+			bool forced_win_found = false;
 		public:
 			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator);
 
@@ -65,9 +68,7 @@ namespace ag
 			bool prepare_opening();
 			void make_move();
 			void prepare_search(const matrix<Sign> &board, Sign signToMove);
-			void clear_node_cache();
 			int nb_of_simulations() const noexcept;
-			bool is_tree_proven() const noexcept;
 	};
 
 } /* namespace ag */

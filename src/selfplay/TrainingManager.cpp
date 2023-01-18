@@ -44,8 +44,11 @@ namespace ag
 		{
 			std::cout << "Initializing new training run\n";
 			saveMetadata();
+			std::cout << "Saved metadata\n";
 			initFolderTree();
+			std::cout << "Initialized folder tree\n";
 			initModel();
+			std::cout << "Initialized model\n";
 			supervised_learning_manager.saveTrainingHistory(working_dir);
 		}
 	}
@@ -98,8 +101,11 @@ namespace ag
 	{
 		AGNetwork model(config.game_config, config.training_config);
 		model.saveToFile(working_dir + "/checkpoint/network_0.bin");
+		std::cout << "Saved training model\n";
 		model.optimize();
+		std::cout << "Optimized model\n";
 		model.saveToFile(working_dir + "/checkpoint/network_0_opt.bin");
+		std::cout << "Saved optimized model\n";
 	}
 	void TrainingManager::generateGames()
 	{

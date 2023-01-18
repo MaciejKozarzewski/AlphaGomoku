@@ -74,7 +74,23 @@ namespace ag
 	void AGNetwork::packInputData(int index, const matrix<Sign> &board, Sign signToMove)
 	{
 		assert(index >= 0 && index < input_on_cpu->firstDim());
-		encodeInputTensor(input_on_cpu->data<float>( { index, 0, 0, 0 }), board, signToMove);
+		switch (input_on_cpu->dtype())
+		{
+			case ml::DataType::INT8:
+				encodeInputTensor(input_on_cpu->data<int8_t>( { index, 0, 0, 0 }), board, signToMove);
+				break;
+			case ml::DataType::FLOAT16:
+				encodeInputTensor(input_on_cpu->data<ml::float16>( { index, 0, 0, 0 }), board, signToMove);
+				break;
+			case ml::DataType::BFLOAT16:
+				encodeInputTensor(input_on_cpu->data<ml::bfloat16>( { index, 0, 0, 0 }), board, signToMove);
+				break;
+			case ml::DataType::FLOAT32:
+				encodeInputTensor(input_on_cpu->data<float>( { index, 0, 0, 0 }), board, signToMove);
+				break;
+			default:
+				break;
+		}
 	}
 	void AGNetwork::packTargetData(int index, const matrix<float> &policy, matrix<Value> &actionValues, Value value)
 	{
@@ -97,8 +113,6 @@ namespace ag
 	{
 		graph.getInput().copyFrom(graph.context(), *input_on_cpu);
 		graph.forward(batch_size);
-		ml::math::softmaxForwardInPlace(graph.context(), graph.getOutput(0));
-		ml::math::softmaxForwardInPlace(graph.context(), graph.getOutput(1));
 		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
 	}
@@ -111,8 +125,6 @@ namespace ag
 	{
 		graph.getInput().copyFrom(graph.context(), *input_on_cpu);
 		graph.forward(batch_size);
-		ml::math::softmaxForwardInPlace(graph.context(), graph.getOutput(0));
-		ml::math::softmaxForwardInPlace(graph.context(), graph.getOutput(1));
 
 		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
@@ -145,6 +157,37 @@ namespace ag
 			graph.getLayer(i).getBias().getOptimizer().setLearningRate(lr);
 		}
 	}
+	bool AGNetwork::collectCalibrationStats()
+	{
+//		if (calibration_table == nullptr)
+//		{
+//			calibration_table = std::make_unique<ml::CalibrationTable>(2048, 1.0e-4);
+//			calibration_table->init(graph.numberOfNodes());
+//			calibration_table->getHistogram(0).setBinary();
+//			for (int i = 1; i < graph.numberOfNodes(); i++)
+//			{
+//				const ml::NonlinearityType act = graph.getNode(i).getLayer().getNonlinearity();
+//				calibration_table->getHistogram(i).setHint(act);
+//			}
+//		}
+//		graph.calibrate(*calibration_table);
+//		std::cout << 100 * calibration_table->getCompletionFactor() << " % ready\n";
+//		for (int i = 0; i < graph.numberOfNodes(); i++)
+//			if (not calibration_table->getHistogram(i).isReady())
+//				std::cout << graph.getNode(i).getLayer().name() << " " << calibration_table->getHistogram(i).getInfo() << '\n';
+//		return calibration_table->isReady();
+		return true;
+	}
+	void AGNetwork::saveCalibrationStats(const std::string &path) const
+	{
+		if (calibration_table != nullptr)
+		{
+			SerializedObject so;
+			Json json = calibration_table->save(so);
+			FileSaver fs(path);
+			fs.save(json, so, true);
+		}
+	}
 	void AGNetwork::optimize()
 	{
 		graph.makeNonTrainable();
@@ -152,6 +195,26 @@ namespace ag
 		ml::internal::BatchNormToAffine().optimize(graph);
 		ml::internal::MergeAffine().optimize(graph);
 		ml::internal::MergeAdd().optimize(graph);
+//		graph.print();
+	}
+	void AGNetwork::convertToHalfFloats()
+	{
+//		ml::internal::LowerPrecision(ml::DataType::BFLOAT16).optimize(graph);
+//		graph.print();
+	}
+	void AGNetwork::quantize(const std::string path)
+	{
+//		if (not path.empty())
+//		{
+//			calibration_table = std::make_unique<ml::CalibrationTable>();
+//			FileLoader fl(path);
+//			calibration_table->load(fl.getJson(), fl.getBinaryData());
+//		}
+//		if (calibration_table != nullptr and not graph.isTrainable())
+//		{
+//			calibration_table->quantizeTo(256);
+//			ml::internal::Quantize(*calibration_table).optimize(graph);
+//		}
 	}
 	void AGNetwork::saveToFile(const std::string &path) const
 	{
@@ -208,7 +271,9 @@ namespace ag
 			value_target = nullptr;
 		}
 	}
-
+	/*
+	 * private
+	 */
 	void AGNetwork::create_network(const TrainingConfig &trainingOptions)
 	{
 		int batch_size = trainingOptions.device_config.batch_size;
@@ -216,7 +281,6 @@ namespace ag
 		int filters = trainingOptions.filters;
 
 		auto x = graph.addInput( { batch_size, rows, cols, 4 });
-
 		x = graph.add(ml::Conv2D(filters, 5, "linear").useBias(false), x);
 		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
 
@@ -235,20 +299,21 @@ namespace ag
 		auto p = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
 		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
 
-		p = graph.add(ml::Conv2D(1, 1, "linear").useBias(false), p);
+		p = graph.add(ml::Conv2D(1, 1, "linear"), p);
 		p = graph.add(ml::Flatten(), p);
-		p = graph.add(ml::Affine("linear").useWeights(false), p);
-		graph.addOutput(p, ml::KLDivergenceLoss().applySoftmax());
+		p = graph.add(ml::Softmax(), p);
+		graph.addOutput(p, ml::KLDivergenceLoss());
 
 		// value head
 		auto v = graph.add(ml::Conv2D(2, 1, "linear").useBias(false), x);
 		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
 		v = graph.add(ml::Flatten(), v);
 
-		v = graph.add(ml::Dense(std::min(256, 2 * filters), "linear"), v);
+		v = graph.add(ml::Dense(std::min(256, 2 * filters), "linear").useBias(false), v);
 		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
 		v = graph.add(ml::Dense(3, "linear"), v);
-		graph.addOutput(v, ml::CrossEntropyLoss().applySoftmax());
+		v = graph.add(ml::Softmax(), v);
+		graph.addOutput(v, ml::CrossEntropyLoss());
 
 		graph.init();
 		graph.setOptimizer(ml::ADAM());
@@ -258,7 +323,7 @@ namespace ag
 	}
 	void AGNetwork::reallocate_tensors()
 	{
-		input_on_cpu = std::make_unique<ml::Tensor>(graph.getInputShape(), ml::DataType::FLOAT32, ml::Device::cpu());
+		input_on_cpu = std::make_unique<ml::Tensor>(graph.getInputShape(), graph.getInput().dtype(), ml::Device::cpu());
 		policy_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(0), ml::DataType::FLOAT32, ml::Device::cpu());
 		value_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(1), ml::DataType::FLOAT32, ml::Device::cpu());
 		policy_target = std::make_unique<ml::Tensor>(graph.getOutputShape(0), ml::DataType::FLOAT32, ml::Device::cpu());

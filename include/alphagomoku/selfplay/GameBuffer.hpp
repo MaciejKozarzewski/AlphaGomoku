@@ -37,8 +37,8 @@ namespace ag
 		private:
 			mutable std::mutex buffer_mutex;
 			std::vector<Game> buffer_data;
+			std::vector<int> game_length_stats;
 		public:
-
 			GameBuffer() = default;
 			GameBuffer(const std::string &path);
 
@@ -56,6 +56,9 @@ namespace ag
 
 			GameBufferStats getStats() const noexcept;
 			bool isCorrect() const noexcept;
+
+			const std::vector<int>& getGameLengthStats() const noexcept;
+			void updateGameLengthStats(const std::vector<int> &indices);
 
 			std::string generatePGN(bool fullGameHistory = false);
 	};

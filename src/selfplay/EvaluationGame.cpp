@@ -47,7 +47,9 @@ namespace ag
 	{
 		search.select(tree);
 		search.solve();
+		const int tmp = nn_evaluator.getQueueSize();
 		search.scheduleToNN(nn_evaluator);
+		nn_evals += nn_evaluator.getQueueSize() - tmp;
 	}
 	void Player::expandBackup()
 	{
@@ -60,6 +62,7 @@ namespace ag
 		if (tree.getSimulationCount() >= simulations or tree.isProven())
 		{
 			search.cleanup(tree);
+			nn_evals = 0;
 			return true;
 		}
 		else

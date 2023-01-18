@@ -23,21 +23,55 @@ namespace
 {
 	uint32_t get_random_int32()
 	{
-#ifdef NDEBUG
-		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
-#else
+//#ifdef NDEBUG
+//		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
+//#else
 		thread_local std::mt19937 generator(0);
-#endif
+//#endif
 		return generator();
 	}
 	uint64_t get_random_int64()
 	{
-#ifdef NDEBUG
-		thread_local std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
-#else
+//#ifdef NDEBUG
+//		thread_local std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
+//#else
 		thread_local std::mt19937_64 generator(0);
-#endif
+//#endif
 		return generator();
+	}
+
+	template<typename T>
+	void encode_input_tensor(T *dst, const ag::matrix<ag::Sign> &board, ag::Sign signToMove)
+	{
+		assert(signToMove != ag::Sign::NONE);
+		const T zero = static_cast<T>(0.0);
+		const T one = static_cast<T>(1.0);
+		int idx = 0;
+		for (int i = 0; i < board.rows(); i++)
+			for (int j = 0; j < board.cols(); j++, idx += 4)
+			{
+				if (board.at(i, j) == ag::Sign::NONE)
+				{
+					dst[idx] = one;
+					dst[idx + 1] = zero;
+					dst[idx + 2] = zero;
+				}
+				else
+				{
+					dst[idx] = zero;
+					if (board.at(i, j) == signToMove)
+					{
+						dst[idx + 1] = one;
+						dst[idx + 2] = zero;
+					}
+					else
+					{
+						dst[idx + 1] = zero;
+						dst[idx + 2] = one;
+					}
+				}
+				dst[idx + 3] = one;
+			}
 	}
 }
 
@@ -314,40 +348,28 @@ namespace ag
 				board.at(move.row, move.col) = sign_to_move;
 				sign_to_move = invertSign(sign_to_move);
 			}
+			if (result.empty())
+				return result;
 			if (getOutcome_v2(config.rules, board, result.back()) == GameOutcome::UNKNOWN)
 				return result;
 		}
 	}
 
+	void encodeInputTensor(int8_t *dst, const matrix<Sign> &board, Sign signToMove)
+	{
+		encode_input_tensor(dst, board, signToMove);
+	}
+	void encodeInputTensor(ml::float16 *dst, const matrix<Sign> &board, Sign signToMove)
+	{
+		encode_input_tensor(dst, board, signToMove);
+	}
+	void encodeInputTensor(ml::bfloat16 *dst, const matrix<Sign> &board, Sign signToMove)
+	{
+		encode_input_tensor(dst, board, signToMove);
+	}
 	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove)
 	{
-		assert(signToMove != Sign::NONE);
-		int idx = 0;
-		for (int i = 0; i < board.rows(); i++)
-			for (int j = 0; j < board.cols(); j++, idx += 4)
-			{
-				if (board.at(i, j) == Sign::NONE)
-				{
-					dst[idx] = 1.0f;
-					dst[idx + 1] = 0.0f;
-					dst[idx + 2] = 0.0f;
-				}
-				else
-				{
-					dst[idx] = 0.0f;
-					if (board.at(i, j) == signToMove)
-					{
-						dst[idx + 1] = 1.0f;
-						dst[idx + 2] = 0.0f;
-					}
-					else
-					{
-						dst[idx + 1] = 0.0f;
-						dst[idx + 2] = 1.0f;
-					}
-				}
-				dst[idx + 3] = 1.0f;
-			}
+		encode_input_tensor(dst, board, signToMove);
 	}
 
 	std::string moveToString(const ag::Move &m)

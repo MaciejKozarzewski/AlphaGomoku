@@ -16,7 +16,6 @@
 #include <numeric>
 #include <cstring>
 #include <cassert>
-#include <bitset>
 
 namespace ag
 {
