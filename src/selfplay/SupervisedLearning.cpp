@@ -16,9 +16,8 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
 
-#include <libml/Tensor.hpp>
-#include <libml/Shape.hpp>
-#include <libml/Scalar.hpp>
+#include <minml/core/Tensor.hpp>
+#include <minml/core/Shape.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -112,15 +111,15 @@ namespace ag
 //				std::cout << Board::toString(board, action_values_target) << '\n';
 //				std::cout << "Value target = " << value_target.toString() << '\n';
 
-				model.packInputData(b, board, sample.getMove().sign);
+//				model.packInputData(b, board, sample.getMove().sign); TODO
 				model.packTargetData(b, policy_target, action_values_target, value_target);
 			}
 			model.forward(batch_size);
 
 			auto accuracy = model.getAccuracy(batch_size, 4);
 			model.backward(batch_size);
-			std::vector<ml::Scalar> loss = model.getLoss(batch_size);
-			updateTrainingStats(loss.at(0).get<float>(), loss.at(1).get<float>(), accuracy);
+			std::vector<float> loss = model.getLoss(batch_size);
+			updateTrainingStats(loss.at(0), loss.at(1), accuracy);
 
 			learning_steps++;
 		}
@@ -159,7 +158,7 @@ namespace ag
 //				std::cout << Board::toString(board, action_values_target) << '\n';
 //				std::cout << "Value target = " << value_target.toString() << '\n';
 
-				model.packInputData(this_batch, board, sample.getMove().sign);
+//				model.packInputData(this_batch, board, sample.getMove().sign); TODO
 				model.packTargetData(this_batch, policy_target, action_values_target, value_target);
 
 				counter++;
@@ -168,8 +167,8 @@ namespace ag
 			model.forward(batch_size);
 
 			auto accuracy = model.getAccuracy(batch_size);
-			std::vector<ml::Scalar> loss = model.getLoss(batch_size);
-			updateValidationStats(loss.at(0).get<float>(), loss.at(1).get<float>(), accuracy);
+			std::vector<float> loss = model.getLoss(batch_size);
+			updateValidationStats(loss.at(0), loss.at(1), accuracy);
 		}
 	}
 	void SupervisedLearning::saveTrainingHistory(const std::string &workingDirectory)

@@ -8,8 +8,8 @@
 #ifndef ALPHAGOMOKU_UTILS_PARAMETER_HPP_
 #define ALPHAGOMOKU_UTILS_PARAMETER_HPP_
 
-#include <libml/hardware/Device.hpp>
-#include <libml/utils/json.hpp>
+#include <minml/core/Device.hpp>
+#include <minml/utils/json.hpp>
 
 #include <vector>
 #include <limits>

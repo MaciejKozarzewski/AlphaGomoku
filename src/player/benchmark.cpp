@@ -105,7 +105,7 @@ namespace ag
 
 		std::vector<HardwareTestConfig> configs_to_test;
 
-		const int cpu_cores = ml::Device::cpu().cores();
+		const int cpu_cores = ml::Device::numberOfCpuCores();
 		/* create list of CPU configurations to test */
 		for (int search_threads = 1; search_threads <= cpu_cores; search_threads *= 2)
 			for (int omp_threads = 1; omp_threads <= std::min(4, cpu_cores / search_threads); omp_threads *= 2) // usually it doesn't make sense to use more than 4 OpenMP threads

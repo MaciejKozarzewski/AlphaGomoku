@@ -10,7 +10,7 @@
 #include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
-#include <libml/utils/json.hpp>
+#include <minml/utils/json.hpp>
 
 namespace ag
 {

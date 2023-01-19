@@ -22,6 +22,10 @@ namespace ag
 			int m_cols = 0;
 		public:
 			matrix() = default;
+			matrix(int size) :
+					matrix(size, size)
+			{
+			}
 			matrix(int rows, int cols) :
 					m_data(rows * cols),
 					m_rows(rows),

@@ -10,7 +10,7 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/version.hpp>
 
-#include <libml/hardware/Device.hpp>
+#include <minml/core/Device.hpp>
 
 #include <filesystem>
 
@@ -111,7 +111,7 @@ namespace ag
 			if (benchmarkResults["tests"][i].isNull() == false)
 				configs.push_back(HardwareConfiguration(benchmarkResults["tests"][i]));
 
-		const int num_cpu_cores = ml::Device::cpu().cores();
+		const int num_cpu_cores = ml::Device::numberOfCpuCores();
 		const int num_cuda_devices = ml::Device::numberOfCudaDevices();
 
 		Json result = create_base_config();

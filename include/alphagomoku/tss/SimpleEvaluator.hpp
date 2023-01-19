@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_TSS_SIMPLEEVALUATOR_HPP_
 
 #include <cinttypes>
-#include <stddef.h>
+#include <cstddef>
 #include <vector>
 
 namespace ag

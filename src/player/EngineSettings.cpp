@@ -13,8 +13,9 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/file_util.hpp>
-#include <libml/hardware/Device.hpp>
-#include <libml/utils/json.hpp>
+
+#include <minml/core/Device.hpp>
+#include <minml/utils/json.hpp>
 
 #include <algorithm>
 #include <filesystem>

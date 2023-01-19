@@ -15,9 +15,8 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 
-#include <libml/utils/json.hpp>
-#include <libml/utils/serialization.hpp>
-#include <libml/hardware/cpu_x86.hpp>
+#include <minml/utils/json.hpp>
+#include <minml/utils/serialization.hpp>
 
 #include <iostream>
 #include <string>
@@ -232,15 +231,15 @@ namespace ag
 					}
 				}
 
-			if (ml::Device::cpu().simd() >= ml::CpuSimd::AVX2)
-				avx2_refresh_accumulator(weights->layer_1, accumulator, added_features);
-			else
-			{
-				if (ml::Device::cpu().simd() >= ml::CpuSimd::SSE2)
-					sse2_refresh_accumulator(weights->layer_1, accumulator, added_features);
-				else
-					def_refresh_accumulator(weights->layer_1, accumulator, added_features);
-			}
+//			if (ml::Device::cpu().simd() >= ml::CpuSimd::AVX2)
+//				avx2_refresh_accumulator(weights->layer_1, accumulator, added_features);
+//			else
+//			{
+//				if (ml::Device::cpu().simd() >= ml::CpuSimd::SSE2)
+//					sse2_refresh_accumulator(weights->layer_1, accumulator, added_features);
+//				else
+//					def_refresh_accumulator(weights->layer_1, accumulator, added_features);
+//			}
 		}
 		void InferenceNNUE::update(const PatternCalculator &calc)
 		{
@@ -285,29 +284,29 @@ namespace ag
 			if (previous != Sign::NONE and current == Sign::NONE) // stone was removed
 				removed_features.push_back(base_row_index + 18 + static_cast<int>(previous) - 1);
 
-			if (ml::Device::cpu().simd() >= ml::CpuSimd::AVX2)
-				avx2_update_accumulator(weights->layer_1, old_accumulator, new_accumulator, removed_features, added_features);
-			else
-			{
-				if (ml::Device::cpu().simd() >= ml::CpuSimd::SSE2)
-					sse2_update_accumulator(weights->layer_1, old_accumulator, new_accumulator, removed_features, added_features);
-				else
-					def_update_accumulator(weights->layer_1, old_accumulator, new_accumulator, removed_features, added_features);
-			}
+//			if (ml::Device::cpu().simd() >= ml::CpuSimd::AVX2)
+//				avx2_update_accumulator(weights->layer_1, old_accumulator, new_accumulator, removed_features, added_features);
+//			else
+//			{
+//				if (ml::Device::cpu().simd() >= ml::CpuSimd::SSE2)
+//					sse2_update_accumulator(weights->layer_1, old_accumulator, new_accumulator, removed_features, added_features);
+//				else
+//					def_update_accumulator(weights->layer_1, old_accumulator, new_accumulator, removed_features, added_features);
+//			}
 		}
 		float InferenceNNUE::forward()
 		{
 			Wrapper1D<int32_t> accumulator = get_current_accumulator();
 
-			if (ml::Device::cpu().simd() >= ml::CpuSimd::AVX2)
-				return avx2_forward(accumulator, weights->layer_1, weights->layer_2, weights->layer_3);
-			else
-			{
-				if (ml::Device::cpu().simd() >= ml::CpuSimd::SSE2)
-					return sse2_forward(accumulator, weights->layer_1, weights->layer_2, weights->layer_3);
-				else
-					return def_forward(accumulator, weights->layer_1, weights->layer_2, weights->layer_3);
-			}
+//			if (ml::Device::cpu().simd() >= ml::CpuSimd::AVX2)
+//				return avx2_forward(accumulator, weights->layer_1, weights->layer_2, weights->layer_3);
+//			else
+//			{
+//				if (ml::Device::cpu().simd() >= ml::CpuSimd::SSE2)
+//					return sse2_forward(accumulator, weights->layer_1, weights->layer_2, weights->layer_3);
+//				else
+//					return def_forward(accumulator, weights->layer_1, weights->layer_2, weights->layer_3);
+//			}
 		}
 		/*
 		 * private

@@ -40,39 +40,6 @@ namespace
 		return generator();
 	}
 
-	template<typename T>
-	void encode_input_tensor(T *dst, const ag::matrix<ag::Sign> &board, ag::Sign signToMove)
-	{
-		assert(signToMove != ag::Sign::NONE);
-		const T zero = static_cast<T>(0.0);
-		const T one = static_cast<T>(1.0);
-		int idx = 0;
-		for (int i = 0; i < board.rows(); i++)
-			for (int j = 0; j < board.cols(); j++, idx += 4)
-			{
-				if (board.at(i, j) == ag::Sign::NONE)
-				{
-					dst[idx] = one;
-					dst[idx + 1] = zero;
-					dst[idx + 2] = zero;
-				}
-				else
-				{
-					dst[idx] = zero;
-					if (board.at(i, j) == signToMove)
-					{
-						dst[idx + 1] = one;
-						dst[idx + 2] = zero;
-					}
-					else
-					{
-						dst[idx + 1] = zero;
-						dst[idx + 2] = one;
-					}
-				}
-				dst[idx + 3] = one;
-			}
-	}
 }
 
 namespace ag
@@ -353,23 +320,6 @@ namespace ag
 			if (getOutcome_v2(config.rules, board, result.back()) == GameOutcome::UNKNOWN)
 				return result;
 		}
-	}
-
-	void encodeInputTensor(int8_t *dst, const matrix<Sign> &board, Sign signToMove)
-	{
-		encode_input_tensor(dst, board, signToMove);
-	}
-	void encodeInputTensor(ml::float16 *dst, const matrix<Sign> &board, Sign signToMove)
-	{
-		encode_input_tensor(dst, board, signToMove);
-	}
-	void encodeInputTensor(ml::bfloat16 *dst, const matrix<Sign> &board, Sign signToMove)
-	{
-		encode_input_tensor(dst, board, signToMove);
-	}
-	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove)
-	{
-		encode_input_tensor(dst, board, signToMove);
 	}
 
 	std::string moveToString(const ag::Move &m)

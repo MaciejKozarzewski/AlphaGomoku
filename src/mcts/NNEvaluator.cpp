@@ -15,7 +15,7 @@ namespace
 {
 	bool is_square(const ml::Shape &shape)
 	{
-		assert(shape.length() == 4);
+		assert(shape.rank() == 4);
 		return shape[1] == shape[2];
 	}
 }
@@ -193,7 +193,7 @@ namespace ag
 		for (int i = 0; i < batch_size; i++)
 		{
 			augment(board, task_queue[i].ptr->getBoard(), task_queue[i].symmetry);
-			network.packInputData(i, board, task_queue[i].ptr->getSignToMove());
+//			network.packInputData(i, board, task_queue[i].ptr->getSignToMove()); TODO
 		}
 	}
 	void NNEvaluator::unpack_from_network(int batch_size)

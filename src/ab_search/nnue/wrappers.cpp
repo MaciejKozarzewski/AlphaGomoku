@@ -7,8 +7,8 @@
 
 #include <alphagomoku/ab_search/nnue/wrappers.hpp>
 
-#include <libml/utils/json.hpp>
-#include <libml/utils/serialization.hpp>
+#include <minml/utils/json.hpp>
+#include <minml/utils/serialization.hpp>
 
 namespace ag
 {

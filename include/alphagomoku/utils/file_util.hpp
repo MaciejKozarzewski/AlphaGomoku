@@ -8,9 +8,10 @@
 #ifndef ALPHAGOMOKU_UTILS_FILE_UTIL_HPP_
 #define ALPHAGOMOKU_UTILS_FILE_UTIL_HPP_
 
-#include <libml/utils/json.hpp>
-#include <libml/utils/serialization.hpp>
-#include <stddef.h>
+#include <minml/utils/json.hpp>
+#include <minml/utils/serialization.hpp>
+
+#include <cstddef>
 #include <fstream>
 #include <string>
 

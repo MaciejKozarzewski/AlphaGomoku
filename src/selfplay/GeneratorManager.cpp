@@ -9,8 +9,8 @@
 #include <alphagomoku/selfplay/GameGenerator.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
 
-#include <libml/hardware/Device.hpp>
-#include <libml/utils/json.hpp>
+#include <minml/core/Device.hpp>
+#include <minml/utils/json.hpp>
 
 #include <cstddef>
 #include <cassert>

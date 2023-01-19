@@ -6,7 +6,9 @@
  */
 
 #include <alphagomoku/utils/file_util.hpp>
-#include <libml/utils/ZipWrapper.hpp>
+
+#include <minml/utils/ZipWrapper.hpp>
+
 #include <fstream>
 #include <iterator>
 #include <iostream>

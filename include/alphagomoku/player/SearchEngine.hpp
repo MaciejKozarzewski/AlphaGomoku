@@ -10,7 +10,8 @@
 
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
-#include <libml/utils/json.hpp>
+
+#include <minml/utils/json.hpp>
 
 #include <iostream>
 #include <future>

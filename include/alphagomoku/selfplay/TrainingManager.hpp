@@ -12,7 +12,7 @@
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 
-#include <libml/utils/json.hpp>
+#include <minml/utils/json.hpp>
 
 namespace ag
 {

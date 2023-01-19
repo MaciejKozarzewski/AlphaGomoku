@@ -16,7 +16,8 @@
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <libml/utils/json.hpp>
+
+#include <minml/utils/json.hpp>
 
 #include <filesystem>
 #include <string>

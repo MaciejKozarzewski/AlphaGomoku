@@ -10,8 +10,9 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
-#include <libml/utils/json.hpp>
-#include <libml/utils/serialization.hpp>
+
+#include <minml/utils/json.hpp>
+#include <minml/utils/serialization.hpp>
 
 #include <cstdlib>
 #include <string>

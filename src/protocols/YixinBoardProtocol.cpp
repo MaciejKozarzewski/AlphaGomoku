@@ -11,7 +11,7 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/version.hpp>
 
-#include <libml/hardware/Device.hpp>
+#include <minml/core/Device.hpp>
 
 #include <cassert>
 
@@ -413,7 +413,7 @@ namespace ag
 	{
 		// this is a good command, but it should be used to print description of all INFO commands supported by the engine
 		listener.consumeLine("yxshowinfo");
-		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_THREAD " + std::to_string(ml::Device::cpu().getNumberOfThreads())));
+		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_THREAD " + std::to_string(ml::Device::numberOfCpuCores())));
 		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_HASH_SIZED 20")); // in MCTS engine there is no hash size so we can return anything here
 	}
 	void YixinBoardProtocol::yxprintfeature(InputListener &listener)

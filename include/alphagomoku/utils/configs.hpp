@@ -11,8 +11,8 @@
 #include <alphagomoku/game/rules.hpp>
 #include <alphagomoku/utils/Parameter.hpp>
 
-#include <libml/hardware/Device.hpp>
-#include <libml/utils/json.hpp>
+#include <minml/core/Device.hpp>
+#include <minml/utils/json.hpp>
 
 #include <vector>
 #include <limits>

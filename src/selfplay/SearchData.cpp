@@ -9,7 +9,7 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
 
-#include <libml/utils/serialization.hpp>
+#include <minml/utils/serialization.hpp>
 
 #include <iostream>
 

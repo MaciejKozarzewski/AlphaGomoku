@@ -10,6 +10,7 @@
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>

@@ -12,15 +12,13 @@
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <string>
 #include <chrono>
 #include <bitset>
-
-#include <libml/math/float16.hpp>
-#include <libml/math/bfloat16.hpp>
 
 namespace ag
 {
@@ -146,11 +144,6 @@ namespace ag
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
 	std::vector<Move> prepareOpening(GameConfig config, int minNumberOfMoves = 0);
-
-	void encodeInputTensor(int8_t *dst, const matrix<Sign> &board, Sign signToMove);
-	void encodeInputTensor(ml::float16 *dst, const matrix<Sign> &board, Sign signToMove);
-	void encodeInputTensor(ml::bfloat16 *dst, const matrix<Sign> &board, Sign signToMove);
-	void encodeInputTensor(float *dst, const matrix<Sign> &board, Sign signToMove);
 
 	std::string moveToString(const ag::Move &m);
 	ag::Move moveFromString(const std::string &str, ag::Sign sign);

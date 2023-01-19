@@ -10,8 +10,6 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/version.hpp>
 
-#include <libml/hardware/Device.hpp>
-
 #include <cassert>
 
 namespace

@@ -10,8 +10,9 @@
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
-#include <libml/utils/json.hpp>
-#include <libml/utils/serialization.hpp>
+
+#include <minml/utils/json.hpp>
+#include <minml/utils/serialization.hpp>
 
 #include <cstddef>
 #include <stdexcept>

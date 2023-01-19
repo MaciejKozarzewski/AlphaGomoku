@@ -25,12 +25,10 @@
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/ObjectPool.hpp>
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
-#include <libml/graph/Graph.hpp>
-#include <libml/Scalar.hpp>
-#include <libml/hardware/Device.hpp>
-#include <libml/utils/json.hpp>
-#include <libml/utils/serialization.hpp>
-#include <libml/losses/LossFunction.hpp>
+#include <minml/graph/Graph.hpp>
+#include <minml/core/Device.hpp>
+#include <minml/utils/json.hpp>
+#include <minml/utils/serialization.hpp>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -689,59 +687,6 @@ void test_expand()
 //	std::cout << '\n';
 }
 
-void run_calibration()
-{
-	GameBuffer buffer("/home/maciek/alphagomoku/standard_test_2/train_buffer/buffer_19.bin");
-	std::cout << buffer.getStats().toString() << '\n';
-
-	AGNetwork network;
-//	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
-	network.loadFromFile("/home/maciek/alphagomoku/standard_test/small_network2.bin");
-	network.optimize();
-//	return;
-//	network.saveToFile("/home/maciek/alphagomoku/standard_test_2/small_network_opt.bin");
-//	return;
-	network.setBatchSize(256);
-	network.moveTo(ml::Device::cuda(1));
-
-	matrix<Sign> board(15, 15);
-	int counter = 0;
-	while (true)
-	{
-		int this_batch = 0;
-		while (this_batch < network.getBatchSize())
-		{
-			const SearchData &sample = buffer.getFromBuffer(counter % buffer.size()).getSample();
-			sample.getBoard(board);
-			network.packInputData(this_batch, board, sample.getMove().sign);
-
-			counter++;
-			this_batch++;
-		}
-		network.forward(this_batch);
-		const bool is_ready = network.collectCalibrationStats();
-		std::cout << "collected " << counter << " samples, is ready = " << is_ready << '\n';
-		if (is_ready)
-			break;
-	}
-	ml::Device::cpu().setNumberOfThreads(1);
-	network.quantize();
-//	network.saveToFile("/home/maciek/alphagomoku/standard_test_2/network_int8.bin");
-//	network.saveCalibrationStats("/home/maciek/alphagomoku/standard_test_2/table.bin");
-}
-
-void run_quantization()
-{
-	AGNetwork network;
-	network.loadFromFile("/home/maciek/alphagomoku/standard_test/network.bin");
-//	network.optimize();
-	network.setBatchSize(4);
-	network.moveTo(ml::Device::cpu());
-	network.forward(4);
-
-//	network.quantize("/home/maciek/alphagomoku/standard_test/table.bin");
-}
-
 matrix<float> prepare_policy_target(const SearchData &sample)
 {
 	matrix<float> policy(sample.rows(), sample.cols());
@@ -772,18 +717,23 @@ matrix<float> prepare_policy_target(const SearchData &sample)
 
 void run_training()
 {
+	ml::Device::setNumberOfThreads(1);
 	GameBuffer buffer("/home/maciek/alphagomoku/standard_test/train_buffer/buffer_0.bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
 	GameConfig game_config(GameRules::STANDARD, 15);
 	TrainingConfig training_config;
-	training_config.blocks = 5;
-	training_config.filters = 64;
+	training_config.blocks = 10;
+	training_config.filters = 128;
 	training_config.device_config.batch_size = 32;
 	training_config.l2_regularization = 0.00005;
 
 	AGNetwork network(game_config, training_config);
-	network.moveTo(ml::Device::cuda(0));
+	network.moveTo(ml::Device::cuda(1));
+//	network.moveTo(ml::Device::cpu());
+//	network.forward(2);
+//	network.backward(2);
+//	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 	const int steps = 1000;
 
@@ -797,6 +747,8 @@ void run_training()
 
 	matrix<Sign> board(rows, cols);
 	matrix<Sign> board_copy(rows, cols);
+	matrix<uint32_t> features(rows, cols);
+	PatternCalculator calc(game_config);
 	for (int e = 0; e < 100; e++)
 	{
 		float policy_loss = 0.0f;
@@ -825,24 +777,31 @@ void run_training()
 				augment(policy_target, r);
 				augment(q_target, r);
 
-				network.packInputData(b, board, sample.getMove().sign);
+				calc.setBoard(board, sample.getMove().sign);
+				calc.encodeInputFeatures(features);
+				network.packInputData(b, features);
 				network.packTargetData(b, policy_target, q_target, value_target);
 			}
 			network.forward(batch_size);
+//			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			network.backward(batch_size);
 
-			const std::vector<ml::Scalar> loss = network.getLoss(batch_size);
-			policy_loss += loss.at(0).get<float>();
-			value_loss += loss.at(1).get<float>();
+			const std::vector<float> loss = network.getLoss(batch_size);
+			policy_loss += loss.at(0);
+			value_loss += loss.at(1);
 		}
 		std::cout << e << " " << policy_loss / steps << " " << value_loss / steps << '\n';
-		network.saveToFile("/home/maciek/alphagomoku/standard_test/small_network2.bin");
+		network.saveToFile(
+				"/home/maciek/alphagomoku/minml_test/minml_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
+						+ ".bin");
 	}
 }
 
 int main(int argc, char *argv[])
 {
-	std::cout << "START" << std::endl;
+	std::cout << "BEGIN" << std::endl;
+	std::cout << ml::Device::hardwareInfo() << '\n';
+
 //	TrainingManager tm("/home/maciek/alphagomoku/standard_test_2/");
 //	for (int i = 0; i < 100; i++)
 //		tm.runIterationRL();
@@ -887,26 +846,27 @@ int main(int argc, char *argv[])
 //		return 0;
 //	}
 
-//	run_calibration();
-//	run_quantization();
 //	run_training();
-	return 0;
+//	std::cout << "END" << std::endl;
+//	return 0;
 
-	GameBuffer buffer("/home/maciek/alphagomoku/standard_test_2/valid_buffer/buffer_19.bin");
+	GameBuffer buffer("/home/maciek/alphagomoku/standard_test/valid_buffer/buffer_0.bin");
+//	GameBuffer buffer("/home/maciek/alphagomoku/standard_test_2/valid_buffer/buffer_19.bin");
 	std::cout << buffer.getStats().toString() << '\n';
 //
 //	std::cout << buffer.getFromBuffer(0).getS() << '\n';
 //
 	AGNetwork network;
 //	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
-	network.loadFromFile("/home/maciek/alphagomoku/standard_test/network_opt.bin");
+	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml_5x64.bin");
+	network.optimize();
 	network.convertToHalfFloats();
 
 //	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/network_int8.bin");
 ////	return 0;
 ////	network.optimize();
 	network.setBatchSize(10);
-	network.moveTo(ml::Device::cpu());
+	network.moveTo(ml::Device::cuda(0));
 //
 	matrix<Sign> board(15, 15);
 	board = Board::fromString(" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
@@ -924,35 +884,43 @@ int main(int argc, char *argv[])
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-//	board.at(7, 7) = Sign::CIRCLE;
-	for (int i = 0; i < 10; i++)
+	board.at(7, 7) = Sign::CIRCLE;
+	const Sign sign_to_move = Sign::CROSS;
+
+	matrix<uint32_t> features(15);
+	PatternCalculator calc(GameConfig(GameRules::STANDARD, 15));
+	for (int i = 0; i < 1; i++)
 	{
-		buffer.getFromBuffer(i).getSample(0).getBoard(board);
-		const Sign sign_to_move = buffer.getFromBuffer(i).getSample(0).getMove().sign;
-		network.packInputData(i, board, sign_to_move);
+//		const SearchData &sample = buffer.getFromBuffer(i).getSample(0);
+//		const Sign sign_to_move = sample.getMove().sign;
+//
+//		sample.getBoard(board);
+		calc.setBoard(board, sign_to_move);
+		calc.encodeInputFeatures(features);
+		network.packInputData(i, features);
 	}
-//
-	network.forward(10);
-//
-	matrix<float> policy(15, 15);
-	matrix<Value> action_values(15, 15);
+
+	network.forward(1);
+
+	matrix<float> policy(15);
+	matrix<Value> action_values(15);
 	Value value;
-//
-	for (int i = 0; i < 10; i++)
+
+	for (int i = 0; i < 1; i++)
 	{
 		const Value value_target = convertOutcome(buffer.getFromBuffer(i).getSample(0).getOutcome(),
 				buffer.getFromBuffer(i).getSample(0).getMove().sign);
 		const Value minimax = buffer.getFromBuffer(i).getSample(0).getMinimaxValue();
-		buffer.getFromBuffer(i).getSample(0).getBoard(board);
+//		buffer.getFromBuffer(i).getSample(0).getBoard(board);
 		network.unpackOutput(i, policy, action_values, value);
 		std::cout << '\n';
-		std::cout << "Value   = " << value.toString() << " (" << value_target.toString() << ")\n";
-		std::cout << "minimax = " << minimax.toString() << "\n";
-		std::cout << "Proven value = " << toString(buffer.getFromBuffer(i).getSample(0).getProvenValue()) << "\n";
-		std::cout << Board::toString(board, policy) << '\n';
-		buffer.getFromBuffer(i).getSample(0).getPolicy(policy);
-		std::cout << '\n' << Board::toString(board, policy) << '\n';
-		std::cout << buffer.getFromBuffer(i).getSample(0).getMove().text() << '\n';
+		std::cout << "Value   = " << value.toString() << " (target = " << value_target.toString() << ")\n";
+//		std::cout << "minimax = " << minimax.toString() << "\n";
+//		std::cout << "Proven value = " << toString(buffer.getFromBuffer(i).getSample(0).getProvenValue()) << "\n";
+		std::cout << "Network:\n" << Board::toString(board, policy) << '\n';
+//		buffer.getFromBuffer(i).getSample(0).getPolicy(policy);
+//		std::cout << "Target:\n" << Board::toString(board, policy) << '\n';
+//		std::cout << buffer.getFromBuffer(i).getSample(0).getMove().text() << '\n';
 	}
 
 //	network.collectCalibrationStats();
