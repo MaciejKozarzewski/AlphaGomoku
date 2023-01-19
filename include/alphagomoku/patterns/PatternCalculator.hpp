@@ -79,6 +79,8 @@ namespace ag
 
 			PatternCalculator(GameConfig gameConfig);
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
+			void encodeInputFeatures(matrix<uint32_t> &features);
+
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
 
