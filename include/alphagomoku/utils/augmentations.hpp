@@ -18,24 +18,23 @@
 
 namespace ag
 {
+	inline int available_symmetries(int height, int width) noexcept
+	{
+		return (height == width) ? 8 : 4;
+	}
 	template<typename T>
 	int available_symmetries(const matrix<T> &input) noexcept
 	{
-		if (input.isSquare())
-			return 8;
-		else
-			return 4;
+		return available_symmetries(input.rows(), input.cols());
 	}
 
 	template<typename T>
 	void augment(matrix<T> &input, int mode) noexcept
 	{
+		assert(-available_symmetries(input) < mode && mode < available_symmetries(input));
+
 		if (mode == 0)
 			return;
-		if (input.isSquare())
-			assert(-8 < mode && mode < 8);
-		else
-			assert(-4 < mode && mode < 4);
 
 		const int height = input.rows();
 		const int width = input.cols();
@@ -120,16 +119,14 @@ namespace ag
 	void augment(matrix<T> &dst, const matrix<T> &src, int mode) noexcept
 	{
 		assert(&dst != &src); // will not work 'in-place'
-		assert(dst.rows() == src.rows() && dst.cols() == src.cols());
+		assert(equalSize(dst, src));
+		assert(-available_symmetries(dst) < mode && mode < available_symmetries(dst));
+
 		if (mode == 0)
 		{
 			dst.copyFrom(src);
 			return;
 		}
-		if (dst.isSquare())
-			assert(-8 < mode && mode < 8);
-		else
-			assert(-4 < mode && mode < 4);
 
 		const int height = src.rows();
 		const int width = src.cols();
