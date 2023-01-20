@@ -139,8 +139,7 @@ namespace ag
 		loadBuffer(buffer, path_to_data + "/train_buffer/");
 		std::cout << buffer.getStats().toString() << '\n';
 
-		AGNetwork model;
-		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(epoch) + ".bin");
+		AGNetwork model(config.game_config, working_dir + "/checkpoint/network_" + std::to_string(epoch) + ".bin");
 		model.setBatchSize(config.training_config.device_config.batch_size);
 		model.moveTo(config.training_config.device_config.device);
 		const double learning_rate = config.training_config.learning_rate.getValue(epoch);
@@ -164,8 +163,7 @@ namespace ag
 		GameBuffer buffer;
 		loadBuffer(buffer, path_to_data + "/valid_buffer/");
 
-		AGNetwork model;
-		model.loadFromFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
+		AGNetwork model(config.game_config, working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
 		model.setBatchSize(config.training_config.device_config.batch_size);
 		model.moveTo(config.training_config.device_config.device);
 

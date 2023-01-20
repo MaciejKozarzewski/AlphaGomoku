@@ -17,30 +17,6 @@
 #include <cstring>
 #include <cassert>
 
-namespace
-{
-	using namespace ag;
-	uint32_t encode_patterns(DirectionGroup<PatternType> group)
-	{
-		uint32_t result = 0;
-		for (uint32_t i = 0; i < 4u; i++)
-			if (group[i] == PatternType::OPEN_3)
-				result |= (1u << i);
-		for (uint32_t i = 0; i < 4u; i++)
-			if (group[i] == PatternType::HALF_OPEN_4)
-				result |= (1u << (4 + i));
-		if (group.contains(PatternType::OPEN_4))
-			result |= (1u << 8u);
-		if (group.contains(PatternType::DOUBLE_4))
-			result |= (1u << 9u);
-		if (group.contains(PatternType::FIVE))
-			result |= (1u << 10u);
-		if (group.contains(PatternType::OVERLINE))
-			result |= (1u << 11u);
-		return result;
-	}
-}
-
 namespace ag
 {
 	PatternCalculator::PatternCalculator(GameConfig gameConfig) :
@@ -91,58 +67,6 @@ namespace ag
 //		threats_init.startTimer();
 		prepare_threat_lists();
 //		threats_init.stopTimer();
-	}
-	void PatternCalculator::encodeInputFeatures(matrix<uint32_t> &features)
-	{
-		assert(equalSize(internal_board, features));
-		assert(getSignToMove() != Sign::NONE);
-		/*
-		 * Input features are:
-		 *  Bits	N	Description
-		 *  0		1	legal move
-		 *  1		1	own stone
-		 *  2		1	opponent stone
-		 *  3 		1	forbidden move
-		 *  4 		1	black (cross) to move
-		 *  5 		1	white (white)to move
-		 *  6 		1	ones (constant channel)
-		 *  7 		1	zeros (constant channel)
-		 *
-		 *   8-11	4	own open 3 (presence of a feature in each direction)
-		 *  12-15	4	own half open 4
-		 *  16		1	own open 4 (presence of a feature in any direction)
-		 *  17		1	own double 4
-		 *  18		1	own five
-		 *  19		1	own overline
-		 *
-		 *  20-23	4	opponent open 3 (presence of a feature in each direction)
-		 *  24-17	4	opponent half open 4
-		 *  28		1	opponent open 4 (presence of a feature in any direction)
-		 *  29		1	opponent double 4
-		 *  30		1	opponent five
-		 *  31		1	opponent overline
-		 */
-		const uint32_t legal = 1u;
-		const uint32_t own = 1u << 1u;
-		const uint32_t opp = 1u << 2u;
-		const uint32_t forbidden = 1u << 3u;
-		const uint32_t color_to_move = (getSignToMove() == Sign::CROSS) ? (1u << 4u) : (1u << 5u);
-		const uint32_t ones = 1u << 6u;
-
-		for (int row = 0; row < features.rows(); row++)
-			for (int col = 0; col < features.cols(); col++)
-			{
-				uint32_t tmp = legal | color_to_move | ones; // base value
-				if (signAt(row, col) == ag::Sign::NONE)
-					tmp |= legal;
-				else
-					tmp |= (signAt(row, col) == getSignToMove()) ? own : opp;
-				if (game_config.rules == GameRules::RENJU and isForbidden(sign_to_move, row, col))
-					tmp |= forbidden;
-				tmp |= (encode_patterns(getPatternTypeAt(getSignToMove(), row, col)) << 8u);
-				tmp |= (encode_patterns(getPatternTypeAt(invertSign(getSignToMove()), row, col)) << 20u);
-				features.at(row, col) = tmp;
-			}
 	}
 	void PatternCalculator::addMove(Move move) noexcept
 	{

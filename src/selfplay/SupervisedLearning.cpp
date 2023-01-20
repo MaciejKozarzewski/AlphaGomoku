@@ -111,7 +111,7 @@ namespace ag
 //				std::cout << Board::toString(board, action_values_target) << '\n';
 //				std::cout << "Value target = " << value_target.toString() << '\n';
 
-//				model.packInputData(b, board, sample.getMove().sign); TODO
+				model.packInputData(b, board, sample.getMove().sign);
 				model.packTargetData(b, policy_target, action_values_target, value_target);
 			}
 			model.forward(batch_size);
@@ -158,7 +158,7 @@ namespace ag
 //				std::cout << Board::toString(board, action_values_target) << '\n';
 //				std::cout << "Value target = " << value_target.toString() << '\n';
 
-//				model.packInputData(this_batch, board, sample.getMove().sign); TODO
+				model.packInputData(this_batch, board, sample.getMove().sign);
 				model.packTargetData(this_batch, policy_target, action_values_target, value_target);
 
 				counter++;

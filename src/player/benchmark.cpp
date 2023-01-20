@@ -9,6 +9,7 @@
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
+#include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/version.hpp>
 
 namespace
@@ -26,6 +27,7 @@ namespace
 
 	Json test_speed(double max_time, const std::string &path, HardwareTestConfig config)
 	{
+		const GameConfig cfg(GameRules::STANDARD, 15, 15);
 		std::vector<std::thread> threads(config.search_threads);
 		std::vector<AGNetwork> networks(config.search_threads);
 		for (size_t i = 0; i < networks.size(); i++)
@@ -44,14 +46,14 @@ namespace
 			try
 			{
 				networks[index].forward(1);
-				double start = getTime();
+				const double start = getTime();
 				int processed_samples = 0;
 				while (getTime() - start < max_time)
 				{
 					networks[index].forward(batch_size);
 					processed_samples += batch_size;
 				}
-				double stop = getTime();
+				const double stop = getTime();
 				std::lock_guard lock(result_mutex);
 				total_samples += processed_samples;
 				total_time += (stop - start);

@@ -9,7 +9,9 @@
 #define ALPHAGOMOKU_SELFPLAY_AGNETWORK_HPP_
 
 #include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/selfplay/NNInputFeatures.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 #include <minml/graph/Graph.hpp>
 #include <minml/utils/json.hpp>
@@ -28,8 +30,7 @@ namespace ag
 {
 	enum class GameOutcome;
 	struct Value;
-	struct GameConfig;
-	struct TrainingConfig;
+	class PatternCalculator;
 } /* namespace ag */
 
 namespace ag
@@ -45,15 +46,23 @@ namespace ag
 			std::unique_ptr<ml::Tensor> policy_on_cpu, action_values_on_cpu, value_on_cpu;
 			std::unique_ptr<ml::Tensor> policy_target_on_cpu, action_values_target_on_cpu, value_target_on_cpu;
 
-			int rows = 0;
-			int cols = 0;
+			GameConfig game_config;
+
+			std::unique_ptr<PatternCalculator> pattern_calculator; // lazily allocated on first use
+			NNInputFeatures input_features; // same as above
 		public:
 			AGNetwork() = default;
+			AGNetwork(const GameConfig &gameOptions);
+			AGNetwork(const GameConfig &gameOptions, const std::string &path);
 			AGNetwork(const GameConfig &gameOptions, const TrainingConfig &trainingOptions);
 
 			std::vector<float> getAccuracy(int batchSize, int top_k = 4) const;
 
-			void packInputData(int index, const matrix<uint32_t> &features);
+			void packInputData(int index, const matrix<Sign> &board, Sign signToMove);
+			/*
+			 * \brief Can be used to pack the data if the features were already calculated.
+			 */
+			void packInputData(int index, const NNInputFeatures &features);
 			void packTargetData(int index, const matrix<float> &policy, matrix<Value> &actionValues, Value value);
 			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const;
 
@@ -84,6 +93,7 @@ namespace ag
 			void setBatchSize(int batchSize);
 		private:
 			void pack_input_to_graph(int batchSize);
+			PatternCalculator& getPatternCalculator();
 			void create_network(const TrainingConfig &trainingOptions);
 			void reallocate_tensors();
 	};

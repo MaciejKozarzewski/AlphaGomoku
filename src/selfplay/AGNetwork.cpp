@@ -10,6 +10,7 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/game/Board.hpp>
+#include <alphagomoku/patterns/PatternCalculator.hpp>
 
 #include <minml/graph/graph_optimizers.hpp>
 #include <minml/core/Device.hpp>
@@ -65,9 +66,18 @@ namespace
 
 namespace ag
 {
+	AGNetwork::AGNetwork(const GameConfig &gameOptions) :
+			game_config(gameOptions)
+	{
+	}
+	AGNetwork::AGNetwork(const GameConfig &gameOptions, const std::string &path) :
+			game_config(gameOptions)
+	{
+		loadFromFile(path);
+		reallocate_tensors();
+	}
 	AGNetwork::AGNetwork(const GameConfig &gameOptions, const TrainingConfig &trainingOptions) :
-			rows(gameOptions.rows),
-			cols(gameOptions.cols)
+			game_config(gameOptions)
 	{
 		create_network(trainingOptions);
 		reallocate_tensors();
@@ -76,8 +86,8 @@ namespace ag
 	std::vector<float> AGNetwork::getAccuracy(int batchSize, int top_k) const
 	{
 		std::vector<float> result(1 + top_k);
-		matrix<float> output(rows, cols);
-		matrix<float> answer(rows, cols);
+		matrix<float> output(game_config.rows, game_config.cols);
+		matrix<float> answer(game_config.rows, game_config.cols);
 		for (int b = 0; b < batchSize; b++)
 		{
 			std::memcpy(output.data(), get_pointer(*policy_on_cpu, { b, 0, 0, 0 }), output.sizeInBytes());
@@ -97,7 +107,14 @@ namespace ag
 		return result;
 	}
 
-	void AGNetwork::packInputData(int index, const matrix<uint32_t> &features)
+	void AGNetwork::packInputData(int index, const matrix<Sign> &board, Sign signToMove)
+	{
+		getPatternCalculator().setBoard(board, signToMove);
+		input_features.encode(getPatternCalculator());
+
+		packInputData(index, input_features);
+	}
+	void AGNetwork::packInputData(int index, const NNInputFeatures &features)
 	{
 		assert(index >= 0 && index < getBatchSize());
 
@@ -174,12 +191,22 @@ namespace ag
 		graph.makeNonTrainable();
 		ml::FoldBatchNorm().optimize(graph);
 		ml::FoldAdd().optimize(graph);
-		graph.print();
 	}
 	void AGNetwork::convertToHalfFloats()
 	{
-		graph.convertTo(ml::DataType::FLOAT16); // TODO first check if float16 is supported, if not we have to use bfloat16 or even float32
-		reallocate_tensors();
+		ml::DataType new_type = ml::DataType::FLOAT32;
+		if (graph.device().supportsType(ml::DataType::FLOAT16))
+			new_type = ml::DataType::FLOAT16;
+		else
+		{
+			if (graph.device().supportsType(ml::DataType::BFLOAT16))
+				new_type = ml::DataType::BFLOAT16;
+		}
+		if (new_type != ml::DataType::FLOAT32)
+		{
+			graph.convertTo(new_type);
+			reallocate_tensors();
+		}
 	}
 	void AGNetwork::saveToFile(const std::string &path) const
 	{
@@ -194,8 +221,8 @@ namespace ag
 		graph.context().synchronize();
 		FileLoader fl(path);
 		graph.load(fl.getJson(), fl.getBinaryData());
-		rows = graph.getInputShape()[1];
-		cols = graph.getInputShape()[2];
+		game_config.rows = graph.getInputShape()[1];
+		game_config.cols = graph.getInputShape()[2];
 	}
 	void AGNetwork::unloadGraph()
 	{
@@ -255,13 +282,22 @@ namespace ag
 			ml::unpackInput(graph.context(), graph.getInput(), *input_on_device);
 		}
 	}
+	PatternCalculator& AGNetwork::getPatternCalculator()
+	{
+		if (pattern_calculator == nullptr)
+		{
+			pattern_calculator = std::make_unique<PatternCalculator>(game_config);
+			input_features = NNInputFeatures(game_config.rows, game_config.cols);
+		}
+		return *pattern_calculator;
+	}
 	void AGNetwork::create_network(const TrainingConfig &trainingOptions)
 	{
 		int batch_size = trainingOptions.device_config.batch_size;
 		int blocks = trainingOptions.blocks;
 		int filters = trainingOptions.filters;
 
-		auto x = graph.addInput( { batch_size, rows, cols, 32 });
+		auto x = graph.addInput( { batch_size, game_config.rows, game_config.cols, 32 });
 		x = graph.add(ml::Conv2D(filters, 5, "linear").useBias(false), x);
 		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
 

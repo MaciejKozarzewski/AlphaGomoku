@@ -21,6 +21,7 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
+#include <alphagomoku/selfplay/NNInputFeatures.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/ObjectPool.hpp>
@@ -747,8 +748,6 @@ void run_training()
 
 	matrix<Sign> board(rows, cols);
 	matrix<Sign> board_copy(rows, cols);
-	matrix<uint32_t> features(rows, cols);
-	PatternCalculator calc(game_config);
 	for (int e = 0; e < 100; e++)
 	{
 		float policy_loss = 0.0f;
@@ -777,9 +776,7 @@ void run_training()
 				augment(policy_target, r);
 				augment(q_target, r);
 
-				calc.setBoard(board, sample.getMove().sign);
-				calc.encodeInputFeatures(features);
-				network.packInputData(b, features);
+				network.packInputData(b, board, sample.getMove().sign);
 				network.packTargetData(b, policy_target, q_target, value_target);
 			}
 			network.forward(batch_size);
@@ -856,11 +853,11 @@ int main(int argc, char *argv[])
 //
 //	std::cout << buffer.getFromBuffer(0).getS() << '\n';
 //
-	AGNetwork network;
+	AGNetwork network(GameConfig(GameRules::STANDARD, 15, 15));
 //	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
 	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml_5x64.bin");
 	network.optimize();
-	network.convertToHalfFloats();
+//	network.convertToHalfFloats();
 
 //	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/network_int8.bin");
 ////	return 0;
@@ -869,35 +866,31 @@ int main(int argc, char *argv[])
 	network.moveTo(ml::Device::cuda(0));
 //
 	matrix<Sign> board(15, 15);
-	board = Board::fromString(" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ O O _ X _ X _ _ _ _ _\n"
-			" _ _ O X O O O O X _ _ _ _ _ _\n"
-			" _ _ _ X _ O _ O X X _ _ _ _ _\n"
-			" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-	board.at(7, 7) = Sign::CIRCLE;
-	const Sign sign_to_move = Sign::CROSS;
+	board = Board::fromString(	" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ O O _ X _ X _ _ _ _ _\n"
+								" _ _ O X O O O O X _ _ _ _ _ _\n"
+								" _ _ _ X _ O _ O X X _ _ _ _ _\n"
+								" _ _ _ _ X X _ _ _ X _ _ _ _ _\n"
+								" _ _ _ _ _ O _ _ _ X _ _ _ _ _\n"
+								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+//	board.at(7, 7) = Sign::CIRCLE;
+	const Sign sign_to_move = Sign::CIRCLE;
 
-	matrix<uint32_t> features(15);
-	PatternCalculator calc(GameConfig(GameRules::STANDARD, 15));
 	for (int i = 0; i < 1; i++)
 	{
 //		const SearchData &sample = buffer.getFromBuffer(i).getSample(0);
 //		const Sign sign_to_move = sample.getMove().sign;
-//
 //		sample.getBoard(board);
-		calc.setBoard(board, sign_to_move);
-		calc.encodeInputFeatures(features);
-		network.packInputData(i, features);
+
+		network.packInputData(i, board, sign_to_move);
 	}
 
 	network.forward(1);

@@ -11,6 +11,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/selfplay/NNInputFeatures.hpp>
 
 #include <cassert>
 #include <string>
@@ -41,6 +42,7 @@ namespace ag
 			matrix<Sign> board; /**< board representation of a state at the end of visited_path */
 			Sign sign_to_move = Sign::NONE;
 
+			NNInputFeatures features; /**< features used as input to the network */
 			matrix<float> policy; /**< policy returned from neural network */
 			matrix<Value> action_values; /**< matrix of action values returned from neural network */
 			Value value; /**< value returned from neural network */
@@ -129,6 +131,14 @@ namespace ag
 			bool mustDefend() const noexcept
 			{
 				return must_defend;
+			}
+			const NNInputFeatures& getFeatures() const noexcept
+			{
+				return features;
+			}
+			NNInputFeatures& getFeatures() noexcept
+			{
+				return features;
 			}
 			const matrix<Sign>& getBoard() const noexcept
 			{

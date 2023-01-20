@@ -7,6 +7,7 @@
 
 #include <alphagomoku/mcts/NNEvaluator.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
+#include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/configs.hpp>
@@ -192,8 +193,9 @@ namespace ag
 		matrix<Sign> board(network.getInputShape()[1], network.getInputShape()[2]);
 		for (int i = 0; i < batch_size; i++)
 		{
-			augment(board, task_queue[i].ptr->getBoard(), task_queue[i].symmetry);
-//			network.packInputData(i, board, task_queue[i].ptr->getSignToMove()); TODO
+//			augment(board, task_queue[i].ptr->getBoard(), task_queue[i].symmetry);
+			task_queue[i].ptr->getFeatures().augment(task_queue[i].symmetry);
+			network.packInputData(i, task_queue[i].ptr->getFeatures());
 		}
 	}
 	void NNEvaluator::unpack_from_network(int batch_size)
