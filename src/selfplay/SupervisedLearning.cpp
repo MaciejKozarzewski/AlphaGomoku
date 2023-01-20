@@ -16,75 +16,153 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
 
-#include <minml/core/Tensor.hpp>
-#include <minml/core/Shape.hpp>
-
 #include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <thread>
-#include <chrono>
 
 namespace
 {
 	using namespace ag;
 
-	void augment_data(matrix<Sign> &board, matrix<float> &policyTarget, matrix<Value> &actionValues)
+	void augment_data_pack(DataPack &pack)
 	{
-		int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
-		augment(board, r);
-		augment(policyTarget, r);
-		augment(actionValues, r);
+		const int r = randInt(available_symmetries(pack.board));
+		ag::augment(pack.board, r);
+		ag::augment(pack.policy, r);
+		ag::augment(pack.action_values, r);
+	}
+	DataPack prepare_data_pack(const SearchData &sample, bool perform_augmentations)
+	{
+		DataPack result(sample.rows(), sample.cols());
+		sample.getBoard(result.board);
+		sample.getPolicy(result.policy);
+		sample.getActionValues(result.action_values);
+		result.value = convertOutcome(sample.getOutcome(), sample.getMove().sign);
+		result.sign_to_move = sample.getMove().sign;
+
+		matrix<ProvenValue> proven_values(sample.rows(), sample.cols());
+		sample.getActionProvenValues(proven_values);
+		for (int i = 0; i < proven_values.size(); i++)
+		{
+			if (result.policy[i] == 0.0f or result.board[i] != Sign::NONE)
+				result.action_values[i] = Value(); // we need to completely zero out the target for unvisited or occupied spots
+			switch (proven_values[i])
+			{
+				case ProvenValue::UNKNOWN:
+					break;
+				case ProvenValue::LOSS:
+					result.policy[i] = 1.0e-6f;
+					result.action_values[i] = Value(0.0f, 0.0f, 1.0f);
+					break;
+				case ProvenValue::DRAW:
+					result.action_values[i] = Value(0.0f, 1.0f, 0.0f);
+					break;
+				case ProvenValue::WIN:
+					result.policy[i] = 1.0e6f;
+					result.action_values[i] = Value(1.0f, 0.0f, 0.0f);
+					break;
+			}
+		}
+		normalize(result.policy);
+
+//		std::cout << "Sample from buffer\n";
+//		sample.print();
+//		std::cout << "Prepared training data pack\n";
+//		std::cout << "Sign to move " << result.sign_to_move << '\n';
+//		std::cout << "Value target = " << result.value.toString() << '\n';
+//		std::cout << "Board\n" << Board::toString(result.board);
+//		std::cout << "Policy target\n" << Board::toString(result.board, result.policy);
+//		std::cout << "Action values target\n" << Board::toString(result.board, result.action_values);
+
+		if (perform_augmentations)
+			augment_data_pack(result);
+
+		return result;
+	}
+	void mask_out_target_data_pack(const DataPack &output, DataPack &target)
+	{
+		assert(equalSize(output.board, target.board));
+		assert(equalSize(output.policy, target.policy));
+		assert(equalSize(output.action_values, target.action_values));
+
+		for (int i = 0; i < output.action_values.size(); i++)
+			if (target.action_values[i].isZero())
+			{ // if all fields are zero it means that we don't have any target data for this spot
+				target.action_values[i] = output.action_values[i]; // in such case we set value of the target to the output from the network, zeroing the gradient
+			}
+
+//		std::cout << "Output from network\n";
+//		std::cout << "Value output = " << output.value.toString() << '\n';
+//		std::cout << "Policy output\n" << Board::toString(matrix<Sign>(15, 15), output.policy);
+//		std::cout << "Action values output\n" << Board::toString(matrix<Sign>(15, 15), output.action_values);
+//
+//		std::cout << "Updated target data pack\n";
+//		std::cout << "Sign to move " << target.sign_to_move << '\n';
+//		std::cout << "Value target = " << target.value.toString() << '\n';
+//		std::cout << "Board\n" << Board::toString(target.board);
+//		std::cout << "Policy target\n" << Board::toString(matrix<Sign>(15, 15), target.policy);
+//		std::cout << "Action values target\n" << Board::toString(matrix<Sign>(15, 15), target.action_values);
+//		std::cout << "\n------------------------------------------------------------------------\n";
+	}
+	void pack_input_data_pack_to_model(std::vector<DataPack> &inputs, AGNetwork &model)
+	{
+		assert(model.getBatchSize() >= static_cast<int>(inputs.size()));
+		for (size_t i = 0; i < inputs.size(); i++)
+			model.packInputData(i, inputs.at(i).board, inputs.at(i).sign_to_move);
+	}
+	void pack_target_data_pack_to_model(std::vector<DataPack> &targets, AGNetwork &model)
+	{
+		assert(model.getBatchSize() >= static_cast<int>(targets.size()));
+		DataPack output_data_pack(model.getInputShape()[1], model.getInputShape()[2]);
+		for (size_t i = 0; i < targets.size(); i++)
+		{
+			model.unpackOutput(i, output_data_pack.policy, output_data_pack.action_values, output_data_pack.value);
+			mask_out_target_data_pack(output_data_pack, targets[i]);
+			model.packTargetData(i, targets[i].policy, targets[i].action_values, targets[i].value);
+		}
 	}
 }
 
 namespace ag
 {
 	SupervisedLearning::SupervisedLearning(const TrainingConfig &config) :
-			training_loss(3),
+			training_loss(4),
 			training_accuracy(5),
-			validation_loss(3),
+			validation_loss(4),
 			validation_accuracy(5),
 			config(config)
 	{
 	}
-	void SupervisedLearning::updateTrainingStats(float pl, float vl, std::vector<float> &acc)
+	void SupervisedLearning::updateTrainingStats(const std::vector<float> &loss, std::vector<float> &acc)
 	{
 		training_loss.at(0) += 1.0f;
-		training_loss.at(1) += pl;
-		training_loss.at(2) += vl;
+		for (size_t i = 0; i < loss.size(); i++)
+			training_loss.at(1 + i) += loss.at(i);
 		addVectors(training_accuracy, acc);
 	}
-	void SupervisedLearning::updateValidationStats(float pl, float vl, std::vector<float> &acc)
+	void SupervisedLearning::updateValidationStats(const std::vector<float> &loss, std::vector<float> &acc)
 	{
 		validation_loss.at(0) += 1.0f;
-		validation_loss.at(1) += pl;
-		validation_loss.at(2) += vl;
+		for (size_t i = 0; i < loss.size(); i++)
+			validation_loss.at(1 + i) += loss.at(i);
 		addVectors(validation_accuracy, acc);
 	}
 	void SupervisedLearning::train(AGNetwork &model, GameBuffer &buffer, int steps)
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
-		ml::Shape shape = model.getInputShape();
-		int batch_size = shape[0];
-		int rows = shape[1];
-		int cols = shape[2];
+		const int batch_size = model.getInputShape().firstDim();
 
 		std::vector<int> training_sample_order = permutation(buffer.size());
 		size_t training_sample_index = 0;
 
-		matrix<Sign> board(rows, cols);
-		matrix<Sign> board_copy(rows, cols);
+		std::vector<DataPack> data_packs(batch_size);
 
-		matrix<float> policy_target;
-		matrix<Value> action_values_target;
-		Value value_target;
 		for (int i = 0; i < steps; i++)
 		{
-			if ((i + 1) % (steps / 10) == 0)
+			if ((i + 1) % std::max(1, (steps / 10)) == 0)
 				std::cout << i + 1 << '\n';
 			for (int b = 0; b < batch_size; b++)
 			{
@@ -96,30 +174,18 @@ namespace ag
 					training_sample_index = 0;
 				}
 
-				sample.getBoard(board);
-				policy_target = prepare_policy_target(sample);
-				action_values_target = prepare_action_values_target(sample);
-				value_target = prepare_value_target(sample);
-
-				if (config.augment_training_data)
-					augment_data(board, policy_target, action_values_target);
-
-//				sample.print();
-//				std::cout << "Training target\n";
-//				std::cout << Board::toString(board) << '\n';
-//				std::cout << Board::toString(board, policy_target) << '\n';
-//				std::cout << Board::toString(board, action_values_target) << '\n';
-//				std::cout << "Value target = " << value_target.toString() << '\n';
-
-				model.packInputData(b, board, sample.getMove().sign);
-				model.packTargetData(b, policy_target, action_values_target, value_target);
+				data_packs.at(b) = prepare_data_pack(sample, config.augment_training_data);
 			}
+
+			pack_input_data_pack_to_model(data_packs, model);
 			model.forward(batch_size);
 
-			auto accuracy = model.getAccuracy(batch_size, 4);
+			pack_target_data_pack_to_model(data_packs, model);
 			model.backward(batch_size);
+
 			std::vector<float> loss = model.getLoss(batch_size);
-			updateTrainingStats(loss.at(0), loss.at(1), accuracy);
+			auto accuracy = model.getAccuracy(batch_size, 4);
+			updateTrainingStats(loss, accuracy);
 
 			learning_steps++;
 		}
@@ -128,12 +194,9 @@ namespace ag
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
-		ml::Shape shape = model.getInputShape();
-		int batch_size = shape[0];
-		int rows = shape[1];
-		int cols = shape[2];
+		const int batch_size = model.getInputShape().firstDim();
 
-		matrix<Sign> board(rows, cols);
+		std::vector<DataPack> data_packs(batch_size);
 
 		int counter = 0;
 		while (counter < buffer.size())
@@ -142,46 +205,35 @@ namespace ag
 			while (counter < buffer.size() and this_batch < batch_size)
 			{
 				const SearchData &sample = buffer.getFromBuffer(counter).getSample();
-
-				sample.getBoard(board);
-				matrix<float> policy_target = prepare_policy_target(sample);
-				matrix<Value> action_values_target = prepare_action_values_target(sample);
-				Value value_target = prepare_value_target(sample);
-
-				if (config.augment_training_data)
-					augment_data(board, policy_target, action_values_target);
-
-//				sample.print();
-//				std::cout << "Training target\n";
-//				std::cout << Board::toString(board) << '\n';
-//				std::cout << Board::toString(board, policy_target) << '\n';
-//				std::cout << Board::toString(board, action_values_target) << '\n';
-//				std::cout << "Value target = " << value_target.toString() << '\n';
-
-				model.packInputData(this_batch, board, sample.getMove().sign);
-				model.packTargetData(this_batch, policy_target, action_values_target, value_target);
-
 				counter++;
 				this_batch++;
+
+				data_packs.at(this_batch) = prepare_data_pack(sample, config.augment_training_data);
 			}
+
+			pack_input_data_pack_to_model(data_packs, model);
 			model.forward(batch_size);
 
-			auto accuracy = model.getAccuracy(batch_size);
+			pack_target_data_pack_to_model(data_packs, model);
+
 			std::vector<float> loss = model.getLoss(batch_size);
-			updateValidationStats(loss.at(0), loss.at(1), accuracy);
+			auto accuracy = model.getAccuracy(batch_size);
+			updateValidationStats(loss, accuracy);
 		}
 	}
 	void SupervisedLearning::saveTrainingHistory(const std::string &workingDirectory)
 	{
-		std::string path = workingDirectory + "/training_history.txt";
+		if (workingDirectory.empty())
+			return;
+		std::string path = workingDirectory + "/training_history_10x128v2.txt";
 		std::ofstream history_file;
 		history_file.open(path.data(), std::ios::app);
 		history_file << std::setprecision(9);
 		if (learning_steps == 0)
 		{
 			history_file << "#step";
-			history_file << " train_p_loss train_v_loss";
-			history_file << " val_p_loss val_v_loss";
+			history_file << " train_p_loss train_v_loss train_q_loss";
+			history_file << " val_p_loss val_v_loss val_q_loss";
 			for (size_t i = 0; i < (training_accuracy.size() - 1); i++)
 				history_file << " train_top" << (i + 1) << "_acc";
 			for (size_t i = 0; i < (validation_accuracy.size() - 1); i++)
@@ -197,8 +249,10 @@ namespace ag
 
 			history_file << std::setprecision(6);
 			history_file << learning_steps;
-			history_file << " " << train_loss.at(0) << " " << train_loss.at(1);
-			history_file << " " << valid_loss.at(0) << " " << valid_loss.at(1);
+			for (size_t i = 0; i < train_loss.size(); i++)
+				history_file << " " << train_loss.at(i);
+			for (size_t i = 0; i < valid_loss.size(); i++)
+				history_file << " " << valid_loss.at(i);
 			for (size_t i = 0; i < train_acc.size(); i++)
 				history_file << " " << 100 * train_acc.at(i);
 			for (size_t i = 0; i < valid_acc.size(); i++)
@@ -225,67 +279,6 @@ namespace ag
 	{
 		learning_steps = json["learning_steps"];
 	}
-	/*
-	 * private
-	 */
-	matrix<float> SupervisedLearning::prepare_policy_target(const SearchData &sample)
-	{
-		matrix<float> policy(sample.rows(), sample.cols());
-		matrix<ProvenValue> proven_values(sample.rows(), sample.cols());
 
-		sample.getPolicy(policy);
-		sample.getActionProvenValues(proven_values);
-		for (int i = 0; i < policy.size(); i++)
-		{
-			switch (proven_values[i])
-			{
-				case ProvenValue::UNKNOWN:
-					break;
-				case ProvenValue::LOSS:
-					policy[i] = 1.0e-6f;
-					break;
-				case ProvenValue::DRAW:
-					break;
-				case ProvenValue::WIN:
-					policy[i] = 1e6f;
-					break;
-
-			}
-		}
-		normalize(policy);
-		return policy;
-	}
-	matrix<Value> SupervisedLearning::prepare_action_values_target(const SearchData &sample)
-	{
-		matrix<Value> action_values(sample.rows(), sample.cols());
-		matrix<ProvenValue> proven_values(sample.rows(), sample.cols());
-
-		sample.getActionValues(action_values);
-		sample.getActionProvenValues(proven_values);
-
-		for (int i = 0; i < action_values.size(); i++)
-		{
-			switch (proven_values[i])
-			{
-				case ProvenValue::UNKNOWN:
-					break;
-				case ProvenValue::LOSS:
-					action_values[i] = Value(0.0f, 0.0f, 1.0f);
-					break;
-				case ProvenValue::DRAW:
-					action_values[i] = Value(0.0f, 1.0f, 0.0f);
-					break;
-				case ProvenValue::WIN:
-					action_values[i] = Value(1.0f, 0.0f, 0.0f);
-					break;
-
-			}
-		}
-		return action_values;
-	}
-	Value SupervisedLearning::prepare_value_target(const SearchData &sample)
-	{
-		return convertOutcome(sample.getOutcome(), sample.getMove().sign);
-	}
-}
+} /* namespace ag */
 

@@ -23,6 +23,23 @@ namespace ag
 
 namespace ag
 {
+	struct DataPack
+	{
+			matrix<Sign> board;
+			matrix<float> policy;
+			matrix<Value> action_values;
+			Value value;
+			Sign sign_to_move = Sign::NONE;
+
+			DataPack() noexcept = default;
+			DataPack(int rows, int cols) :
+					board(rows, cols),
+					policy(rows, cols),
+					action_values(rows, cols)
+			{
+			}
+	};
+
 	class SupervisedLearning
 	{
 			int learning_steps = 0;
@@ -34,8 +51,8 @@ namespace ag
 			TrainingConfig config;
 		public:
 			SupervisedLearning(const TrainingConfig &config);
-			void updateTrainingStats(float pl, float vl, std::vector<float> &acc);
-			void updateValidationStats(float pl, float vl, std::vector<float> &acc);
+			void updateTrainingStats(const std::vector<float> &loss, std::vector<float> &acc);
+			void updateValidationStats(const std::vector<float> &loss, std::vector<float> &acc);
 			void train(AGNetwork &model, GameBuffer &buffer, int steps);
 			void validate(AGNetwork &model, GameBuffer &buffer);
 			void saveTrainingHistory(const std::string &workingDirectory);
@@ -43,11 +60,8 @@ namespace ag
 
 			Json saveProgress() const;
 			void loadProgress(const Json &json);
-		private:
-			matrix<float> prepare_policy_target(const SearchData &sample);
-			Value prepare_value_target(const SearchData &sample);
-			matrix<Value> prepare_action_values_target(const SearchData &sample);
 	};
-}
+
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_SELFPLAY_SUPERVISEDLEARNING_HPP_ */
