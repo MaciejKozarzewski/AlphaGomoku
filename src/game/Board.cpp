@@ -38,7 +38,7 @@ namespace
 	}
 	std::string to_string(float f)
 	{
-		int t = static_cast<int>(1000 * f);
+		const int t = static_cast<int>(1000 * f);
 		if (t == 0)
 			return "  _ ";
 		else
@@ -50,13 +50,42 @@ namespace
 				if (t < 100)
 					return "  " + std::to_string(t);
 				else
-					return " " + std::to_string(t);
+				{
+					if (t == 1000)
+						return std::to_string(t);
+					else
+						return " " + std::to_string(t);
+				}
 			}
 		}
 	}
 	std::string to_string(Value v)
 	{
-		return to_string(v.getExpectation());
+		if (v.isZero())
+			return "  _ ";
+		else
+		{
+			const int t = static_cast<int>(1000 * v.getExpectation());
+			if (t == 0)
+				return "   0";
+			else
+			{
+				if (t < 10)
+					return "   " + std::to_string(t);
+				else
+				{
+					if (t < 100)
+						return "  " + std::to_string(t);
+					else
+					{
+						if (t == 1000)
+							return std::to_string(t);
+						else
+							return " " + std::to_string(t);
+					}
+				}
+			}
+		}
 	}
 
 	std::string pretty_print_top_row(int columns, int spacingLeft = 1, int spacingRight = 0)
