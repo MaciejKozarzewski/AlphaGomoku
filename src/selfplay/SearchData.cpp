@@ -163,6 +163,9 @@ namespace ag
 		std::cout << "board\n" << Board::toString(board);
 		std::cout << "policy\n" << Board::toString(board, policy);
 		std::cout << "proven values\n" << Board::toString(board, proven_values);
+		for (int i = 0; i < policy.size(); i++)
+			if (policy[i] == 0.0f)
+				action_values[i] = Value();
 		std::cout << "action values\n" << Board::toString(board, action_values);
 	}
 	bool SearchData::isCorrect() const noexcept

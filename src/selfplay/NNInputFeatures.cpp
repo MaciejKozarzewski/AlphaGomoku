@@ -53,13 +53,6 @@ namespace
 		result |= (table[D3] << 3);
 		return result;
 	}
-
-	template<int N, int M>
-	void swap_bits(uint32_t &data)
-	{
-		const uint32_t x = ((data >> N) ^ (data >> M)) & 1u; // XOR temporary
-		data = data ^ ((x << N) | (x << M));
-	}
 }
 
 namespace ag

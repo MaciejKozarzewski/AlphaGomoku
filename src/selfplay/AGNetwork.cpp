@@ -111,7 +111,6 @@ namespace ag
 	{
 		getPatternCalculator().setBoard(board, signToMove);
 		input_features.encode(getPatternCalculator());
-
 		packInputData(index, input_features);
 	}
 	void AGNetwork::packInputData(int index, const NNInputFeatures &features)
@@ -120,13 +119,13 @@ namespace ag
 
 		std::memcpy(get_pointer(*input_on_cpu, { index }), features.data(), features.sizeInBytes());
 	}
-	void AGNetwork::packTargetData(int index, const matrix<float> &policy, matrix<Value> &actionValues, Value value)
+	void AGNetwork::packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value)
 	{
 		assert(index >= 0 && index < getBatchSize());
 
 		std::memcpy(get_pointer(*policy_target_on_cpu, { index }), policy.data(), policy.sizeInBytes());
 		std::memcpy(get_pointer(*value_target_on_cpu, { index }), &value, sizeof(Value));
-//		std::memcpy(get_pointer(*action_values_target_on_cpu, { index }), actionValues.data(), actionValues.sizeInBytes());
+		std::memcpy(get_pointer(*action_values_target_on_cpu, { index }), actionValues.data(), actionValues.sizeInBytes());
 	}
 	void AGNetwork::unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const
 	{
@@ -135,8 +134,8 @@ namespace ag
 		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(*policy_on_cpu, { index }), policy_on_cpu->dtype(),
 				policy.size());
 		ml::convertType(context_on_cpu, &value, ml::DataType::FLOAT32, get_pointer(*value_on_cpu, { index }), value_on_cpu->dtype(), 3);
-//		ml::convertType(context_on_cpu, actionValues.data(), ml::DataType::FLOAT32, get_pointer(*action_values_on_cpu, { index }),
-//				action_values_on_cpu->dtype(), actionValues.size());
+		ml::convertType(context_on_cpu, actionValues.data(), ml::DataType::FLOAT32, get_pointer(*action_values_on_cpu, { index }),
+				action_values_on_cpu->dtype(), 3 * actionValues.size());
 	}
 
 	void AGNetwork::asyncForwardLaunch(int batch_size)
@@ -145,7 +144,7 @@ namespace ag
 		graph.forward(batch_size);
 		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
-//		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
+		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
 	}
 	void AGNetwork::asyncForwardJoin()
 	{
@@ -158,7 +157,7 @@ namespace ag
 		graph.forward(batch_size);
 		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
-//		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
+		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
 		graph.context().synchronize();
 	}
 	void AGNetwork::backward(int batch_size)
@@ -166,7 +165,7 @@ namespace ag
 		assert(graph.isTrainable());
 		graph.getTarget(0).copyFrom(graph.context(), *policy_target_on_cpu);
 		graph.getTarget(1).copyFrom(graph.context(), *value_target_on_cpu);
-//		graph.getTarget(2).copyFrom(graph.context(), *action_values_target_on_cpu);
+		graph.getTarget(2).copyFrom(graph.context(), *action_values_target_on_cpu);
 
 		graph.backward(batch_size);
 		graph.learn();
@@ -177,7 +176,7 @@ namespace ag
 		assert(graph.isTrainable());
 		graph.getTarget(0).copyFrom(graph.context(), *policy_target_on_cpu);
 		graph.getTarget(1).copyFrom(graph.context(), *value_target_on_cpu);
-//		graph.getTarget(2).copyFrom(graph.context(), *action_values_target_on_cpu);
+		graph.getTarget(2).copyFrom(graph.context(), *action_values_target_on_cpu);
 		return graph.getLoss(batch_size);
 	}
 
@@ -320,13 +319,20 @@ namespace ag
 		graph.addOutput(p);
 
 		// value head
-		auto v = graph.add(ml::Conv2D(2, 1, "linear").useBias(false), x);
+		auto v = graph.add(ml::Conv2D(4, 1, "linear").useBias(false), x);
 		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
 
 		v = graph.add(ml::Dense(std::min(256, 2 * filters), "linear").useBias(false), v);
 		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
 		v = graph.add(ml::Dense(3, "softmax"), v);
 		graph.addOutput(v);
+
+		// action values head
+		auto q = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
+		q = graph.add(ml::BatchNormalization("relu").useGamma(false), q);
+
+		q = graph.add(ml::Conv2D(3, 1, "softmax"), q);
+		graph.addOutput(q);
 
 		graph.init();
 		graph.setOptimizer(ml::Optimizer(trainingOptions.learning_rate));
@@ -345,24 +351,24 @@ namespace ag
 
 		policy_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(0), dtype, ml::Device::cpu());
 		value_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(1), dtype, ml::Device::cpu());
-//		action_values_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(2), dtype, ml::Device::cpu());
+		action_values_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(2), dtype, ml::Device::cpu());
 
 		policy_target_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(0), ml::DataType::FLOAT32, ml::Device::cpu());
 		value_target_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(1), ml::DataType::FLOAT32, ml::Device::cpu());
-//		action_values_target_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(2), ml::DataType::FLOAT32, ml::Device::cpu());
+		action_values_target_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(2), ml::DataType::FLOAT32, ml::Device::cpu());
 
 		if (graph.device().isCUDA() and not input_on_cpu->isPageLocked())
 		{
 			input_on_cpu->pageLock();
 			policy_on_cpu->pageLock();
 			value_on_cpu->pageLock();
-//			action_values_on_cpu->pageLock();
+			action_values_on_cpu->pageLock();
 
 			if (graph.isTrainable())
 			{
 				policy_target_on_cpu->pageLock();
 				value_target_on_cpu->pageLock();
-//				action_values_target_on_cpu->pageLock();
+				action_values_target_on_cpu->pageLock();
 			}
 		}
 	}

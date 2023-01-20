@@ -129,6 +129,10 @@ namespace ag
 				return (0.0f <= win and win <= 1.0f) and (0.0f <= draw and draw <= 1.0f) and (0.0f <= loss and loss <= 1.0f)
 						and (fabs(1.0f - win - draw - loss) < 0.001f);
 			}
+			bool isZero() const noexcept
+			{
+				return win == 0.0f and draw == 0.0f and loss == 0.0f;
+			}
 	};
 
 	Value convertOutcome(GameOutcome outcome, Sign signToMove);

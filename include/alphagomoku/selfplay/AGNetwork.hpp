@@ -63,7 +63,7 @@ namespace ag
 			 * \brief Can be used to pack the data if the features were already calculated.
 			 */
 			void packInputData(int index, const NNInputFeatures &features);
-			void packTargetData(int index, const matrix<float> &policy, matrix<Value> &actionValues, Value value);
+			void packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value);
 			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const;
 
 			void asyncForwardLaunch(int batch_size);
