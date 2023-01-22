@@ -67,7 +67,7 @@ namespace
 		{
 			const int t = static_cast<int>(1000 * v.getExpectation());
 			if (t == 0)
-				return "   0";
+				return "  . ";
 			else
 			{
 				if (t < 10)

@@ -12,6 +12,9 @@
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
+#include <chrono>
+#include <thread>
+
 namespace
 {
 	bool is_square(const ml::Shape &shape)
@@ -99,6 +102,12 @@ namespace ag
 		network.loadFromFile(path);
 		network.setBatchSize(batch_size);
 		network.moveTo(device);
+//		network.convertToHalfFloats();
+//		network.forward(1);
+//		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+//		network.asyncForwardLaunch(network.getBatchSize());
+//		network.asyncForwardJoin();
+//		exit(0);
 		available_symmetries = 4 + 4 * static_cast<int>(is_square(network.getInputShape()));
 	}
 	void NNEvaluator::unloadGraph()
@@ -193,24 +202,28 @@ namespace ag
 		matrix<Sign> board(network.getInputShape()[1], network.getInputShape()[2]);
 		for (int i = 0; i < batch_size; i++)
 		{
-//			augment(board, task_queue[i].ptr->getBoard(), task_queue[i].symmetry);
-			task_queue[i].ptr->getFeatures().augment(task_queue[i].symmetry);
-			network.packInputData(i, task_queue[i].ptr->getFeatures());
+			TaskData td = task_queue[i];
+			td.ptr->getFeatures().augment(td.symmetry);
+			network.packInputData(i, td.ptr->getFeatures());
+
+//			ag::augment(board, td.ptr->getBoard(), td.symmetry);
+//			network.packInputData(i, board, td.ptr->getSignToMove());
 		}
 	}
 	void NNEvaluator::unpack_from_network(int batch_size)
 	{
 		TimerGuard timer(stats.unpack);
 		matrix<float> policy(network.getInputShape()[1], network.getInputShape()[2]);
-		matrix<Value> action_values;
+		matrix<Value> action_values(network.getInputShape()[1], network.getInputShape()[2]);
 		Value value;
 		for (int i = 0; i < batch_size; i++)
 		{
+			TaskData td = task_queue[i];
 			network.unpackOutput(i, policy, action_values, value);
-			augment(task_queue[i].ptr->getPolicy(), policy, -task_queue[i].symmetry);
-			// TODO add processing of action values
-			task_queue[i].ptr->setValue(value);
-			task_queue[i].ptr->markAsReadyNetwork();
+			augment(td.ptr->getPolicy(), policy, -td.symmetry);
+			augment(td.ptr->getActionValues(), action_values, -td.symmetry);
+			td.ptr->setValue(value);
+			td.ptr->markAsReadyNetwork();
 		}
 	}
 }

@@ -88,6 +88,7 @@ namespace
 		assert(equalSize(output.action_values, target.action_values));
 
 		for (int i = 0; i < output.action_values.size(); i++)
+//			target.action_values[i] = Value(0.5f, 0.2f, 0.3f);
 			if (target.action_values[i].isZero())
 			{ // if all fields are zero it means that we don't have any target data for this spot
 				target.action_values[i] = output.action_values[i]; // in such case we set value of the target to the output from the network, zeroing the gradient
@@ -106,13 +107,13 @@ namespace
 //		std::cout << "Action values target\n" << Board::toString(matrix<Sign>(15, 15), target.action_values);
 //		std::cout << "\n------------------------------------------------------------------------\n";
 	}
-	void pack_input_data_pack_to_model(std::vector<DataPack> &inputs, AGNetwork &model)
+	void push_input_data_to_model(std::vector<DataPack> &inputs, AGNetwork &model)
 	{
 		assert(model.getBatchSize() >= static_cast<int>(inputs.size()));
 		for (size_t i = 0; i < inputs.size(); i++)
 			model.packInputData(i, inputs.at(i).board, inputs.at(i).sign_to_move);
 	}
-	void pack_target_data_pack_to_model(std::vector<DataPack> &targets, AGNetwork &model)
+	void push_target_data_to_model(std::vector<DataPack> &targets, AGNetwork &model)
 	{
 		assert(model.getBatchSize() >= static_cast<int>(targets.size()));
 		DataPack output_data_pack(model.getInputShape()[1], model.getInputShape()[2]);
@@ -177,10 +178,10 @@ namespace ag
 				data_packs.at(b) = prepare_data_pack(sample, config.augment_training_data);
 			}
 
-			pack_input_data_pack_to_model(data_packs, model);
+			push_input_data_to_model(data_packs, model);
 			model.forward(batch_size);
 
-			pack_target_data_pack_to_model(data_packs, model);
+			push_target_data_to_model(data_packs, model);
 			model.backward(batch_size);
 
 			std::vector<float> loss = model.getLoss(batch_size);
@@ -211,10 +212,10 @@ namespace ag
 				data_packs.at(this_batch) = prepare_data_pack(sample, config.augment_training_data);
 			}
 
-			pack_input_data_pack_to_model(data_packs, model);
+			push_input_data_to_model(data_packs, model);
 			model.forward(batch_size);
 
-			pack_target_data_pack_to_model(data_packs, model);
+			push_target_data_to_model(data_packs, model);
 
 			std::vector<float> loss = model.getLoss(batch_size);
 			auto accuracy = model.getAccuracy(batch_size);
@@ -225,7 +226,7 @@ namespace ag
 	{
 		if (workingDirectory.empty())
 			return;
-		std::string path = workingDirectory + "/training_history_10x128v2.txt";
+		std::string path = workingDirectory + "/training_history_10x128v4.txt";
 		std::ofstream history_file;
 		history_file.open(path.data(), std::ios::app);
 		history_file << std::setprecision(9);

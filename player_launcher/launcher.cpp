@@ -35,7 +35,7 @@
 #include <alphagomoku/ab_search/AlphaBetaSearch.hpp>
 #include <alphagomoku/ab_search/nnue/NNUE.hpp>
 #include <alphagomoku/vcf_solver/VCTSolver.hpp>
-#include <libml/utils/ZipWrapper.hpp>
+#include <minml/utils/ZipWrapper.hpp>
 
 #include <alphagomoku/tss/ThreatSpaceSearch.hpp>
 
@@ -921,16 +921,17 @@ void test_search()
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
 	device_config.omp_threads = 1;
-#ifdef NDEBUG
+//#ifdef NDEBUG
 	device_config.device = ml::Device::cuda(0);
-#else
-	device_config.device = ml::Device::cpu();
-#endif
+//#else
+//	device_config.device = ml::Device::cpu();
+//#endif
 	NNEvaluator nn_evaluator(device_config);
-	nn_evaluator.useSymmetries(true);
+	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
-	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku532/networks/standard_10x128.bin");
+//	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku532/networks/standard_10x128.bin");
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
 //	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_75_opt.bin");
 
@@ -1837,18 +1838,18 @@ void test_search()
 	ts_search.setSharedTable(sht);
 
 	SearchTask task(game_config.rules);
-	task.set(board, sign_to_move);
-	vcf_solver.solve(task, 5);
-	vcf_solver.print_stats();
-	std::cout << "\n\n\n" << task.toString() << '\n';
+//	task.set(board, sign_to_move);
+//	vcf_solver.solve(task, 5);
+//	vcf_solver.print_stats();
+//	std::cout << "\n\n\n" << task.toString() << '\n';
 
-	SearchTask task2(game_config.rules);
-	task2.set(board, sign_to_move);
-	ts_search.solve(task2, tss::TssMode::ITERATIVE_DEEPENING, 10000000);
-	std::cout << "\n\n\n";
-	ts_search.print_stats();
-	std::cout << "\n\n\n" << task2.toString() << '\n';
-	return;
+//	SearchTask task2(game_config.rules);
+//	task2.set(board, sign_to_move);
+//	ts_search.solve(task2, tss::TssMode::ITERATIVE_DEEPENING, 10000000);
+//	std::cout << "\n\n\n";
+//	ts_search.print_stats();
+//	std::cout << "\n\n\n" << task2.toString() << '\n';
+//	return;
 
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
@@ -1857,19 +1858,20 @@ void test_search()
 	tree.setEdgeGenerator(SolverGenerator(search_config.expansion_prior_treshold, search_config.max_children));
 
 	int next_step = 0;
-	for (int j = 0; j <= 30000; j++)
+	for (int j = 0; j <= 100000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ..." << std::endl;
 			next_step += 10000;
 		}
-		search.select(tree, 30000);
+		search.select(tree, 100000);
 		search.solve(false);
 		search.scheduleToNN(nn_evaluator);
-		nn_evaluator.asyncEvaluateGraphLaunch();
-		search.solve(true);
-		nn_evaluator.asyncEvaluateGraphJoin();
+		nn_evaluator.evaluateGraph();
+//		nn_evaluator.asyncEvaluateGraphLaunch();
+//		search.solve(true);
+//		nn_evaluator.asyncEvaluateGraphJoin();
 
 		search.generateEdges(tree);
 		search.expand(tree);
@@ -2589,6 +2591,17 @@ void test_evaluate()
 
 int main(int argc, char *argv[])
 {
+//	{
+//		GameConfig game_config(GameRules::STANDARD, 15);
+//		AGNetwork network(game_config);
+//		network.loadFromFile("/home/maciek/cpp_workspace/AlphaGomoku/Release/networks/minml3v3_10x128.bin");
+////		network.moveTo(ml::Device::cuda(1));
+//		//	network.moveTo(ml::Device::cpu());
+//		network.optimize();
+//		network.saveToFile("/home/maciek/cpp_workspace/AlphaGomoku/Release/networks/minml3v3_10x128_opt.bin");
+//		return 0;
+//	}
+
 	{
 		std::map<GameRules, std::string> tmp;
 		tmp.insert( { GameRules::FREESTYLE, "/home/maciek/Desktop/freestyle_nnue_32x8x1.bin" });
@@ -2604,14 +2617,14 @@ int main(int argc, char *argv[])
 //	test_proven_positions(100);
 //	test_proven_positions(1000);
 //	ab_search_test();
-//	test_search();
+	test_search();
 //	test_evaluate();
 //	test_search_with_solver(10000);
 //	train_simple_evaluation();
 //	test_static_solver();
 //	test_forbidden_moves();
 //	std::cout << "END" << std::endl;
-//	return 0;
+	return 0;
 //	experimental::WeightTable::combineAndStore("/home/maciek/Desktop/");
 
 //	GameConfig game_config(GameRules::STANDARD, 10);

@@ -53,6 +53,34 @@ namespace
 		result |= (table[D3] << 3);
 		return result;
 	}
+
+	template<bool HV, bool DA>
+	uint32_t swap_directions(uint32_t data)
+	{
+		constexpr uint32_t mask = (1u << 8u) | (1u << 12u) | (1u << 20u) | (1u << 24u); // shuffling bits 8-11, 12-15, 20-23, 24-17
+
+		uint32_t horizontal = data & (mask << 0u);
+		uint32_t vertical = data & (mask << 1u);
+		uint32_t diagonal = data & (mask << 2u);
+		uint32_t antidiagonal = data & (mask << 3u);
+		if (HV)
+		{ // swap horizontal and vertical directions
+			horizontal <<= 1u;
+			vertical >>= 1u;
+		}
+		if (DA)
+		{ // swap diagonal and antidiagonal directions
+			diagonal <<= 1u;
+			antidiagonal >>= 1u;
+		}
+
+		uint32_t result = data & 0xF00F00FF; // 0xF00F00FF is a mask of all bits that are not shuffled
+		result |= horizontal;
+		result |= vertical;
+		result |= diagonal;
+		result |= antidiagonal;
+		return result;
+	}
 }
 
 namespace ag

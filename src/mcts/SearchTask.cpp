@@ -69,8 +69,7 @@ namespace ag
 	void SearchTask::addPriorEdge(Move move, Value v, ProvenValue pv)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(prior_edges.begin(), prior_edges.end(), [move](const Edge &edge)
-		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(prior_edges.begin(), prior_edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;
@@ -79,16 +78,16 @@ namespace ag
 		e.setProvenValue(pv);
 		prior_edges.push_back(e);
 	}
-	void SearchTask::addEdge(Move move, float policyPrior)
+	void SearchTask::addEdge(Move move, float policyPrior, Value actionValue)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge)
-		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;
 		e.setMove(move);
 		e.setPolicyPrior(policyPrior);
+		e.setValue(actionValue);
 		edges.push_back(e);
 	}
 	std::string SearchTask::toString() const
@@ -110,7 +109,8 @@ namespace ag
 				result += "must defend\n";
 			result += "value = " + value.toString() + '\n';
 			result += "proven value = " + ag::toString(proven_value) + '\n';
-			result += Board::toString(board, policy);
+			result += "policy\n" + Board::toString(board, policy);
+			result += "action values\n" + Board::toString(board, action_values);
 		}
 		else
 			result += Board::toString(board, true);

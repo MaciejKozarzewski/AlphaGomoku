@@ -198,7 +198,7 @@ namespace ag
 			}
 
 			void addPriorEdge(Move move, Value v, ProvenValue pv);
-			void addEdge(Move move, float policyPrior = 0.0f);
+			void addEdge(Move move, float policyPrior = 0.0f, Value actionValue = Value());
 			void addEdge(const Edge &other)
 			{
 				edges.push_back(other);

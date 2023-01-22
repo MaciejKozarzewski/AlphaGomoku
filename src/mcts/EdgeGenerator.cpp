@@ -73,7 +73,13 @@ namespace
 		for (int row = 0; row < task.getBoard().rows(); row++)
 			for (int col = 0; col < task.getBoard().cols(); col++)
 				if (task.getBoard().at(row, col) == Sign::NONE and task.getPolicy().at(row, col) >= policyThreshold)
-					task.addEdge(Move(row, col, task.getSignToMove()), task.getPolicy().at(row, col));
+				{
+					const Move move(row, col, task.getSignToMove());
+					const float policy = task.getPolicy().at(row, col);
+					const Value action_value = task.getActionValues().at(row, col);
+//					task.addEdge(Move(row, col, task.getSignToMove()), task.getPolicy().at(row, col));
+					task.addEdge(move, policy, action_value);
+				}
 	}
 	void check_terminal_conditions(SearchTask &task, Edge &edge)
 	{
@@ -198,7 +204,7 @@ namespace ag
 			prune_low_policy_moves(task.getEdges(), max_edges);
 		renormalize_policy(task.getEdges());
 
-		if (task.getEdges().size() == 0) // TODO remove this later
+//		if (task.getEdges().size() == 0) // TODO remove this later
 		{
 			std::cout << "---no-moves-generated---\n";
 			std::cout << task.toString() << '\n';

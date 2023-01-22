@@ -724,74 +724,96 @@ void run_training()
 
 	GameConfig game_config(GameRules::STANDARD, 15);
 	TrainingConfig training_config;
+	training_config.augment_training_data = true;
 	training_config.blocks = 10;
 	training_config.filters = 128;
-	training_config.device_config.batch_size = 32;
-	training_config.l2_regularization = 0.00005;
+	training_config.device_config.batch_size = 64;
+	training_config.l2_regularization = 5.0e-5f;
 
 	AGNetwork network(game_config, training_config);
+//	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3_5x64.bin");
 	network.moveTo(ml::Device::cuda(1));
 //	network.moveTo(ml::Device::cpu());
 //	network.forward(2);
 //	network.backward(2);
 //	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-	const int steps = 1000;
+	SupervisedLearning sl(training_config);
 
-	ml::Shape shape = network.getInputShape();
-	int batch_size = shape[0];
-	int rows = shape[1];
-	int cols = shape[2];
-
-	std::vector<int> training_sample_order = permutation(buffer.size());
-	size_t training_sample_index = 0;
-
-	matrix<Sign> board(rows, cols);
-	matrix<Sign> board_copy(rows, cols);
-	for (int e = 0; e < 100; e++)
+	for (int e = 0; e < 10; e++)
 	{
-		float policy_loss = 0.0f;
-		float value_loss = 0.0f;
-		for (int i = 0; i < steps; i++)
-		{
-			if ((i + 1) % (steps / 10) == 0)
-				std::cout << i + 1 << '\n';
-			for (int b = 0; b < batch_size; b++)
-			{
-				const SearchData &sample = buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample();
-				training_sample_index++;
-				if (training_sample_index >= training_sample_order.size())
-				{
-					training_sample_order = permutation(training_sample_order.size());
-					training_sample_index = 0;
-				}
-
-				sample.getBoard(board);
-				matrix<float> policy_target = prepare_policy_target(sample);
-				matrix<Value> q_target(15, 15);
-				const Value value_target = convertOutcome(sample.getOutcome(), sample.getMove().sign);
-
-				const int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
-				augment(board, r);
-				augment(policy_target, r);
-				augment(q_target, r);
-
-				network.packInputData(b, board, sample.getMove().sign);
-				network.packTargetData(b, policy_target, q_target, value_target);
-			}
-			network.forward(batch_size);
-//			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			network.backward(batch_size);
-
-			const std::vector<float> loss = network.getLoss(batch_size);
-			policy_loss += loss.at(0);
-			value_loss += loss.at(1);
-		}
-		std::cout << e << " " << policy_loss / steps << " " << value_loss / steps << '\n';
+		if (e == 40)
+			network.changeLearningRate(1.0e-4f);
+		if (e == 80)
+			network.changeLearningRate(1.0e-5f);
+		sl.clearStats();
+		sl.train(network, buffer, 1000);
+		sl.saveTrainingHistory("/home/maciek/alphagomoku/minml_test/");
 		network.saveToFile(
-				"/home/maciek/alphagomoku/minml_test/minml_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
-						+ ".bin");
+				"/home/maciek/alphagomoku/minml_test/minml3v7_" + std::to_string(training_config.blocks) + "x"
+						+ std::to_string(training_config.filters) + ".bin");
 	}
+	network.optimize();
+	network.saveToFile(
+			"/home/maciek/alphagomoku/minml_test/minml3v7_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
+					+ "_opt.bin");
+
+//	const int steps = 1000;
+//
+//	ml::Shape shape = network.getInputShape();
+//	int batch_size = shape[0];
+//	int rows = shape[1];
+//	int cols = shape[2];
+//
+//	std::vector<int> training_sample_order = permutation(buffer.size());
+//	size_t training_sample_index = 0;
+//
+//	matrix<Sign> board(rows, cols);
+//	matrix<Sign> board_copy(rows, cols);
+//	for (int e = 0; e < 100; e++)
+//	{
+//		float policy_loss = 0.0f;
+//		float value_loss = 0.0f;
+//		for (int i = 0; i < steps; i++)
+//		{
+//			if ((i + 1) % (steps / 10) == 0)
+//				std::cout << i + 1 << '\n';
+//			for (int b = 0; b < batch_size; b++)
+//			{
+//				const SearchData &sample = buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample();
+//				training_sample_index++;
+//				if (training_sample_index >= training_sample_order.size())
+//				{
+//					training_sample_order = permutation(training_sample_order.size());
+//					training_sample_index = 0;
+//				}
+//
+//				sample.getBoard(board);
+//				matrix<float> policy_target = prepare_policy_target(sample);
+//				matrix<Value> q_target(15, 15);
+//				const Value value_target = convertOutcome(sample.getOutcome(), sample.getMove().sign);
+//
+//				const int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
+//				augment(board, r);
+//				augment(policy_target, r);
+//				augment(q_target, r);
+//
+//				network.packInputData(b, board, sample.getMove().sign);
+//				network.packTargetData(b, policy_target, q_target, value_target);
+//			}
+//			network.forward(batch_size);
+////			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//			network.backward(batch_size);
+//
+//			const std::vector<float> loss = network.getLoss(batch_size);
+//			policy_loss += loss.at(0);
+//			value_loss += loss.at(1);
+//		}
+//		std::cout << e << " " << policy_loss / steps << " " << value_loss / steps << '\n';
+//		network.saveToFile(
+//				"/home/maciek/alphagomoku/minml_test/minml_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
+//						+ ".bin");
+//	}
 }
 
 int main(int argc, char *argv[])
@@ -843,19 +865,17 @@ int main(int argc, char *argv[])
 //		return 0;
 //	}
 
-//	run_training();
-//	std::cout << "END" << std::endl;
-//	return 0;
+	run_training();
+	std::cout << "END" << std::endl;
+	return 0;
 
 	GameBuffer buffer("/home/maciek/alphagomoku/standard_test/valid_buffer/buffer_0.bin");
 //	GameBuffer buffer("/home/maciek/alphagomoku/standard_test_2/valid_buffer/buffer_19.bin");
 	std::cout << buffer.getStats().toString() << '\n';
-//
-//	std::cout << buffer.getFromBuffer(0).getS() << '\n';
-//
+
 	AGNetwork network(GameConfig(GameRules::STANDARD, 15, 15));
 //	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
-	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml_5x64.bin");
+	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3_10x128.bin");
 	network.optimize();
 //	network.convertToHalfFloats();
 
@@ -866,27 +886,30 @@ int main(int argc, char *argv[])
 	network.moveTo(ml::Device::cuda(0));
 //
 	matrix<Sign> board(15, 15);
-	board = Board::fromString(	" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ O O _ X _ X _ _ _ _ _\n"
-								" _ _ O X O O O O X _ _ _ _ _ _\n"
-								" _ _ _ X _ O _ O X X _ _ _ _ _\n"
-								" _ _ _ _ X X _ _ _ X _ _ _ _ _\n"
-								" _ _ _ _ _ O _ _ _ X _ _ _ _ _\n"
-								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+	board = Board::fromString(""
+			" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ O O _ X _ X _ _ _ _ _\n"
+			" _ _ O X O O O O X _ _ _ _ _ _\n"
+			" _ _ _ X _ O _ O X X _ _ _ _ _\n"
+			" _ _ _ _ X X _ _ _ X _ _ _ _ _\n"
+			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
 //	board.at(7, 7) = Sign::CIRCLE;
 	const Sign sign_to_move = Sign::CIRCLE;
 
 	for (int i = 0; i < 1; i++)
 	{
-//		const SearchData &sample = buffer.getFromBuffer(i).getSample(0);
+		const SearchData &sample = buffer.getFromBuffer(i).getSample(0);
+//		sample.print();
+//		return 0;
 //		const Sign sign_to_move = sample.getMove().sign;
 //		sample.getBoard(board);
 
@@ -903,14 +926,16 @@ int main(int argc, char *argv[])
 	{
 		const Value value_target = convertOutcome(buffer.getFromBuffer(i).getSample(0).getOutcome(),
 				buffer.getFromBuffer(i).getSample(0).getMove().sign);
-		const Value minimax = buffer.getFromBuffer(i).getSample(0).getMinimaxValue();
+//		const Value minimax = buffer.getFromBuffer(i).getSample(0).getMinimaxValue();
 //		buffer.getFromBuffer(i).getSample(0).getBoard(board);
 		network.unpackOutput(i, policy, action_values, value);
 		std::cout << '\n';
-		std::cout << "Value   = " << value.toString() << " (target = " << value_target.toString() << ")\n";
+		std::cout << Board::toString(board);
+		std::cout << "Network value   = " << value.toString() << " (target = " << value_target.toString() << ")\n";
 //		std::cout << "minimax = " << minimax.toString() << "\n";
 //		std::cout << "Proven value = " << toString(buffer.getFromBuffer(i).getSample(0).getProvenValue()) << "\n";
-		std::cout << "Network:\n" << Board::toString(board, policy) << '\n';
+		std::cout << "Network policy:\n" << Board::toString(board, policy) << '\n';
+		std::cout << "Network action values:\n" << Board::toString(board, action_values) << '\n';
 //		buffer.getFromBuffer(i).getSample(0).getPolicy(policy);
 //		std::cout << "Target:\n" << Board::toString(board, policy) << '\n';
 //		std::cout << buffer.getFromBuffer(i).getSample(0).getMove().text() << '\n';

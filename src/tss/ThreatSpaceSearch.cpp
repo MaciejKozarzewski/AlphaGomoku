@@ -50,7 +50,8 @@ namespace
 				return Value(0.0f, 1.0f, 0.0f);
 			default:
 			case ProvenScore::UNKNOWN:
-				return Value(0.5f + score.getEval() / 2000.0f);
+				return Value();
+//				return Value(0.5f + score.getEval() / 2000.0f);
 			case ProvenScore::WIN:
 				return Value(1.0f, 0.0f, 0.0f);
 		}
@@ -61,7 +62,7 @@ namespace
 		task.getPriorEdges().clear();
 		task.setMustDefendFlag(actions.must_defend);
 		for (auto iter = actions.begin(); iter < actions.end(); iter++)
-			task.addPriorEdge(iter->move, Value(), convertProvenValue(iter->score));
+			task.addPriorEdge(iter->move, convertEvaluation(iter->score), convertProvenValue(iter->score));
 
 		if (score.hasSolution())
 		{
@@ -179,6 +180,7 @@ namespace ag
 		{
 			stats.setup.startTimer();
 			pattern_calculator.setBoard(task.getBoard(), task.getSignToMove());
+			task.getFeatures().encode(pattern_calculator);
 			stats.setup.stopTimer();
 
 			TimerGuard tg(stats.solve);
