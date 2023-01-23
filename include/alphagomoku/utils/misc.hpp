@@ -129,8 +129,7 @@ namespace ag
 	std::vector<float> averageStats(std::vector<float> &stats);
 
 	Move pickMove(const matrix<float> &policy);
-	Move pickMove(const matrix<float> &policy, const matrix<ProvenValue> &provenValues);
-	Move randomizeMove(const matrix<float> &policy, float temperature = 1.0f);
+	Move randomizeMove(const matrix<float> &policy);
 	void normalize(matrix<float> &policy);
 	float max(const matrix<float> &policy);
 
