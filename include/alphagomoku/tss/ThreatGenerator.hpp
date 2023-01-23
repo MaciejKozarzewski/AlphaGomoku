@@ -18,7 +18,8 @@
 
 namespace ag
 {
-	enum class ThreatType : int8_t;
+	enum class ThreatType : int8_t
+	;
 	class PatternCalculator;
 	namespace tss
 	{
@@ -47,17 +48,16 @@ namespace ag
 
 				struct Result
 				{
-						bool can_continue = true;
+						bool must_continue = true;
 						Score score;
-						Result() noexcept = default;
-						Result(bool c) noexcept :
-								can_continue(c)
+
+						static Result canStopNow(Score s = Score()) noexcept
 						{
+							return Result( { false, s });
 						}
-						Result(bool c, Score s) noexcept :
-								can_continue(c),
-								score(s)
+						static Result mustContinue() noexcept
 						{
+							return Result( { true, Score() });
 						}
 				};
 				GameConfig game_config;
@@ -100,7 +100,7 @@ namespace ag
 				const std::vector<Location>& get_opponent_threats(ThreatType tt) const noexcept;
 				bool is_anything_forbidden_for(Sign sign) const noexcept;
 				bool is_forbidden(Sign sign, Location loc) const noexcept;
-				const std::vector<Location>& get_copy(const std::vector<Location> &list);
+				const std::vector<Location>& get_copy_of(const std::vector<Location> &list);
 				bool is_move_valid(Move m) const noexcept;
 		};
 	}

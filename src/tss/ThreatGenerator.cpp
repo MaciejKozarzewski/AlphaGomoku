@@ -120,20 +120,20 @@ namespace ag
 
 			actions.clear();
 			Result result = try_draw_in_1();
-			if (result.can_continue)
+			if (result.must_continue)
 				result = try_win_in_1();
 			if (mode >= GeneratorMode::STATIC)
 			{
-				if (result.can_continue)
+				if (result.must_continue)
 					result = defend_loss_in_2();
-				if (result.can_continue)
+				if (result.must_continue)
 					result = try_win_in_3();
-				if (result.can_continue)
+				if (result.must_continue)
 					result = defend_loss_in_4();
-				if (result.can_continue)
+				if (result.must_continue)
 					result = try_win_in_5();
 			}
-			if (result.can_continue and mode >= GeneratorMode::VCF)
+			if (result.must_continue and mode >= GeneratorMode::VCF)
 			{
 				const int count = add_own_half_open_fours();
 				if (count > 0)
@@ -240,7 +240,7 @@ namespace ag
 								{
 									default: // no forbidden threat, add this move and exit
 										add_move<EXCLUDE_DUPLICATE>(Location(row, col), Score::draw());
-										return Result(false, Score::draw());
+										return Result::canStopNow(Score::draw());
 									case ThreatType::FORK_3x3: // possibly forbidden, may require costly checking
 										temporary_list.push_back(Location(row, col));
 										break;
@@ -260,10 +260,10 @@ namespace ag
 						else
 						{ // found non-forbidden 3x3 fork, can play it to draw
 							add_move<EXCLUDE_DUPLICATE>(*move, Score::draw());
-							return Result(false, Score::draw());
+							return Result::canStopNow(Score::draw());
 						}
 					}
-					return Result(false, Score::loss_in(1)); // could not find any non-forbidden move
+					return Result::canStopNow(Score::loss_in(1)); // could not find any non-forbidden move
 				}
 				else
 				{ // if there are no forbidden moves, just find the first empty spot on board
@@ -272,12 +272,12 @@ namespace ag
 							if (pattern_calculator.signAt(row, col) == Sign::NONE)
 							{ // found at least one move that leads to draw, can stop now
 								add_move<EXCLUDE_DUPLICATE>(Location(row, col), Score::draw());
-								return Result(false, Score::draw());
+								return Result::canStopNow(Score::draw());
 							}
-					return Result(false, Score::draw()); // the game ends up with a draw even if there is no move to play
+					return Result::canStopNow(Score::draw()); // the game ends up with a draw even if there is no move to play
 				}
 			}
-			return Result();
+			return Result::mustContinue();
 		}
 		ThreatGenerator::Result ThreatGenerator::try_win_in_1()
 		{
@@ -289,9 +289,9 @@ namespace ag
 			{ // not often (approximately 1 in 600 positions, in renju 1 in 200)
 				actions->has_initiative = true;
 				add_moves<EXCLUDE_DUPLICATE>(own_fives, Score::win_in(1));
-				return Result(false, Score::win_in(1));
+				return Result::canStopNow(Score::win_in(1));
 			}
-			return Result();
+			return Result::mustContinue();
 		}
 		ThreatGenerator::Result ThreatGenerator::defend_loss_in_2()
 		{
@@ -302,7 +302,7 @@ namespace ag
 				return Result();
 
 			// we must copy as the check for forbidden moves may reorder the elements in the original list
-			const std::vector<Location> &opponent_fives = get_copy(get_opponent_threats(ThreatType::FIVE));
+			const std::vector<Location> &opponent_fives = get_copy_of(get_opponent_threats(ThreatType::FIVE));
 			actions->must_defend = true;
 
 			DefensiveMoves defensive_moves;
@@ -316,7 +316,7 @@ namespace ag
 				if (defensive_moves.is_empty())
 				{ // surprisingly not common (approximately 1 in 3000 positions)
 					add_moves<EXCLUDE_DUPLICATE>(opponent_fives, Score::loss_in(2)); // we must always produce some moves, even if the threat is not refutable
-					return Result(false, Score::loss_in(2));
+					return Result::canStopNow(Score::loss_in(2));
 				}
 			}
 
@@ -366,8 +366,8 @@ namespace ag
 						if (group.contains(PatternType::HALF_OPEN_4))
 						{ // quite common (approximately 1 in 40 positions)
 							actions->has_initiative = true;  // there is some half-open four to make in a response (may help gain initiative)
-							// in renju it is possible that this half-open four would create a foul attack
-							// it is rare (approximately 1 in 9000 positions), would require separate method to check so we skip it
+							// in renju it is possible that this half-open four would create a foul attack and potential win
+							// it is rare (approximately 1 in 9000 positions) and would require separate method to check so we skip it
 						}
 						break;
 					}
@@ -377,7 +377,7 @@ namespace ag
 				add_move<EXCLUDE_DUPLICATE>(*move, response_score);
 				best_score = std::max(best_score, response_score);
 			}
-			return Result(false, best_score); // although there is no proven score, we don't have to continue checking another threats
+			return Result::canStopNow(best_score); // although there is no proven score, we don't have to continue checking another threats
 		}
 		ThreatGenerator::Result ThreatGenerator::try_win_in_3()
 		{
@@ -389,7 +389,7 @@ namespace ag
 			  // it is very rare (approximately 1 in 500.000 positions) but we must check this in order to have correct results
 
 				// we must copy as the check for forbidden moves may reorder the elements in the original list
-				const std::vector<Location> &opp_fork_3x3 = get_copy(get_own_threats(ThreatType::FORK_3x3));
+				const std::vector<Location> &opp_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
 				for (auto move = opp_fork_3x3.begin(); move < opp_fork_3x3.end(); move++)
 				{
 					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
@@ -406,7 +406,7 @@ namespace ag
 			if (hidden_open_four_count + own_open_four.size() > 0)
 			{ // frequent in renju (1 in 20) but rare otherwise (approximately 1 in 450 positions)
 				actions->has_initiative = true;
-				return Result(false, Score::win_in(3));
+				return Result::canStopNow(Score::win_in(3));
 			}
 
 			const std::vector<Location> &own_fork_4x4 = get_own_threats(ThreatType::FORK_4x4);
@@ -414,7 +414,7 @@ namespace ag
 			{ // rare (approximately 1 in 1700 positions)
 				actions->has_initiative = true;
 				add_moves<EXCLUDE_DUPLICATE>(own_fork_4x4, Score::win_in(3));
-				return Result(false, Score::win_in(3));
+				return Result::canStopNow(Score::win_in(3));
 			}
 
 			if (is_anything_forbidden_for(get_opponent_sign()))
@@ -422,7 +422,7 @@ namespace ag
 			  // it is quite frequent (approximately 1 in 300 positions) and we can successfully solve ~98% of such positions
 
 				// we must copy as the check for forbidden moves may reorder the elements in the original list
-				const std::vector<Location> &own_half_open_four = get_copy(get_own_threats(ThreatType::HALF_OPEN_4));
+				const std::vector<Location> &own_half_open_four = get_copy_of(get_own_threats(ThreatType::HALF_OPEN_4));
 				for (auto move = own_half_open_four.begin(); move < own_half_open_four.end(); move++)
 				{ // we take advantage of the fact that in renju, half-open fours always come in pairs, for example !XX!X
 				  // we can loop over available half-open fours and check if any of them is on the spot forbidden for the opponent
@@ -440,7 +440,7 @@ namespace ag
 						case ThreatType::FORK_3x3:
 						{ // if own half-open four is in the same direction as opponent open three, they may influence each other
 						  // it is quite rare (approximately 1 in 100.000 positions) and very complicated to check so we skip it
-						  // and anyway, by creating the half-open four we would most likely make the 3x3 fork legal, or remove it at all
+						  // and anyway, by creating such half-open four we would most likely make the 3x3 fork legal, or remove it at all
 							const DirectionGroup<PatternType> tmp = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
 							if (tmp[dir] != PatternType::OPEN_3 and is_forbidden(get_opponent_sign(), *move))
 								is_winning = true;
@@ -459,12 +459,12 @@ namespace ag
 						// one of them will be at the same spot where we have just created this threat, we want to check that other one
 						const Location original = (tmp[0] == *move) ? tmp[1] : tmp[0];
 						add_move<EXCLUDE_DUPLICATE>(original, Score::win_in(3));
-						return Result(false, Score::win_in(3));
+						return Result::canStopNow(Score::win_in(3));
 					}
 				}
 				// there are also half-open fours hidden inside legal 3x3 forks, but they are less than 0.5% of all half-open fours, so we don't check it here
 			}
-			return Result();
+			return Result::mustContinue();
 		}
 		ThreatGenerator::Result ThreatGenerator::defend_loss_in_4()
 		{
@@ -477,7 +477,7 @@ namespace ag
 //				actions->has_initiative = true;
 //				const Score best_score = add_own_4x3_forks();
 //				if (best_score.isWin())
-//					return Result(false, best_score);
+//					return Result::canStopNow(best_score);
 //				else
 //					add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
 //			}
@@ -501,7 +501,7 @@ namespace ag
 					if (defensive_moves.is_empty() and not has_any_four)
 					{ // we already proved that the threats are not refutable
 						add_moves<EXCLUDE_DUPLICATE>(opp_open_four, Score::loss_in(4)); // we must always produce some moves, even if the threat is not refutable
-						return Result(false, Score::loss_in(4));
+						return Result::canStopNow(Score::loss_in(4));
 					}
 				}
 
@@ -536,15 +536,15 @@ namespace ag
 					if (defensive_moves.is_empty() and not has_any_four)
 					{ // we already proved that the threats are not refutable (approximately 1 in 700 positions)
 						add_moves<EXCLUDE_DUPLICATE>(opp_fork_4x4, Score::loss_in(4)); // we must always produce some moves, even if the threat is not refutable
-						return Result(false, Score::loss_in(4));
+						return Result::canStopNow(Score::loss_in(4));
 					}
 				}
 				add_moves<EXCLUDE_DUPLICATE>(defensive_moves.get_list().begin(), defensive_moves.get_list().end());
 			}
 			else
-			{ // in renju rule there are too complex dependencies between defensive and forbidden moves
+			{ // in renju rule there are too complex dependencies between defensive and forbidden moves, this is why we add all defensive moves
 				{ // artificial scope so that the list below is not used later
-					const std::vector<Location> &opp_open_four = get_copy(get_opponent_threats(ThreatType::OPEN_4));
+					const std::vector<Location> &opp_open_four = get_copy_of(get_opponent_threats(ThreatType::OPEN_4));
 					for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
 					{
 						actions->must_defend = true;
@@ -560,7 +560,7 @@ namespace ag
 				  // it is very rare (approximately 1 in 400.000 positions) but we must do this in order to have correct results
 
 					// we must copy as the check for forbidden moves may reorder the elements in the original list
-					const std::vector<Location> &opp_fork_3x3 = get_copy(get_opponent_threats(ThreatType::FORK_3x3));
+					const std::vector<Location> &opp_fork_3x3 = get_copy_of(get_opponent_threats(ThreatType::FORK_3x3));
 					for (auto move = opp_fork_3x3.begin(); move < opp_fork_3x3.end(); move++)
 					{
 						const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
@@ -577,7 +577,7 @@ namespace ag
 				if (not is_anything_forbidden_for(get_opponent_sign()))
 				{
 					// we must copy as the check for forbidden moves may reorder the elements in the original list
-					const std::vector<Location> &opp_fork_4x4 = get_copy(get_opponent_threats(ThreatType::FORK_4x4));
+					const std::vector<Location> &opp_fork_4x4 = get_copy_of(get_opponent_threats(ThreatType::FORK_4x4));
 					for (auto move = opp_fork_4x4.begin(); move < opp_fork_4x4.end(); move++)
 					{
 						actions->must_defend = true;
@@ -596,11 +596,11 @@ namespace ag
 				actions->has_initiative = has_any_four;
 				const Score best_score = add_own_4x3_forks();
 				if (best_score.isWin())
-					return Result(false, best_score);
+					return Result::canStopNow(best_score);
 				add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
-				return Result(false);
+				return Result::canStopNow();
 			}
-			return Result();
+			return Result::mustContinue();
 		}
 		ThreatGenerator::Result ThreatGenerator::try_win_in_5()
 		{
@@ -626,9 +626,9 @@ namespace ag
 			if (best_score.isWin())
 			{
 				actions->has_initiative = true;
-				return Result(false, best_score);
+				return Result::canStopNow(best_score);
 			}
-			return Result();
+			return Result::mustContinue();
 		}
 		Score ThreatGenerator::add_own_4x3_forks()
 		{
@@ -651,7 +651,7 @@ namespace ag
 			  // it is rare (approximately 1 in 60.000 positions) but cheap to check
 
 				// we must copy as the check for forbidden moves may reorder the elements in the original list
-				const std::vector<Location> &own_fork_3x3 = get_copy(get_own_threats(ThreatType::FORK_3x3));
+				const std::vector<Location> &own_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
 				for (auto move = own_fork_3x3.begin(); move < own_fork_3x3.end(); move++)
 				{
 					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
@@ -779,7 +779,7 @@ namespace ag
 			}
 			return false;
 		}
-		const std::vector<Location>& ThreatGenerator::get_copy(const std::vector<Location> &list)
+		const std::vector<Location>& ThreatGenerator::get_copy_of(const std::vector<Location> &list)
 		{
 			temporary_list = list;
 			return temporary_list;
