@@ -64,7 +64,7 @@ namespace
 		for (auto iter = actions.begin(); iter < actions.end(); iter++)
 			task.addPriorEdge(iter->move, convertEvaluation(iter->score), convertProvenValue(iter->score));
 
-		if (score.hasSolution())
+		if (score.isProven())
 		{
 			task.setProvenValue(convertProvenValue(score));
 			task.setValue(convertEvaluation(score));
@@ -197,12 +197,12 @@ namespace ag
 				{
 					TimerGuard tg(stats.move_generation);
 					score = threat_generator.generate(actions, static_cast<GeneratorMode>(search_mode));
-					if (score.hasSolution() or actions.must_defend)
+					if (score.isProven() or actions.must_defend)
 						fill(task, actions, score);
 					break;
 				}
-				case TssMode::DEPTH_FIRST:
-				case TssMode::ITERATIVE_DEEPENING:
+				case TssMode::RECURSIVE:
+				default:
 				{
 					if (shared_table == nullptr)
 						throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
@@ -213,25 +213,19 @@ namespace ag
 
 					hash_key = shared_table->getHashFunction().getHash(task.getBoard()); // set up hash key
 					const int max_depth = std::min(127, game_config.rows * game_config.cols - pattern_calculator.getCurrentDepth());
-					if (mode == TssMode::DEPTH_FIRST)
-//						score = vcf_search(max_depth, actions, true);
-						score = recursive_solve<false>(max_depth, Score::min_value(), Score::max_value(), actions, true, true);
-					else
-					{
-						for (int depth = 1; depth <= max_depth; depth += 4)
-						{ // iterative deepening loop
-//							double t0 = getTime();
-//							score = vcf_search(depth, actions, true);
-							score = recursive_solve<true>(depth, Score::min_value(), Score::max_value(), actions, true, true);
-//							std::cout << "depth " << depth << ", nodes " << position_counter << ", score " << score << ", time " << (getTime() - t0)
-//									<< "s\n";
-							if (score.isProven())
-								break; // there is no point in further search if we have found some proven score
-							if (position_counter >= max_positions)
-								break; // the limit of nodes was exceeded
-							if (actions.size() == 0)
-								break; // apparently there are no threats to make
-						}
+					for (int depth = 1; depth <= max_depth; depth += 4)
+					{ // iterative deepening loop
+//						double t0 = getTime();
+//						score = vcf_search(depth, actions, true);
+						score = recursive_solve(depth, Score::min_value(), Score::max_value(), actions, true);
+//						std::cout << "depth " << depth << ", nodes " << position_counter << ", score " << score << ", time " << (getTime() - t0)
+//								<< "s\n";
+						if (score.isProven())
+							break; // there is no point in further search if we have found some proven score
+						if (position_counter >= max_positions)
+							break; // the limit of nodes was exceeded
+						if (actions.size() == 0)
+							break; // apparently there are no threats to make
 					}
 					fill(task, actions, score);
 					break;
@@ -251,7 +245,7 @@ namespace ag
 //			}
 
 			stats.total_positions += position_counter;
-			stats.hits += static_cast<int>(score.hasSolution());
+			stats.hits += static_cast<int>(score.isProven());
 		}
 		void ThreatSpaceSearch::tune(float speed)
 		{
@@ -335,11 +329,12 @@ namespace ag
 		/*
 		 * private
 		 */
-		template<bool IsIterativeDeepening>
-		Score ThreatSpaceSearch::recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isAttacker, bool isRoot)
+		Score ThreatSpaceSearch::recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot)
 		{
 			actions.clear();
-			assert(Score::min_value() <= alpha && alpha < beta && beta <= Score::max_value());
+			assert(Score::min_value() <= alpha);
+			assert(alpha < beta);
+			assert(beta <= Score::max_value());
 
 			Move hash_move;
 			{ // lookup to the shared hash table
@@ -354,10 +349,10 @@ namespace ag
 				{ // there is some information stored in this entry
 					hash_move = tt_entry.move();
 					if (is_move_legal(hash_move) and not isRoot)
-					{ // basic check for hash entry validity
+					{
 						const Score tt_score = tt_entry.score();
 						if (tt_score.isProven()
-								or (IsIterativeDeepening and tt_entry.depth() >= depthRemaining
+								or (tt_entry.depth() >= depthRemaining
 										and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
 												or (tt_bound == Bound::UPPER and tt_score <= alpha))))
 							return tt_score;
@@ -375,8 +370,8 @@ namespace ag
 
 //			if (isAttacker and not actions.has_initiative)
 //				depthRemaining -= 4;
-			if (not isAttacker and not actions.must_defend)
-				depthRemaining -= 2;
+//			if (not isAttacker and not actions.must_defend)
+//				depthRemaining -= 2;
 
 			{ // evaluation
 //				TimerGuard tg(stats.evaluate);
@@ -387,8 +382,8 @@ namespace ag
 			}
 
 			const Score original_alpha = alpha;
-			Score best_score = actions.must_defend ? Score::min_value() : Score::no_solution(); // setup initial value of the score
-//			Score best_score = Score::min_value(); // setup initial value of the score
+//			Score best_score = actions.must_defend ? Score::min_value() : Score::no_solution(); // setup initial value of the score
+			Score best_score = Score::min_value(); // setup initial value of the score
 			for (int i = 0; i < actions.size(); i++)
 			{
 				position_counter++;
@@ -408,7 +403,7 @@ namespace ag
 				{
 					ActionList next_ply_actions(actions, actions[i]);
 					pattern_calculator.addMove(move);
-					action_score = -recursive_solve<IsIterativeDeepening>(depthRemaining - 1, -beta, -alpha, next_ply_actions, not isAttacker, false);
+					action_score = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions, false);
 					pattern_calculator.undoMove(move);
 				}
 				shared_table->getHashFunction().updateHash(hash_key, move);
@@ -430,11 +425,11 @@ namespace ag
 			//  - no actions were generated, or
 			//  - all actions are losing but we don't have to defend
 			// we need to override the score with something, for example with static evaluation
-//			if (actions.size() == 0 or (best_score.isLoss() and not actions.must_defend))
-//				best_score = evaluate();
+			if (actions.size() == 0 or (best_score.isLoss() and not actions.must_defend))
+				best_score = evaluate();
 //			score = Score((int) (2000 * evaluator.forward()) - 1000);
 
-			if (best_score.isProven() or IsIterativeDeepening)
+			if (best_score.isProven())
 			{ // insert new data to the hash table
 //				TimerGuard tg(stats.hashtable);
 				const Move best_move = (actions.size() > 0) ? std::max_element(actions.begin(), actions.end())->move : Move();
@@ -455,63 +450,6 @@ namespace ag
 			}
 
 			return best_score;
-		}
-		Score ThreatSpaceSearch::vcf_search(int depthRemaining, ActionList &actions, bool isAttacker)
-		{
-			actions.clear();
-			const Score static_score = threat_generator.generate(actions, static_cast<GeneratorMode>(search_mode));
-			if (static_score.isProven())
-				return static_score;
-
-//			if (isAttacker and not actions.has_initiative)
-//				depthRemaining -= 2;
-			if (not isAttacker and not actions.must_defend)
-				depthRemaining -= 2;
-
-			if (depthRemaining <= 0) // if it is a leaf, evaluate the position
-				return Score();
-
-			Score score = actions.must_defend ? Score::min_value() : Score::no_solution(); // setup initial value of the score
-			for (int i = 0; i < actions.size(); i++)
-			{
-				position_counter++;
-				if (position_counter > max_positions)
-					depthRemaining = 1; // a hack to make each node look like a leaf, so the search will complete correctly but will exit as soon as possible
-
-				const Move move = actions[i].move;
-				Score action_score;
-
-				shared_table->getHashFunction().updateHash(hash_key, move);
-				const SharedTableData tt_entry = shared_table->seek(hash_key);
-				stats.shared_cache_calls++;
-				stats.shared_cache_hits += (tt_entry.bound() != Bound::NONE);
-				if (tt_entry.score().isProven())
-					action_score = -tt_entry.score();
-				else
-				{
-					ActionList next_ply_actions(actions, actions[i]);
-					pattern_calculator.addMove(move);
-					action_score = -vcf_search(depthRemaining - 1, next_ply_actions, not isAttacker);
-					pattern_calculator.undoMove(move);
-				}
-				shared_table->getHashFunction().updateHash(hash_key, move);
-
-				action_score.increaseDistanceToWinOrLoss();
-				actions[i].score = action_score; // required for recovering of the search results
-				score = std::max(score, action_score);
-				if (score.isWin())
-					break; // found either a cut-off or a win
-			}
-
-			if (score.isProven())
-			{
-				const Move best_move = (actions.size() > 0) ? std::max_element(actions.begin(), actions.end())->move : Move();
-				shared_table->insert(hash_key,
-						SharedTableData(actions.must_defend, actions.has_initiative, Bound::EXACT, depthRemaining, score, best_move));
-				std::cout << "insert\n";
-			}
-
-			return score;
 		}
 		bool ThreatSpaceSearch::is_move_legal(Move m) const noexcept
 		{

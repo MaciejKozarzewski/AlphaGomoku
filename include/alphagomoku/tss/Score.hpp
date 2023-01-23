@@ -49,7 +49,6 @@ namespace ag
 		enum class ProvenScore
 		{
 			LOSS, /* the position was proven to be a loss */
-			NO_SOLUTION,
 			DRAW, /* the position was proven to be a draw */
 			UNKNOWN, /* the position has no proof yet */
 			WIN /* the position was proven to be a win */
@@ -61,8 +60,6 @@ namespace ag
 			{
 				case ProvenScore::LOSS:
 					return ProvenScore::WIN;
-				case ProvenScore::NO_SOLUTION:
-					return ProvenScore::NO_SOLUTION;
 				case ProvenScore::DRAW:
 					return ProvenScore::DRAW;
 				default:
@@ -125,10 +122,6 @@ namespace ag
 				{
 					return getProvenScore() != ProvenScore::UNKNOWN;
 				}
-				bool hasSolution() const noexcept
-				{
-					return isWin() or isDraw() or isLoss();
-				}
 				bool isLoss() const noexcept
 				{
 					return getProvenScore() == ProvenScore::LOSS;
@@ -158,10 +151,6 @@ namespace ag
 				static Score loss_in(int plys) noexcept
 				{
 					return Score(ProvenScore::LOSS, +plys);
-				}
-				static Score no_solution() noexcept
-				{
-					return Score(ProvenScore::NO_SOLUTION);
 				}
 				static Score forbidden() noexcept
 				{
@@ -236,8 +225,6 @@ namespace ag
 					{
 						case ProvenScore::LOSS:
 							return "LOSS in " + std::to_string(getEval());
-						case ProvenScore::NO_SOLUTION:
-							return "NO_SOLUTION";
 						case ProvenScore::DRAW:
 							return "DRAW";
 						default:
