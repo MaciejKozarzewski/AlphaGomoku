@@ -16,7 +16,10 @@ namespace
 {
 	float getVirtualLoss(const ag::Edge *edge) noexcept
 	{
-		return static_cast<float>(edge->getVisits()) / (1.0e-6f + edge->getVisits() + edge->getVirtualLoss());
+		assert(edge != nullptr);
+		const float visits = 1.0e-8f + edge->getVisits();
+		const float virtual_loss = edge->getVirtualLoss();
+		return visits / (visits + virtual_loss);
 	}
 	template<typename T>
 	float getQ(const T *n, float styleFactor = 0.5f) noexcept
@@ -28,7 +31,9 @@ namespace
 	float getProvenQ(const T *node) noexcept
 	{
 		assert(node != nullptr);
-		return static_cast<int>(node->getProvenValue() == ag::ProvenValue::WIN) - static_cast<int>(node->getProvenValue() == ag::ProvenValue::LOSS);
+		const bool is_win = node->getProvenValue() == ag::ProvenValue::WIN;
+		const bool is_loss = node->getProvenValue() == ag::ProvenValue::LOSS;
+		return static_cast<int>(is_win) - static_cast<int>(is_loss);
 	}
 	template<typename T>
 	float getBalance(const T *node) noexcept
@@ -58,13 +63,14 @@ namespace ag
 		const float cbrt_visit = exploration_constant * cbrtf(node->getVisits());
 		const float log_visit = exploration_constant * logf(node->getVisits());
 
-		Edge *selected = node->end();
+		Edge *selected = nullptr;
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			if (edge->isProven() == false)
 			{
+//				const float Q = getQ(edge, style_factor) * getVirtualLoss(edge); // use action value head
 				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVirtualLoss(edge) : parent_value; // init to parent
-//				const float Q = getQ(edge, style_factor) * getVirtualLoss(edge); // init to loss
+//				const float Q = (edge->getVisits() > 0) ? getQ(edge, style_factor) * getVirtualLoss(edge) : 0.0f; // init to loss
 				const float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
 
 				if (Q + U > bestValue)
@@ -73,7 +79,40 @@ namespace ag
 					bestValue = Q + U;
 				}
 			}
-		assert(selected != node->end()); // there should always be some best edge
+		assert(selected != nullptr); // there should always be some best edge
+		return selected;
+	}
+
+	QHeadSelector::QHeadSelector(float exploration, float styleFactor) :
+			exploration_constant(exploration),
+			style_factor(styleFactor)
+	{
+	}
+	QHeadSelector* QHeadSelector::clone() const
+	{
+		return new QHeadSelector(exploration_constant, style_factor);
+	}
+	Edge* QHeadSelector::select(const Node *node) const noexcept
+	{
+		assert(node != nullptr);
+		assert(node->isLeaf() == false);
+		const float sqrt_visit = exploration_constant * sqrtf(node->getVisits());
+
+		Edge *selected = nullptr;
+		float bestValue = std::numeric_limits<float>::lowest();
+		for (Edge *edge = node->begin(); edge < node->end(); edge++)
+			if (edge->isProven() == false)
+			{
+				const float Q = getQ(edge, style_factor) * getVirtualLoss(edge); // use action value head
+				const float U = edge->getPolicyPrior() * sqrt_visit / (1.0f + edge->getVisits()); // classical PUCT formula
+
+				if (Q + U > bestValue)
+				{
+					selected = edge;
+					bestValue = Q + U;
+				}
+			}
+		assert(selected != nullptr); // there should always be some best edge
 		return selected;
 	}
 

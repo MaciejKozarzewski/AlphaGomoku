@@ -50,6 +50,20 @@ namespace ag
 	};
 
 	/**
+	 * @brief PUCT edge selector that optimizes P(win) + styleFactor * P(draw).
+	 */
+	class QHeadSelector: public EdgeSelector
+	{
+		private:
+			const float exploration_constant; /**< controls the level of exploration */
+			const float style_factor; /**< used to determine what to optimize during search */
+		public:
+			QHeadSelector(float exploration, float styleFactor = 0.5f);
+			QHeadSelector* clone() const;
+			Edge* select(const Node *node) const noexcept;
+	};
+
+	/**
 	 * @brief UCT edge selector that optimizes P(win) + styleFactor * P(draw).
 	 */
 	class UctSelector: public EdgeSelector
