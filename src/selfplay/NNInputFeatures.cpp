@@ -32,7 +32,7 @@ namespace
 		return result;
 	}
 	template<int D0, int D1, int D2, int D3>
-	uint32_t shuffle_directions(uint32_t data)
+	uint32_t shuffle_directions(const uint32_t data)
 	{
 		static_assert(D0 >= 0 && D0 < 4, "can only shuffle four bits");
 		static_assert(D1 >= 0 && D1 < 4, "can only shuffle four bits");
@@ -42,43 +42,11 @@ namespace
 
 		constexpr uint32_t mask = (1u << 8u) | (1u << 12u) | (1u << 20u) | (1u << 24u); // shuffling bits 8-11, 12-15, 20-23, 24-17
 
-		uint32_t table[4];
-		for (uint32_t i = 0; i < 4; i++)
-			table[i] = (data >> i) & mask;
-
 		uint32_t result = data & 0xF00F00FF; // 0xF00F00FF is a mask of all bits that are not shuffled
-		result |= (table[D0] << 0);
-		result |= (table[D1] << 1);
-		result |= (table[D2] << 2);
-		result |= (table[D3] << 3);
-		return result;
-	}
-
-	template<bool HV, bool DA>
-	uint32_t swap_directions(uint32_t data)
-	{
-		constexpr uint32_t mask = (1u << 8u) | (1u << 12u) | (1u << 20u) | (1u << 24u); // shuffling bits 8-11, 12-15, 20-23, 24-17
-
-		uint32_t horizontal = data & (mask << 0u);
-		uint32_t vertical = data & (mask << 1u);
-		uint32_t diagonal = data & (mask << 2u);
-		uint32_t antidiagonal = data & (mask << 3u);
-		if (HV)
-		{ // swap horizontal and vertical directions
-			horizontal <<= 1u;
-			vertical >>= 1u;
-		}
-		if (DA)
-		{ // swap diagonal and antidiagonal directions
-			diagonal <<= 1u;
-			antidiagonal >>= 1u;
-		}
-
-		uint32_t result = data & 0xF00F00FF; // 0xF00F00FF is a mask of all bits that are not shuffled
-		result |= horizontal;
-		result |= vertical;
-		result |= diagonal;
-		result |= antidiagonal;
+		result |= (((data >> D0) & mask) << 0);
+		result |= (((data >> D1) & mask) << 1);
+		result |= (((data >> D2) & mask) << 2);
+		result |= (((data >> D3) & mask) << 3);
 		return result;
 	}
 }
@@ -102,7 +70,7 @@ namespace ag
 		 *  2		1	opponent stone
 		 *  3 		1	forbidden move
 		 *  4 		1	black (cross) to move
-		 *  5 		1	white (white)to move
+		 *  5 		1	white (white) to move
 		 *  6 		1	ones (constant channel)
 		 *  7 		1	zeros (constant channel)
 		 *
@@ -120,27 +88,30 @@ namespace ag
 		 *  30		1	opponent five
 		 *  31		1	opponent overline
 		 */
-		const Sign sign_to_move = calc.getSignToMove();
+		const Sign own_sign = calc.getSignToMove();
+		const Sign opponent_sign = invertSign(calc.getSignToMove());
 
 		const uint32_t legal = 1u;
 		const uint32_t own = 1u << 1u;
 		const uint32_t opp = 1u << 2u;
 		const uint32_t forbidden = 1u << 3u;
-		const uint32_t color_to_move = (sign_to_move == Sign::CROSS) ? (1u << 4u) : (1u << 5u);
+		const uint32_t color_to_move = (own_sign == Sign::CROSS) ? (1u << 4u) : (1u << 5u);
 		const uint32_t ones = 1u << 6u;
 
 		for (int row = 0; row < rows(); row++)
 			for (int col = 0; col < cols(); col++)
 			{
-				uint32_t tmp = legal | color_to_move | ones; // base value
-				if (calc.signAt(row, col) == ag::Sign::NONE)
+				assert(calc.signAt(row, col) != Sign::ILLEGAL);
+
+				uint32_t tmp = color_to_move | ones; // base value
+				if (calc.signAt(row, col) == Sign::NONE)
 					tmp |= legal;
 				else
-					tmp |= (calc.signAt(row, col) == calc.getSignToMove()) ? own : opp;
-				if (calc.getConfig().rules == GameRules::RENJU and calc.isForbidden(sign_to_move, row, col))
+					tmp |= (calc.signAt(row, col) == own_sign) ? own : opp;
+				if (calc.isForbidden(own_sign, row, col))
 					tmp |= forbidden;
-				tmp |= (encode_patterns(calc.getPatternTypeAt(sign_to_move, row, col)) << 8u);
-				tmp |= (encode_patterns(calc.getPatternTypeAt(invertSign(sign_to_move), row, col)) << 20u);
+				tmp |= (encode_patterns(calc.getPatternTypeAt(own_sign, row, col)) << 8u);
+				tmp |= (encode_patterns(calc.getPatternTypeAt(opponent_sign, row, col)) << 20u);
 				this->at(row, col) = tmp;
 			}
 	}
