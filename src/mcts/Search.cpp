@@ -8,8 +8,7 @@
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
-#include <alphagomoku/mcts/EdgeGenerator.hpp>
+#include <alphagomoku/mcts/edge_selectors/EdgeSelector.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <numeric>
@@ -94,6 +93,10 @@ namespace ag
 	const SearchConfig& Search::getConfig() const noexcept
 	{
 		return search_config;
+	}
+	tss::ThreatSpaceSearch& Search::getSolver() noexcept
+	{
+		return ts_search;
 	}
 	void Search::clearStats() noexcept
 	{

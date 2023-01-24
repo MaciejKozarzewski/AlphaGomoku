@@ -8,6 +8,10 @@
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/mcts/NNEvaluator.hpp>
+#include <alphagomoku/mcts/edge_selectors/QHeadSelector.hpp>
+#include <alphagomoku/mcts/edge_selectors/PUCTSelector.hpp>
+#include <alphagomoku/mcts/edge_selectors/BestEdgeSelector.hpp>
+#include <alphagomoku/mcts/edge_generators/SolverGenerator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <minml/utils/json.hpp>
@@ -40,7 +44,12 @@ namespace ag
 	{
 		search.cleanup(tree);
 		tree.setBoard(board, signToMove);
-		tree.setEdgeSelector(PuctSelector(search.getConfig().exploration_constant, 0.5f));
+
+		if (search.getConfig().vcf_solver_level == 3) // FIXME revert this later
+			tree.setEdgeSelector(QHeadSelector(search.getConfig().exploration_constant, 0.5f));
+		else
+			tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
+
 		tree.setEdgeGenerator(SolverGenerator(search.getConfig().expansion_prior_treshold, search.getConfig().max_children));
 	}
 	void Player::selectSolveEvaluate()

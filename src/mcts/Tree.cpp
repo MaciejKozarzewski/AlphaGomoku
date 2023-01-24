@@ -7,7 +7,7 @@
 
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/edge_selectors/EdgeSelector.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -147,15 +147,16 @@ namespace ag
 		if (forceRemoveRootNode and node_cache.seek(newBoard, signToMove) != nullptr)
 			node_cache.remove(newBoard, signToMove);
 		root_node = node_cache.seek(newBoard, signToMove);
+		root_node->markAsRoot();
 		max_depth = 0;
 	}
 	void Tree::setEdgeSelector(const EdgeSelector &selector)
 	{
-		edge_selector = std::unique_ptr<EdgeSelector>(selector.clone());
+		edge_selector = selector.clone();
 	}
 	void Tree::setEdgeGenerator(const EdgeGenerator &generator)
 	{
-		edge_generator = std::unique_ptr<EdgeGenerator>(generator.clone());
+		edge_generator = generator.clone();
 	}
 
 	int Tree::getNodeCount() const noexcept

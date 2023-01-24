@@ -9,7 +9,14 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/edge_selectors/BalancedSelector.hpp>
+#include <alphagomoku/mcts/edge_selectors/PUCTSelector.hpp>
+#include <alphagomoku/mcts/edge_selectors/BestEdgeSelector.hpp>
+#include <alphagomoku/mcts/edge_generators/SolverGenerator.hpp>
+#include <alphagomoku/mcts/edge_generators/BalancedGenerator.hpp>
+#include <alphagomoku/mcts/edge_generators/CenterOnlyGenerator.hpp>
+#include <alphagomoku/mcts/edge_generators/CenterExcludingGenerator.hpp>
+#include <alphagomoku/mcts/edge_generators/SymmetricalExcludingGenerator.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
@@ -17,10 +24,10 @@
 namespace
 {
 	using namespace ag;
-	PuctSelector get_base_selector(const EngineSettings &settings)
+	PUCTSelector get_base_selector(const EngineSettings &settings)
 	{
 		const SearchConfig cfg = settings.getSearchConfig();
-		return PuctSelector(cfg.exploration_constant, settings.getStyleFactor());
+		return PUCTSelector(cfg.exploration_constant, settings.getStyleFactor());
 	}
 	SolverGenerator get_base_generator(const EngineSettings &settings)
 	{
@@ -33,13 +40,13 @@ namespace ag
 {
 	Move get_balanced_move(const SearchSummary &summary)
 	{
-		const BalancedSelector selector(std::numeric_limits<int>::max(), PuctSelector(0.0f));
+		const BalancedSelector selector(std::numeric_limits<int>::max(), PUCTSelector(0.0f));
 		return selector.select(&summary.node)->getMove();
 	}
 	std::vector<Move> get_multiple_balanced_moves(SearchSummary summary, int number)
 	{
 		assert(summary.node.numberOfEdges() >= number);
-		const BalancedSelector selector(std::numeric_limits<int>::max(), PuctSelector(0.0f));
+		const BalancedSelector selector(std::numeric_limits<int>::max(), PUCTSelector(0.0f));
 		std::vector<Move> result;
 		for (int i = 0; i < number; i++)
 		{

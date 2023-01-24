@@ -8,6 +8,10 @@
 #include <alphagomoku/selfplay/GameGenerator.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
+#include <alphagomoku/mcts/edge_selectors/PUCTSelector.hpp>
+#include <alphagomoku/mcts/edge_selectors/BestEdgeSelector.hpp>
+#include <alphagomoku/mcts/edge_generators/SolverGenerator.hpp>
+#include <alphagomoku/mcts/edge_generators/NoisyGenerator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 namespace
@@ -466,7 +470,7 @@ namespace ag
 		else
 			tree.setBoard(board, signToMove, false); // root node can be left in the tree
 
-		tree.setEdgeSelector(PuctSelector(search.getConfig().exploration_constant, 0.5f));
+		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
 
 		SolverGenerator base_generator(search.getConfig().expansion_prior_treshold, search.getConfig().max_children);
 		if (perform_full_search)
