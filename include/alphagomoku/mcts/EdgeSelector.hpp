@@ -79,6 +79,22 @@ namespace ag
 	};
 
 	/**
+	 * @brief UCT edge selector that optimizes P(win) + styleFactor * P(draw) but add some noise at root.
+	 */
+	class NoisyUCTSelector: public EdgeSelector
+	{
+		private:
+			std::vector<float> noisy_policy;
+			const Node *current_root = nullptr;
+			const float exploration_constant; /**< controls the level of exploration */
+			const float style_factor; /**< used to determine what to optimize during search */
+		public:
+			NoisyUCTSelector(float exploration, float styleFactor = 0.5f);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+
+	/**
 	 * @brief Edge selector used to find few balanced moves, then continues with the baseSelector.
 	 */
 	class BalancedSelector: public EdgeSelector

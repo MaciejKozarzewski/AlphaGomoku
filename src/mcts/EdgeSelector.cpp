@@ -73,6 +73,22 @@ namespace
 				return 1.0f;
 		}
 	}
+	void softmax(std::vector<float> &vec) noexcept
+	{
+		float max = std::numeric_limits<float>::lowest();
+		for (size_t i = 0; i < vec.size(); i++)
+			max = std::max(max, vec[i]);
+		float sum = 0.0f;
+		for (size_t i = 0; i < vec.size(); i++)
+		{
+			vec[i] = std::exp(vec[i] - max);
+			sum += vec[i];
+		}
+		assert(sum != 0.0f);
+		sum = 1.0f / sum;
+		for (size_t i = 0; i < vec.size(); i++)
+			vec[i] *= sum;
+	}
 }
 
 namespace ag
@@ -164,7 +180,7 @@ namespace ag
 		const float parent_value = getQ(node, style_factor);
 		const float log_visit = logf(node->getVisits());
 
-		Edge *selected = node->end();
+		Edge *selected = nullptr;
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			if (edge->isProven() == false)
@@ -180,8 +196,62 @@ namespace ag
 					bestValue = Q + U + P;
 				}
 			}
-		assert(selected != node->end()); // there should always be some best edge
+		assert(selected != nullptr); // there should always be some best edge
 		return selected;
+	}
+
+	NoisyUCTSelector::NoisyUCTSelector(float exploration, float styleFactor) :
+			exploration_constant(exploration),
+			style_factor(styleFactor)
+	{
+	}
+	std::unique_ptr<EdgeSelector> NoisyUCTSelector::clone() const
+	{
+		return std::make_unique<NoisyUCTSelector>(exploration_constant, style_factor);
+	}
+	Edge* NoisyUCTSelector::select(const Node *node) noexcept
+	{
+		assert(node != nullptr);
+		assert(node->isLeaf() == false);
+		if (node->isRoot())
+		{
+			if (node != current_root)
+			{ // reset noise
+				current_root = node;
+#ifndef NDEBUG
+				std::default_random_engine generator;
+#else
+				std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
+#endif
+				std::extreme_value_distribution<float> noise;
+				noisy_policy.clear();
+				for (Edge *iter = node->begin(); iter < node->end(); iter++)
+					noisy_policy.push_back(safe_log(iter->getPolicyPrior() + noise(generator)));
+				softmax(noisy_policy);
+			}
+
+			const float log_visit = logf(node->getVisits());
+
+			Edge *selected = nullptr;
+			float bestValue = std::numeric_limits<float>::lowest();
+			for (Edge *edge = node->begin(); edge < node->end(); edge++)
+				if (edge->isProven() == false)
+				{
+					const float Q = getQ(edge, style_factor) * getVirtualLoss(edge);
+					const float U = exploration_constant * sqrtf(log_visit / (1.0f + edge->getVisits()));
+					const float P = noisy_policy[std::distance(node->begin(), edge)] / (1.0f + edge->getVisits());
+
+					if (Q + U + P > bestValue)
+					{
+						selected = edge;
+						bestValue = Q + U + P;
+					}
+				}
+			assert(selected != node->end()); // there should always be some best edge
+			return selected;
+		}
+		else
+			return UCTSelector(exploration_constant, style_factor).select(node);
 	}
 
 	BalancedSelector::BalancedSelector(int balanceDepth, const EdgeSelector &baseSelector) :
@@ -199,7 +269,7 @@ namespace ag
 		assert(node->isLeaf() == false);
 		if (node->getDepth() < balance_depth)
 		{
-			Edge *selected = node->end();
+			Edge *selected = nullptr;
 			float bestValue = std::numeric_limits<float>::lowest();
 			for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			{
@@ -210,7 +280,7 @@ namespace ag
 					bestValue = Q;
 				}
 			}
-			assert(selected != node->end()); // there should always be some best edge
+			assert(selected != nullptr); // there should always be some best edge
 			return selected;
 		}
 		else
@@ -229,7 +299,7 @@ namespace ag
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		Edge *selected = node->end();
+		Edge *selected = nullptr;
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 		{
@@ -240,7 +310,7 @@ namespace ag
 				bestValue = Q;
 			}
 		}
-		assert(selected != node->end()); // there should always be some best edge
+		assert(selected != nullptr); // there should always be some best edge
 		return selected;
 	}
 
@@ -252,7 +322,7 @@ namespace ag
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		Edge *selected = node->end();
+		Edge *selected = nullptr;
 		float bestValue = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 		{
@@ -262,7 +332,7 @@ namespace ag
 				bestValue = edge->getVisits();
 			}
 		}
-		assert(selected != node->end()); // there should always be some best edge
+		assert(selected != nullptr); // there should always be some best edge
 		return selected;
 	}
 
@@ -278,7 +348,7 @@ namespace ag
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		Edge *selected = node->end();
+		Edge *selected = nullptr;
 		double bestValue = std::numeric_limits<double>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 		{
@@ -290,7 +360,7 @@ namespace ag
 				bestValue = value;
 			}
 		}
-		assert(selected != node->end()); // there should always be some best edge
+		assert(selected != nullptr); // there should always be some best edge
 		return selected;
 	}
 
@@ -305,7 +375,7 @@ namespace ag
 	}
 	std::unique_ptr<EdgeSelector> SequentialHalvingSelector::clone() const
 	{
-		return std::make_unique < SequentialHalvingSelector > (max_edges, max_simulations, C_visit, C_scale);
+		return std::make_unique<SequentialHalvingSelector>(max_edges, max_simulations, C_visit, C_scale);
 	}
 	Edge* SequentialHalvingSelector::select(const Node *node) noexcept
 	{
@@ -337,7 +407,7 @@ namespace ag
 		std::default_random_engine generator;
 #else
 			std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
-	#endif
+#endif
 		std::extreme_value_distribution<float> noise;
 		action_list.clear();
 		for (Edge *iter = newRoot->begin(); iter < newRoot->end(); iter++)

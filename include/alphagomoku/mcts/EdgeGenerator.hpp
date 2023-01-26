@@ -38,11 +38,9 @@ namespace ag
 	class BaseGenerator: public EdgeGenerator
 	{
 		private:
-			float policy_threshold = 0.0f;
-			int max_edges = std::numeric_limits<int>::max();
+			int max_edges;
 		public:
-			BaseGenerator() = default;
-			BaseGenerator(float policyThreshold, int maxEdges);
+			BaseGenerator(int maxEdges = std::numeric_limits<int>::max());
 			std::unique_ptr<EdgeGenerator> clone() const;
 			void generate(SearchTask &task) const;
 	};
@@ -54,11 +52,9 @@ namespace ag
 	class SolverGenerator: public EdgeGenerator
 	{
 		private:
-			float policy_threshold = 0.0f;
-			int max_edges = std::numeric_limits<int>::max();
+			int max_edges;
 		public:
-			SolverGenerator() = default;
-			SolverGenerator(float policyThreshold, int maxEdges);
+			SolverGenerator(int maxEdges = std::numeric_limits<int>::max());
 			std::unique_ptr<EdgeGenerator> clone() const;
 			void generate(SearchTask &task) const;
 	};
@@ -77,21 +73,6 @@ namespace ag
 		private:
 			void generate_at_root(SearchTask &task) const;
 			void generate_below_root(SearchTask &task) const;
-	};
-
-	/**
-	 * \brief Generator that adds all edges and applies some noise to the policy.
-	 */
-	class NoisyGenerator: public EdgeGenerator
-	{
-		private:
-			matrix<float> noise_matrix;
-			float noise_weight;
-			std::unique_ptr<EdgeGenerator> base_generator;
-		public:
-			NoisyGenerator(const matrix<float> &noiseMatrix, float noiseWeight, const EdgeGenerator &baseGenerator);
-			std::unique_ptr<EdgeGenerator> clone() const;
-			void generate(SearchTask &task) const;
 	};
 
 	/**
