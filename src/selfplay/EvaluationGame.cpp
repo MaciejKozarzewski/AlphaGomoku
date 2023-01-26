@@ -23,7 +23,7 @@ namespace ag
 			tree(options.tree_config),
 			search(gameOptions, options.search_config),
 			name(name),
-			simulations(options.simulations_min)
+			simulations(options.simulations)
 	{
 	}
 	void Player::setSign(Sign s) noexcept
@@ -43,12 +43,8 @@ namespace ag
 		search.cleanup(tree);
 		tree.setBoard(board, signToMove);
 
-		if (search.getConfig().vcf_solver_level == 3) // FIXME revert this later
-			tree.setEdgeSelector(QHeadSelector(search.getConfig().exploration_constant, 0.5f));
-		else
-			tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
-
-		tree.setEdgeGenerator(SolverGenerator(search.getConfig().expansion_prior_treshold, search.getConfig().max_children));
+		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
+		tree.setEdgeGenerator(SolverGenerator(search.getConfig().max_children));
 	}
 	void Player::selectSolveEvaluate()
 	{
@@ -95,29 +91,13 @@ namespace ag
 	SearchData Player::getSearchData() const
 	{
 		const Node root_node = tree.getInfo( { });
-		matrix<float> policy(game_config.rows, game_config.cols);
-		matrix<ProvenValue> proven_values(game_config.rows, game_config.cols);
-		matrix<Value> action_values(game_config.rows, game_config.cols);
-		for (int i = 0; i < root_node.numberOfEdges(); i++)
-		{
-			Move m = root_node.getEdge(i).getMove();
-			policy.at(m.row, m.col) = root_node.getEdge(i).getVisits();
-			proven_values.at(m.row, m.col) = root_node.getEdge(i).getProvenValue();
-			action_values.at(m.row, m.col) = root_node.getEdge(i).getValue();
-		}
-		normalize(policy);
 
 		BestEdgeSelector selector;
-		Edge *edge = selector.select(&root_node);
-		Move move = edge->getMove();
+		const Move move = selector.select(&root_node)->getMove();
 
-		SearchData result(policy.rows(), policy.cols());
+		SearchData result(game_config.rows, game_config.cols);
 		result.setBoard(tree.getBoard());
-		result.setActionProvenValues(proven_values);
-		result.setPolicy(policy);
-		result.setActionValues(action_values);
-		result.setMinimaxValue(root_node.getValue());
-		result.setProvenValue(root_node.getProvenValue());
+		result.setSearchResults(root_node);
 		result.setMove(move);
 		return result;
 	}

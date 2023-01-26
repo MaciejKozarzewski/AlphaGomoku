@@ -20,7 +20,8 @@ namespace ag
 {
 	struct Option;
 	class Move;
-	enum class GameRules;
+	enum class GameRules
+	;
 } /* namespace ag */
 
 namespace ag
@@ -35,7 +36,7 @@ namespace ag
 	class EngineSettings
 	{
 		private:
-			static constexpr double max_double_value = 9007199254740992;
+			static constexpr double max_double_value = 9007199254740992.0;
 			static constexpr int max_int_value = std::numeric_limits<int>::max();
 
 			mutable std::mutex mutex;
@@ -51,7 +52,7 @@ namespace ag
 			double time_left = max_double_value; /**< [seconds] */
 			double time_for_turn = 5.0; /**< [seconds] */
 			double time_increment = 0.0; /**< [seconds] */
-			double protocol_lag = 0.4; /**< [seconds] lag between sending a message from program and receiving it by GUI   */
+			double protocol_lag = 0.4; /**< [seconds] lag between sending a message from program and receiving it by GUI */
 			double time_for_pondering = 0.0; /**< [seconds] */
 
 			int max_depth = max_int_value;

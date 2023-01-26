@@ -8,6 +8,7 @@
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
+#include <alphagomoku/mcts/Node.hpp>
 
 #include <minml/utils/serialization.hpp>
 
@@ -18,9 +19,9 @@ namespace ag
 
 	SearchData::SearchData(const SerializedObject &so, size_t &offset)
 	{
-		int rows = so.load<int>(offset);
+		const int rows = so.load<int>(offset);
 		offset += sizeof(rows);
-		int cols = so.load<int>(offset);
+		const int cols = so.load<int>(offset);
 		offset += sizeof(cols);
 
 		actions = matrix<internal_data>(rows, cols);
@@ -55,36 +56,22 @@ namespace ag
 	void SearchData::setBoard(const matrix<Sign> &board) noexcept
 	{
 		for (int i = 0; i < board.size(); i++)
-			actions.data()[i].sign = static_cast<int>(board.data()[i]);
+			actions[i].sign = static_cast<int>(board[i]);
 	}
-	void SearchData::setActionProvenValues(const matrix<ProvenValue> &provenValues) noexcept
+	void SearchData::setSearchResults(const Node &node) noexcept
 	{
-		for (int i = 0; i < provenValues.size(); i++)
-			actions.data()[i].pv = static_cast<int>(provenValues.data()[i]);
-	}
-	void SearchData::setPolicy(const matrix<float> &policy) noexcept
-	{
-		const float scale = 262143.0f;
-		for (int i = 0; i < policy.size(); i++)
-			actions.data()[i].prior = static_cast<int>(policy.data()[i] * scale);
-	}
-	void SearchData::setActionValues(const matrix<Value> &actionValues) noexcept
-	{
-		const float scale = 16383.0f;
-		for (int i = 0; i < actionValues.size(); i++)
+		for (Edge *edge = node.begin(); edge < node.end(); edge++)
 		{
-			actions.data()[i].win = static_cast<int>(actionValues.data()[i].win * scale);
-			actions.data()[i].draw = static_cast<int>(actionValues.data()[i].draw * scale);
-			actions.data()[i].loss = static_cast<int>(actionValues.data()[i].loss * scale);
+			assert(edge->getVisits() < 4096);
+			const Move m = edge->getMove();
+			actions.at(m.row, m.col).proven_value = static_cast<int>(edge->getProvenValue());
+			actions.at(m.row, m.col).visit_count = static_cast<int>(edge->getVisits());
+			actions.at(m.row, m.col).policy_prior = static_cast<int>(edge->getPolicyPrior() * p_scale);
+			actions.at(m.row, m.col).win = static_cast<int>(edge->getValue().win * q_scale);
+			actions.at(m.row, m.col).draw = static_cast<int>(edge->getValue().draw * q_scale);
 		}
-	}
-	void SearchData::setMinimaxValue(Value minimaxValue) noexcept
-	{
-		minimax_value = minimaxValue;
-	}
-	void SearchData::setProvenValue(ProvenValue pv) noexcept
-	{
-		proven_value = pv;
+		minimax_value = node.getValue();
+		proven_value = node.getProvenValue();
 	}
 	void SearchData::setOutcome(GameOutcome gameOutcome) noexcept
 	{
@@ -95,31 +82,30 @@ namespace ag
 		played_move = m;
 	}
 
-	void SearchData::getBoard(matrix<Sign> &board) const noexcept
+	Sign SearchData::getSign(int row, int col) const noexcept
 	{
-		for (int i = 0; i < board.size(); i++)
-			board.data()[i] = static_cast<Sign>(actions.data()[i].sign);
+		return static_cast<Sign>(actions.at(row, col).sign);
 	}
-	void SearchData::getActionProvenValues(matrix<ProvenValue> &provenValues) const noexcept
+	ProvenValue SearchData::getActionProvenValue(int row, int col) const noexcept
 	{
-		for (int i = 0; i < provenValues.size(); i++)
-			provenValues.data()[i] = static_cast<ProvenValue>(actions.data()[i].pv);
+		return static_cast<ProvenValue>(actions.at(row, col).proven_value);
 	}
-	void SearchData::getPolicy(matrix<float> &policy) const noexcept
+	int SearchData::getVisitCount(int row, int col) const noexcept
 	{
-		const float scale = 1.0f / 262143.0f;
-		for (int i = 0; i < policy.size(); i++)
-			policy.data()[i] = actions.data()[i].prior * scale;
+		return actions.at(row, col).visit_count;
 	}
-	void SearchData::getActionValues(matrix<Value> &actionValues) const noexcept
+	float SearchData::getPolicyPrior(int row, int col) const noexcept
 	{
-		const float scale = 1.0f / 16383.0f;
-		for (int i = 0; i < actionValues.size(); i++)
-		{
-			actionValues.data()[i].win = actions.data()[i].win * scale;
-			actionValues.data()[i].draw = actions.data()[i].draw * scale;
-			actionValues.data()[i].loss = actions.data()[i].loss * scale;
-		}
+		constexpr float scale = 1.0f / p_scale;
+		return actions.at(row, col).policy_prior * scale;
+	}
+	Value SearchData::getActionValue(int row, int col) const noexcept
+	{
+		constexpr float scale = 1.0f / q_scale;
+		if (getVisitCount(row, col))
+			return Value(actions.at(row, col).win * scale, actions.at(row, col).draw * scale);
+		else
+			return Value();
 	}
 	Value SearchData::getMinimaxValue() const noexcept
 	{
@@ -149,23 +135,26 @@ namespace ag
 	}
 	void SearchData::print() const
 	{
-		matrix<Sign> board(actions.rows(), actions.cols());
-		getBoard(board);
-		matrix<ProvenValue> proven_values(actions.rows(), actions.cols());
-		getActionProvenValues(proven_values);
-		matrix<float> policy(actions.rows(), actions.cols());
-		getPolicy(policy);
-		matrix<Value> action_values(actions.rows(), actions.cols());
-		getActionValues(action_values);
+		matrix<Sign> board(rows(), cols());
+		matrix<ProvenValue> proven_values(rows(), cols());
+		matrix<float> policy_prior(rows(), cols());
+		matrix<Value> action_values(rows(), cols());
+
+		for (int r = 0; r < rows(); r++)
+			for (int c = 0; c < cols(); c++)
+			{
+				board.at(r, c) = getSign(r, c);
+				proven_values.at(r, c) = getActionProvenValue(r, c);
+				policy_prior.at(r, c) = getPolicyPrior(r, c);
+				action_values.at(r, c) = getActionValue(r, c);
+			}
+
 		std::cout << "next move " << played_move.toString() << '\n';
 		std::cout << "minimax " << minimax_value.toString() << ", proven " << toString(proven_value) << '\n';
 		std::cout << "game outcome " << toString(game_outcome) << '\n';
 		std::cout << "board\n" << Board::toString(board);
-		std::cout << "policy\n" << Board::toString(board, policy);
+		std::cout << "policy\n" << Board::toString(board, policy_prior);
 		std::cout << "proven values\n" << Board::toString(board, proven_values);
-		for (int i = 0; i < policy.size(); i++)
-			if (policy[i] == 0.0f)
-				action_values[i] = Value();
 		std::cout << "action values\n" << Board::toString(board, action_values);
 	}
 	bool SearchData::isCorrect() const noexcept

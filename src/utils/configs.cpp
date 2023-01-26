@@ -33,56 +33,52 @@ namespace ag
 	GameConfig::GameConfig(GameRules rules, int rows, int cols) :
 			rules(rules),
 			rows(rows),
-			cols(cols)
+			cols(cols),
+			draw_after(rows * cols)
 	{
 	}
 	GameConfig::GameConfig(GameRules rules, int size) :
-			rules(rules),
-			rows(size),
-			cols(size)
+			GameConfig(rules, size, size)
 	{
 	}
 	GameConfig::GameConfig(const Json &cfg) :
 			rules(rulesFromString(get_value<std::string>(cfg, "rules"))),
 			rows(get_value<int>(cfg, "rows")),
-			cols(get_value<int>(cfg, "cols"))
+			cols(get_value<int>(cfg, "cols")),
+			draw_after(get_value<int>(cfg, "draw_after", rows * cols))
 	{
 	}
 	Json GameConfig::toJson() const
 	{
-		return Json( { { "rules", toString(rules) }, { "rows", rows }, { "cols", cols } });
+		return Json( { { "rules", toString(rules) }, { "rows", rows }, { "cols", cols }, { "draw_after", draw_after } });
 	}
 
 	TreeConfig::TreeConfig(const Json &cfg) :
-			initial_cache_size(get_value<int>(cfg, "initial_cache_size", Defaults::initial_cache_size)),
+			initial_node_cache_size(get_value<int>(cfg, "initial_node_cache_size", Defaults::initial_node_cache_size)),
 			edge_bucket_size(get_value<int>(cfg, "edge_bucket_size", Defaults::edge_bucket_size)),
 			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size)),
-			tss_hash_table_size(get_value<int>(cfg, "tss_hash_table_size", Defaults::tss_hash_table_size))
+			solver_hash_table_size(get_value<int>(cfg, "tss_hash_table_size", Defaults::solver_hash_table_size))
 	{
 	}
 	Json TreeConfig::toJson() const
 	{
-		return Json( { { "initial_cache_size", initial_cache_size }, { "edge_bucket_size", edge_bucket_size },
-				{ "node_bucket_size", node_bucket_size }, { "tss_hash_table_size", tss_hash_table_size } });
+		return Json( { { "initial_node_cache_size", initial_node_cache_size }, { "edge_bucket_size", edge_bucket_size }, { "node_bucket_size",
+				node_bucket_size }, { "tss_hash_table_size", solver_hash_table_size } });
 	}
 
 	SearchConfig::SearchConfig(const Json &cfg) :
 			max_batch_size(get_value<int>(cfg, "max_batch_size", Defaults::max_batch_size)),
 			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
-			expansion_prior_treshold(get_value<float>(cfg, "expansion_prior_treshold", Defaults::expansion_prior_treshold)),
 			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
-			noise_weight(get_value<float>(cfg, "noise_weight", Defaults::noise_weight)),
-			vcf_solver_level(get_value<int>(cfg, "vcf_solver_level", Defaults::vcf_solver_level)),
-			vcf_solver_max_positions(get_value(cfg, "vcf_solver_max_positions", Defaults::vcf_solver_max_positions)),
+			solver_level(get_value<int>(cfg, "vcf_solver_level", Defaults::solver_level)),
+			solver_max_positions(get_value(cfg, "vcf_solver_max_positions", Defaults::solver_max_positions)),
 			style_factor(get_value<int>(cfg, "style_factor", Defaults::style_factor))
 	{
 	}
 	Json SearchConfig::toJson() const
 	{
-		return Json(
-				{ { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "expansion_prior_treshold",
-						expansion_prior_treshold }, { "max_children", max_children }, { "noise_weight", noise_weight }, { "vcf_solver_level",
-						vcf_solver_level }, { "vcf_solver_max_positions", vcf_solver_max_positions }, { "style_factor", style_factor } });
+		return Json( { { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "max_children", max_children }, {
+				"solver_level", solver_level }, { "solver_max_positions", solver_max_positions }, { "style_factor", style_factor } });
 	}
 
 	DeviceConfig::DeviceConfig(const Json &cfg) :
@@ -146,9 +142,7 @@ namespace ag
 			save_data(get_value<bool>(options, "save_data", true)),
 			games_per_iteration(get_value<int>(options, "games_per_iteration")),
 			games_per_thread(get_value<int>(options, "games_per_thread")),
-			simulations_min(options["simulations_min"]),
-			simulations_max(options["simulations_max"]),
-			positions_skip(options["positions_skip"]),
+			simulations(get_value<int>(options, "simulations")),
 			device_config(),
 			search_config(options["search_config"]),
 			tree_config(options["tree_config"])
@@ -164,9 +158,7 @@ namespace ag
 		result["save_data"] = save_data;
 		result["games_per_iteration"] = games_per_iteration;
 		result["games_per_thread"] = games_per_thread;
-		result["simulations_min"] = simulations_min.toJson();
-		result["simulations_max"] = simulations_max.toJson();
-		result["positions_skip"] = positions_skip.toJson();
+		result["simulations"] = simulations;
 		for (size_t i = 0; i < device_config.size(); i++)
 			result["device_config"][i] = device_config[i].toJson();
 		result["search_config"] = search_config.toJson();

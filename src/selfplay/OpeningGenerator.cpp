@@ -82,7 +82,7 @@ namespace ag
 			average_length(averageLength)
 	{
 	}
-	bool OpeningGenerator::generate(size_t batchSize, NNEvaluator &evaluator, tss::ThreatSpaceSearch &solver)
+	void OpeningGenerator::generate(size_t batchSize, NNEvaluator &evaluator, tss::ThreatSpaceSearch &solver)
 	{
 		if (batchSize != workspace.size())
 		{
@@ -131,8 +131,6 @@ namespace ag
 				}
 			}
 		}
-
-		return not isEmpty();
 	}
 	std::vector<Move> OpeningGenerator::pop()
 	{

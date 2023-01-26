@@ -79,9 +79,9 @@ namespace ag
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
-			vcf_solver(gameOptions, searchOptions.vcf_solver_max_positions),
-			vct_solver(gameOptions, searchOptions.vcf_solver_max_positions),
-			ts_search(gameOptions, searchOptions.vcf_solver_max_positions),
+			vcf_solver(gameOptions, searchOptions.solver_max_positions),
+			vct_solver(gameOptions, searchOptions.solver_max_positions),
+			ts_search(gameOptions, searchOptions.solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{
@@ -121,7 +121,7 @@ namespace ag
 		const int batch_size = get_batch_size(tree.getSimulationCount());
 
 		active_task_count = 0;
-		while (active_task_count < batch_size and tree.getSimulationCount() < maxSimulations and not tree.isProven())
+		while (active_task_count < batch_size and tree.getSimulationCount() < maxSimulations and not tree.hasAllMovesProven())
 		{
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_next_task();
@@ -148,15 +148,15 @@ namespace ag
 	}
 	void Search::solve(bool full)
 	{
-		const tss::TssMode level = static_cast<tss::TssMode>(search_config.vcf_solver_level);
-		const int positions = full ? search_config.vcf_solver_max_positions : 100;
+		const tss::TssMode level = static_cast<tss::TssMode>(search_config.solver_level);
+		const int positions = full ? search_config.solver_max_positions : 100;
 
 		for (int i = 0; i < active_task_count; i++)
 			if (not search_tasks[i].isReadySolver())
 			{
 				TimerGuard timer(stats.solve);
-				if (search_config.vcf_solver_level >= 10)
-					vcf_solver.solve(search_tasks[i], search_config.vcf_solver_level - 10, search_config.vcf_solver_max_positions);
+				if (search_config.solver_level >= 10)
+					vcf_solver.solve(search_tasks[i], search_config.solver_level - 10, search_config.solver_max_positions);
 				else
 					ts_search.solve(search_tasks[i], level, positions);
 			}

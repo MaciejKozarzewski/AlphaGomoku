@@ -54,9 +54,8 @@ namespace ag
 			/*
 			 * \brief Performs single step of opening generation.
 			 * Reads completed requests from NNEvaluator, processes them and schedules more if necessary.
-			 * Returns true if there is at least one completed opening, false otherwise.
 			 */
-			bool generate(size_t batchSize, NNEvaluator &evaluator, tss::ThreatSpaceSearch &solver);
+			void generate(size_t batchSize, NNEvaluator &evaluator, tss::ThreatSpaceSearch &solver);
 			/*
 			 * \brief Returns one generated opening.
 			 */

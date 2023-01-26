@@ -17,6 +17,8 @@
 
 namespace
 {
+	using namespace ag;
+
 	std::string get_name(int id)
 	{
 		if (id < 10)
@@ -25,12 +27,27 @@ namespace
 			return "AG_0" + std::to_string(id);
 		return "AG_" + std::to_string(id);
 	}
+	MasterLearningConfig load_config(std::string path)
+	{
+		path += "/config.json";
+
+		if (std::filesystem::exists(path))
+			return MasterLearningConfig(FileLoader(path).getJson());
+		else
+		{ // create a default config
+			MasterLearningConfig cfg;
+			std::ofstream output;
+			output.open(path.data(), std::ios::app);
+			output << cfg.toJson().dump(2) << '\n';
+			return cfg;
+		}
+	}
 }
 
 namespace ag
 {
 	TrainingManager::TrainingManager(std::string workingDirectory, std::string pathToData) :
-			config(FileLoader(workingDirectory + "/config.json").getJson()),
+			config(load_config(workingDirectory)),
 			metadata( { { "last_checkpoint", 0 }, { "best_checkpoint", 0 }, { "learning_steps", 0 } }),
 			working_dir(workingDirectory + '/'),
 			path_to_data(pathToData.empty() ? working_dir : pathToData),
@@ -121,9 +138,8 @@ namespace ag
 		const int validation_games = training_games * config.training_config.validation_percent;
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
-		const int epoch = get_last_checkpoint();
 		generator_manager.getGameBuffer().clear();
-		generator_manager.generate(path_to_best_network, training_games + validation_games, epoch);
+		generator_manager.generate(path_to_best_network, training_games + validation_games);
 		if (generator_manager.getGameBuffer().isCorrect() == false)
 			throw std::runtime_error("generated buffer is invalid");
 		std::cout << "Finished generating games\n";

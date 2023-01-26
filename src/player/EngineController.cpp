@@ -20,13 +20,11 @@ namespace
 	using namespace ag;
 	PUCTSelector get_base_selector(const EngineSettings &settings)
 	{
-		const SearchConfig cfg = settings.getSearchConfig();
-		return PUCTSelector(cfg.exploration_constant, settings.getStyleFactor());
+		return PUCTSelector(settings.getSearchConfig().exploration_constant, settings.getStyleFactor());
 	}
 	SolverGenerator get_base_generator(const EngineSettings &settings)
 	{
-		const SearchConfig cfg = settings.getSearchConfig();
-		return SolverGenerator(cfg.expansion_prior_treshold, cfg.max_children);
+		return SolverGenerator(settings.getSearchConfig().max_children);
 	}
 }
 

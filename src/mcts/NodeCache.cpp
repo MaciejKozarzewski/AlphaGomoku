@@ -122,7 +122,7 @@ namespace ag
 	NodeCache::NodeCache(GameConfig gameConfig, TreeConfig treeConfig) :
 			edge_pool(treeConfig.edge_bucket_size, gameConfig.rows * gameConfig.cols),
 			node_pool(128),
-			bins(roundToPowerOf2(treeConfig.initial_cache_size), nullptr),
+			bins(roundToPowerOf2(treeConfig.initial_node_cache_size), nullptr),
 			hashing(gameConfig.rows, gameConfig.cols),
 			bin_index_mask(bins.size() - 1u),
 			node_pool_bucket_size(treeConfig.node_bucket_size)

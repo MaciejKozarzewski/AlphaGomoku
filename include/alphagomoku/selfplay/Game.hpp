@@ -1,5 +1,5 @@
 /*
- * BufferEntry.hpp
+ * Game.hpp
  *
  *  Created on: Mar 6, 2021
  *      Author: Maciej Kozarzewski
@@ -9,8 +9,9 @@
 #define ALPHAGOMOKU_SELFPLAY_GAME_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/game/rules.hpp>
+#include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 #include <vector>
 #include <cinttypes>
@@ -21,7 +22,6 @@ namespace ag
 {
 	class EvaluationRequest;
 	class SearchData;
-	class GameConfig;
 } /* namespace ag */
 
 namespace ag
@@ -30,21 +30,22 @@ namespace ag
 	class Game
 	{
 		private:
+			GameConfig game_config;
+
 			std::vector<SearchData> search_data;
 			std::vector<Move> played_moves;
 			matrix<Sign> current_board;
+
 			mutable std::vector<int> use_count;
-			GameRules rules;
 			GameOutcome outcome = GameOutcome::UNKNOWN;
 
 			std::string cross_player_name;
 			std::string circle_player_name;
-
 		public:
 			Game(GameConfig config);
 			Game(const Json &json, const SerializedObject &binary_data);
 
-			GameConfig getConfig() const noexcept;
+			const GameConfig& getConfig() const noexcept;
 			int rows() const noexcept;
 			int cols() const noexcept;
 			GameRules getRules() const noexcept;

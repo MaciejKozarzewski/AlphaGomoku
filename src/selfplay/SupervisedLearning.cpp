@@ -36,35 +36,33 @@ namespace
 	DataPack prepare_data_pack(const SearchData &sample, bool perform_augmentations)
 	{
 		DataPack result(sample.rows(), sample.cols());
-		sample.getBoard(result.board);
-		sample.getPolicy(result.policy);
-		sample.getActionValues(result.action_values);
 		result.value = convertOutcome(sample.getOutcome(), sample.getMove().sign);
 		result.sign_to_move = sample.getMove().sign;
 
-		matrix<ProvenValue> proven_values(sample.rows(), sample.cols());
-		sample.getActionProvenValues(proven_values);
-		for (int i = 0; i < proven_values.size(); i++)
-		{
-			if (result.policy[i] == 0.0f or result.board[i] != Sign::NONE)
-				result.action_values[i] = Value(); // we need to completely zero out the target for unvisited or occupied spots
-			switch (proven_values[i])
+		for (int row = 0; row < sample.rows(); row++)
+			for (int col = 0; col < sample.cols(); col++)
 			{
-				case ProvenValue::UNKNOWN:
-					break;
-				case ProvenValue::LOSS:
-					result.policy[i] = 1.0e-6f;
-					result.action_values[i] = Value(0.0f, 0.0f, 1.0f);
-					break;
-				case ProvenValue::DRAW:
-					result.action_values[i] = Value(0.0f, 1.0f, 0.0f);
-					break;
-				case ProvenValue::WIN:
-					result.policy[i] = 1.0e6f;
-					result.action_values[i] = Value(1.0f, 0.0f, 0.0f);
-					break;
+				result.board.at(row, col) = sample.getSign(row, col);
+				switch (sample.getActionProvenValue(row, col))
+				{
+					case ProvenValue::UNKNOWN:
+						result.policy.at(row, col) = sample.getVisitCount(row, col);
+						result.action_values.at(row, col) = sample.getActionValue(row, col);
+						break;
+					case ProvenValue::LOSS:
+						result.policy.at(row, col) = 1.0e-6f;
+						result.action_values.at(row, col) = Value(0.0f, 0.0f, 1.0f);
+						break;
+					case ProvenValue::DRAW:
+						result.policy.at(row, col) = sample.getVisitCount(row, col);
+						result.action_values.at(row, col) = Value(0.0f, 1.0f, 0.0f);
+						break;
+					case ProvenValue::WIN:
+						result.policy.at(row, col) = 1.0e6f;
+						result.action_values.at(row, col) = Value(1.0f, 0.0f, 0.0f);
+						break;
+				}
 			}
-		}
 		normalize(result.policy);
 
 //		std::cout << "Sample from buffer\n";
@@ -88,11 +86,8 @@ namespace
 		assert(equalSize(output.action_values, target.action_values));
 
 		for (int i = 0; i < output.action_values.size(); i++)
-//			target.action_values[i] = Value(0.5f, 0.2f, 0.3f);
-			if (target.action_values[i].isZero())
-			{ // if all fields are zero it means that we don't have any target data for this spot
+			if (target.action_values[i].isZero()) // if all fields are zero it means that we don't have any target data for this spot
 				target.action_values[i] = output.action_values[i]; // in such case we set value of the target to the output from the network, zeroing the gradient
-			}
 
 //		std::cout << "Output from network\n";
 //		std::cout << "Value output = " << output.value.toString() << '\n';

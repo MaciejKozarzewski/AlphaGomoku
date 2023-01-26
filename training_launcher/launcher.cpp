@@ -615,11 +615,9 @@ void test_expand()
 	SearchConfig search_config;
 	search_config.max_batch_size = 1;
 	search_config.exploration_constant = 1.25f;
-	search_config.noise_weight = 0.0f;
-	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 16;
-	search_config.vcf_solver_level = 1;
-	search_config.vcf_solver_max_positions = 100;
+	search_config.solver_level = 1;
+	search_config.solver_max_positions = 100;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
@@ -655,7 +653,7 @@ void test_expand()
 //	tree.setEdgeSelector(SequentialHalvingSelector(32, 1000));
 //	tree.setEdgeGenerator(SequentialHalvingGenerator(search_config.max_children));
 	tree.setEdgeSelector(UCTSelector(1.0f, 0.5f));
-	tree.setEdgeGenerator(SolverGenerator(0.0f, search_config.max_children));
+	tree.setEdgeGenerator(SolverGenerator(search_config.max_children));
 
 	int next_step = 0;
 	for (int j = 0; j <= 1001; j++)
@@ -742,34 +740,6 @@ void test_expand()
 	std::cout << '\n';
 }
 
-matrix<float> prepare_policy_target(const SearchData &sample)
-{
-	matrix<float> policy(sample.rows(), sample.cols());
-	matrix<ProvenValue> proven_values(sample.rows(), sample.cols());
-
-	sample.getPolicy(policy);
-	sample.getActionProvenValues(proven_values);
-	for (int i = 0; i < policy.size(); i++)
-	{
-		switch (proven_values[i])
-		{
-			case ProvenValue::UNKNOWN:
-				break;
-			case ProvenValue::LOSS:
-				policy[i] = 1.0e-6f;
-				break;
-			case ProvenValue::DRAW:
-				break;
-			case ProvenValue::WIN:
-				policy[i] = 1e6f;
-				break;
-
-		}
-	}
-	normalize(policy);
-	return policy;
-}
-
 void run_training()
 {
 	ml::Device::setNumberOfThreads(1);
@@ -819,15 +789,13 @@ void test_evaluate()
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-	cfg.simulations_min = 1000;
-	cfg.simulations_max = 1000;
-	cfg.search_config.vcf_solver_level = 3;
-	cfg.search_config.vcf_solver_max_positions = 100;
+	cfg.simulations = 1000;
+	cfg.search_config.solver_level = 3;
+	cfg.search_config.solver_max_positions = 100;
 	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin", "res");
-	cfg.search_config.vcf_solver_level = 3;
+	cfg.search_config.solver_level = 3;
 
-	cfg.simulations_min = 3000;
-	cfg.simulations_max = 3000;
+	cfg.simulations = 3000;
 	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml_btl_10x128_opt.bin", "btl_x3");
 
 	manager.generate(1000);

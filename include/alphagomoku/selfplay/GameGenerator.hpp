@@ -9,15 +9,14 @@
 #define ALPHAGOMOKU_SELFPLAY_GAMEGENERATOR_HPP_
 
 #include <alphagomoku/selfplay/Game.hpp>
+#include <alphagomoku/selfplay/OpeningGenerator.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/Search.hpp>
-#include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <alphagomoku/mcts/SearchTask.hpp>
 
-class Json;
 namespace ag
 {
 	class GameBuffer;
+	class NNEvaluator;
 } /* namespace ag */
 
 namespace ag
@@ -31,33 +30,22 @@ namespace ag
 				GAME_NOT_STARTED,
 				PREPARE_OPENING,
 				GAMEPLAY_SELECT_SOLVE_EVALUATE,
-				GAMEPLAY_EXPAND_AND_BACKUP,
-				HANDLE_SEARCH_END
+				GAMEPLAY_EXPAND_AND_BACKUP
 			};
 			GameBuffer &game_buffer;
 			NNEvaluator &nn_evaluator;
+			OpeningGenerator opening_generator;
 			Game game;
-			SearchTask request;
-			bool is_request_scheduled = false;
 
 			Tree tree;
 			Search search;
 
 			GameState state = GAME_NOT_STARTED;
-			int opening_trials = 0;
 
 			SelfplayConfig selfplay_config;
-			int simulations_min = 0;
-			int simulations_max = 0;
-			int positions_skip = 1;
-			bool use_opening = false;
-
-			bool perform_full_search = false;
-			bool forced_win_found = false;
 		public:
 			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator);
 
-			void setEpoch(int epoch);
 			void clearStats();
 			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
@@ -68,7 +56,6 @@ namespace ag
 			bool prepare_opening();
 			void make_move();
 			void prepare_search(const matrix<Sign> &board, Sign signToMove);
-			int nb_of_simulations() const noexcept;
 	};
 
 } /* namespace ag */

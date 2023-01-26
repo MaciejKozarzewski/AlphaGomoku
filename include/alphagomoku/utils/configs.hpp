@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_CONFIGS_HPP_
-#define ALPHAGOMOKU_CONFIGS_HPP_
+#ifndef ALPHAGOMOKU_UTILS_CONFIGS_HPP_
+#define ALPHAGOMOKU_UTILS_CONFIGS_HPP_
 
 #include <alphagomoku/game/rules.hpp>
 #include <alphagomoku/utils/Parameter.hpp>
@@ -28,11 +28,13 @@ namespace ag
 					static constexpr GameRules rules = GameRules::FREESTYLE;
 					static constexpr int rows = 0;
 					static constexpr int cols = 0;
+					static constexpr int draw_after = rows * cols;
 			};
 		public:
 			GameRules rules = Defaults::rules;
 			int rows = Defaults::rows;
 			int cols = Defaults::cols;
+			int draw_after = Defaults::draw_after;
 
 			GameConfig() = default;
 			GameConfig(GameRules rules, int rows, int cols);
@@ -46,16 +48,16 @@ namespace ag
 		private:
 			struct Defaults
 			{
-					static constexpr int initial_cache_size = 65536;
+					static constexpr int initial_node_cache_size = 65536;
 					static constexpr int edge_bucket_size = 100000;
 					static constexpr int node_bucket_size = 10000;
-					static constexpr int tss_hash_table_size = 1048576;
+					static constexpr int solver_hash_table_size = 1048576;
 			};
 		public:
-			int initial_cache_size = Defaults::initial_cache_size;
+			int initial_node_cache_size = Defaults::initial_node_cache_size;
 			int edge_bucket_size = Defaults::edge_bucket_size;
 			int node_bucket_size = Defaults::node_bucket_size;
-			int tss_hash_table_size = Defaults::tss_hash_table_size;
+			int solver_hash_table_size = Defaults::solver_hash_table_size;
 
 			TreeConfig() = default;
 			TreeConfig(const Json &cfg);
@@ -69,21 +71,17 @@ namespace ag
 			{
 					static constexpr int max_batch_size = 1;
 					static constexpr float exploration_constant = 1.25f;
-					static constexpr float expansion_prior_treshold = 0.0f;
 					static constexpr int max_children = std::numeric_limits<int>::max();
-					static constexpr float noise_weight = 0.0f;
-					static constexpr int vcf_solver_level = 0;
-					static constexpr int vcf_solver_max_positions = 100;
+					static constexpr int solver_level = 0;
+					static constexpr int solver_max_positions = 100;
 					static constexpr int style_factor = 2;
 			};
 		public:
 			int max_batch_size = Defaults::max_batch_size;
 			float exploration_constant = Defaults::exploration_constant;
-			float expansion_prior_treshold = Defaults::expansion_prior_treshold;
 			int max_children = Defaults::max_children;
-			float noise_weight = Defaults::noise_weight;
-			int vcf_solver_level = Defaults::vcf_solver_level; /**< 0 - only terminal moves, 1 - static evaluation, 2 - recursive search */
-			int vcf_solver_max_positions = Defaults::vcf_solver_max_positions;
+			int solver_level = Defaults::solver_level; /**< 0 - only terminal moves, 1 - static evaluation, 2 - recursive search */
+			int solver_max_positions = Defaults::solver_max_positions;
 			int style_factor = Defaults::style_factor; /**< 0 - win + draw, 2 - win + 0.5 * draw, 4 - win */
 
 			SearchConfig() = default;
@@ -133,9 +131,7 @@ namespace ag
 			bool save_data = true;
 			int games_per_iteration = 100;
 			int games_per_thread = 8;
-			Parameter<int> simulations_min = 100;
-			Parameter<int> simulations_max = 800;
-			Parameter<int> positions_skip = 1;
+			int simulations = 100;
 			std::vector<DeviceConfig> device_config = { DeviceConfig() };
 			SearchConfig search_config;
 			TreeConfig tree_config;
@@ -172,4 +168,4 @@ namespace ag
 	};
 }
 
-#endif /* ALPHAGOMOKU_CONFIGS_HPP_ */
+#endif /* ALPHAGOMOKU_UTILS_CONFIGS_HPP_ */

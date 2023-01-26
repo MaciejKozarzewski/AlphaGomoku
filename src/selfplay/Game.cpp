@@ -21,17 +21,17 @@ namespace ag
 {
 
 	Game::Game(GameConfig config) :
+			game_config(config),
 			search_data(),
 			played_moves(),
 			current_board(config.rows, config.cols),
-			use_count(current_board.size(), 0),
-			rules(config.rules)
+			use_count(current_board.size(), 0)
 	{
 	}
 	Game::Game(const Json &json, const SerializedObject &binary_data) :
-			current_board(json["rows"].getInt(), json["cols"].getInt()),
+			game_config(json["game_config"]),
+			current_board(game_config.rows, game_config.cols),
 			use_count(current_board.size(), 0),
-			rules(rulesFromString(json["rules"])),
 			outcome(outcomeFromString(json["outcome"]))
 	{
 		size_t offset = json["binary_offset"];
@@ -44,21 +44,9 @@ namespace ag
 			addSearchData(SearchData(binary_data, offset));
 	}
 
-	GameConfig Game::getConfig() const noexcept
+	const GameConfig& Game::getConfig() const noexcept
 	{
-		return GameConfig(getRules(), rows(), cols());
-	}
-	int Game::rows() const noexcept
-	{
-		return current_board.rows();
-	}
-	int Game::cols() const noexcept
-	{
-		return current_board.cols();
-	}
-	GameRules Game::getRules() const noexcept
-	{
-		return rules;
+		return game_config;
 	}
 	int Game::length() const noexcept
 	{
@@ -95,24 +83,18 @@ namespace ag
 	}
 	void Game::undoMove(Move move)
 	{
-		assert(move.row >= 0 && move.row < rows());
-		assert(move.col >= 0 && move.col < cols());
 		assert(length() > 0);
 		assert(move == getLastMove());
-		assert(current_board.at(move.row, move.col) == move.sign);
 
+		Board::undoMove(current_board, move);
 		played_moves.pop_back();
-		current_board.at(move.row, move.col) = Sign::NONE;
 	}
 	void Game::makeMove(Move move)
 	{
-		assert(move.row >= 0 && move.row < rows());
-		assert(move.col >= 0 && move.col < cols());
 		assert(move.sign == getSignToMove());
-		assert(current_board.at(move.row, move.col) == Sign::NONE);
 
+		Board::putMove(current_board, move);
 		played_moves.push_back(move);
-		current_board.at(move.row, move.col) = move.sign;
 	}
 	void Game::addSearchData(const SearchData &state)
 	{
@@ -121,14 +103,14 @@ namespace ag
 	}
 	void Game::resolveOutcome(int numberfOfMovesForDraw)
 	{
-		outcome = ag::getOutcome_v2(rules, current_board, getLastMove(), numberfOfMovesForDraw);
+		outcome = ag::getOutcome_v2(game_config.rules, current_board, getLastMove(), numberfOfMovesForDraw);
 		if (outcome != GameOutcome::UNKNOWN)
 			for (size_t i = 0; i < search_data.size(); i++)
 				search_data[i].setOutcome(outcome);
 	}
 	bool Game::isOver() const
 	{
-		return ag::getOutcome_v2(rules, current_board, getLastMove()) != GameOutcome::UNKNOWN;
+		return ag::getOutcome_v2(game_config.rules, current_board, getLastMove()) != GameOutcome::UNKNOWN;
 	}
 	bool Game::isDraw() const
 	{
@@ -223,16 +205,13 @@ namespace ag
 	Json Game::serialize(SerializedObject &binary_data) const
 	{
 		Json result;
-		result["rows"] = rows();
-		result["cols"] = cols();
-		result["rules"] = toString(rules);
+		result["game_config"] = game_config.toJson();
 		result["outcome"] = toString(outcome);
 		result["nb_of_moves"] = played_moves.size();
 		result["nb_of_states"] = search_data.size();
 		result["binary_offset"] = binary_data.size();
 		for (size_t i = 0; i < played_moves.size(); i++)
 			binary_data.save<Move>(played_moves[i]);
-//			binary_data.save(played_moves[i].toShort());
 
 		for (size_t i = 0; i < search_data.size(); i++)
 			search_data[i].serialize(binary_data);
