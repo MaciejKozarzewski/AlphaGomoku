@@ -79,36 +79,32 @@ namespace ag
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
-			vcf_solver(gameOptions, searchOptions.solver_max_positions),
-			vct_solver(gameOptions, searchOptions.solver_max_positions),
-			ts_search(gameOptions, searchOptions.solver_max_positions),
+		solver(gameOptions, searchOptions.solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{
 	}
 	int64_t Search::getMemory() const noexcept
 	{
-		return ts_search.getMemory();
+		return solver.getMemory();
 	}
 	const SearchConfig& Search::getConfig() const noexcept
 	{
 		return search_config;
 	}
-	tss::ThreatSpaceSearch& Search::getSolver() noexcept
+	ThreatSpaceSearch& Search::getSolver() noexcept
 	{
-		return ts_search;
+		return solver;
 	}
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
-//		vcf_solver.clearStats();
-		ts_search.clearStats();
+		solver.clearStats();
 		last_tuning_point.time = getTime();
 		last_tuning_point.node_count = stats.nb_node_count;
 	}
 	SearchStats Search::getStats() const noexcept
 	{
-//		vcf_solver.print_stats();
 //		ts_search.print_stats();
 		return stats;
 	}
@@ -116,7 +112,7 @@ namespace ag
 	void Search::select(Tree &tree, int maxSimulations)
 	{
 		assert(maxSimulations > 0);
-		ts_search.setSharedTable(tree.getSharedHashTable());
+		solver.setSharedTable(tree.getSharedHashTable());
 
 		const int batch_size = get_batch_size(tree.getSimulationCount());
 
@@ -148,17 +144,14 @@ namespace ag
 	}
 	void Search::solve(bool full)
 	{
-		const tss::TssMode level = static_cast<tss::TssMode>(search_config.solver_level);
+		const TssMode level = static_cast<TssMode>(search_config.solver_level);
 		const int positions = full ? search_config.solver_max_positions : 100;
 
 		for (int i = 0; i < active_task_count; i++)
 			if (not search_tasks[i].isReadySolver())
 			{
 				TimerGuard timer(stats.solve);
-				if (search_config.solver_level >= 10)
-					vcf_solver.solve(search_tasks[i], search_config.solver_level - 10, search_config.solver_max_positions);
-				else
-					ts_search.solve(search_tasks[i], level, positions);
+				solver.solve(search_tasks[i], level, positions);
 			}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)

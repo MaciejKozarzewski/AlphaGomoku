@@ -26,7 +26,8 @@ namespace
 
 namespace ag
 {
-
+	namespace obsolete
+		{
 	MoveGenerator::MoveGenerator(GameConfig gameConfig, PatternCalculator &calc, ActionList &actionList, MoveGeneratorMode mode) :
 			CommonBase(gameConfig, calc),
 			moves(gameConfig.rows, gameConfig.cols),

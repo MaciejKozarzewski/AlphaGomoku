@@ -82,7 +82,7 @@ namespace ag
 			average_length(averageLength)
 	{
 	}
-	void OpeningGenerator::generate(size_t batchSize, NNEvaluator &evaluator, tss::ThreatSpaceSearch &solver)
+	void OpeningGenerator::generate(size_t batchSize, NNEvaluator &evaluator, ThreatSpaceSearch &solver)
 	{
 		if (batchSize != workspace.size())
 		{
@@ -119,7 +119,7 @@ namespace ag
 				{
 					fill_board_with_moves(board, iter->moves);
 					iter->task.set(board, get_sign_to_move(iter->moves));
-					solver.solve(iter->task, tss::TssMode::RECURSIVE, 50);
+					solver.solve(iter->task, TssMode::RECURSIVE, 50);
 					if (iter->task.isReadySolver())
 						iter->reset(); // opening cannot have a proved score
 					else

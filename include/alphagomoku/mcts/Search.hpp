@@ -14,8 +14,6 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/vcf_solver/VCFSolver.hpp>
-#include <alphagomoku/vcf_solver/VCTSolver.hpp>
 #include <alphagomoku/tss/ThreatSpaceSearch.hpp>
 
 #include <cinttypes>
@@ -60,9 +58,7 @@ namespace ag
 			std::vector<SearchTask> search_tasks;
 			int active_task_count = 0;
 
-			solver::VCFSolver vcf_solver;
-			solver::VCTSolver vct_solver;
-			tss::ThreatSpaceSearch ts_search;
+			ThreatSpaceSearch solver;
 
 			GameConfig game_config;
 			SearchConfig search_config;
@@ -79,7 +75,7 @@ namespace ag
 
 			int64_t getMemory() const noexcept;
 			const SearchConfig& getConfig() const noexcept;
-			tss::ThreatSpaceSearch& getSolver() noexcept;
+			ThreatSpaceSearch& getSolver() noexcept;
 			void clearStats() noexcept;
 			SearchStats getStats() const noexcept;
 

@@ -7,7 +7,6 @@
 
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
-#include <alphagomoku/rules/game_rules.hpp>
 
 #include <cinttypes>
 #include <cstdlib>

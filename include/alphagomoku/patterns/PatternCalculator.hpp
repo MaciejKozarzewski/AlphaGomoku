@@ -8,7 +8,6 @@
 #ifndef ALPHAGOMOKU_PATTERNS_PATTERNCALCULATOR_HPP_
 #define ALPHAGOMOKU_PATTERNS_PATTERNCALCULATOR_HPP_
 
-#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/BitMask.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>

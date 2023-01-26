@@ -74,7 +74,7 @@ namespace ag
 		path_to_nnue_networks.insert( { GameRules::CARO5, config["nnue_networks"]["caro5"].getString() });
 		path_to_nnue_networks.insert( { GameRules::CARO6, config["nnue_networks"]["caro6"].getString() });
 
-		nnue::NNUEWeights::setPaths(path_to_nnue_networks);
+//		nnue::NNUEWeights::setPaths(path_to_nnue_networks);
 	}
 	SetOptionOutcome EngineSettings::setOption(const Option &option) noexcept
 	{

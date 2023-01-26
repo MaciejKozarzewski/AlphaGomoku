@@ -15,6 +15,7 @@
 namespace
 {
 	using namespace ag;
+	using namespace ag::obsolete;
 
 	ProvenValue convert(Score score) noexcept
 	{
@@ -40,6 +41,8 @@ namespace
 
 namespace ag
 {
+	namespace obsolete
+	{
 	MinimaxSearch::MinimaxSearch(GameConfig gameConfig) :
 			game_config(gameConfig),
 			pattern_calculator(gameConfig),

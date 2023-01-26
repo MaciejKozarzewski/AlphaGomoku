@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_PATTERNS_PATTERN_HPP_
 #define ALPHAGOMOKU_PATTERNS_PATTERN_HPP_
 
-#include <alphagomoku/rules/game_rules.hpp>
+#include <alphagomoku/game/Move.hpp>
 
 #include <cassert>
 #include <iostream>

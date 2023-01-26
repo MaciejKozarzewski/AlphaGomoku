@@ -6,7 +6,7 @@
  */
 
 #include <alphagomoku/mcts/Value.hpp>
-#include <alphagomoku/rules/game_rules.hpp>
+#include <alphagomoku/game/rules.hpp>
 
 #include <cassert>
 

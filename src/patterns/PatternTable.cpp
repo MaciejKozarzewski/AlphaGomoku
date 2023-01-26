@@ -8,7 +8,6 @@
 #include <alphagomoku/patterns/PatternTable.hpp>
 #include <alphagomoku/patterns/Pattern.hpp>
 #include <alphagomoku/patterns/PatternClassifier.hpp>
-#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/BitMask.hpp>
 #include <alphagomoku/utils/misc.hpp>
 

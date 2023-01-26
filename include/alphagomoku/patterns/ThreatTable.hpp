@@ -8,7 +8,6 @@
 #ifndef ALPHAGOMOKU_PATTERNS_THREATTABLE_HPP_
 #define ALPHAGOMOKU_PATTERNS_THREATTABLE_HPP_
 
-#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/patterns/PatternTable.hpp>
 #include <alphagomoku/patterns/common.hpp>
 

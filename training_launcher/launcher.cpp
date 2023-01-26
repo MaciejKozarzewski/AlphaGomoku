@@ -15,7 +15,6 @@
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
 #include <alphagomoku/utils/file_util.hpp>
-#include <alphagomoku/rules/game_rules.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
@@ -592,8 +591,8 @@ void generate_openings(int number)
 	NNEvaluator evaluator(device_config);
 	evaluator.loadGraph("/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin");
 
-	tss::ThreatSpaceSearch solver(game_config);
-	std::shared_ptr<tss::SharedHashTable<4>> sht = std::make_shared<tss::SharedHashTable<4>>(game_config.rows, game_config.cols, 1048576);
+	ThreatSpaceSearch solver(game_config);
+	std::shared_ptr<SharedHashTable<4>> sht = std::make_shared<SharedHashTable<4>>(game_config.rows, game_config.cols, 1048576);
 	solver.setSharedTable(sht);
 
 	OpeningGenerator generator(game_config, 10);

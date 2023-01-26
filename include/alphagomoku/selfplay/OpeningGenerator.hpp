@@ -14,10 +14,7 @@
 namespace ag
 {
 	class NNEvaluator;
-	namespace tss
-	{
-		class ThreatSpaceSearch;
-	}
+	class ThreatSpaceSearch;
 }
 
 namespace ag
@@ -55,7 +52,7 @@ namespace ag
 			 * \brief Performs single step of opening generation.
 			 * Reads completed requests from NNEvaluator, processes them and schedules more if necessary.
 			 */
-			void generate(size_t batchSize, NNEvaluator &evaluator, tss::ThreatSpaceSearch &solver);
+			void generate(size_t batchSize, NNEvaluator &evaluator, ThreatSpaceSearch &solver);
 			/*
 			 * \brief Returns one generated opening.
 			 */
