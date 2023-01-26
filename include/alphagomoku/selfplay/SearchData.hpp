@@ -32,6 +32,13 @@ namespace ag
 					uint32_t win :14;
 					uint32_t draw :14;
 					uint32_t loss :14;
+//					alternative layout
+//					uint32_t sign :2;
+//					uint32_t proven value :2;
+//					uint32_t visit count :10;
+//					uint32_t policy prior :18;
+//					uint32_t win :16;
+//					uint32_t draw :16;
 			};
 			matrix<internal_data> actions;
 			Value minimax_value;
