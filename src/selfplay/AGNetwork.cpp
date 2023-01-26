@@ -261,7 +261,6 @@ namespace ag
 		graph.context().synchronize();
 		FileLoader fl(path);
 		graph.load(fl.getJson(), fl.getBinaryData());
-		graph.makeNonTrainable();
 		game_config.rows = graph.getInputShape()[1];
 		game_config.cols = graph.getInputShape()[2];
 	}
@@ -344,11 +343,23 @@ namespace ag
 
 		for (int i = 0; i < blocks; i++)
 		{
-			auto y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
+			auto y = graph.add(ml::Conv2D(filters / 2, 1, "linear").useBias(false), x);
 			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
 
-			y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), y);
+			y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), y);
+			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
+
+			y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), y);
+			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
+
+			y = graph.add(ml::Conv2D(filters, 1, "linear").useBias(false), y);
 			y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
+
+//			auto y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
+//			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
+//
+//			y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), y);
+//			y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
 
 			x = graph.add(ml::Add("relu"), { x, y });
 		}
@@ -373,11 +384,11 @@ namespace ag
 
 		// action values head
 		auto q = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
-		q = graph.add(ml::BatchNormalization("relu").useGamma(false), q);
+		q = graph.add(ml::BatchNormalization("tanh").useGamma(false), q);
 
 		q = graph.add(ml::Conv2D(3, 1, "linear"), q);
 		q = graph.add(ml::Softmax( { 3 }), q);
-		graph.addOutput(q, 0.25f);
+		graph.addOutput(q, 0.1f);
 
 		graph.init();
 		graph.setOptimizer(ml::Optimizer(trainingOptions.learning_rate));
