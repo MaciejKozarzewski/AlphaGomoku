@@ -96,21 +96,6 @@ namespace ag
 	std::string currentDateTime();
 
 	template<typename T>
-	T cross_entropy(const T *target_begin, const T *target_end, const T *y_begin) noexcept
-	{
-		const T one = static_cast<T>(1.0);
-		T result = static_cast<T>(0);
-		while (target_begin < target_end)
-		{
-			const T t = *target_begin;
-			const T y = *y_begin;
-			result += t * safe_log(y) + (one - t) * safe_log(one - y);
-			target_begin++;
-			y_begin++;
-		}
-		return -result;
-	}
-	template<typename T>
 	void addVectors(std::vector<T> &dst, const std::vector<T> &src)
 	{
 		assert(dst.size() == src.size());
