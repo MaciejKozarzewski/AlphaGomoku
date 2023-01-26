@@ -8,7 +8,7 @@
 #include <alphagomoku/mcts/Search.hpp>
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <alphagomoku/mcts/edge_selectors/EdgeSelector.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <numeric>
@@ -226,8 +226,9 @@ namespace ag
 	 */
 	int Search::get_batch_size(int simulation_count) const noexcept
 	{
-		const int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
-		return std::max(1, std::min(search_config.max_batch_size, tmp));
+		return search_config.max_batch_size;
+//		const int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
+//		return std::max(1, std::min(search_config.max_batch_size, tmp));
 	}
 	SearchTask& Search::get_next_task()
 	{
@@ -239,7 +240,7 @@ namespace ag
 	bool Search::is_duplicate(const SearchTask &task) const noexcept
 	{
 		for (int i = 0; i < active_task_count - 1; i++)
-			if (task.getLastPair().node == search_tasks[i].getLastPair().node)
+			if (task.getLastPair().edge == search_tasks[i].getLastPair().edge)
 				return true;
 		return false;
 	}

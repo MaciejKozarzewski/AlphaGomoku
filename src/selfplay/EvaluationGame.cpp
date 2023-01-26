@@ -8,10 +8,8 @@
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <alphagomoku/mcts/edge_selectors/QHeadSelector.hpp>
-#include <alphagomoku/mcts/edge_selectors/PUCTSelector.hpp>
-#include <alphagomoku/mcts/edge_selectors/BestEdgeSelector.hpp>
-#include <alphagomoku/mcts/edge_generators/SolverGenerator.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <minml/utils/json.hpp>

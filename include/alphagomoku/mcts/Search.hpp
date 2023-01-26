@@ -79,6 +79,7 @@ namespace ag
 
 			int64_t getMemory() const noexcept;
 			const SearchConfig& getConfig() const noexcept;
+			tss::ThreatSpaceSearch& getSolver() noexcept;
 			void clearStats() noexcept;
 			SearchStats getStats() const noexcept;
 

@@ -8,7 +8,7 @@
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/player/SearchThread.hpp>
 #include <alphagomoku/player/EngineSettings.hpp>
-#include <alphagomoku/mcts/edge_selectors/BestEdgeSelector.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/matrix.hpp>

@@ -66,6 +66,11 @@ namespace ag
 	{
 		return std::bitset<8 * sizeof(T)>(x).count();
 	}
+	template<typename T>
+	T safe_log(T x) noexcept
+	{
+		return std::log(static_cast<T>(1.0e-16) + x);
+	}
 	/*
 	 * \brief Calculates Gaussian cumulative distribution function.
 	 */
@@ -94,13 +99,12 @@ namespace ag
 	T cross_entropy(const T *target_begin, const T *target_end, const T *y_begin) noexcept
 	{
 		const T one = static_cast<T>(1.0);
-		const T eps = static_cast<T>(1.0e-16);
 		T result = static_cast<T>(0);
 		while (target_begin < target_end)
 		{
 			const T t = *target_begin;
 			const T y = *y_begin;
-			result += t * std::log(eps + y) + (one - t) * std::log(eps + (one - y));
+			result += t * safe_log(y) + (one - t) * safe_log(one - y);
 			target_begin++;
 			y_begin++;
 		}

@@ -10,8 +10,8 @@
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/mcts/NodeCache.hpp>
-#include <alphagomoku/mcts/edge_selectors/EdgeSelector.hpp>
-#include <alphagomoku/mcts/edge_generators/EdgeGenerator.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/mcts/ZobristHashing.hpp>
 #include <alphagomoku/tss/SharedHashTable.hpp>
 #include <alphagomoku/utils/matrix.hpp>

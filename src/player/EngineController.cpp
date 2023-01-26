@@ -9,14 +9,8 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
-#include <alphagomoku/mcts/edge_selectors/BalancedSelector.hpp>
-#include <alphagomoku/mcts/edge_selectors/PUCTSelector.hpp>
-#include <alphagomoku/mcts/edge_selectors/BestEdgeSelector.hpp>
-#include <alphagomoku/mcts/edge_generators/SolverGenerator.hpp>
-#include <alphagomoku/mcts/edge_generators/BalancedGenerator.hpp>
-#include <alphagomoku/mcts/edge_generators/CenterOnlyGenerator.hpp>
-#include <alphagomoku/mcts/edge_generators/CenterExcludingGenerator.hpp>
-#include <alphagomoku/mcts/edge_generators/SymmetricalExcludingGenerator.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
@@ -40,13 +34,13 @@ namespace ag
 {
 	Move get_balanced_move(const SearchSummary &summary)
 	{
-		const BalancedSelector selector(std::numeric_limits<int>::max(), PUCTSelector(0.0f));
+		BalancedSelector selector(std::numeric_limits<int>::max(), PUCTSelector(0.0f));
 		return selector.select(&summary.node)->getMove();
 	}
 	std::vector<Move> get_multiple_balanced_moves(SearchSummary summary, int number)
 	{
 		assert(summary.node.numberOfEdges() >= number);
-		const BalancedSelector selector(std::numeric_limits<int>::max(), PUCTSelector(0.0f));
+		BalancedSelector selector(std::numeric_limits<int>::max(), PUCTSelector(0.0f));
 		std::vector<Move> result;
 		for (int i = 0; i < number; i++)
 		{
@@ -60,7 +54,7 @@ namespace ag
 	}
 	Move get_best_move(const SearchSummary &summary)
 	{
-		const BestEdgeSelector selector;
+		BestEdgeSelector selector;
 		return selector.select(&summary.node)->getMove();
 	}
 	void log_balancing_move(const std::string &whichOne, Move m)

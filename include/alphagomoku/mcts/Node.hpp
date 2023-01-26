@@ -1,5 +1,5 @@
 /*
- * Node_old.hpp
+ * Node.hpp
  *
  *  Created on: Feb 20, 2021
  *      Author: Maciej Kozarzewski
@@ -31,6 +31,7 @@ namespace ag
 			int16_t depth = 0;
 			Sign sign_to_move = Sign::NONE;
 			bool is_owning = false;
+			bool is_root = false;
 		public:
 			Node() = default;
 			Node(const Node &other) :
@@ -52,7 +53,8 @@ namespace ag
 					number_of_edges(other.number_of_edges),
 					depth(other.depth),
 					sign_to_move(other.sign_to_move),
-					is_owning(other.is_owning)
+					is_owning(other.is_owning),
+					is_root(other.is_root)
 			{
 				other.edges = nullptr;
 				other.number_of_edges = 0;
@@ -69,6 +71,7 @@ namespace ag
 				depth = other.depth;
 				sign_to_move = other.sign_to_move;
 				is_owning = false;
+				is_owning = other.is_root;
 				return *this;
 			}
 			Node& operator=(Node &&other) noexcept
@@ -82,6 +85,7 @@ namespace ag
 				std::swap(this->depth, other.depth);
 				std::swap(this->sign_to_move, other.sign_to_move);
 				std::swap(this->is_owning, other.is_owning);
+				std::swap(this->is_root, other.is_root);
 				return *this;
 			}
 			~Node()
@@ -97,8 +101,13 @@ namespace ag
 				proven_value = ProvenValue::UNKNOWN;
 				depth = 0;
 				sign_to_move = Sign::NONE;
+				is_root = false;
 			}
 
+			bool isRoot() const noexcept
+			{
+				return is_root;
+			}
 			bool isLeaf() const noexcept
 			{
 				return edges == nullptr;
@@ -166,6 +175,10 @@ namespace ag
 				return sign_to_move;
 			}
 
+			void markAsRoot() noexcept
+			{
+				is_root = true;
+			}
 			void createEdges(int number) noexcept
 			{
 				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());

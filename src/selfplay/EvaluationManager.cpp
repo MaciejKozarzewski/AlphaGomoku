@@ -8,7 +8,7 @@
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
-#include <alphagomoku/mcts/edge_generators/EdgeGenerator.hpp>
+#include <alphagomoku/mcts/EdgeGenerator.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <thread>

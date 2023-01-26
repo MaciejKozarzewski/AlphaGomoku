@@ -7,7 +7,6 @@
 
 #include <alphagomoku/mcts/Tree.hpp>
 #include <alphagomoku/mcts/SearchTask.hpp>
-#include <alphagomoku/mcts/edge_selectors/EdgeSelector.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -147,7 +146,8 @@ namespace ag
 		if (forceRemoveRootNode and node_cache.seek(newBoard, signToMove) != nullptr)
 			node_cache.remove(newBoard, signToMove);
 		root_node = node_cache.seek(newBoard, signToMove);
-		root_node->markAsRoot();
+		if (root_node != nullptr)
+			root_node->markAsRoot();
 		max_depth = 0;
 	}
 	void Tree::setEdgeSelector(const EdgeSelector &selector)
@@ -258,7 +258,10 @@ namespace ag
 			if (task.visitedPathLength() > 0)
 				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
 			else
+			{
 				root_node = node_to_add; // if no pairs were visited, it means that the tree is empty and we have to assign the root node
+				root_node->markAsRoot();
+			}
 
 			return ExpandOutcome::SUCCESS;
 		}

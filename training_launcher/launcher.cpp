@@ -22,15 +22,21 @@
 #include <alphagomoku/selfplay/TrainingManager.hpp>
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
 #include <alphagomoku/selfplay/NNInputFeatures.hpp>
+#include <alphagomoku/selfplay/OpeningGenerator.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/ObjectPool.hpp>
 #include <alphagomoku/mcts/EdgeGenerator.hpp>
+#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/tss/ThreatSpaceSearch.hpp>
+
 #include <minml/graph/Graph.hpp>
 #include <minml/core/Device.hpp>
 #include <minml/utils/json.hpp>
 #include <minml/utils/serialization.hpp>
+
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <fstream>
 #include <istream>
@@ -556,136 +562,184 @@ void find_proven_positions(const std::string &path, int index)
 //	std::cout << t_solver.toString() << '\n';
 }
 
-void test_evaluate()
-{
-	MasterLearningConfig config(FileLoader("/home/maciek/alphagomoku/run2022_15x15s2/config.json").getJson());
-	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
-
-	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-	cfg.simulations_min = 1000;
-	cfg.simulations_max = 1000;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/run2022_15x15s2/checkpoint/network_51_opt.bin", "retrain2021");
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/run2022_15x15s/checkpoint/network_124_opt.bin", "train2022");
-
-	manager.generate(1000);
-	std::string to_save;
-	for (int i = 0; i < manager.numberOfThreads(); i++)
-		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/test_2021vs2022.pgn", std::ios::out | std::ios::app);
-	file.write(to_save.data(), to_save.size());
-	file.close();
-}
+//void test_evaluate()
+//{
+//	MasterLearningConfig config(FileLoader("/home/maciek/alphagomoku/run2022_15x15s2/config.json").getJson());
+//	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
+//
+//	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
+//	cfg.simulations_min = 1000;
+//	cfg.simulations_max = 1000;
+//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/run2022_15x15s2/checkpoint/network_51_opt.bin", "retrain2021");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/run2022_15x15s/checkpoint/network_124_opt.bin", "train2022");
+//
+//	manager.generate(1000);
+//	std::string to_save;
+//	for (int i = 0; i < manager.numberOfThreads(); i++)
+//		to_save += manager.getGameBuffer(i).generatePGN();
+//	std::ofstream file("/home/maciek/alphagomoku/test_2021vs2022.pgn", std::ios::out | std::ios::app);
+//	file.write(to_save.data(), to_save.size());
+//	file.close();
+//}
 
 void generate_openings(int number)
 {
-//	GameConfig game_config(GameRules::STANDARD, 15);
-//
-//	TreeConfig tree_config;
-//	tree_config.bucket_size = 1000000;
-//	Tree_old tree(tree_config);
-//
-//	CacheConfig cache_config;
-//	cache_config.cache_size = 1024576;
-//	Cache cache(game_config, cache_config);
-//
-//	SearchConfig search_config;
-//	search_config.max_batch_size = 16;
-//	search_config.exploration_constant = 1.25f;
-//	search_config.noise_weight = 0.0f;
-//	search_config.expansion_prior_treshold = 1.0e-4f;
-//	search_config.max_children = 30;
-//	search_config.use_endgame_solver = true;
-//	search_config.use_vcf_solver = true;
-//
-//	ml::Device::cpu().setNumberOfThreads(1);
-//	EvaluationQueue queue;
-//	queue.loadGraph("/home/maciek/Desktop/AlphaGomoku501/networks/standard_10x128.bin", 32, ml::Device::cuda(1));
-//
-//	Search_old search(game_config, search_config, tree, cache, queue);
-//
-//	double start = getTime();
-//	size_t counter = 0;
-//	while (number > 0)
-//	{
-//		search.cleanup();
-//		tree.clear();
-//		cache.clear();
-//
-//		counter++;
-//		std::vector<Move> opening = ag::prepareOpening(game_config, 2);
-//
-//		matrix<Sign> board(game_config.rows, game_config.cols);
-//		for (size_t j = 0; j < opening.size(); j++)
-//			board.at(opening[j].row, opening[j].col) = opening[j].sign;
-//		tree.getRootNode().setMove(opening.back());
-//		search.setBoard(board);
-//
-//		while (search.getSimulationCount() < 1000 and not tree.isProven())
-//		{
-//			search.simulate(1000);
-//			queue.evaluateGraph();
-//			search.handleEvaluation();
-//		}
-//
-//		float balance = std::abs(tree.getRootNode().getValue().win - tree.getRootNode().getValue().loss);
-//		if (counter % 100 == 0)
-//			std::cout << (int) (getTime() - start) << "s, checked " << counter << " : " << balance << '\n';
-//		if (balance < 0.1f)
-//		{
-//			std::cout << tree.getRootNode().toString() << '\n';
-//			std::cout << boardToString(board) << '\n';
-//			number--;
-//
-//			std::string to_save;
-//			for (size_t j = 0; j < opening.size(); j++)
-//				to_save += std::to_string(opening[j].row) + "," + std::to_string(opening[j].col) + " ";
-//			to_save += '\n';
-//
-//			std::ofstream file("openings_standard.txt", std::ios::out | std::ios::app);
-//			file.write(to_save.data(), to_save.size());
-//			file.close();
-//		}
-//	}
+	GameConfig game_config(GameRules::STANDARD, 15);
+	DeviceConfig device_config;
+	device_config.batch_size = 256;
+	device_config.device = ml::Device::cuda(0);
+
+	NNEvaluator evaluator(device_config);
+	evaluator.loadGraph("/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin");
+
+	tss::ThreatSpaceSearch solver(game_config);
+	std::shared_ptr<tss::SharedHashTable<4>> sht = std::make_shared<tss::SharedHashTable<4>>(game_config.rows, game_config.cols, 1048576);
+	solver.setSharedTable(sht);
+
+	OpeningGenerator generator(game_config, 10);
+
+	for (int i = 0; i < 10; i++)
+	{
+		generator.generate(32, evaluator, solver);
+		evaluator.evaluateGraph();
+	}
 }
 
 void test_expand()
 {
-//	GameConfig game_config(GameRules::FREESTYLE, 10);
-//	PuctSelector selector(1.25f);
-//	StandardGenerator generator(GameRules::FREESTYLE, 0.0f, 30);
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	TreeConfig tree_config;
+	Tree tree(tree_config);
+
+	SearchConfig search_config;
+	search_config.max_batch_size = 1;
+	search_config.exploration_constant = 1.25f;
+	search_config.noise_weight = 0.0f;
+	search_config.expansion_prior_treshold = 1.0e-4f;
+	search_config.max_children = 16;
+	search_config.vcf_solver_level = 1;
+	search_config.vcf_solver_max_positions = 100;
+
+	DeviceConfig device_config;
+	device_config.batch_size = 32;
+	device_config.omp_threads = 1;
+	device_config.device = ml::Device::cpu();
+	NNEvaluator nn_evaluator(device_config);
+	nn_evaluator.useSymmetries(false);
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin");
+
+	SequentialHalvingSelector selector(16, 200);
+
+	matrix<Sign> board(15, 15);
+	board = Board::fromString(""
+			" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ O _ X _ X _ _ _ _ _\n"
+			" _ _ O X O _ _ O X _ _ _ _ _ _\n"
+			" _ _ _ X _ O _ O _ X _ _ _ _ _\n"
+			" _ _ _ _ X X _ _ _ _ O _ _ _ _\n"
+			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+	const Sign sign_to_move = Sign::CIRCLE;
+
+	Search search(game_config, search_config);
+	tree.setBoard(board, sign_to_move);
+//	tree.setEdgeSelector(SequentialHalvingSelector(32, 1000));
+//	tree.setEdgeGenerator(SequentialHalvingGenerator(search_config.max_children));
+	tree.setEdgeSelector(UCTSelector(1.0f, 0.5f));
+	tree.setEdgeGenerator(SolverGenerator(0.0f, search_config.max_children));
+
+	int next_step = 0;
+	for (int j = 0; j <= 1001; j++)
+	{
+//		if (tree.getSimulationCount() >= next_step)
+//		{
+//			std::cout << tree.getSimulationCount() << " ..." << std::endl;
+//			next_step += 10000;
+//		}
+		search.select(tree, 1001);
+		search.solve(true);
+		search.scheduleToNN(nn_evaluator);
+		nn_evaluator.evaluateGraph();
+
+		search.generateEdges(tree);
+		search.expand(tree);
+		search.backup(tree);
+
+		if (tree.isProven() or tree.getSimulationCount() >= 1001)
+			break;
+	}
+	search.cleanup(tree);
+
+//	tree.printSubtree(-1, true, -1);
+//	std::cout << search.getStats().toString() << '\n';
+//	std::cout << "memory = " << ((tree.getMemory() + search.getMemory()) / 1048576.0) << "MB\n\n";
+//	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
+//	std::cout << tree.getNodeCacheStats().toString() << '\n';
+//	std::cout << nn_evaluator.getStats().toString() << '\n';
 //
-//	Tree tree(game_config, TreeConfig());
-//	matrix<Sign> board(game_config.rows, game_config.cols);
-//	Board::putMove(board, Move(1, 5, Sign::CROSS));
-//	Board::putMove(board, Move(5, 3, Sign::CIRCLE));
-//	Board::putMove(board, Move(2, 0, Sign::CROSS));
-//	Board::putMove(board, Move(3, 0, Sign::CROSS));
-//	Board::putMove(board, Move(4, 0, Sign::CROSS));
-//	Board::putMove(board, Move(5, 0, Sign::CROSS));
-//	tree.setBoard(board, Sign::CROSS);
-//
-//	SearchTask task;
-//	tree.select(task, selector);
-//
-//	task.setValue(Value(0.2, 0.1, 0.7));
-//	task.getPolicy().at(0, 0) = 0.1f;
-//	task.getPolicy().at(5, 4) = 0.1f;
-//	task.getPolicy().at(5, 6) = 0.1f;
-//	task.getPolicy().at(5, 5) = 0.7f;
-//	task.setReady();
-//	std::cout << task.toString();
-//
-//	double start = getTime();
-//	for (int i = 0; i < 1000000; i++)
-//	{
-//		generator.generate(task);
-//		task.getEdges().clear();
-//	}
-//	std::cout << getTime() - start << "us\n";
-//	tree.expand(task);
-//	tree.backup(task);
-//	tree.printSubtree();
-//	std::cout << '\n';
+	Node info = tree.getInfo( { });
+	info.sortEdges();
+
+	auto get_expectation = [](const Edge *edge)
+	{
+		switch (edge->getProvenValue())
+		{
+			default:
+			case ProvenValue::UNKNOWN:
+			return edge->getValue().getExpectation();
+			case ProvenValue::LOSS:
+			return 0.0f;
+			case ProvenValue::DRAW:
+			return 0.5f;
+			case ProvenValue::WIN:
+			return 10.0f;
+		}
+	};
+
+	int max_N = 0.0f;
+	float sum_v = 0.0f, sum_q = 0.0f, sum_p = 0.0f;
+	for (Edge *edge = info.begin(); edge < info.end(); edge++)
+		if (edge->getVisits() > 0)
+		{
+			sum_v += get_expectation(edge) * edge->getVisits();
+			sum_q += edge->getPolicyPrior() * get_expectation(edge);
+			sum_p += edge->getPolicyPrior();
+			max_N = std::max(max_N, edge->getVisits());
+		}
+	const float inv_N = 1.0f / info.getVisits();
+	float V_mix = info.getValue().getExpectation() - sum_v * inv_N + (1.0f - inv_N) / sum_p * sum_q;
+	std::cout << "V_mix = " << V_mix << '\n';
+
+	std::vector<float> asdf;
+	for (int i = 0; i < info.numberOfEdges(); i++)
+	{
+		const float Q = info.getEdge(i).getVisits() > 0 ? get_expectation(info.begin() + i) : V_mix;
+		const float sigma_Q = (50 + max_N) * Q;
+		const float logit = safe_log(info.getEdge(i).getPolicyPrior());
+		asdf.push_back(logit + sigma_Q);
+	}
+	const float shift = *std::max_element(asdf.begin(), asdf.end());
+	float inv_sum = 0.0f;
+	for (size_t i = 0; i < asdf.size(); i++)
+	{
+		asdf[i] = std::exp(asdf[i] - shift);
+		inv_sum += asdf[i];
+	}
+	inv_sum = 1.0f / inv_sum;
+
+	std::cout << info.toString() << '\n';
+	for (int i = 0; i < info.numberOfEdges(); i++)
+		std::cout << asdf[i] * inv_sum << " : " << info.getEdge(i).getMove().toString() << " : " << info.getEdge(i).toString() << '\n';
+	std::cout << '\n';
 }
 
 matrix<float> prepare_policy_target(const SearchData &sample)
@@ -740,7 +794,7 @@ void run_training()
 
 	SupervisedLearning sl(training_config);
 
-	for (int e = 0; e < 10; e++)
+	for (int e = 0; e < 100; e++)
 	{
 		if (e == 40)
 			network.changeLearningRate(1.0e-4f);
@@ -748,78 +802,49 @@ void run_training()
 			network.changeLearningRate(1.0e-5f);
 		sl.clearStats();
 		sl.train(network, buffer, 1000);
-		sl.saveTrainingHistory("/home/maciek/alphagomoku/minml_test/");
+//		sl.saveTrainingHistory("/home/maciek/alphagomoku/minml_test/");
 		network.saveToFile(
-				"/home/maciek/alphagomoku/minml_test/minml3v7_" + std::to_string(training_config.blocks) + "x"
+				"/home/maciek/alphagomoku/minml_test/minml_btl_" + std::to_string(training_config.blocks) + "x"
 						+ std::to_string(training_config.filters) + ".bin");
 	}
 	network.optimize();
 	network.saveToFile(
-			"/home/maciek/alphagomoku/minml_test/minml3v7_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
+			"/home/maciek/alphagomoku/minml_test/minml_btl_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
 					+ "_opt.bin");
+}
 
-//	const int steps = 1000;
-//
-//	ml::Shape shape = network.getInputShape();
-//	int batch_size = shape[0];
-//	int rows = shape[1];
-//	int cols = shape[2];
-//
-//	std::vector<int> training_sample_order = permutation(buffer.size());
-//	size_t training_sample_index = 0;
-//
-//	matrix<Sign> board(rows, cols);
-//	matrix<Sign> board_copy(rows, cols);
-//	for (int e = 0; e < 100; e++)
-//	{
-//		float policy_loss = 0.0f;
-//		float value_loss = 0.0f;
-//		for (int i = 0; i < steps; i++)
-//		{
-//			if ((i + 1) % (steps / 10) == 0)
-//				std::cout << i + 1 << '\n';
-//			for (int b = 0; b < batch_size; b++)
-//			{
-//				const SearchData &sample = buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample();
-//				training_sample_index++;
-//				if (training_sample_index >= training_sample_order.size())
-//				{
-//					training_sample_order = permutation(training_sample_order.size());
-//					training_sample_index = 0;
-//				}
-//
-//				sample.getBoard(board);
-//				matrix<float> policy_target = prepare_policy_target(sample);
-//				matrix<Value> q_target(15, 15);
-//				const Value value_target = convertOutcome(sample.getOutcome(), sample.getMove().sign);
-//
-//				const int r = randInt(4 + 4 * static_cast<int>(board.isSquare()));
-//				augment(board, r);
-//				augment(policy_target, r);
-//				augment(q_target, r);
-//
-//				network.packInputData(b, board, sample.getMove().sign);
-//				network.packTargetData(b, policy_target, q_target, value_target);
-//			}
-//			network.forward(batch_size);
-////			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//			network.backward(batch_size);
-//
-//			const std::vector<float> loss = network.getLoss(batch_size);
-//			policy_loss += loss.at(0);
-//			value_loss += loss.at(1);
-//		}
-//		std::cout << e << " " << policy_loss / steps << " " << value_loss / steps << '\n';
-//		network.saveToFile(
-//				"/home/maciek/alphagomoku/minml_test/minml_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
-//						+ ".bin");
-//	}
+void test_evaluate()
+{
+	MasterLearningConfig config(FileLoader("/home/maciek/Desktop/solver/config.json").getJson());
+	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
+
+	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
+	cfg.simulations_min = 1000;
+	cfg.simulations_max = 1000;
+	cfg.search_config.vcf_solver_level = 3;
+	cfg.search_config.vcf_solver_max_positions = 100;
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin", "res");
+	cfg.search_config.vcf_solver_level = 3;
+
+	cfg.simulations_min = 3000;
+	cfg.simulations_max = 3000;
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml_btl_10x128_opt.bin", "btl_x3");
+
+	manager.generate(1000);
+	std::string to_save;
+	for (int i = 0; i < manager.numberOfThreads(); i++)
+		to_save += manager.getGameBuffer(i).generatePGN();
+	std::ofstream file("/home/maciek/Desktop/solver/tests/btl_x3_vs_res.pgn", std::ios::out | std::ios::app);
+	file.write(to_save.data(), to_save.size());
+	file.close();
 }
 
 int main(int argc, char *argv[])
 {
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
+
+	test_expand();
 
 //	TrainingManager tm("/home/maciek/alphagomoku/standard_test_2/");
 //	for (int i = 0; i < 100; i++)
@@ -865,7 +890,29 @@ int main(int argc, char *argv[])
 //		return 0;
 //	}
 
-	run_training();
+//	run_training();
+//	test_evaluate();
+//	generate_openings(32);
+//	{
+//		AGNetwork model;
+//		model.loadFromFile("/home/maciek/alphagomoku/minml_test/minml_btl_10x128_opt.bin");
+//		model.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin");
+//		model.setBatchSize(256);
+//		model.moveTo(ml::Device::cpu());
+//		ml::Device::setNumberOfThreads(1);
+//		model.moveTo(ml::Device::cuda(0));
+//		model.convertToHalfFloats();
+//		model.forward(1);
+//		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+//
+//		const int repeats = 400;
+//		const double start = getTime();
+//		for (int i = 0; i < repeats; i++)
+//			model.forward(8);
+//		const double stop = getTime();
+//		std::cout << 8 * repeats / (stop - start) << "n/s\n";
+//	}
+
 	std::cout << "END" << std::endl;
 	return 0;
 
