@@ -609,7 +609,7 @@ void test_proven_positions(int pos)
 
 			task.set(board, sign_to_move);
 			sht->increaseGeneration();
-			ts_search.solve(task, tss::TssMode::DEPTH_FIRST, pos);
+			ts_search.solve(task, tss::TssMode::RECURSIVE, pos);
 			solved_count += task.isReadySolver();
 		}
 	}
@@ -915,7 +915,7 @@ void test_search()
 	search_config.noise_weight = 0.0f;
 	search_config.expansion_prior_treshold = 1.0e-4f;
 	search_config.max_children = 30;
-	search_config.vcf_solver_level = 3;
+	search_config.vcf_solver_level = 2;
 	search_config.vcf_solver_max_positions = 500;
 
 	DeviceConfig device_config;
@@ -1816,7 +1816,7 @@ void test_search()
 			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
 			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
 			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-			/*  6 */" _ _ _ _ _ O X X X _ _ _ _ _ _\n"/*  6 */
+			/*  6 */" _ _ _ _ _ O _ X X _ _ _ _ _ _\n"/*  6 */
 			/*  7 */" _ _ _ _ _ _ O X O _ _ _ _ _ _\n"/*  7 */
 			/*  8 */" _ _ _ _ _ O X X X O _ _ _ _ _\n"/*  8 */
 			/*  9 */" _ _ _ _ _ O X O _ O _ _ _ _ _\n"/*  9 */
@@ -1853,20 +1853,21 @@ void test_search()
 
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
-	tree.setEdgeSelector(PuctSelector(1.25f));
+//	tree.setEdgeSelector(PuctSelector(1.25f));
+	tree.setEdgeSelector(QHeadSelector(1.25f));
 //	tree.setEdgeSelector(UctSelector(0.05f));
 	tree.setEdgeGenerator(SolverGenerator(search_config.expansion_prior_treshold, search_config.max_children));
 
 	int next_step = 0;
-	for (int j = 0; j <= 100000; j++)
+	for (int j = 0; j <= 10000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ..." << std::endl;
 			next_step += 10000;
 		}
-		search.select(tree, 100000);
-		search.solve(false);
+		search.select(tree, 10000);
+		search.solve(true);
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
 //		nn_evaluator.asyncEvaluateGraphLaunch();
@@ -2575,16 +2576,21 @@ void test_evaluate()
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
 	cfg.simulations_min = 1000;
 	cfg.simulations_max = 1000;
-	cfg.search_config.vcf_solver_level = 13; // vcf
-	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku550/networks/standard_conv_10x128.bin", "vcf");
-	cfg.search_config.vcf_solver_level = 3; // tss
-	manager.setSecondPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku550/networks/standard_conv_10x128.bin", "tss");
+	cfg.search_config.vcf_solver_level = 3;
+	cfg.search_config.vcf_solver_max_positions = 100;
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin", "res");
+	cfg.search_config.vcf_solver_level = 3;
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin", "parent");
 
-	manager.generate(1000);
+	cfg.simulations_min = 3000;
+	cfg.simulations_max = 3000;
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml_btl_10x128_opt.bin", "btl_x3");
+
+	manager.generate(100);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/Desktop/solver/tests/vcf_tss_2b.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/Desktop/solver/tests/btl_x3_vs_res.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -2617,8 +2623,8 @@ int main(int argc, char *argv[])
 //	test_proven_positions(100);
 //	test_proven_positions(1000);
 //	ab_search_test();
-	test_search();
-//	test_evaluate();
+//	test_search();
+	test_evaluate();
 //	test_search_with_solver(10000);
 //	train_simple_evaluation();
 //	test_static_solver();

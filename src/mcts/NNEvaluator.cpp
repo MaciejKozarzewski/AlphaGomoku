@@ -102,7 +102,7 @@ namespace ag
 		network.loadFromFile(path);
 		network.setBatchSize(batch_size);
 		network.moveTo(device);
-//		network.convertToHalfFloats();
+//		network.convertToHalfFloats(); // TODO enable this feature later
 //		network.forward(1);
 //		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 //		network.asyncForwardLaunch(network.getBatchSize());
@@ -205,9 +205,6 @@ namespace ag
 			TaskData td = task_queue[i];
 			td.ptr->getFeatures().augment(td.symmetry);
 			network.packInputData(i, td.ptr->getFeatures());
-
-//			ag::augment(board, td.ptr->getBoard(), td.symmetry);
-//			network.packInputData(i, board, td.ptr->getSignToMove());
 		}
 	}
 	void NNEvaluator::unpack_from_network(int batch_size)
