@@ -9,7 +9,6 @@
 #define ALPHAGOMOKU_UTILS_MISC_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
@@ -133,6 +132,7 @@ namespace ag
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
 	std::vector<Move> prepareOpening(GameConfig config, int minNumberOfMoves = 0);
 
+	std::string sfill(int value, int length, bool isSigned);
 	std::string moveToString(const ag::Move &m);
 	ag::Move moveFromString(const std::string &str, ag::Sign sign);
 	bool startsWith(const std::string &line, const std::string &prefix);

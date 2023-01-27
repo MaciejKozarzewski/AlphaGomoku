@@ -10,8 +10,8 @@
 
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/OpeningGenerator.hpp>
-#include <alphagomoku/mcts/Tree.hpp>
-#include <alphagomoku/mcts/Search.hpp>
+#include <alphagomoku/search/monte_carlo/Tree.hpp>
+#include <alphagomoku/search/monte_carlo/Search.hpp>
 
 namespace ag
 {

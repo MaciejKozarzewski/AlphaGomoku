@@ -9,6 +9,7 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 
 namespace ag

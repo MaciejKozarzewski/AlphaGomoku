@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_SELFPLAY_OPENINGGENERATOR_HPP_
 
 #include <alphagomoku/utils/configs.hpp>
-#include <alphagomoku/mcts/SearchTask.hpp>
+#include <alphagomoku/search/monte_carlo/SearchTask.hpp>
 
 namespace ag
 {

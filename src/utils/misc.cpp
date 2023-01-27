@@ -321,6 +321,20 @@ namespace ag
 		}
 	}
 
+	std::string sfill(int value, int length, bool isSigned)
+	{
+		std::string result = std::to_string(std::abs(value));
+		if (isSigned)
+		{
+			if (value == 0)
+				result = ' ' + result;
+			else
+				result = ((value > 0) ? '+' : '-') + result;
+		}
+		for (int i = 0; i < length - isSigned - (int) result.size(); i++)
+			result = ' ' + result;
+		return result;
+	}
 	std::string moveToString(const ag::Move &m)
 	{
 		// coordinates in Gomocup protocol are inverted relative to those used internally here

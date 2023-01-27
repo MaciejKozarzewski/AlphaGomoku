@@ -9,12 +9,13 @@
 #define ALPHAGOMOKU_GAME_BOARD_HPP_
 
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/mcts/Value.hpp>
 #include <alphagomoku/game/Move.hpp>
 
 namespace ag
 {
 	enum class GameRules;
+	class Value;
+	class Score;
 }
 
 namespace ag
@@ -51,7 +52,7 @@ namespace ag
 			/**
 			 * @brief Generates string representation of board state together with information about proven values.
 			 */
-			static std::string toString(const matrix<Sign> &board, const matrix<ProvenValue> &pv);
+			static std::string toString(const matrix<Sign> &board, const matrix<Score> &actionScores);
 			/**
 			 * @brief Generates string representation of board state together with information about policy priors.
 			 */

@@ -6,8 +6,8 @@
  */
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/mcts/Search.hpp>
-#include <alphagomoku/mcts/Tree.hpp>
+#include <alphagomoku/search/monte_carlo/Search.hpp>
+#include <alphagomoku/search/monte_carlo/Tree.hpp>
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
@@ -25,9 +25,11 @@
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/ObjectPool.hpp>
-#include <alphagomoku/mcts/EdgeGenerator.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
-#include <alphagomoku/tss/ThreatSpaceSearch.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
+#include <alphagomoku/search/Value.hpp>
+#include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
 
 #include <minml/graph/Graph.hpp>
 #include <minml/core/Device.hpp>
@@ -612,10 +614,10 @@ void test_expand()
 	Tree tree(tree_config);
 
 	SearchConfig search_config;
-	search_config.max_batch_size = 1;
+	search_config.max_batch_size = 8;
 	search_config.exploration_constant = 1.25f;
-	search_config.max_children = 16;
-	search_config.solver_level = 1;
+	search_config.max_children = 32;
+	search_config.solver_level = 2;
 	search_config.solver_max_positions = 100;
 
 	DeviceConfig device_config;
@@ -630,39 +632,39 @@ void test_expand()
 
 	matrix<Sign> board(15, 15);
 	board = Board::fromString(""
-			" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ O _ X _ X _ _ _ _ _\n"
-			" _ _ O X O _ _ O X _ _ _ _ _ _\n"
-			" _ _ _ X _ O _ O _ X _ _ _ _ _\n"
-			" _ _ _ _ X X _ _ _ _ O _ _ _ _\n"
-			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ O _ X X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-	const Sign sign_to_move = Sign::CIRCLE;
+	const Sign sign_to_move = Sign::CROSS;
 
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
-//	tree.setEdgeSelector(SequentialHalvingSelector(32, 1000));
-//	tree.setEdgeGenerator(SequentialHalvingGenerator(search_config.max_children));
-	tree.setEdgeSelector(UCTSelector(1.0f, 0.5f));
-	tree.setEdgeGenerator(SolverGenerator(search_config.max_children));
+	tree.setEdgeSelector(SequentialHalvingSelector(search_config.max_children, 200));
+	tree.setEdgeGenerator(SequentialHalvingGenerator(search_config.max_children));
+//	tree.setEdgeSelector(NoisyPUCTSelector(1.0f, 0.5f));
+//	tree.setEdgeGenerator(BaseGenerator(search_config.max_children));
 
 	int next_step = 0;
-	for (int j = 0; j <= 1001; j++)
+	for (int j = 0; j <= 201; j++)
 	{
 //		if (tree.getSimulationCount() >= next_step)
 //		{
 //			std::cout << tree.getSimulationCount() << " ..." << std::endl;
 //			next_step += 10000;
 //		}
-		search.select(tree, 1001);
+		search.select(tree, 201);
 		search.solve(true);
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
@@ -671,12 +673,12 @@ void test_expand()
 		search.expand(tree);
 		search.backup(tree);
 
-		if (tree.isProven() or tree.getSimulationCount() >= 1001)
+		if (tree.hasAllMovesProven() or tree.getSimulationCount() >= 201)
 			break;
 	}
 	search.cleanup(tree);
 
-//	tree.printSubtree(-1, true, -1);
+//	tree.printSubtree(5, true, 8);
 //	std::cout << search.getStats().toString() << '\n';
 //	std::cout << "memory = " << ((tree.getMemory() + search.getMemory()) / 1048576.0) << "MB\n\n";
 //	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
@@ -685,27 +687,31 @@ void test_expand()
 //
 	Node info = tree.getInfo( { });
 	info.sortEdges();
+//	std::cout << info.toString() << '\n';
+//	for (int i = 0; i < info.numberOfEdges(); i++)
+//		std::cout << info.getEdge(i).getMove().toString() << " : " << info.getEdge(i).toString() << '\n';
+//	std::cout << '\n';
 
 	auto get_expectation = [](const Edge *edge)
 	{
-		switch (edge->getProvenValue())
+		switch (edge->getScore().getProvenValue())
 		{
 			default:
 			case ProvenValue::UNKNOWN:
 			return edge->getValue().getExpectation();
 			case ProvenValue::LOSS:
-			return 0.0f;
+			return Value::loss().getExpectation();
 			case ProvenValue::DRAW:
-			return 0.5f;
+			return Value::draw().getExpectation();
 			case ProvenValue::WIN:
-			return 10.0f;
+			return Value::win().getExpectation();
 		}
 	};
 
 	int max_N = 0.0f;
 	float sum_v = 0.0f, sum_q = 0.0f, sum_p = 0.0f;
 	for (Edge *edge = info.begin(); edge < info.end(); edge++)
-		if (edge->getVisits() > 0)
+		if (edge->getVisits() > 0 or edge->isProven())
 		{
 			sum_v += get_expectation(edge) * edge->getVisits();
 			sum_q += edge->getPolicyPrior() * get_expectation(edge);
@@ -715,11 +721,14 @@ void test_expand()
 	const float inv_N = 1.0f / info.getVisits();
 	float V_mix = info.getValue().getExpectation() - sum_v * inv_N + (1.0f - inv_N) / sum_p * sum_q;
 	std::cout << "V_mix = " << V_mix << '\n';
+	std::cout << sum_v << " " << sum_q << " " << sum_p << " " << max_N << " " << inv_N << '\n';
 
 	std::vector<float> asdf;
 	for (int i = 0; i < info.numberOfEdges(); i++)
 	{
-		const float Q = info.getEdge(i).getVisits() > 0 ? get_expectation(info.begin() + i) : V_mix;
+		float Q = info.getEdge(i).getVisits() > 0 ? get_expectation(info.begin() + i) : V_mix;
+		if (info.getEdge(i).isProven())
+			Q += 0.001f * info.getEdge(i).getScore().getEval();
 		const float sigma_Q = (50 + max_N) * Q;
 		const float logit = safe_log(info.getEdge(i).getPolicyPrior());
 		asdf.push_back(logit + sigma_Q);
@@ -733,6 +742,7 @@ void test_expand()
 	}
 	inv_sum = 1.0f / inv_sum;
 
+	std::cout << Board::toString(board, true);
 	std::cout << info.toString() << '\n';
 	for (int i = 0; i < info.numberOfEdges(); i++)
 		std::cout << asdf[i] * inv_sum << " : " << info.getEdge(i).getMove().toString() << " : " << info.getEdge(i).toString() << '\n';
@@ -811,7 +821,7 @@ int main(int argc, char *argv[])
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
-	test_expand();
+//	test_expand();
 
 //	TrainingManager tm("/home/maciek/alphagomoku/standard_test_2/");
 //	for (int i = 0; i < 100; i++)

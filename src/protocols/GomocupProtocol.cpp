@@ -103,7 +103,7 @@ namespace ag
 		std::string result;
 		if (summary.principal_variation.size() > 0)
 			result += "depth 1-" + std::to_string(summary.principal_variation.size());
-		switch (summary.node.getProvenValue())
+		switch (summary.node.getScore().getProvenValue())
 		{
 			case ProvenValue::UNKNOWN:
 				result += " ev " + format_percents(summary.node.getWinRate() + 0.5f * summary.node.getDrawRate());

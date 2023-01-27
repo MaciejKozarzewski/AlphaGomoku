@@ -9,8 +9,9 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/player/TimeManager.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
-#include <alphagomoku/mcts/EdgeGenerator.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
@@ -22,9 +23,9 @@ namespace
 	{
 		return PUCTSelector(settings.getSearchConfig().exploration_constant, settings.getStyleFactor());
 	}
-	SolverGenerator get_base_generator(const EngineSettings &settings)
+	BaseGenerator get_base_generator(const EngineSettings &settings)
 	{
-		return SolverGenerator(settings.getSearchConfig().max_children);
+		return BaseGenerator(settings.getSearchConfig().max_children);
 	}
 }
 

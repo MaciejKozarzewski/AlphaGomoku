@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_EVALUATION_EVALUATIONMANAGER_HPP_
 #define ALPHAGOMOKU_EVALUATION_EVALUATIONMANAGER_HPP_
 
-#include <alphagomoku/mcts/NNEvaluator.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 
 #include <cinttypes>

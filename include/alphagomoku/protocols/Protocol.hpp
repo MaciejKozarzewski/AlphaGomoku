@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_PROTOCOLS_PROTOCOL_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/search/monte_carlo/Node.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <variant>

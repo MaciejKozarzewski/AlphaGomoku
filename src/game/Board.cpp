@@ -6,7 +6,8 @@
  */
 
 #include <alphagomoku/game/Board.hpp>
-#include <alphagomoku/mcts/Value.hpp>
+#include <alphagomoku/search/Value.hpp>
+#include <alphagomoku/search/Score.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <algorithm>
@@ -21,9 +22,9 @@ namespace
 	{
 		return " " + text(s);
 	}
-	std::string to_string(ProvenValue pv)
+	std::string to_string(Score s)
 	{
-		switch (pv)
+		switch (s.getProvenValue())
 		{
 			default:
 			case ProvenValue::UNKNOWN:
@@ -61,28 +62,23 @@ namespace
 	}
 	std::string to_string(Value v)
 	{
-		if (v.isZero())
+		const int t = static_cast<int>(1000 * v.getExpectation());
+		if (t == 0)
 			return "  _ ";
 		else
 		{
-			const int t = static_cast<int>(1000 * v.getExpectation());
-			if (t == 0)
-				return "  . ";
+			if (t < 10)
+				return "   " + std::to_string(t);
 			else
 			{
-				if (t < 10)
-					return "   " + std::to_string(t);
+				if (t < 100)
+					return "  " + std::to_string(t);
 				else
 				{
-					if (t < 100)
-						return "  " + std::to_string(t);
+					if (t == 1000)
+						return std::to_string(t);
 					else
-					{
-						if (t == 1000)
-							return std::to_string(t);
-						else
-							return " " + std::to_string(t);
-					}
+						return " " + std::to_string(t);
 				}
 			}
 		}
@@ -239,10 +235,10 @@ namespace ag
 			result += pretty_print_top_row(board.cols(), 1) + '\n';
 		return result;
 	}
-	std::string Board::toString(const matrix<Sign> &board, const matrix<ProvenValue> &pv)
+	std::string Board::toString(const matrix<Sign> &board, const matrix<Score> &actionScores)
 	{
-		assert(equalSize(board, pv));
-		return board_to_string(board, pv);
+		assert(equalSize(board, actionScores));
+		return board_to_string(board, actionScores);
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<float> &policy)
 	{

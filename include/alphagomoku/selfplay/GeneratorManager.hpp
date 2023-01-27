@@ -11,7 +11,7 @@
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/GameGenerator.hpp>
-#include <alphagomoku/mcts/NNEvaluator.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 
 #include <cinttypes>
 #include <string>

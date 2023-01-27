@@ -8,7 +8,7 @@
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/game/Board.hpp>
-#include <alphagomoku/mcts/Node.hpp>
+#include <alphagomoku/search/monte_carlo/Node.hpp>
 
 #include <minml/utils/serialization.hpp>
 
@@ -29,10 +29,10 @@ namespace ag
 		offset += actions.sizeInBytes();
 
 		minimax_value = so.load<Value>(offset);
-		offset += sizeof(minimax_value);
+		offset += sizeof(Value);
 
-		proven_value = static_cast<ProvenValue>(so.load<int>(offset));
-		offset += sizeof(int);
+		minimax_score = Score::from_short(so.load<uint16_t>(offset));
+		offset += sizeof(Score);
 
 		game_outcome = static_cast<GameOutcome>(so.load<int>(offset));
 		offset += sizeof(int);
@@ -56,22 +56,25 @@ namespace ag
 	void SearchData::setBoard(const matrix<Sign> &board) noexcept
 	{
 		for (int i = 0; i < board.size(); i++)
-			actions[i].sign = static_cast<int>(board[i]);
+			actions[i].sign_and_visit_count = (actions[i].sign_and_visit_count & 0xFFFC) | static_cast<uint16_t>(board[i]);
 	}
 	void SearchData::setSearchResults(const Node &node) noexcept
 	{
 		for (Edge *edge = node.begin(); edge < node.end(); edge++)
 		{
-			assert(edge->getVisits() < 4096);
 			const Move m = edge->getMove();
-			actions.at(m.row, m.col).proven_value = static_cast<int>(edge->getProvenValue());
-			actions.at(m.row, m.col).visit_count = static_cast<int>(edge->getVisits());
-			actions.at(m.row, m.col).policy_prior = static_cast<int>(edge->getPolicyPrior() * p_scale);
-			actions.at(m.row, m.col).win = static_cast<int>(edge->getValue().win * q_scale);
-			actions.at(m.row, m.col).draw = static_cast<int>(edge->getValue().draw * q_scale);
+
+			assert(edge->getVisits() < 4096);
+			const uint16_t tmp = (actions.at(m.row, m.col).sign_and_visit_count & 0x0003u) | (static_cast<uint16_t>(edge->getVisits()) << 2u);
+			actions.at(m.row, m.col).sign_and_visit_count = tmp;
+
+			actions.at(m.row, m.col).policy_prior = static_cast<int>(edge->getPolicyPrior() * scale);
+			actions.at(m.row, m.col).score = Score::to_short(edge->getScore());
+			actions.at(m.row, m.col).win_rate = static_cast<int>(edge->getValue().win_rate * scale);
+			actions.at(m.row, m.col).draw_rate = static_cast<int>(edge->getValue().draw_rate * scale);
 		}
 		minimax_value = node.getValue();
-		proven_value = node.getProvenValue();
+		minimax_score = node.getScore();
 	}
 	void SearchData::setOutcome(GameOutcome gameOutcome) noexcept
 	{
@@ -84,36 +87,32 @@ namespace ag
 
 	Sign SearchData::getSign(int row, int col) const noexcept
 	{
-		return static_cast<Sign>(actions.at(row, col).sign);
-	}
-	ProvenValue SearchData::getActionProvenValue(int row, int col) const noexcept
-	{
-		return static_cast<ProvenValue>(actions.at(row, col).proven_value);
+		return static_cast<Sign>(actions.at(row, col).sign_and_visit_count & 0x0003);
 	}
 	int SearchData::getVisitCount(int row, int col) const noexcept
 	{
-		return actions.at(row, col).visit_count;
+		return (actions.at(row, col).sign_and_visit_count >> 2u);
 	}
 	float SearchData::getPolicyPrior(int row, int col) const noexcept
 	{
-		constexpr float scale = 1.0f / p_scale;
-		return actions.at(row, col).policy_prior * scale;
+		return actions.at(row, col).policy_prior / scale;
+	}
+	Score SearchData::getActionScore(int row, int col) const noexcept
+	{
+		return actions.at(row, col).score;
 	}
 	Value SearchData::getActionValue(int row, int col) const noexcept
 	{
-		constexpr float scale = 1.0f / q_scale;
-		if (getVisitCount(row, col))
-			return Value(actions.at(row, col).win * scale, actions.at(row, col).draw * scale);
-		else
-			return Value();
+		return Value(actions.at(row, col).win_rate / scale, actions.at(row, col).draw_rate / scale);
+	}
+
+	Score SearchData::getMinimaxScore() const noexcept
+	{
+		return minimax_score;
 	}
 	Value SearchData::getMinimaxValue() const noexcept
 	{
 		return minimax_value;
-	}
-	ProvenValue SearchData::getProvenValue() const noexcept
-	{
-		return proven_value;
 	}
 	GameOutcome SearchData::getOutcome() const noexcept
 	{
@@ -128,15 +127,15 @@ namespace ag
 		binary_data.save<int>(actions.rows());
 		binary_data.save<int>(actions.cols());
 		binary_data.save(actions.data(), actions.sizeInBytes());
+		binary_data.save<uint16_t>(Score::to_short(minimax_score));
 		binary_data.save<Value>(minimax_value);
-		binary_data.save<int>(static_cast<int>(proven_value));
 		binary_data.save<int>(static_cast<int>(game_outcome));
 		binary_data.save<Move>(played_move);
 	}
 	void SearchData::print() const
 	{
 		matrix<Sign> board(rows(), cols());
-		matrix<ProvenValue> proven_values(rows(), cols());
+		matrix<Score> action_scores(rows(), cols());
 		matrix<float> policy_prior(rows(), cols());
 		matrix<Value> action_values(rows(), cols());
 
@@ -144,17 +143,17 @@ namespace ag
 			for (int c = 0; c < cols(); c++)
 			{
 				board.at(r, c) = getSign(r, c);
-				proven_values.at(r, c) = getActionProvenValue(r, c);
+				action_scores.at(r, c) = getActionScore(r, c);
 				policy_prior.at(r, c) = getPolicyPrior(r, c);
 				action_values.at(r, c) = getActionValue(r, c);
 			}
 
 		std::cout << "next move " << played_move.toString() << '\n';
-		std::cout << "minimax " << minimax_value.toString() << ", proven " << toString(proven_value) << '\n';
+		std::cout << "minimax " << minimax_value.toString() << ", proven " << minimax_score.toString() << '\n';
 		std::cout << "game outcome " << toString(game_outcome) << '\n';
 		std::cout << "board\n" << Board::toString(board);
 		std::cout << "policy\n" << Board::toString(board, policy_prior);
-		std::cout << "proven values\n" << Board::toString(board, proven_values);
+		std::cout << "proven values\n" << Board::toString(board, action_scores);
 		std::cout << "action values\n" << Board::toString(board, action_values);
 	}
 	bool SearchData::isCorrect() const noexcept

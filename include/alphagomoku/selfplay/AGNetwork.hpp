@@ -50,6 +50,7 @@ namespace ag
 
 			std::unique_ptr<PatternCalculator> pattern_calculator; // lazily allocated on first use
 			NNInputFeatures input_features; // same as above
+			mutable std::vector<float> workspace;
 		public:
 			AGNetwork() = default;
 			AGNetwork(const GameConfig &gameOptions);

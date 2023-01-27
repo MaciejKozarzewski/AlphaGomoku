@@ -7,7 +7,7 @@
 
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/patterns/Pattern.hpp>
-#include <alphagomoku/mcts/SearchTask.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
@@ -35,14 +35,11 @@ namespace ag
 			features_update("features update"),
 			threats_update("threats update ")
 	{
-		changed_threats.reserve(game_config.rows * game_config.cols);
 	}
 
 	void PatternCalculator::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
 		assert(equalSize(internal_board, board));
-
-		changed_moves = Change<Sign>();
 
 		sign_to_move = signToMove;
 		internal_board = board;
@@ -70,9 +67,6 @@ namespace ag
 	}
 	void PatternCalculator::addMove(Move move) noexcept
 	{
-		changed_threats.clear();
-		changed_moves = Change<Sign>(Sign::NONE, move.sign, move.location());
-
 		Board::putMove(internal_board, move);
 		legal_moves_mask.at(move.row, move.col) = false;
 
@@ -89,9 +83,6 @@ namespace ag
 	}
 	void PatternCalculator::undoMove(Move move) noexcept
 	{
-		changed_threats.clear();
-		changed_moves = Change<Sign>(move.sign, Sign::NONE, move.location());
-
 		Board::undoMove(internal_board, move);
 		legal_moves_mask.at(move.row, move.col) = true;
 
@@ -299,8 +290,6 @@ namespace ag
 			// since this spot is now occupied, there are no threats nor defensive moves
 			pattern_types.at(row, col) = TwoPlayerGroup<DirectionGroup<PatternType>>();
 			threat_types.at(row, col) = ThreatEncoding();
-
-			changed_threats.emplace_back(old_threat, ThreatEncoding(), Location(row, col));
 		}
 		else
 		{ // a stone was removed
@@ -317,8 +306,6 @@ namespace ag
 			threat_types.at(row, col) = new_threat; // since the spot is now empty, new threats might have been created
 			cross_threats.add(new_threat.forCross(), Location(row, col));
 			circle_threats.add(new_threat.forCircle(), Location(row, col));
-
-			changed_threats.emplace_back(ThreatEncoding(), new_threat, Location(row, col));
 		}
 
 		for (int i = -padding; i <= padding; i++)
@@ -368,8 +355,6 @@ namespace ag
 				circle_threats.add(new_threat, Location(row, col));
 			}
 		}
-
-		changed_threats.emplace_back(old_threat, threat_types.at(row, col), Location(row, col));
 	}
 
 } /* namespace ag */

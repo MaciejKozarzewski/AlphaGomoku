@@ -8,7 +8,7 @@
 #include <alphagomoku/selfplay/AGNetwork.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
-#include <alphagomoku/mcts/Value.hpp>
+#include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 
@@ -124,8 +124,18 @@ namespace ag
 		assert(index >= 0 && index < getBatchSize());
 
 		std::memcpy(get_pointer(*policy_target_on_cpu, { index }), policy.data(), policy.sizeInBytes());
-		std::memcpy(get_pointer(*value_target_on_cpu, { index }), &value, sizeof(Value));
-		std::memcpy(get_pointer(*action_values_target_on_cpu, { index }), actionValues.data(), actionValues.sizeInBytes());
+
+		float tmp[3] = { value.win_rate, value.draw_rate, value.loss_rate() };
+		std::memcpy(get_pointer(*value_target_on_cpu, { index }), tmp, sizeof(tmp));
+
+		workspace.resize(3 * game_config.rows * game_config.cols);
+		for (int i = 0; i < actionValues.size(); i++)
+		{
+			workspace[3 * i + 0] = actionValues[i].win_rate;
+			workspace[3 * i + 1] = actionValues[i].draw_rate;
+			workspace[3 * i + 2] = actionValues[i].loss_rate();
+		}
+		std::memcpy(get_pointer(*action_values_target_on_cpu, { index }), workspace.data(), sizeof(float) * workspace.size());
 	}
 	void AGNetwork::unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const
 	{
@@ -133,19 +143,15 @@ namespace ag
 
 		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(*policy_on_cpu, { index }), policy_on_cpu->dtype(),
 				policy.size());
-		ml::convertType(context_on_cpu, &value, ml::DataType::FLOAT32, get_pointer(*value_on_cpu, { index }), value_on_cpu->dtype(), 3);
-		ml::convertType(context_on_cpu, actionValues.data(), ml::DataType::FLOAT32, get_pointer(*action_values_on_cpu, { index }),
-				action_values_on_cpu->dtype(), 3 * actionValues.size());
+		float tmp[3];
+		ml::convertType(context_on_cpu, &tmp, ml::DataType::FLOAT32, get_pointer(*value_on_cpu, { index }), value_on_cpu->dtype(), 3);
+		value = Value(tmp[0], tmp[1]);
 
-//		for (int i = 0; i < 15; i++)
-//			for (int j = 0; j < 15; j++)
-//				std::cout << policy_on_cpu->get( { index, i, j, 0 }) << '\n';
-
-//		std::cout << graph.getOutput(2).info() << " " << action_values_on_cpu->info() << '\n';
-//		for (int i = 0; i < 15; i++)
-//			for (int j = 0; j < 15; j++)
-//				std::cout << action_values_on_cpu->get( { index, i, j, 0 }) << ' ' << action_values_on_cpu->get( { index, i, j, 1 }) << ' '
-//						<< action_values_on_cpu->get( { index, i, j, 2 }) << '\n';
+		workspace.resize(3 * game_config.rows * game_config.cols);
+		ml::convertType(context_on_cpu, workspace.data(), ml::DataType::FLOAT32, get_pointer(*action_values_on_cpu, { index }),
+				action_values_on_cpu->dtype(), workspace.size());
+		for (int i = 0; i < actionValues.size(); i++)
+			actionValues[i] = Value(workspace[3 * i], workspace[3 * i + 1]);
 	}
 
 	struct asdf

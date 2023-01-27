@@ -9,8 +9,8 @@
 #define ALPHAGOMOKU_EVALUATION_EVALUATIONGAME_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/mcts/Search.hpp>
-#include <alphagomoku/mcts/Tree.hpp>
+#include <alphagomoku/search/monte_carlo/Search.hpp>
+#include <alphagomoku/search/monte_carlo/Tree.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/utils/matrix.hpp>

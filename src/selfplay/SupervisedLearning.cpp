@@ -43,7 +43,7 @@ namespace
 			for (int col = 0; col < sample.cols(); col++)
 			{
 				result.board.at(row, col) = sample.getSign(row, col);
-				switch (sample.getActionProvenValue(row, col))
+				switch (sample.getActionScore(row, col).getProvenValue())
 				{
 					case ProvenValue::UNKNOWN:
 						result.policy.at(row, col) = sample.getVisitCount(row, col);
@@ -51,15 +51,15 @@ namespace
 						break;
 					case ProvenValue::LOSS:
 						result.policy.at(row, col) = 1.0e-6f;
-						result.action_values.at(row, col) = Value(0.0f, 0.0f, 1.0f);
+						result.action_values.at(row, col) = Value::loss();
 						break;
 					case ProvenValue::DRAW:
 						result.policy.at(row, col) = sample.getVisitCount(row, col);
-						result.action_values.at(row, col) = Value(0.0f, 1.0f, 0.0f);
+						result.action_values.at(row, col) = Value::draw();
 						break;
 					case ProvenValue::WIN:
 						result.policy.at(row, col) = 1.0e6f;
-						result.action_values.at(row, col) = Value(1.0f, 0.0f, 0.0f);
+						result.action_values.at(row, col) = Value::win();
 						break;
 				}
 			}
@@ -86,7 +86,7 @@ namespace
 		assert(equalSize(output.action_values, target.action_values));
 
 		for (int i = 0; i < output.action_values.size(); i++)
-			if (target.action_values[i].isZero()) // if all fields are zero it means that we don't have any target data for this spot
+			if (target.policy[i] == 0.0f) // if all fields are zero it means that we don't have any target data for this spot
 				target.action_values[i] = output.action_values[i]; // in such case we set value of the target to the output from the network, zeroing the gradient
 
 //		std::cout << "Output from network\n";

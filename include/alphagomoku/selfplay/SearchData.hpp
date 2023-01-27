@@ -10,7 +10,8 @@
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/rules.hpp>
-#include <alphagomoku/mcts/Value.hpp>
+#include <alphagomoku/search/Value.hpp>
+#include <alphagomoku/search/Score.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 
 #include <cinttypes>
@@ -26,21 +27,19 @@ namespace ag
 	class SearchData
 	{
 		private:
-			static constexpr float p_scale = 1048575.0f;
-			static constexpr float q_scale = 16383.0f;
+			static constexpr float scale = 65536.0f;
 
 			struct internal_data
 			{
-					uint32_t sign :2;
-					uint32_t proven_value :2;
-					uint32_t visit_count :12;
-					uint32_t policy_prior :20;
-					uint32_t win :14;
-					uint32_t draw :14;
+					uint16_t sign_and_visit_count = 0;
+					uint16_t policy_prior = 0;
+					Score score;
+					uint16_t win_rate = 0;
+					uint16_t draw_rate = 0;
 			};
 			matrix<internal_data> actions;
 			Value minimax_value;
-			ProvenValue proven_value = ProvenValue::UNKNOWN;
+			Score minimax_score;
 			GameOutcome game_outcome = GameOutcome::UNKNOWN;
 			Move played_move;
 		public:
@@ -56,12 +55,13 @@ namespace ag
 			void setMove(Move m) noexcept;
 
 			Sign getSign(int row, int col) const noexcept;
-			ProvenValue getActionProvenValue(int row, int col) const noexcept;
 			int getVisitCount(int row, int col) const noexcept;
 			float getPolicyPrior(int row, int col) const noexcept;
+			Score getActionScore(int row, int col) const noexcept;
 			Value getActionValue(int row, int col) const noexcept;
+
+			Score getMinimaxScore() const noexcept;
 			Value getMinimaxValue() const noexcept;
-			ProvenValue getProvenValue() const noexcept;
 			GameOutcome getOutcome() const noexcept;
 			Move getMove() const noexcept;
 

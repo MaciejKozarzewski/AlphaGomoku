@@ -7,9 +7,9 @@
 
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
-#include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
-#include <alphagomoku/mcts/EdgeGenerator.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <minml/utils/json.hpp>
@@ -44,7 +44,7 @@ namespace ag
 		tree.setBoard(board, signToMove);
 
 		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(SolverGenerator(search.getConfig().max_children));
+		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children));
 	}
 	void Player::selectSolveEvaluate()
 	{
@@ -145,10 +145,10 @@ namespace ag
 
 			if (is_request_scheduled == true)
 			{
-				if (request.isReadyNetwork() == false)
+				if (request.wasProcessedByNetwork() == false)
 					return false;
 				is_request_scheduled = false;
-				if (fabsf(request.getValue().win - request.getValue().loss) < (0.05f + opening_trials * 0.01f))
+				if (fabsf(request.getValue().win_rate - request.getValue().loss_rate()) < (0.05f + opening_trials * 0.01f))
 				{
 					opening_trials = 0;
 					has_stored_opening = true;

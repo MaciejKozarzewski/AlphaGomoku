@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/mcts/Tree.hpp>
+#include <alphagomoku/search/monte_carlo/Tree.hpp>
 
 #include <minml/utils/json.hpp>
 

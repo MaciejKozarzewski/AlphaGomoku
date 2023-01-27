@@ -8,9 +8,9 @@
 #include <alphagomoku/player/SearchThread.hpp>
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/mcts/Tree.hpp>
-#include <alphagomoku/mcts/Search.hpp>
-#include <alphagomoku/mcts/NNEvaluator.hpp>
+#include <alphagomoku/search/monte_carlo/Tree.hpp>
+#include <alphagomoku/search/monte_carlo/Search.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 

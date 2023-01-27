@@ -8,8 +8,8 @@
 #include <alphagomoku/selfplay/GameGenerator.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
-#include <alphagomoku/mcts/EdgeGenerator.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 namespace
@@ -157,7 +157,7 @@ namespace ag
 		tree.setBoard(board, signToMove, true); // force remove root node
 
 		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(SolverGenerator(search.getConfig().max_children));
+		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children));
 	}
 
 } /* namespace ag */

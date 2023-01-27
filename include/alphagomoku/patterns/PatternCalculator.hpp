@@ -66,9 +66,6 @@ namespace ag
 			const ThreatTable *threat_table = nullptr; // non-owning
 			const DefensiveMoveTable *defensive_move_table = nullptr; // non-owning
 
-			std::vector<Change<ThreatEncoding>> changed_threats;
-			Change<Sign> changed_moves;
-
 			TimedStat features_init;
 			TimedStat features_class;
 			TimedStat threats_init;
@@ -82,14 +79,6 @@ namespace ag
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
 
-			Change<Sign> getChangeOfMoves() const noexcept
-			{
-				return changed_moves;
-			}
-			const std::vector<Change<ThreatEncoding>>& getChangeOfThreats() const noexcept
-			{
-				return changed_threats;
-			}
 			GameConfig getConfig() const noexcept
 			{
 				return game_config;

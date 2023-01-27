@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_PLAYER_SEARCHTHREAD_HPP_
 #define ALPHAGOMOKU_PLAYER_SEARCHTHREAD_HPP_
 
-#include <alphagomoku/mcts/Search.hpp>
+#include <alphagomoku/search/monte_carlo/Search.hpp>
 
 #include <future>
 

@@ -8,7 +8,8 @@
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/player/SearchThread.hpp>
 #include <alphagomoku/player/EngineSettings.hpp>
-#include <alphagomoku/mcts/EdgeSelector.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/matrix.hpp>
@@ -16,7 +17,7 @@
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
-#include <alphagomoku/mcts/NNEvaluator.hpp>
+
 
 #include <minml/utils/json.hpp>
 
@@ -142,14 +143,14 @@ namespace ag
 		TreeLock lock(tree);
 		matrix<Sign> board = getBoard();
 		matrix<float> policy(board.rows(), board.cols());
-		matrix<ProvenValue> proven_values(board.rows(), board.cols());
+		matrix<Score> action_acores(board.rows(), board.cols());
 
 		Node root_node = tree.getInfo( { });
 		for (int i = 0; i < root_node.numberOfEdges(); i++)
 		{
 			Move m = root_node.getEdge(i).getMove();
 			policy.at(m.row, m.col) = (root_node.getVisits() > 1) ? root_node.getEdge(i).getVisits() : root_node.getEdge(i).getPolicyPrior();
-			proven_values.at(m.row, m.col) = root_node.getEdge(i).getProvenValue();
+			action_acores.at(m.row, m.col) = root_node.getEdge(i).getScore();
 		}
 		normalize(policy);
 
@@ -173,7 +174,7 @@ namespace ag
 			{
 				if (board.at(i, j) == Sign::NONE)
 				{
-					switch (proven_values.at(i, j))
+					switch (action_acores.at(i, j).getProvenValue())
 					{
 						case ProvenValue::LOSS:
 							result += " >L<";

@@ -9,7 +9,7 @@
 #include <alphagomoku/player/SearchEngine.hpp>
 #include <alphagomoku/player/SearchThread.hpp>
 #include <alphagomoku/player/EngineController.hpp>
-#include <alphagomoku/mcts/NNEvaluator.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/misc.hpp>

@@ -7,7 +7,7 @@
 
 #include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/player/EngineSettings.hpp>
-#include <alphagomoku/mcts/Value.hpp>
+#include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 
@@ -136,5 +136,6 @@ namespace ag
 		std::lock_guard lock(mutex);
 		return std::min(settings.getTimeForTurn(), (SWAP2_FRACTION * settings.getTimeLeft())) - settings.getProtocolLag();
 	}
+
 } /* namespace ag */
 

@@ -6,8 +6,8 @@
  */
 
 #include <alphagomoku/selfplay/OpeningGenerator.hpp>
-#include <alphagomoku/mcts/NNEvaluator.hpp>
-#include <alphagomoku/tss/ThreatSpaceSearch.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
+#include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 namespace
@@ -26,15 +26,15 @@ namespace
 		else
 			return invertSign(moves.back().sign);
 	}
-	Move get_move(const SearchTask &task)
+	Move get_move(SearchTask &task)
 	{
-		if (task.mustDefend())
-		{
-			const int r = randInt(task.getPriorEdges().size());
-			return task.getPriorEdges()[r].getMove();
+		if (task.wasProcessedBySolver())
+		{ // maks out provably losing moves
+			for (int i = 0; i < task.getPolicy().size(); i++)
+				if (task.getActionScores()[i].isLoss())
+					task.getPolicy()[i] = 0.0f;
 		}
-		else
-			return randomizeMove(task.getPolicy());
+		return randomizeMove(task.getPolicy());
 	}
 	void generate_opening_map(const matrix<Sign> &board, matrix<float> &dist)
 	{
@@ -97,7 +97,7 @@ namespace ag
 
 		for (auto iter = workspace.begin(); iter < workspace.end(); iter++)
 		{
-			if (iter->task.isReadyNetwork())
+			if (iter->task.wasProcessedByNetwork())
 			{
 				assert(iter->is_scheduled_to_nn);
 				generate_opening_map(iter->task.getBoard(), iter->task.getPolicy());
@@ -120,12 +120,11 @@ namespace ag
 					fill_board_with_moves(board, iter->moves);
 					iter->task.set(board, get_sign_to_move(iter->moves));
 					solver.solve(iter->task, TssMode::RECURSIVE, 50);
-					if (iter->task.isReadySolver())
+					if (iter->task.getScore().isProven())
 						iter->reset(); // opening cannot have a proved score
 					else
 					{
 						evaluator.addToQueue(iter->task);
-						iter->task.markAsReadyNetwork();
 						iter->is_scheduled_to_nn = true;
 					}
 				}
