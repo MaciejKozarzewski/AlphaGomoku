@@ -39,40 +39,144 @@ namespace
 		result.value = convertOutcome(sample.getOutcome(), sample.getMove().sign);
 		result.sign_to_move = sample.getMove().sign;
 
+		auto get_expectation = [](Score score, Value value)
+		{
+			switch (score.getProvenValue())
+			{
+				case ProvenValue::LOSS:
+				return Value::loss().getExpectation();
+				case ProvenValue::DRAW:
+				return Value::draw().getExpectation();
+				default:
+				case ProvenValue::UNKNOWN:
+				return value.getExpectation();
+				case ProvenValue::WIN:
+				return Value::win().getExpectation();
+			}
+		};
+
+		int max_N = 0, sum_N = 0;
+		float sum_v = 0.0f, sum_q = 0.0f, sum_p = 0.0f;
 		for (int row = 0; row < sample.rows(); row++)
 			for (int col = 0; col < sample.cols(); col++)
-			{
-				result.board.at(row, col) = sample.getSign(row, col);
-				switch (sample.getActionScore(row, col).getProvenValue())
+				if (sample.getVisitCount(row, col) > 0 or sample.getActionScore(row, col).isProven())
 				{
-					case ProvenValue::UNKNOWN:
-						result.policy.at(row, col) = sample.getVisitCount(row, col);
-						result.action_values.at(row, col) = sample.getActionValue(row, col);
-						break;
-					case ProvenValue::LOSS:
-						result.policy.at(row, col) = 1.0e-6f;
-						result.action_values.at(row, col) = Value::loss();
-						break;
-					case ProvenValue::DRAW:
-						result.policy.at(row, col) = sample.getVisitCount(row, col);
-						result.action_values.at(row, col) = Value::draw();
-						break;
-					case ProvenValue::WIN:
-						result.policy.at(row, col) = 1.0e6f;
-						result.action_values.at(row, col) = Value::win();
-						break;
-				}
-			}
-		normalize(result.policy);
+					const Score score = sample.getActionScore(row, col);
+					const Value value = sample.getActionValue(row, col);
+					const int visits = std::max(1, sample.getVisitCount(row, col)); // proven action counts as 1 visit (even though it might not have been visited by the search)
+					const float policy_prior = sample.getPolicyPrior(row, col);
 
-//		std::cout << "Sample from buffer\n";
-//		sample.print();
-//		std::cout << "Prepared training data pack\n";
-//		std::cout << "Sign to move " << result.sign_to_move << '\n';
-//		std::cout << "Value target = " << result.value.toString() << '\n';
-//		std::cout << "Board\n" << Board::toString(result.board);
-//		std::cout << "Policy target\n" << Board::toString(result.board, result.policy);
-//		std::cout << "Action values target\n" << Board::toString(result.board, result.action_values);
+					sum_v += value.getExpectation() * visits;
+					sum_q += policy_prior * get_expectation(score, value);
+					sum_p += policy_prior;
+					max_N = std::max(max_N, visits);
+					sum_N += visits;
+				}
+		const float inv_N = 1.0f / sum_N;
+		const float V_mix = (sample.getMinimaxValue().getExpectation() - sum_v * inv_N) + (1.0f - inv_N) / sum_p * sum_q;
+
+		for (int row = 0; row < sample.rows(); row++)
+			for (int col = 0; col < sample.cols(); col++)
+				result.board.at(row, col) = sample.getSign(row, col);
+
+		float shift = std::numeric_limits<float>::lowest();
+		for (int row = 0; row < sample.rows(); row++)
+			for (int col = 0; col < sample.cols(); col++)
+				if (sample.getSign(row, col) == Sign::NONE)
+				{
+					const int visits = sample.getVisitCount(row, col);
+					const Score score = sample.getActionScore(row, col);
+					const Value value = sample.getActionValue(row, col);
+					const float policy_prior = sample.getPolicyPrior(row, col);
+
+					float Q;
+					switch (score.getProvenValue())
+					{
+						case ProvenValue::LOSS:
+							Q = -100.0f + 0.1f * score.getDistanceToWinOrLoss();
+							break;
+						case ProvenValue::DRAW:
+							Q = Value::draw().getExpectation();
+							break;
+						default:
+						case ProvenValue::UNKNOWN:
+							Q = (visits > 0) ? value.getExpectation() : V_mix;
+							break;
+						case ProvenValue::WIN:
+							Q = +101.0f - 0.1f * score.getDistanceToWinOrLoss();
+							break;
+					}
+					const float sigma_Q = (50 + max_N) * Q;
+					const float logit = safe_log(policy_prior);
+
+					result.policy.at(row, col) = logit + sigma_Q;
+					shift = std::max(shift, result.policy.at(row, col));
+
+					switch (sample.getActionScore(row, col).getProvenValue())
+					{
+						case ProvenValue::UNKNOWN:
+							result.action_values.at(row, col) = sample.getActionValue(row, col);
+							break;
+						case ProvenValue::LOSS:
+							result.action_values.at(row, col) = Value::loss();
+							break;
+						case ProvenValue::DRAW:
+							result.action_values.at(row, col) = Value::draw();
+							break;
+						case ProvenValue::WIN:
+							result.action_values.at(row, col) = Value::win();
+							break;
+					}
+				}
+
+		float inv_sum = 0.0f;
+		for (int i = 0; i < result.policy.size(); i++)
+			if (result.board[i] == Sign::NONE)
+			{
+				result.policy[i] = std::exp(result.policy[i] - shift);
+				if (result.policy[i] < 1.0e-9f)
+					result.policy[i] = 0.0f;
+				inv_sum += result.policy[i];
+			}
+		inv_sum = 1.0f / inv_sum;
+
+		for (int i = 0; i < result.policy.size(); i++)
+			result.policy[i] *= inv_sum;
+
+//		for (int row = 0; row < sample.rows(); row++)
+//			for (int col = 0; col < sample.cols(); col++)
+//			{
+//				result.board.at(row, col) = sample.getSign(row, col);
+//				switch (sample.getActionScore(row, col).getProvenValue())
+//				{
+//					case ProvenValue::UNKNOWN:
+//						result.policy.at(row, col) = sample.getVisitCount(row, col);
+//						result.action_values.at(row, col) = sample.getActionValue(row, col);
+//						break;
+//					case ProvenValue::LOSS:
+//						result.policy.at(row, col) = 1.0e-6f;
+//						result.action_values.at(row, col) = Value::loss();
+//						break;
+//					case ProvenValue::DRAW:
+//						result.policy.at(row, col) = sample.getVisitCount(row, col);
+//						result.action_values.at(row, col) = Value::draw();
+//						break;
+//					case ProvenValue::WIN:
+//						result.policy.at(row, col) = 1.0e6f;
+//						result.action_values.at(row, col) = Value::win();
+//						break;
+//				}
+//			}
+//		normalize(result.policy);
+
+		std::cout << "Sample from buffer\n";
+		sample.print();
+		std::cout << "Prepared training data pack\n";
+		std::cout << "Sign to move " << result.sign_to_move << '\n';
+		std::cout << "Value target = " << result.value.toString() << '\n';
+		std::cout << "Board\n" << Board::toString(result.board);
+		std::cout << "Policy target\n" << Board::toString(result.board, result.policy);
+		std::cout << "Action values target\n" << Board::toString(result.board, result.action_values);
 
 		if (perform_augmentations)
 			augment_data_pack(result);
@@ -172,6 +276,7 @@ namespace ag
 
 				data_packs.at(b) = prepare_data_pack(sample, config.augment_training_data);
 			}
+			exit(0);
 
 			push_input_data_to_model(data_packs, model);
 			model.forward(batch_size);
@@ -221,7 +326,7 @@ namespace ag
 	{
 		if (workingDirectory.empty())
 			return;
-		std::string path = workingDirectory + "/training_history_10x128v4.txt";
+		std::string path = workingDirectory + "/training_history.txt";
 		std::ofstream history_file;
 		history_file.open(path.data(), std::ios::app);
 		history_file << std::setprecision(9);
