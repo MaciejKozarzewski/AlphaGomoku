@@ -58,7 +58,7 @@ namespace ag
 			void undoMove(Move move);
 			void makeMove(Move move);
 			void addSearchData(const SearchData &state);
-			void resolveOutcome(int numberfOfMovesForDraw = -1);
+			void resolveOutcome();
 			bool isOver() const;
 			bool isDraw() const;
 			GameOutcome getOutcome() const noexcept;

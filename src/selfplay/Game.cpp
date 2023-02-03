@@ -101,20 +101,20 @@ namespace ag
 		search_data.push_back(state);
 		use_count.push_back(0);
 	}
-	void Game::resolveOutcome(int numberfOfMovesForDraw)
+	void Game::resolveOutcome()
 	{
-		outcome = ag::getOutcome_v2(game_config.rules, current_board, getLastMove(), numberfOfMovesForDraw);
+		outcome = ag::getOutcome_v2(game_config.rules, current_board, getLastMove(), game_config.draw_after);
 		if (outcome != GameOutcome::UNKNOWN)
 			for (size_t i = 0; i < search_data.size(); i++)
 				search_data[i].setOutcome(outcome);
 	}
 	bool Game::isOver() const
 	{
-		return ag::getOutcome_v2(game_config.rules, current_board, getLastMove()) != GameOutcome::UNKNOWN;
+		return ag::getOutcome_v2(game_config.rules, current_board, getLastMove(), game_config.draw_after) != GameOutcome::UNKNOWN;
 	}
 	bool Game::isDraw() const
 	{
-		return Board::isFull(current_board);
+		return Board::numberOfMoves(current_board) >= game_config.draw_after;
 	}
 	GameOutcome Game::getOutcome() const noexcept
 	{
