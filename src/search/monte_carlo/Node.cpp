@@ -23,10 +23,10 @@ namespace
 	{
 			bool operator()(const Edge &lhs, const Edge &rhs) const noexcept
 			{
-				if (lhs.getScore() == rhs.getScore())
-					return get_edge_value(lhs) > get_edge_value(rhs);
-				else
+				if (lhs.isProven() or rhs.isProven())
 					return lhs.getScore() > rhs.getScore();
+				else
+					return get_edge_value(lhs) > get_edge_value(rhs);
 			}
 	};
 
@@ -56,6 +56,9 @@ namespace ag
 		result += " : S=" + getScore().toString();
 		result += " : Q=" + getValue().toString();
 		result += " : Visits=" + std::to_string(getVisits());
+#ifndef NDEBUG
+		result += " (" + std::to_string(getVirtualLoss()) + ")";
+#endif
 		result += " : Edges=" + std::to_string(numberOfEdges());
 #ifndef NDEBUG
 		result += " : now moving=" + ag::toString(sign_to_move);

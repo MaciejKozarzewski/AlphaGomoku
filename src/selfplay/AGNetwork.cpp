@@ -201,7 +201,17 @@ namespace ag
 		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
 		graph.context().synchronize();
 
-//		std::cout << graph.getOutput(2).info() << " " << action_values_on_cpu->info() << '\n';
+//		std::cout << "input:\n";
+//		for (int i = 0; i < 15; i++)
+//			for (int j = 0; j < 15; j++)
+//				std::cout << input_on_cpu->get( { 0, i, j, 0 }) << '\n';
+//
+//		std::cout << "policy:\n";
+//		for (int i = 0; i < 15; i++)
+//			for (int j = 0; j < 15; j++)
+//				std::cout << policy_on_cpu->get( { 0, i, j, 0 }) << '\n';
+//		std::cout << "value:\n" << value_on_cpu->get( { 0, 0 }) << " " << value_on_cpu->get( { 0, 1 }) << " " << value_on_cpu->get( { 0, 2 }) << '\n';
+//		std::cout << "action values:\n";
 //		for (int i = 0; i < 15; i++)
 //			for (int j = 0; j < 15; j++)
 //				std::cout << action_values_on_cpu->get( { 0, i, j, 0 }) << ' ' << action_values_on_cpu->get( { 0, i, j, 1 }) << ' '
@@ -349,23 +359,23 @@ namespace ag
 
 		for (int i = 0; i < blocks; i++)
 		{
-			auto y = graph.add(ml::Conv2D(filters / 2, 1, "linear").useBias(false), x);
-			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
-
-			y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), y);
-			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
-
-			y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), y);
-			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
-
-			y = graph.add(ml::Conv2D(filters, 1, "linear").useBias(false), y);
-			y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
-
-//			auto y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
+//			auto y = graph.add(ml::Conv2D(filters / 2, 1, "linear").useBias(false), x);
 //			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
 //
-//			y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), y);
+//			y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), y);
+//			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
+//
+//			y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), y);
+//			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
+//
+//			y = graph.add(ml::Conv2D(filters, 1, "linear").useBias(false), y);
 //			y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
+
+			auto y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
+			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
+
+			y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), y);
+			y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
 
 			x = graph.add(ml::Add("relu"), { x, y });
 		}

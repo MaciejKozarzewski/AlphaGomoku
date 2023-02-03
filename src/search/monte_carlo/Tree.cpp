@@ -174,7 +174,7 @@ namespace ag
 	{
 		return max_depth;
 	}
-	bool Tree::isProven() const noexcept
+	bool Tree::isRootProven() const noexcept
 	{
 		if (root_node == nullptr)
 			return false;
@@ -215,8 +215,12 @@ namespace ag
 		Node *node = root_node;
 		while (node != nullptr)
 		{
+			if (node->isProven())
+				return SelectOutcome::REACHED_PROVEN_STATE;
+
 			Edge *edge = edge_selector->select(node);
 			task.append(node, edge);
+			node->increaseVirtualLoss();
 			edge->increaseVirtualLoss();
 
 			node = edge->getNode();
@@ -224,7 +228,7 @@ namespace ag
 			{ // edge appears to be a leaf
 				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
 				if (node != nullptr)
-					edge->setNode(node); // if found in the cache, link that edge to the found node
+					edge->setNode(node); // if found in the cache it means that there is simply a missing connection, link that edge to the found node
 				// if not found in the cache it means that the edge is really a leaf
 			}
 
@@ -293,6 +297,7 @@ namespace ag
 				pair.node->updateValue(value.getInverted());
 				pair.edge->updateValue(value.getInverted());
 			}
+			pair.node->decreaseVirtualLoss();
 			pair.edge->decreaseVirtualLoss();
 		}
 		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
@@ -328,7 +333,10 @@ namespace ag
 	void Tree::cancelVirtualLoss(const SearchTask &task) noexcept
 	{
 		for (int i = 0; i < task.visitedPathLength(); i++)
+		{
+			task.getPair(i).node->decreaseVirtualLoss();
 			task.getPair(i).edge->decreaseVirtualLoss();
+		}
 	}
 	void Tree::printSubtree(int depth, bool sort, int top_n) const
 	{

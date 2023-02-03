@@ -12,14 +12,6 @@
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
-namespace
-{
-	int contains(const std::vector<int> &v, int x)
-	{
-		return std::find(v.begin(), v.end(), x) != v.end();
-	}
-}
-
 namespace ag
 {
 	GameGenerator::GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator) :
@@ -31,6 +23,9 @@ namespace ag
 			search(gameOptions, selfplayOptions.search_config),
 			selfplay_config(selfplayOptions)
 	{
+		// TODO temporary hack to initialize shared hash table in the TSS
+		tree.setBoard(game.getBoard(), game.getSignToMove(), true);
+		search.select(tree, -1);
 	}
 	void GameGenerator::clearStats()
 	{
@@ -53,6 +48,7 @@ namespace ag
 	{
 		if (state == GAME_NOT_STARTED)
 		{
+			is_forced_win_found = false;
 			game.beginGame();
 			tree.clear();
 			if (selfplay_config.use_opening)
@@ -60,7 +56,7 @@ namespace ag
 			else
 			{
 				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
-				prepare_search(game.getBoard(), game.getSignToMove());
+				prepare_search();
 			}
 		}
 
@@ -72,13 +68,13 @@ namespace ag
 			else
 			{
 				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
-				prepare_search(game.getBoard(), game.getSignToMove());
+				prepare_search();
 			}
 		}
 
 		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE)
 		{
-			search.select(tree);
+			search.select(tree, selfplay_config.simulations);
 			search.solve();
 			search.scheduleToNN(nn_evaluator);
 			state = GAMEPLAY_EXPAND_AND_BACKUP;
@@ -91,7 +87,7 @@ namespace ag
 			search.expand(tree);
 			search.backup(tree);
 
-			if (tree.getSimulationCount() > selfplay_config.simulations or tree.hasAllMovesProven())
+			if (tree.getSimulationCount() > selfplay_config.simulations or tree.isRootProven())
 			{
 				make_move();
 				if (game.isOver())
@@ -103,7 +99,7 @@ namespace ag
 					return;
 				}
 				else
-					prepare_search(game.getBoard(), game.getSignToMove());
+					prepare_search();
 			}
 			state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
 			return;
@@ -132,32 +128,39 @@ namespace ag
 //		std::cout << "after search\n";
 //		std::cout << tree.getMemory() / 1024 << "kB\n";
 //		std::cout << tree.getNodeCacheStats().toString() << '\n';
+//		std::cout << Board::toString(game.getBoard(), true);
 //		std::cout << root_node.toString() << '\n';
 //		root_node.sortEdges();
 //		for (int i = 0; i < std::min(10, root_node.numberOfEdges()); i++)
-//			std::cout << "  " << root_node.getEdge(i).toString() << '\n';
+//		for (int i = 0; i < root_node.numberOfEdges(); i++)
+//			std::cout << "   " << root_node.getEdge(i).toString() << '\n';
+//		tree.printSubtree(2, false);
 
 		BestEdgeSelector selector;
 		const Move move = selector.select(&root_node)->getMove();
 
-		SearchData state(game_config.rows, game_config.cols);
-		state.setBoard(tree.getBoard());
-		state.setSearchResults(root_node);
-		state.setMove(move);
-
-//		state.print();
-
-		game.addSearchData(state);
+		if (not is_forced_win_found)
+		{
+			SearchData state(game_config.rows, game_config.cols);
+			state.setBoard(tree.getBoard());
+			state.setSearchResults(root_node);
+			state.setMove(move);
+			game.addSearchData(state);
+//			state.print();
+		}
 
 		game.makeMove(move);
+
+		if (root_node.isProven())
+			is_forced_win_found = true;
 	}
-	void GameGenerator::prepare_search(const matrix<Sign> &board, Sign signToMove)
+	void GameGenerator::prepare_search()
 	{
 		search.cleanup(tree);
-		tree.setBoard(board, signToMove, true); // force remove root node
-
-		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children));
+		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
+//		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
+		tree.setEdgeSelector(SequentialHalvingSelector(search.getConfig().max_children, selfplay_config.simulations, 50.0f, 1.0f));
+		tree.setEdgeGenerator(SequentialHalvingGenerator(search.getConfig().max_children));
 	}
 
 } /* namespace ag */

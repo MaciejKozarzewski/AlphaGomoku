@@ -10,9 +10,11 @@
 
 #include <memory>
 #include <vector>
+#include <random>
 
 namespace ag
 {
+	class Move;
 	class Node;
 	class Edge;
 }
@@ -51,20 +53,6 @@ namespace ag
 	};
 
 	/**
-	 * @brief PUCT edge selector that optimizes P(win) + styleFactor * P(draw).
-	 */
-	class QHeadSelector: public EdgeSelector
-	{
-		private:
-			const float exploration_constant; /**< controls the level of exploration */
-			const float style_factor; /**< used to determine what to optimize during search */
-		public:
-			QHeadSelector(float exploration, float styleFactor = 0.5f);
-			std::unique_ptr<EdgeSelector> clone() const;
-			Edge* select(const Node *node) noexcept;
-	};
-
-	/**
 	 * @brief UCT edge selector that optimizes P(win) + styleFactor * P(draw).
 	 */
 	class UCTSelector: public EdgeSelector
@@ -84,6 +72,8 @@ namespace ag
 	class NoisyPUCTSelector: public EdgeSelector
 	{
 		private:
+			std::default_random_engine generator;
+			std::extreme_value_distribution<float> noise;
 			std::vector<float> noisy_policy;
 			const Node *current_root = nullptr;
 			const float exploration_constant; /**< controls the level of exploration */
@@ -156,6 +146,9 @@ namespace ag
 					float noise = 0.0f;
 					float logit = 0.0f;
 			};
+			std::default_random_engine generator;
+			std::extreme_value_distribution<float> noise;
+
 			std::vector<Data> action_list;
 			std::vector<float> workspace;
 			int number_of_actions_left = 0;
@@ -165,15 +158,15 @@ namespace ag
 			const float C_visit;
 			const float C_scale;
 
-			const Node *current_root = nullptr;
 			int simulations_left = 0;
 			int expected_visit_count = 0;
+			bool is_initialized = false;
 		public:
 			SequentialHalvingSelector(int maxEdges, int maxSimulations, float cVisit = 50.0f, float cScale = 1.0f);
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
 		private:
-			void reset(const Node *newRoot);
+			void initialize(const Node *newRoot);
 			Edge* select_at_root(const Node *node) noexcept;
 			Edge* select_below_root(const Node *node) noexcept;
 			void sort_workspace() noexcept;

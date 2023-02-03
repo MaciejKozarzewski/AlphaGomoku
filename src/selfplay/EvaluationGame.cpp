@@ -62,7 +62,7 @@ namespace ag
 	}
 	bool Player::isSearchOver()
 	{
-		if (tree.getSimulationCount() >= simulations or tree.isProven())
+		if (tree.getSimulationCount() >= simulations or tree.isRootProven())
 		{
 			search.cleanup(tree);
 			nn_evals = 0;

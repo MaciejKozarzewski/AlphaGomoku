@@ -59,8 +59,7 @@ namespace ag
 	void SearchTask::addEdge(Move move)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge)
-		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;
@@ -100,5 +99,47 @@ namespace ag
 		}
 		return result;
 	}
-} /* namespace ag */
+
+	/*
+	 * SearchTaskList
+	 */
+	SearchTaskList::SearchTaskList(GameRules rules) noexcept :
+			game_rules(rules)
+	{
+	}
+	void SearchTaskList::resize(int newSize)
+	{
+		if (newSize != capacity())
+		{
+			if (newSize < capacity())
+				tasks.erase(tasks.begin() + newSize, tasks.end());
+			else
+				for (int i = capacity(); i < newSize; i++)
+					tasks.push_back(SearchTask(game_rules));
+		}
+	}
+	int SearchTaskList::capacity() const noexcept
+	{
+		return tasks.capacity();
+	}
+	int SearchTaskList::size() const noexcept
+	{
+		return current_size;
+	}
+	SearchTask& SearchTaskList::getNext(int index)
+	{
+		current_size++;
+		return tasks.at(current_size - 1);
+	}
+	SearchTask& SearchTaskList::operator[](int index)
+	{
+		return tasks.at(index);
+	}
+	const SearchTask& SearchTaskList::operator[](int index) const
+	{
+		return tasks.at(index);
+	}
+
+}
+/* namespace ag */
 

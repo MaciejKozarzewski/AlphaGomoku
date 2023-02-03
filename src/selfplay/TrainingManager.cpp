@@ -39,6 +39,9 @@ namespace
 			std::ofstream output;
 			output.open(path.data(), std::ios::app);
 			output << cfg.toJson().dump(2) << '\n';
+			output.close();
+			std::cout << "Created default config" << std::endl;
+			exit(0);
 			return cfg;
 		}
 	}
@@ -73,7 +76,7 @@ namespace ag
 	void TrainingManager::runIterationRL()
 	{
 		generateGames();
-		runIterationSL();
+//		runIterationSL();
 	}
 	void TrainingManager::runIterationSL()
 	{
@@ -135,7 +138,7 @@ namespace ag
 		std::string path_to_best_network = working_dir + "/checkpoint/network_" + std::to_string(get_best_checkpoint()) + "_opt.bin";
 		std::cout << "Loading " << path_to_best_network << '\n';
 		const int training_games = config.generation_config.games_per_iteration;
-		const int validation_games = training_games * config.training_config.validation_percent;
+		const int validation_games = std::max(1.0, training_games * config.training_config.validation_percent);
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
 		generator_manager.getGameBuffer().clear();

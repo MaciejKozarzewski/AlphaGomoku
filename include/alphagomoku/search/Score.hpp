@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_MCTS_SCORE_HPP_
 
 #include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/search/Value.hpp>
 
 #include <string>
 #include <algorithm>
@@ -233,6 +234,23 @@ namespace ag
 							return std::to_string(getEval());
 					case ProvenValue::WIN:
 						return "WIN in " + std::to_string(-getEval());
+				}
+			}
+
+			Value convertToValue() const noexcept
+			{
+				switch (getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return Value::loss();
+					case ProvenValue::DRAW:
+						return Value::draw();
+					case ProvenValue::UNKNOWN:
+						return Value(std::tanh(getEval() / 1000.0f), 0.0f); // TODO this might change in the future
+					case ProvenValue::WIN:
+						return Value::win();
+					default:
+						return Value();
 				}
 			}
 	};

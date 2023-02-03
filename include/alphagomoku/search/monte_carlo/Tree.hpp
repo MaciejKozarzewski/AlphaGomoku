@@ -34,6 +34,7 @@ namespace ag
 	enum class SelectOutcome
 	{
 		REACHED_LEAF,
+		REACHED_PROVEN_STATE,
 		INFORMATION_LEAK
 	};
 	enum class ExpandOutcome
@@ -74,7 +75,7 @@ namespace ag
 			int getNodeCount() const noexcept;
 			int getSimulationCount() const noexcept;
 			int getMaximumDepth() const noexcept;
-			bool isProven() const noexcept;
+			bool isRootProven() const noexcept;
 			bool hasAllMovesProven() const noexcept;
 			bool hasSingleMove() const noexcept;
 			bool hasSingleNonLosingMove() const noexcept;

@@ -195,7 +195,7 @@ namespace ag
 			const Move m(iter->move);
 			task.getActionScores().at(m.row, m.col) = iter->score;
 			if (iter->score.isProven())
-				task.getActionValues().at(m.row, m.col) = (convertScoreToValue(iter->score));
+				task.getActionValues().at(m.row, m.col) = convertScoreToValue(iter->score);
 		}
 		task.setScore(score);
 		task.setMustDefendFlag(actions.must_defend);
@@ -203,16 +203,16 @@ namespace ag
 		if (score.isProven())
 			task.setValue(convertScoreToValue(score));
 
-//		if (actions.size() == 0)
+//		if (score.isWin())
 //		{
-//		std::cout << score.toString() << " at " << position_counter << '\n';
-//		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
-//		pattern_calculator.print();
-//		pattern_calculator.printAllThreats();
-//		actions.print();
-//		std::cout << task.toString();
-//		std::cout << "\n---------------------------------------------\n";
-//		exit(-1);
+//			std::cout << score.toString() << " at " << position_counter << '\n';
+//			std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
+//			pattern_calculator.print();
+//			pattern_calculator.printAllThreats();
+//			actions.print();
+//			std::cout << task.toString();
+//			std::cout << "\n---------------------------------------------\n";
+//			exit(-1);
 //		}
 
 		stats.total_positions += position_counter;

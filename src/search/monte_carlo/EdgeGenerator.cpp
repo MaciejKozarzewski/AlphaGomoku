@@ -44,7 +44,7 @@ namespace
 	{
 			bool operator()(const Edge &lhs, const Edge &rhs) const noexcept
 			{
-				if (lhs.getScore() == rhs.getScore())
+				if (lhs.getScore().getProvenValue() == rhs.getScore().getProvenValue() and lhs.getScore() == rhs.getScore())
 					return lhs.getPolicyPrior() > rhs.getPolicyPrior();
 				else
 					return lhs.getScore() > rhs.getScore();
@@ -60,9 +60,9 @@ namespace
 		edges.erase(edges.begin() + max_edges, edges.end());
 	}
 
-	void create_legal_edges(SearchTask &task) noexcept
+	void create_legal_edges(SearchTask &task, bool prune) noexcept
 	{
-		if (task.getScore().isWin())
+		if (task.getScore().isWin() and prune)
 		{ // optimization to not add unnecessary edges if there is a win
 			for (int row = 0; row < task.getBoard().rows(); row++)
 				for (int col = 0; col < task.getBoard().cols(); col++)
@@ -178,7 +178,7 @@ namespace ag
 	{
 		assert(task.wasProcessedByNetwork() or task.wasProcessedBySolver());
 
-		create_legal_edges(task);
+		create_legal_edges(task, true);
 		initialize_edges(task);
 		if (not task.wasProcessedBySolver())
 			check_terminal_conditions(task);
@@ -207,13 +207,16 @@ namespace ag
 	}
 	void SequentialHalvingGenerator::generate(SearchTask &task) const
 	{
-		if (task.getRelativeDepth() == 0)
-		{
-//			task.getActionValues().clear();
-			BaseGenerator().generate(task);
-		}
-		else
-			BaseGenerator(max_edges).generate(task);
+		const int num = (task.getRelativeDepth() == 0) ? std::numeric_limits<int>::max() : max_edges;
+		const bool prune = (task.getRelativeDepth() != 0);
+
+		create_legal_edges(task, prune);
+		initialize_edges(task);
+		if (not task.wasProcessedBySolver())
+			check_terminal_conditions(task);
+		if (not task.mustDefend())
+			prune_weak_moves(task.getEdges(), num);
+		renormalize_policy(task.getEdges());
 		assert(task.getEdges().size() > 0);
 	}
 

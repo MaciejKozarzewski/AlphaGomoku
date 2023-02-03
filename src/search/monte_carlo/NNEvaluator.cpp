@@ -85,6 +85,10 @@ namespace ag
 	{
 		return stats;
 	}
+	bool NNEvaluator::isQueueFull() const noexcept
+	{
+		return getQueueSize() >= network.getBatchSize();
+	}
 	int NNEvaluator::getQueueSize() const noexcept
 	{
 		return task_queue.size();
@@ -157,8 +161,6 @@ namespace ag
 	{
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
-		if (task_queue.size() > (size_t) batch_size)
-			throw std::logic_error("task queue size is larger than batch size");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
 		const int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
 		if (batch_size > 0)
@@ -177,8 +179,6 @@ namespace ag
 	{
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
-		if (task_queue.size() > (size_t) batch_size)
-			throw std::logic_error("task queue size is larger than batch size");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
 		const int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
 		if (batch_size > 0)

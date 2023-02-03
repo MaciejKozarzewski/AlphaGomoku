@@ -30,6 +30,7 @@ namespace ag
 		result += "nb_duplicate_nodes     = " + std::to_string(nb_duplicate_nodes) + '\n';
 		result += "nb_information_leaks   = " + std::to_string(nb_information_leaks) + '\n';
 		result += "nb_wasted_expansions   = " + std::to_string(nb_wasted_expansions) + '\n';
+		result += "nb_proven_states       = " + std::to_string(nb_proven_states) + '\n';
 		result += "nb_network_evaluations = " + std::to_string(nb_network_evaluations) + '\n';
 		result += "nb_node_count = " + std::to_string(nb_node_count) + '\n';
 		result += select.toString() + '\n';
@@ -52,6 +53,7 @@ namespace ag
 		this->nb_duplicate_nodes += other.nb_duplicate_nodes;
 		this->nb_information_leaks += other.nb_information_leaks;
 		this->nb_wasted_expansions += other.nb_wasted_expansions;
+		this->nb_proven_states += other.nb_proven_states;
 		this->nb_network_evaluations += other.nb_network_evaluations;
 		this->nb_node_count += other.nb_node_count;
 		return *this;
@@ -68,6 +70,7 @@ namespace ag
 		this->nb_duplicate_nodes /= i;
 		this->nb_information_leaks /= i;
 		this->nb_wasted_expansions /= i;
+		this->nb_proven_states /= i;
 		this->nb_network_evaluations /= i;
 		this->nb_node_count /= i;
 		return *this;
@@ -111,13 +114,12 @@ namespace ag
 
 	void Search::select(Tree &tree, int maxSimulations)
 	{
-		assert(maxSimulations > 0);
 		solver.setSharedTable(tree.getSharedHashTable());
 
 		const int batch_size = get_batch_size(tree.getSimulationCount());
 
 		active_task_count = 0;
-		while (active_task_count < batch_size and tree.getSimulationCount() < maxSimulations and not tree.hasAllMovesProven())
+		while (active_task_count < batch_size and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
 		{
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_next_task();
@@ -135,17 +137,28 @@ namespace ag
 			}
 			if (out == SelectOutcome::INFORMATION_LEAK)
 			{
-				stats.nb_information_leaks++;
 				tree.correctInformationLeak(current_task);
 				tree.cancelVirtualLoss(current_task);
+				stats.nb_information_leaks++;
+				active_task_count--;
+			}
+			if (out == SelectOutcome::REACHED_PROVEN_STATE)
+			{ // this was added to allow the search to correctly continue even if the tree is proven and we re-visit already proven edges
+				assert(current_task.visitedPathLength() > 0);
+				const Score s = current_task.getLastEdge()->getScore();
+				current_task.setScore(s);
+				current_task.setValue(s.convertToValue());
+				current_task.markAsProcessedBySolver();
+				tree.backup(current_task); // we just propagate proven value and score (again)
+				stats.nb_proven_states++;
 				active_task_count--;
 			}
 		}
 	}
-	void Search::solve(bool full)
+	void Search::solve()
 	{
 		const TssMode level = static_cast<TssMode>(search_config.solver_level);
-		const int positions = full ? search_config.solver_max_positions : 100;
+		const int positions = search_config.solver_max_positions;
 
 		for (int i = 0; i < active_task_count; i++)
 			if (not search_tasks[i].wasProcessedBySolver())

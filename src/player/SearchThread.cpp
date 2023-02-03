@@ -83,10 +83,10 @@ namespace ag
 				NNEvaluator &evaluator = evaluator_pool.get();
 				if (evaluator.isOnGPU())
 				{ // run solver asynchronously to the network evaluation
-					search.solve(false);
+					search.solve(); // TODO add double buffering
 					search.scheduleToNN(evaluator);
 					evaluator.asyncEvaluateGraphLaunch();
-					search.solve(true);
+					// TODO and move solve into here
 					info = evaluator.asyncEvaluateGraphJoin();
 				}
 				else
@@ -144,7 +144,7 @@ namespace ag
 			Logger::write("Reached depth limit");
 			return true;
 		}
-		if (tree.isProven())
+		if (tree.isRootProven())
 		{
 			Logger::write("Tree is proven");
 			return true;

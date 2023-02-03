@@ -9,6 +9,7 @@
 #include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/search/Score.hpp>
 #include <alphagomoku/utils/configs.hpp>
+#include <alphagomoku/utils/misc.hpp>
 
 #include <algorithm>
 #include <iostream>
@@ -30,11 +31,11 @@ namespace
 			case ProvenValue::UNKNOWN:
 				return "  _ ";
 			case ProvenValue::LOSS:
-				return " >L<";
+				return " L" + std::to_string(s.getDistanceToWinOrLoss()) + (s.getDistanceToWinOrLoss() < 10 ? " " : "");
 			case ProvenValue::DRAW:
-				return " >D<";
+				return "  D ";
 			case ProvenValue::WIN:
-				return " >W<";
+				return " W" + std::to_string(s.getDistanceToWinOrLoss()) + (s.getDistanceToWinOrLoss() < 10 ? " " : "");
 		}
 	}
 	std::string to_string(float f)

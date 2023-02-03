@@ -28,11 +28,11 @@ namespace ag
 		so.load(actions.data(), offset, actions.sizeInBytes());
 		offset += actions.sizeInBytes();
 
+		minimax_score = so.load<Score>(offset);
+		offset += sizeof(Score);
+
 		minimax_value = so.load<Value>(offset);
 		offset += sizeof(Value);
-
-		minimax_score = Score::from_short(so.load<uint16_t>(offset));
-		offset += sizeof(Score);
 
 		game_outcome = static_cast<GameOutcome>(so.load<int>(offset));
 		offset += sizeof(int);
@@ -69,7 +69,7 @@ namespace ag
 			actions.at(m.row, m.col).sign_and_visit_count = tmp;
 
 			actions.at(m.row, m.col).policy_prior = static_cast<int>(edge->getPolicyPrior() * scale);
-			actions.at(m.row, m.col).score = Score::to_short(edge->getScore());
+			actions.at(m.row, m.col).score = edge->getScore();
 			actions.at(m.row, m.col).win_rate = static_cast<int>(edge->getValue().win_rate * scale);
 			actions.at(m.row, m.col).draw_rate = static_cast<int>(edge->getValue().draw_rate * scale);
 		}
@@ -127,7 +127,7 @@ namespace ag
 		binary_data.save<int>(actions.rows());
 		binary_data.save<int>(actions.cols());
 		binary_data.save(actions.data(), actions.sizeInBytes());
-		binary_data.save<uint16_t>(Score::to_short(minimax_score));
+		binary_data.save<Score>(minimax_score);
 		binary_data.save<Value>(minimax_value);
 		binary_data.save<int>(static_cast<int>(game_outcome));
 		binary_data.save<Move>(played_move);
@@ -149,10 +149,15 @@ namespace ag
 			}
 
 		std::cout << "next move " << played_move.toString() << '\n';
-		std::cout << "minimax " << minimax_value.toString() << ", proven " << minimax_score.toString() << '\n';
+		std::cout << "value " << minimax_value.toString() << ", score " << minimax_score.toString() << '\n';
 		std::cout << "game outcome " << toString(game_outcome) << '\n';
 		std::cout << "board\n" << Board::toString(board);
-		std::cout << "policy\n" << Board::toString(board, policy_prior);
+		std::cout << "policy prior\n" << Board::toString(board, policy_prior);
+		for (int r = 0; r < rows(); r++)
+			for (int c = 0; c < cols(); c++)
+				policy_prior.at(r, c) = getVisitCount(r, c);
+		normalize(policy_prior);
+		std::cout << "visit count\n" << Board::toString(board, policy_prior);
 		std::cout << "proven values\n" << Board::toString(board, action_scores);
 		std::cout << "action values\n" << Board::toString(board, action_values);
 	}

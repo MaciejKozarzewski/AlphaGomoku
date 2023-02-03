@@ -27,8 +27,6 @@ namespace ag
 	class Edge
 	{
 		private:
-			static constexpr int virtual_loss_increment = 1;
-
 			Node *node = nullptr; // non-owning
 			float policy_prior = 0.0f;
 			Value value;
@@ -88,6 +86,10 @@ namespace ag
 			{
 				return score.isProven();
 			}
+			ProvenValue getProvenValue() const noexcept
+			{
+				return score.getProvenValue();
+			}
 			int getVirtualLoss() const noexcept
 			{
 				return virtual_loss;
@@ -128,12 +130,12 @@ namespace ag
 			void increaseVirtualLoss() noexcept
 			{
 				assert(virtual_loss < std::numeric_limits<int16_t>::max());
-				virtual_loss += virtual_loss_increment;
+				virtual_loss += 1;
 			}
 			void decreaseVirtualLoss() noexcept
 			{
 				assert(virtual_loss > 0);
-				virtual_loss -= virtual_loss_increment;
+				virtual_loss -= 1;
 			}
 			void clearVirtualLoss() noexcept
 			{

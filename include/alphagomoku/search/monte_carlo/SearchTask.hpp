@@ -194,6 +194,21 @@ namespace ag
 			std::string toString() const;
 	};
 
+	class SearchTaskList
+	{
+			std::vector<SearchTask> tasks;
+			int current_size = 0;
+			GameRules game_rules;
+		public:
+			SearchTaskList(GameRules rules) noexcept;
+			void resize(int newSize);
+			int capacity() const noexcept;
+			int size() const noexcept;
+			SearchTask& getNext(int index);
+			SearchTask& operator[](int index);
+			const SearchTask& operator[](int index) const;
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_MCTS_SEARCHTASK_HPP_ */

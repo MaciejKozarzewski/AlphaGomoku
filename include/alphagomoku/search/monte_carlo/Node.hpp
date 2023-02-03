@@ -29,6 +29,7 @@ namespace ag
 			Score score;
 			int16_t number_of_edges = 0;
 			int16_t depth = 0;
+			int16_t virtual_loss = 0;
 			Sign sign_to_move = Sign::NONE;
 			bool is_owning = false;
 			bool is_root = false;
@@ -38,8 +39,8 @@ namespace ag
 					value(other.value),
 					visits(other.visits),
 					score(other.score),
-					number_of_edges(0),
 					depth(other.depth),
+					virtual_loss(other.virtual_loss),
 					sign_to_move(other.sign_to_move)
 			{
 			}
@@ -50,6 +51,7 @@ namespace ag
 					score(other.score),
 					number_of_edges(other.number_of_edges),
 					depth(other.depth),
+					virtual_loss(other.virtual_loss),
 					sign_to_move(other.sign_to_move),
 					is_owning(other.is_owning),
 					is_root(other.is_root)
@@ -66,6 +68,7 @@ namespace ag
 				score = other.score;
 				number_of_edges = 0;
 				depth = other.depth;
+				virtual_loss = other.virtual_loss;
 				sign_to_move = other.sign_to_move;
 				is_owning = false;
 				is_owning = other.is_root;
@@ -79,6 +82,7 @@ namespace ag
 				std::swap(this->score, other.score);
 				std::swap(this->number_of_edges, other.number_of_edges);
 				std::swap(this->depth, other.depth);
+				std::swap(this->virtual_loss, other.virtual_loss);
 				std::swap(this->sign_to_move, other.sign_to_move);
 				std::swap(this->is_owning, other.is_owning);
 				std::swap(this->is_root, other.is_root);
@@ -96,6 +100,7 @@ namespace ag
 				visits = 0;
 				score = Score();
 				depth = 0;
+				virtual_loss = 0;
 				sign_to_move = Sign::NONE;
 				is_root = false;
 			}
@@ -158,6 +163,10 @@ namespace ag
 			{
 				return score.isProven();
 			}
+			ProvenValue getProvenValue() const noexcept
+			{
+				return score.getProvenValue();
+			}
 			int numberOfEdges() const noexcept
 			{
 				return number_of_edges;
@@ -165,6 +174,10 @@ namespace ag
 			int getDepth() const noexcept
 			{
 				return depth;
+			}
+			int getVirtualLoss() const noexcept
+			{
+				return virtual_loss;
 			}
 			Sign getSignToMove() const noexcept
 			{
@@ -224,6 +237,20 @@ namespace ag
 			{
 				assert(d >= 0 && d < std::numeric_limits<int16_t>::max());
 				depth = d;
+			}
+			void increaseVirtualLoss() noexcept
+			{
+				assert(virtual_loss < std::numeric_limits<int16_t>::max());
+				virtual_loss += 1;
+			}
+			void decreaseVirtualLoss() noexcept
+			{
+				assert(virtual_loss > 0);
+				virtual_loss -= 1;
+			}
+			void clearVirtualLoss() noexcept
+			{
+				virtual_loss = 0;
 			}
 			void setSignToMove(Sign s) noexcept
 			{

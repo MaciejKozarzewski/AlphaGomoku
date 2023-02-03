@@ -632,53 +632,57 @@ void test_expand()
 
 	matrix<Sign> board(15, 15);
 	board = Board::fromString(""
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ O _ X X _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+	/*         a b c d e f g h i j k l m n o          */
+	/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
+			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
+			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
+			/*  6 */" _ _ _ _ O _ _ _ X _ _ _ _ _ _\n" /*  6 */
+			/*  7 */" _ _ _ X _ X O _ _ _ _ _ _ _ _\n" /*  7 */
+			/*  8 */" _ _ X O O O _ X _ _ _ _ _ _ _\n" /*  8 */
+			/*  9 */" _ _ _ _ O O X _ _ _ _ _ _ _ _\n" /*  9 */
+			/* 10 */" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n" /* 10 */
+			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+			/* 12 */" _ _ O _ X _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+	/*         a b c d e f g h i j k l m n o          */);
 	const Sign sign_to_move = Sign::CROSS;
 
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
-	tree.setEdgeSelector(SequentialHalvingSelector(search_config.max_children, 200));
+	tree.setEdgeSelector(SequentialHalvingSelector(search_config.max_children, 100));
 	tree.setEdgeGenerator(SequentialHalvingGenerator(search_config.max_children));
 //	tree.setEdgeSelector(NoisyPUCTSelector(1.0f, 0.5f));
 //	tree.setEdgeGenerator(BaseGenerator(search_config.max_children));
 
 	int next_step = 0;
-	for (int j = 0; j <= 201; j++)
+	for (int j = 0; j <= 100; j++)
 	{
 //		if (tree.getSimulationCount() >= next_step)
 //		{
 //			std::cout << tree.getSimulationCount() << " ..." << std::endl;
 //			next_step += 10000;
 //		}
-		search.select(tree, 201);
-		search.solve(true);
+		search.select(tree, 100);
+		search.solve();
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
 
 		search.generateEdges(tree);
 		search.expand(tree);
 		search.backup(tree);
+//		tree.printSubtree(5, false);
 
-		if (tree.hasAllMovesProven() or tree.getSimulationCount() >= 201)
+		if (tree.isRootProven() or tree.getSimulationCount() >= 101)
 			break;
 	}
 	search.cleanup(tree);
 
-//	tree.printSubtree(5, true, 8);
+	tree.printSubtree();
+//	return;
 //	std::cout << search.getStats().toString() << '\n';
 //	std::cout << "memory = " << ((tree.getMemory() + search.getMemory()) / 1048576.0) << "MB\n\n";
 //	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
@@ -820,13 +824,19 @@ int main(int argc, char *argv[])
 {
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
+//	{
+//		GameBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/standard_test/train_buffer/buffer_0.bin");
+//		for (int i = 0; i < buffer.getFromBuffer(0).getNumberOfSamples(); i++)
+//			buffer.getFromBuffer(0).getSample(i).print();
+//	}
 
 //	test_expand();
-
-//	TrainingManager tm("/home/maciek/alphagomoku/standard_test_2/");
-//	for (int i = 0; i < 100; i++)
-//		tm.runIterationRL();
 //	return 0;
+
+	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/standard_test/");
+//	for (int i = 0; i < 100; i++)
+	tm.runIterationRL();
+	return 0;
 //	{
 //		AGNetwork network;
 //		network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
@@ -871,7 +881,14 @@ int main(int argc, char *argv[])
 //	test_evaluate();
 //	generate_openings(32);
 //	{
-//		AGNetwork model;
+//		GameConfig gc(GameRules::STANDARD, 15);
+//		TrainingConfig tc;
+//		tc.device_config.batch_size = 2;
+//		AGNetwork model(gc, tc);
+//		model.optimize();
+//		matrix<Sign> asdf(15, 15);
+//		model.packInputData(0, asdf, Sign::CROSS);
+//		model.forward(2);
 //		model.loadFromFile("/home/maciek/alphagomoku/minml_test/minml_btl_10x128_opt.bin");
 //		model.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin");
 //		model.setBatchSize(256);

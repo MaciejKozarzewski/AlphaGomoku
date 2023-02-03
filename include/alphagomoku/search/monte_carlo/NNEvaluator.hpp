@@ -70,6 +70,7 @@ namespace ag
 			bool isOnGPU() const noexcept;
 			void clearStats() noexcept;
 			NNEvaluatorStats getStats() const noexcept;
+			bool isQueueFull() const noexcept;
 			int getQueueSize() const noexcept;
 			void clearQueue() noexcept;
 			void useSymmetries(bool b) noexcept;

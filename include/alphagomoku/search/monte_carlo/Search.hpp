@@ -43,6 +43,7 @@ namespace ag
 			uint64_t nb_duplicate_nodes = 0;
 			uint64_t nb_information_leaks = 0;
 			uint64_t nb_wasted_expansions = 0;
+			uint64_t nb_proven_states = 0;
 			uint64_t nb_network_evaluations = 0;
 			uint64_t nb_node_count = 0;
 
@@ -81,7 +82,7 @@ namespace ag
 			SearchStats getStats() const noexcept;
 
 			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
-			void solve(bool full = true);
+			void solve();
 			void scheduleToNN(NNEvaluator &evaluator);
 			void generateEdges(const Tree &tree);
 			void expand(Tree &tree);

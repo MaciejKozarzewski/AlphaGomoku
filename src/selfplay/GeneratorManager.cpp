@@ -34,7 +34,16 @@ namespace ag
 	void GeneratorThread::start()
 	{
 		generator_future = std::async(std::launch::async, [this]()
-		{	this->run();});
+		{
+			try
+			{
+				this->run();
+			}
+			catch(std::exception &e)
+			{
+				std::cout << e.what() << '\n';
+			}
+		});
 	}
 	bool GeneratorThread::isFinished() const noexcept
 	{

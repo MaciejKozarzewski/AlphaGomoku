@@ -41,6 +41,7 @@ namespace ag
 			Search search;
 
 			GameState state = GAME_NOT_STARTED;
+			bool is_forced_win_found = false;
 
 			SelfplayConfig selfplay_config;
 		public:
@@ -55,7 +56,7 @@ namespace ag
 		private:
 			bool prepare_opening();
 			void make_move();
-			void prepare_search(const matrix<Sign> &board, Sign signToMove);
+			void prepare_search();
 	};
 
 } /* namespace ag */

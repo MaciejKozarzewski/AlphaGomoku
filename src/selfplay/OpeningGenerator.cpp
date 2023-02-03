@@ -29,25 +29,25 @@ namespace
 	Move get_move(SearchTask &task)
 	{
 		if (task.wasProcessedBySolver())
-		{ // maks out provably losing moves
+		{ // mask out provably losing moves
 			for (int i = 0; i < task.getPolicy().size(); i++)
 				if (task.getActionScores()[i].isLoss())
 					task.getPolicy()[i] = 0.0f;
 		}
 		return randomizeMove(task.getPolicy());
 	}
-	void generate_opening_map(const matrix<Sign> &board, matrix<float> &dist)
+	void generate_opening_map(const matrix<Sign> &board, matrix<float> &dist, float noiseWeight)
 	{
 		assert(equalSize(board, dist));
 		for (int i = 0; i < board.size(); i++)
-			dist[i] *= 0.5f;
+			dist[i] *= (1.0f - noiseWeight);
 		if (Board::isEmpty(board))
 		{
 			for (int i = 0; i < board.rows(); i++)
 				for (int j = 0; j < board.cols(); j++)
 				{
 					const float d = std::hypot(0.5 + i - 0.5 * board.rows(), 0.5 + j - 0.5 * board.cols()) - 1;
-					dist.at(i, j) += 0.5f * pow(1.5f, -d);
+					dist.at(i, j) += noiseWeight * pow(1.5f, -d);
 				}
 			return;
 		}
@@ -68,7 +68,7 @@ namespace
 							if (board.at(i, j) == Sign::NONE)
 							{
 								const float d = std::hypot(i - k, j - l) - 1;
-								dist.at(i, j) += 0.5f * pow(tmp, -d);
+								dist.at(i, j) += noiseWeight * pow(tmp, -d);
 							}
 				}
 	}
@@ -90,17 +90,19 @@ namespace ag
 				workspace.erase(workspace.begin() + batchSize, workspace.end());
 			else
 				for (size_t i = workspace.size(); i < batchSize; i++)
+				{
 					workspace.push_back(OpeningUnderConstruction(game_config.rules));
+					workspace.back().desired_length = randInt(average_length) + randInt(average_length);
+				}
 		}
 
 		matrix<Sign> board(game_config.rows, game_config.cols);
 
 		for (auto iter = workspace.begin(); iter < workspace.end(); iter++)
 		{
-			if (iter->task.wasProcessedByNetwork())
+			if (iter->is_scheduled_to_nn and iter->task.wasProcessedByNetwork())
 			{
-				assert(iter->is_scheduled_to_nn);
-				generate_opening_map(iter->task.getBoard(), iter->task.getPolicy());
+				generate_opening_map(iter->task.getBoard(), iter->task.getPolicy(), 1.0f);
 
 				const Move move(iter->task.getSignToMove(), get_move(iter->task));
 				iter->moves.push_back(move);
@@ -119,7 +121,7 @@ namespace ag
 				{
 					fill_board_with_moves(board, iter->moves);
 					iter->task.set(board, get_sign_to_move(iter->moves));
-					solver.solve(iter->task, TssMode::RECURSIVE, 50);
+					solver.solve(iter->task, TssMode::RECURSIVE, 1000);
 					if (iter->task.getScore().isProven())
 						iter->reset(); // opening cannot have a proved score
 					else

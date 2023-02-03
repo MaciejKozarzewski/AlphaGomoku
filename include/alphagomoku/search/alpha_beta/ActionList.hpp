@@ -138,6 +138,7 @@ namespace ag
 			{
 				std::cout << "List of actions:\n";
 				std::cout << "(must defend = " << must_defend << ", has initiative = " << has_initiative << ")\n";
+				std::cout << "baseline score = " << baseline_score.toString() << '\n';
 				for (int i = 0; i < size(); i++)
 					std::cout << i << " : " << m_children[i].move.toString() << " : " << m_children[i].move.text() << " : " << m_children[i].score
 							<< '\n';
