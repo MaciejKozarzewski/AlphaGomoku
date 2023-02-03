@@ -224,6 +224,7 @@ namespace ag
 
 		if (pattern_calculator.getCurrentDepth() + 1 >= number_of_moves_for_draw)
 		{ // next move will end the game with a draw
+			actions->baseline_score = Score::draw();
 			if (is_anything_forbidden_for(get_own_sign()))
 			{ // only if there can be any forbidden move, so in renju and for cross (black) player
 				temporary_list.clear();
@@ -485,6 +486,7 @@ namespace ag
 //				else
 //					add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
 //			}
+		actions->baseline_score = Score::loss_in(4); // will be reverted at the end if there are no threats
 
 		if (game_config.rules != GameRules::RENJU)
 		{
@@ -597,7 +599,6 @@ namespace ag
 		}
 		if (actions->must_defend)
 		{ // TODO actually all those moves should be added before any defensive ones, but as for now it would be tricky to implement
-			actions->baseline_score = Score::loss_in(4);
 			actions->has_initiative = has_any_four;
 			const Score best_score = add_own_4x3_forks();
 			if (best_score.isWin())
@@ -605,6 +606,8 @@ namespace ag
 			add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
 			return Result::canStopNow();
 		}
+		else
+			actions->baseline_score = Score();
 		return Result::mustContinue();
 	}
 	ThreatGenerator::Result ThreatGenerator::try_win_in_5()
