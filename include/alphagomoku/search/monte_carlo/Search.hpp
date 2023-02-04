@@ -16,7 +16,6 @@
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 
-
 #include <cinttypes>
 #include <string>
 #include <vector>
@@ -57,8 +56,8 @@ namespace ag
 	class Search
 	{
 		private:
-			std::vector<SearchTask> search_tasks;
-			int active_task_count = 0;
+			SearchTaskList tasks_list_buffer_0;
+			SearchTaskList tasks_list_buffer_1;
 
 			ThreatSpaceSearch solver;
 
@@ -72,6 +71,7 @@ namespace ag
 					uint64_t node_count = 0;
 			};
 			TuningPoint last_tuning_point;
+			int current_task_buffer = 0;
 		public:
 			Search(GameConfig gameOptions, SearchConfig searchOptions);
 
@@ -84,14 +84,18 @@ namespace ag
 			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
 			void solve();
 			void scheduleToNN(NNEvaluator &evaluator);
+			bool areTasksReady() const noexcept;
 			void generateEdges(const Tree &tree);
 			void expand(Tree &tree);
 			void backup(Tree &tree);
 			void cleanup(Tree &tree);
 			void tune();
+
+			void switchBuffer() noexcept;
+			void setBatchSize(int batchSize) noexcept;
 		private:
-			int get_batch_size(int simulation_count) const noexcept;
-			SearchTask& get_next_task();
+			const SearchTaskList& get_buffer() const noexcept;
+			SearchTaskList& get_buffer() noexcept;
 			bool is_duplicate(const SearchTask &task) const noexcept;
 	};
 

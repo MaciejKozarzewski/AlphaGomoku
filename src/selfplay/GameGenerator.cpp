@@ -25,7 +25,8 @@ namespace ag
 	{
 		// TODO temporary hack to initialize shared hash table in the TSS
 		tree.setBoard(game.getBoard(), game.getSignToMove(), true);
-		search.select(tree, -1);
+		search.select(tree);
+		search.setBatchSize(selfplayOptions.search_config.max_batch_size);
 	}
 	void GameGenerator::clearStats()
 	{
@@ -44,7 +45,7 @@ namespace ag
 	{
 		state = GAME_NOT_STARTED;
 	}
-	void GameGenerator::generate()
+	GameGenerator::Status GameGenerator::generate()
 	{
 		if (state == GAME_NOT_STARTED)
 		{
@@ -64,7 +65,7 @@ namespace ag
 		{
 			const bool isReady = prepare_opening();
 			if (isReady == false)
-				return;
+				return GameGenerator::OK;
 			else
 			{
 				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
@@ -78,11 +79,12 @@ namespace ag
 			search.solve();
 			search.scheduleToNN(nn_evaluator);
 			state = GAMEPLAY_EXPAND_AND_BACKUP;
-			return;
 		}
 
 		if (state == GAMEPLAY_EXPAND_AND_BACKUP)
 		{
+			if (not search.areTasksReady())
+				return GameGenerator::TASKS_NOT_READY;
 			search.generateEdges(tree);
 			search.expand(tree);
 			search.backup(tree);
@@ -96,14 +98,15 @@ namespace ag
 					if (game.getNumberOfSamples() > 0)
 						game_buffer.addToBuffer(game);
 					state = GAME_NOT_STARTED;
-					return;
+					return GameGenerator::OK;
 				}
 				else
 					prepare_search();
 			}
 			state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
-			return;
 		}
+
+		return GameGenerator::OK;
 	}
 	/*
 	 * private
@@ -139,7 +142,7 @@ namespace ag
 		BestEdgeSelector selector;
 		const Move move = selector.select(&root_node)->getMove();
 
-		if (not is_forced_win_found)
+//		if (not is_forced_win_found)
 		{
 			SearchData state(game_config.rows, game_config.cols);
 			state.setBoard(tree.getBoard());

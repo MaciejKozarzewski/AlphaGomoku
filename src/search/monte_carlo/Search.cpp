@@ -82,6 +82,8 @@ namespace ag
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
+			tasks_list_buffer_0(gameOptions.rules),
+			tasks_list_buffer_1(gameOptions.rules),
 			solver(gameOptions, searchOptions.solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
@@ -116,13 +118,10 @@ namespace ag
 	{
 		solver.setSharedTable(tree.getSharedHashTable());
 
-		const int batch_size = get_batch_size(tree.getSimulationCount());
-
-		active_task_count = 0;
-		while (active_task_count < batch_size and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
+		while (get_buffer().size() < get_buffer().capacity() and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
 		{
 			TimerGuard timer(stats.select);
-			SearchTask &current_task = get_next_task();
+			SearchTask &current_task = get_buffer().getNext();
 
 			const SelectOutcome out = tree.select(current_task);
 
@@ -131,7 +130,7 @@ namespace ag
 			if (is_duplicate(current_task))
 			{
 				tree.cancelVirtualLoss(current_task);
-				active_task_count--;
+				get_buffer().removeLast();
 				stats.nb_duplicate_nodes++;
 				break; // in theory the search can be continued but some neural network evaluations would be wasted
 			}
@@ -140,7 +139,7 @@ namespace ag
 				tree.correctInformationLeak(current_task);
 				tree.cancelVirtualLoss(current_task);
 				stats.nb_information_leaks++;
-				active_task_count--;
+				get_buffer().removeLast();
 			}
 			if (out == SelectOutcome::REACHED_PROVEN_STATE)
 			{ // this was added to allow the search to correctly continue even if the tree is proven and we re-visit already proven edges
@@ -151,7 +150,7 @@ namespace ag
 				current_task.markAsProcessedBySolver();
 				tree.backup(current_task); // we just propagate proven value and score (again)
 				stats.nb_proven_states++;
-				active_task_count--;
+				get_buffer().removeLast();
 			}
 		}
 	}
@@ -160,56 +159,68 @@ namespace ag
 		const TssMode level = static_cast<TssMode>(search_config.solver_level);
 		const int positions = search_config.solver_max_positions;
 
-		for (int i = 0; i < active_task_count; i++)
-			if (not search_tasks[i].wasProcessedBySolver())
+		for (int i = 0; i < get_buffer().size(); i++)
+			if (not get_buffer().get(i).wasProcessedBySolver())
 			{
 				TimerGuard timer(stats.solve);
-				solver.solve(search_tasks[i], level, positions);
+				solver.solve(get_buffer().get(i), level, positions);
 			}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
 	{
-		for (int i = 0; i < active_task_count; i++)
+		for (int i = 0; i < get_buffer().size(); i++)
 		{
 			TimerGuard timer(stats.schedule);
-			if (not search_tasks[i].getScore().isProven())
+			if (not get_buffer().get(i).getScore().isProven())
 			{ // schedule only those tasks that haven't already been solved by the solver
 				stats.nb_network_evaluations++;
-				evaluator.addToQueue(search_tasks.at(i));
+				evaluator.addToQueue(get_buffer().get(i));
 			}
 		}
 	}
+	bool Search::areTasksReady() const noexcept
+	{
+		for (int i = 0; i < get_buffer().size(); i++)
+			if (not get_buffer().get(i).isReady())
+				return false;
+		return true;
+	}
 	void Search::generateEdges(const Tree &tree)
 	{
-		for (int i = 0; i < active_task_count; i++)
+		for (int i = 0; i < get_buffer().size(); i++)
 		{
 			TimerGuard timer(stats.generate);
-			tree.generateEdges(search_tasks[i]);
+			tree.generateEdges(get_buffer().get(i));
 		}
 	}
 	void Search::expand(Tree &tree)
 	{
-		for (int i = 0; i < active_task_count; i++)
+		for (int i = 0; i < get_buffer().size(); i++)
 		{
 			TimerGuard timer(stats.expand);
-			const ExpandOutcome out = tree.expand(search_tasks[i]);
+			const ExpandOutcome out = tree.expand(get_buffer().get(i));
 			stats.nb_wasted_expansions += static_cast<uint64_t>(out == ExpandOutcome::ALREADY_EXPANDED);
 		}
 	}
 	void Search::backup(Tree &tree)
 	{
-		stats.nb_node_count += active_task_count;
-		for (int i = 0; i < active_task_count; i++)
+		stats.nb_node_count += get_buffer().size();
+		for (int i = 0; i < get_buffer().size(); i++)
 		{
 			TimerGuard timer(stats.backup);
-			tree.backup(search_tasks[i]);
+			tree.backup(get_buffer().get(i));
 		}
-		active_task_count = 0; // those task should not be used again
+		get_buffer().clear();
 	}
 	void Search::cleanup(Tree &tree)
 	{
-		for (int i = 0; i < active_task_count; i++)
-			tree.cancelVirtualLoss(search_tasks[i]);
+		for (int b = 0; b < 2; b++)
+		{
+			for (int i = 0; i < get_buffer().size(); i++)
+				tree.cancelVirtualLoss(get_buffer().get(i));
+			get_buffer().clear();
+			switchBuffer();
+		}
 	}
 	void Search::tune()
 	{
@@ -227,26 +238,37 @@ namespace ag
 			last_tuning_point.node_count = stats.nb_node_count;
 		}
 	}
+	void Search::switchBuffer() noexcept
+	{
+		current_task_buffer = 1 - current_task_buffer;
+	}
+	void Search::setBatchSize(int batchSize) noexcept
+	{
+		tasks_list_buffer_0.resize(batchSize);
+		tasks_list_buffer_1.resize(batchSize);
+	}
 	/*
 	 * private
 	 */
-	int Search::get_batch_size(int simulation_count) const noexcept
+
+	const SearchTaskList& Search::get_buffer() const noexcept
 	{
-		return search_config.max_batch_size;
+		return (current_task_buffer == 0) ? tasks_list_buffer_0 : tasks_list_buffer_1;
+	}
+	SearchTaskList& Search::get_buffer() noexcept
+	{
+		return (current_task_buffer == 0) ? tasks_list_buffer_0 : tasks_list_buffer_1;
+	}
+//	int Search::get_batch_size(int simulation_count) const noexcept
+//	{
+//		return search_config.max_batch_size;
 //		const int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
 //		return std::max(1, std::min(search_config.max_batch_size, tmp));
-	}
-	SearchTask& Search::get_next_task()
-	{
-		active_task_count++;
-		if (active_task_count > static_cast<int>(search_tasks.size()))
-			search_tasks.push_back(SearchTask(game_config.rules));
-		return search_tasks[active_task_count - 1];
-	}
+//	}
 	bool Search::is_duplicate(const SearchTask &task) const noexcept
 	{
-		for (int i = 0; i < active_task_count - 1; i++)
-			if (task.getLastPair().edge == search_tasks[i].getLastPair().edge)
+		for (int i = 0; i < get_buffer().size() - 1; i++)
+			if (task.getLastPair().edge == get_buffer().get(i).getLastPair().edge)
 				return true;
 		return false;
 	}

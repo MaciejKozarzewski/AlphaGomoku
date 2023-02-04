@@ -55,7 +55,8 @@ namespace ag
 					int symmetry = 0;
 			};
 
-			std::vector<TaskData> task_queue;
+			std::vector<TaskData> waiting_queue;
+			std::vector<TaskData> in_progress_queue;
 			AGNetwork network;
 
 			NNEvaluatorStats stats;
@@ -83,8 +84,8 @@ namespace ag
 			void asyncEvaluateGraphLaunch();
 			SpeedSummary asyncEvaluateGraphJoin();
 		private:
-			void pack_to_network(int batch_size);
-			void unpack_from_network(int batch_size);
+			void pack_to_network();
+			void unpack_from_network();
 	};
 } /* namespace ag */
 

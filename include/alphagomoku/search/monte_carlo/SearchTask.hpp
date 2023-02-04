@@ -122,6 +122,10 @@ namespace ag
 			{
 				return was_processed_by_solver;
 			}
+			bool isReady() const noexcept
+			{
+				return was_processed_by_network or was_processed_by_solver;
+			}
 			bool mustDefend() const noexcept
 			{
 				return must_defend;
@@ -200,13 +204,51 @@ namespace ag
 			int current_size = 0;
 			GameRules game_rules;
 		public:
-			SearchTaskList(GameRules rules) noexcept;
-			void resize(int newSize);
-			int capacity() const noexcept;
-			int size() const noexcept;
-			SearchTask& getNext(int index);
-			SearchTask& operator[](int index);
-			const SearchTask& operator[](int index) const;
+			SearchTaskList(GameRules rules) noexcept :
+					game_rules(rules)
+			{
+			}
+			void resize(int newSize)
+			{
+				if (newSize != capacity())
+				{
+					if (newSize < capacity())
+						tasks.erase(tasks.begin() + newSize, tasks.end());
+					else
+						for (int i = capacity(); i < newSize; i++)
+							tasks.push_back(SearchTask(game_rules));
+				}
+			}
+			int capacity() const noexcept
+			{
+				return tasks.capacity();
+			}
+			int size() const noexcept
+			{
+				return current_size;
+			}
+			void clear() noexcept
+			{
+				current_size = 0;
+			}
+			SearchTask& getNext()
+			{
+				current_size++;
+				return tasks.at(current_size - 1);
+			}
+			void removeLast() noexcept
+			{
+				assert(current_size > 0);
+				current_size--;
+			}
+			SearchTask& get(int index)
+			{
+				return tasks.at(index);
+			}
+			const SearchTask& get(int index) const
+			{
+				return tasks.at(index);
+			}
 	};
 
 } /* namespace ag */

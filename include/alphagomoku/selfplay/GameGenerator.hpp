@@ -21,7 +21,6 @@ namespace ag
 
 namespace ag
 {
-
 	class GameGenerator
 	{
 		private:
@@ -45,6 +44,12 @@ namespace ag
 
 			SelfplayConfig selfplay_config;
 		public:
+			enum Status
+			{
+				OK,
+				TASKS_NOT_READY
+			};
+
 			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator);
 
 			void clearStats();
@@ -52,7 +57,7 @@ namespace ag
 			SearchStats getSearchStats() const noexcept;
 
 			void reset();
-			void generate();
+			Status generate();
 		private:
 			bool prepare_opening();
 			void make_move();

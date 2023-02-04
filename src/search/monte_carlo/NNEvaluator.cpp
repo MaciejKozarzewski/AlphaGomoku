@@ -91,11 +91,11 @@ namespace ag
 	}
 	int NNEvaluator::getQueueSize() const noexcept
 	{
-		return task_queue.size();
+		return waiting_queue.size();
 	}
 	void NNEvaluator::clearQueue() noexcept
 	{
-		task_queue.clear();
+		waiting_queue.clear();
 	}
 	void NNEvaluator::useSymmetries(bool b) noexcept
 	{
@@ -121,14 +121,14 @@ namespace ag
 	void NNEvaluator::addToQueue(SearchTask &task)
 	{
 		if (use_symmetries)
-			task_queue.push_back( { &task, randInt(available_symmetries) });
+			waiting_queue.push_back( { &task, randInt(available_symmetries) });
 		else
-			task_queue.push_back( { &task, 0 });
+			waiting_queue.push_back( { &task, 0 });
 	}
 	void NNEvaluator::addToQueue(SearchTask &task, int symmetry)
 	{
 		assert(abs(symmetry) <= available_symmetries);
-		task_queue.push_back( { &task, symmetry });
+		waiting_queue.push_back( { &task, symmetry });
 	}
 	SpeedSummary NNEvaluator::evaluateGraph()
 	{
@@ -136,14 +136,17 @@ namespace ag
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
 		SpeedSummary result;
-		while (task_queue.size() > 0)
+		while (waiting_queue.size() > 0)
 		{
-			const int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
+			const int batch_size = std::min(static_cast<int>(waiting_queue.size()), network.getBatchSize());
 			if (batch_size > 0)
 			{
 				stats.batch_sizes += batch_size; // statistics
 
-				pack_to_network(batch_size);
+				in_progress_queue.assign(waiting_queue.begin(), waiting_queue.begin() + batch_size);
+				waiting_queue.erase(waiting_queue.begin(), waiting_queue.begin() + batch_size);
+
+				pack_to_network();
 
 				stats.compute.startTimer();
 				network.forward(batch_size);
@@ -151,8 +154,8 @@ namespace ag
 				result.batch_size += batch_size;
 				result.compute_time += stats.compute.getLastTime();
 
-				unpack_from_network(batch_size);
-				task_queue.erase(task_queue.begin(), task_queue.begin() + batch_size);
+				unpack_from_network();
+				in_progress_queue.clear();
 			}
 		}
 		return result;
@@ -161,13 +164,18 @@ namespace ag
 	{
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
+		if (not in_progress_queue.empty())
+			throw std::logic_error("some tasks are already being processed");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
-		const int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
+		const int batch_size = std::min(static_cast<int>(waiting_queue.size()), network.getBatchSize());
 		if (batch_size > 0)
 		{
 			stats.batch_sizes += batch_size; // statistics
 
-			pack_to_network(batch_size);
+			in_progress_queue.assign(waiting_queue.begin(), waiting_queue.begin() + batch_size);
+			waiting_queue.erase(waiting_queue.begin(), waiting_queue.begin() + batch_size);
+
+			pack_to_network();
 
 			stats.launch.startTimer();
 			network.asyncForwardLaunch(batch_size);
@@ -180,7 +188,8 @@ namespace ag
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
-		const int batch_size = std::min(static_cast<int>(task_queue.size()), network.getBatchSize());
+		assert(static_cast<int>(in_progress_queue.size()) <= network.getBatchSize());
+		const int batch_size = in_progress_queue.size();
 		if (batch_size > 0)
 		{
 			stats.wait.startTimer();
@@ -188,21 +197,21 @@ namespace ag
 			stats.wait.stopTimer();
 			stats.compute.stopTimer();
 
-			unpack_from_network(batch_size);
-			task_queue.erase(task_queue.begin(), task_queue.begin() + batch_size);
+			unpack_from_network();
+			in_progress_queue.clear();
 		}
 		return SpeedSummary( { batch_size, stats.compute.getLastTime(), stats.wait.getLastTime() });
 	}
 	/*
 	 * private
 	 */
-	void NNEvaluator::pack_to_network(int batch_size)
+	void NNEvaluator::pack_to_network()
 	{
 		TimerGuard timer(stats.pack);
 		matrix<Sign> board(network.getInputShape()[1], network.getInputShape()[2]);
-		for (int i = 0; i < batch_size; i++)
+		for (size_t i = 0; i < in_progress_queue.size(); i++)
 		{
-			TaskData td = task_queue[i];
+			TaskData td = in_progress_queue.at(i);
 			if (td.ptr->wasProcessedBySolver())
 			{
 				td.ptr->getFeatures().augment(td.symmetry);
@@ -215,15 +224,15 @@ namespace ag
 			}
 		}
 	}
-	void NNEvaluator::unpack_from_network(int batch_size)
+	void NNEvaluator::unpack_from_network()
 	{
 		TimerGuard timer(stats.unpack);
 		matrix<float> policy(network.getInputShape()[1], network.getInputShape()[2]);
 		matrix<Value> action_values(network.getInputShape()[1], network.getInputShape()[2]);
 		Value value;
-		for (int i = 0; i < batch_size; i++)
+		for (size_t i = 0; i < in_progress_queue.size(); i++)
 		{
-			TaskData td = task_queue[i];
+			TaskData td = in_progress_queue.at(i);
 			network.unpackOutput(i, policy, action_values, value);
 			augment(td.ptr->getPolicy(), policy, -td.symmetry);
 			augment(td.ptr->getActionValues(), action_values, -td.symmetry);

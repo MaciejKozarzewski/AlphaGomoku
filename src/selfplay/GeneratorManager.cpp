@@ -41,7 +41,8 @@ namespace ag
 			}
 			catch(std::exception &e)
 			{
-				std::cout << e.what() << '\n';
+				std::cout << "GeneratorThread::start() threw " << e.what() << '\n';
+				exit(-1);
 			}
 		});
 	}
@@ -95,8 +96,14 @@ namespace ag
 		while (not manager.hasEnoughGames())
 		{
 			for (size_t i = 0; i < generators.size(); i++)
-				generators[i]->generate();
-			nn_evaluator.evaluateGraph();
+			{
+				const GameGenerator::Status status = generators[i]->generate();
+				if (nn_evaluator.isQueueFull() or status == GameGenerator::TASKS_NOT_READY)
+				{
+					nn_evaluator.asyncEvaluateGraphJoin();
+					nn_evaluator.asyncEvaluateGraphLaunch();
+				}
+			}
 		}
 		nn_evaluator.unloadGraph();
 	}

@@ -100,46 +100,5 @@ namespace ag
 		return result;
 	}
 
-	/*
-	 * SearchTaskList
-	 */
-	SearchTaskList::SearchTaskList(GameRules rules) noexcept :
-			game_rules(rules)
-	{
-	}
-	void SearchTaskList::resize(int newSize)
-	{
-		if (newSize != capacity())
-		{
-			if (newSize < capacity())
-				tasks.erase(tasks.begin() + newSize, tasks.end());
-			else
-				for (int i = capacity(); i < newSize; i++)
-					tasks.push_back(SearchTask(game_rules));
-		}
-	}
-	int SearchTaskList::capacity() const noexcept
-	{
-		return tasks.capacity();
-	}
-	int SearchTaskList::size() const noexcept
-	{
-		return current_size;
-	}
-	SearchTask& SearchTaskList::getNext(int index)
-	{
-		current_size++;
-		return tasks.at(current_size - 1);
-	}
-	SearchTask& SearchTaskList::operator[](int index)
-	{
-		return tasks.at(index);
-	}
-	const SearchTask& SearchTaskList::operator[](int index) const
-	{
-		return tasks.at(index);
-	}
-
-}
-/* namespace ag */
+} /* namespace ag */
 
