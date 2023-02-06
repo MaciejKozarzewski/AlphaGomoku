@@ -75,9 +75,9 @@ namespace ag
 			std::default_random_engine generator;
 			std::extreme_value_distribution<float> noise;
 			std::vector<float> noisy_policy;
-			const Node *current_root = nullptr;
 			const float exploration_constant; /**< controls the level of exploration */
 			const float style_factor; /**< used to determine what to optimize during search */
+			bool is_initialized = false;
 		public:
 			NoisyPUCTSelector(float exploration, float styleFactor = 0.5f);
 			std::unique_ptr<EdgeSelector> clone() const;
@@ -151,7 +151,6 @@ namespace ag
 
 			std::vector<Data> action_list;
 			std::vector<float> workspace;
-			int number_of_actions_left = 0;
 
 			const int max_edges;
 			const int max_simulations;
@@ -166,10 +165,10 @@ namespace ag
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
 		private:
-			void initialize(const Node *newRoot);
+			void initialize(const Node *node);
 			Edge* select_at_root(const Node *node) noexcept;
 			Edge* select_below_root(const Node *node) noexcept;
-			void sort_workspace() noexcept;
+			void sort_workspace(int topN) noexcept;
 	};
 
 } /* namespace ag */

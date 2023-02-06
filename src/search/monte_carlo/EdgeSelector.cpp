@@ -24,7 +24,7 @@ namespace
 		return visits / (visits + virtual_loss);
 	}
 	template<typename T>
-	float getQ(const T *n, float styleFactor = 0.5f) noexcept
+	float getQ(const T *n, float styleFactor) noexcept
 	{
 		assert(n != nullptr);
 		return n->getWinRate() + styleFactor * n->getDrawRate();
@@ -59,12 +59,6 @@ namespace
 	float get_q(const Edge *edge) noexcept
 	{
 		return (edge->getVisits() > 0 or edge->isProven()) ? edge->getValue().getExpectation() : 0.0f;
-	}
-	int halve(int actionsLeft, int maxEdges, int numUnprovenEdges) noexcept
-	{
-		assert(actionsLeft > 1);
-		actionsLeft -= actionsLeft / 2;
-		return std::min(maxEdges, std::min(numUnprovenEdges, actionsLeft));
 	}
 	void softmax(std::vector<float> &vec) noexcept
 	{
@@ -173,38 +167,43 @@ namespace
 	struct PUCT
 	{
 			const float parent_sqrt_visit;
+			const float parent_q;
 			const float style_factor;
-			PUCT(int parentVisits, float explorationConstant, float styleFactor) noexcept :
-					parent_sqrt_visit(explorationConstant * sqrtf(parentVisits)),
+			PUCT(const Node *parent, float explorationConstant, float styleFactor) noexcept :
+					parent_sqrt_visit(explorationConstant * sqrtf(parent->getVisits())),
+					parent_q(getQ(parent, styleFactor)),
 					style_factor(styleFactor)
 			{
 			}
 			float operator()(const Edge *edge) const noexcept
 			{
-				const float Q = getQ(edge, style_factor) * getVirtualLoss(edge);
+				const float Q = edge->getVisits() > 0 ? getQ(edge, style_factor) : parent_q; // init to parent
+//				const float Q = getQ(edge, style_factor); // init to Q head
 				const float U = edge->getPolicyPrior() * parent_sqrt_visit / (1.0f + edge->getVisits());
-				return Q + U;
+				return Q * getVirtualLoss(edge) + U;
 			}
 	};
 	struct NoisyPUCT
 	{
 			const float parent_sqrt_visit;
+			const float parent_q;
 			const float style_factor;
 			const std::vector<float> &noisy_policy;
 			const Edge *first;
-			NoisyPUCT(int parentVisits, float explorationConstant, float styleFactor, const std::vector<float> &noisyPolicy,
-					const Edge *firstEdge) noexcept :
-					parent_sqrt_visit(explorationConstant * sqrtf(parentVisits)),
+			NoisyPUCT(const Node *parent, float explorationConstant, float styleFactor, const std::vector<float> &noisyPolicy) noexcept :
+					parent_sqrt_visit(explorationConstant * sqrtf(parent->getVisits())),
+					parent_q(getQ(parent, styleFactor)),
 					style_factor(styleFactor),
 					noisy_policy(noisyPolicy),
-					first(firstEdge)
+					first(parent->begin())
 			{
 			}
 			float operator()(const Edge *edge) const noexcept
 			{
-				const float Q = getQ(edge, style_factor) * getVirtualLoss(edge);
+				const float Q = edge->getVisits() > 0 ? getQ(edge, style_factor) : parent_q; // init to parent
+//				const float Q = getQ(edge, style_factor); // init to Q head
 				const float U = noisy_policy[std::distance(first, edge)] * parent_sqrt_visit / (1.0f + edge->getVisits());
-				return Q + U;
+				return Q * getVirtualLoss(edge) + U;
 			}
 	};
 	struct MaxValue
@@ -216,7 +215,18 @@ namespace
 			}
 			float operator()(const Edge *edge) const noexcept
 			{
-				return getQ(edge, style_factor);
+				switch (edge->getScore().getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return -100.0f + 0.1f * edge->getScore().getDistanceToWinOrLoss();
+					case ProvenValue::DRAW:
+						return Value::draw().getExpectation();
+					default:
+					case ProvenValue::UNKNOWN:
+						return getQ(edge, style_factor);
+					case ProvenValue::WIN:
+						return +101.0f - 0.1f * edge->getScore().getDistanceToWinOrLoss();
+				}
 			}
 	};
 	struct BestEdge
@@ -269,7 +279,7 @@ namespace ag
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
 
-		const PUCT op(node->getVisits(), exploration_constant, style_factor);
+		const PUCT op(node, exploration_constant, style_factor);
 		const EdgeComparator<PUCT> greater_than(op);
 
 		Edge *best_edge = node->begin();
@@ -318,19 +328,19 @@ namespace ag
 		assert(node->isLeaf() == false);
 		if (node->isRoot())
 		{
-			if (node != current_root)
+			if (not is_initialized)
 			{ // reset noise
-				current_root = node;
 				float max_policy_value = std::numeric_limits<float>::lowest();
 				for (Edge *iter = node->begin(); iter < node->end(); iter++)
 					max_policy_value = std::max(max_policy_value, iter->getPolicyPrior());
 				noisy_policy.clear();
 				for (Edge *iter = node->begin(); iter < node->end(); iter++)
-					noisy_policy.push_back(safe_log(iter->getPolicyPrior()) + max_policy_value * noise(generator));
+					noisy_policy.push_back(safe_log(iter->getPolicyPrior()) + noise(generator));
 				softmax(noisy_policy);
+				is_initialized = true;
 			}
 
-			const NoisyPUCT op(node->getVisits(), exploration_constant, style_factor, noisy_policy, node->begin());
+			const NoisyPUCT op(node, exploration_constant, style_factor, noisy_policy);
 			const EdgeComparator<NoisyPUCT> greater_than(op);
 
 			Edge *best_edge = node->begin();
@@ -474,16 +484,16 @@ namespace ag
 	/*
 	 * private
 	 */
-	void SequentialHalvingSelector::initialize(const Node *newRoot)
+	void SequentialHalvingSelector::initialize(const Node *node)
 	{
-		assert(newRoot != nullptr);
-		assert(newRoot->isRoot());
+		assert(node != nullptr);
+		assert(node->isRoot());
+		is_initialized = true;
 		expected_visit_count = 0;
 		simulations_left = max_simulations - 1; // one simulation is used to evaluate and expand the root node
-		number_of_actions_left = newRoot->numberOfEdges();
 
 		action_list.clear();
-		for (Edge *iter = newRoot->begin(); iter < newRoot->end(); iter++)
+		for (Edge *iter = node->begin(); iter < node->end(); iter++)
 		{
 			Data tmp;
 			tmp.edge = iter;
@@ -494,20 +504,23 @@ namespace ag
 	}
 	Edge* SequentialHalvingSelector::select_at_root(const Node *node) noexcept
 	{
-		if (number_of_actions_left > 2)
+		assert(node != nullptr);
+		assert(node->isRoot());
+		assert(node->isLeaf() == false);
+		assert(is_initialized);
+		if (action_list.size() > 2)
 		{
-			const bool is_level_complete = std::all_of(action_list.begin(), action_list.begin() + number_of_actions_left, [this](const Data &data)
+			const bool is_level_complete = std::all_of(action_list.begin(), action_list.end(), [this](const Data &data)
 			{	return (data.edge->getVisits() >= expected_visit_count) or data.edge->isProven();});
 
 			if (is_level_complete)
 			{ // advance to the next level
-				const int num_unproven_edges = std::count_if(action_list.begin(), action_list.end(), [this](const Data &data)
-				{	return not data.edge->isProven();});
-//				std::cout << "moving to the next level with " << number_of_actions_left << " actions (" << num_unproven_edges << " unproven)\n";
+//				std::cout << "moving to the next level with " << action_list.size() << " actions\n";
 
-				number_of_actions_left = halve(number_of_actions_left, max_edges, num_unproven_edges);
-//				std::cout << number_of_actions_left << " actions left\n";
-				sort_workspace();
+				const int number_of_actions_left = std::min((size_t) max_edges, action_list.size() - action_list.size() / 2);
+				std::cout << number_of_actions_left << " actions left\n";
+				sort_workspace(number_of_actions_left);
+				action_list.erase(action_list.begin() + number_of_actions_left, action_list.end());
 
 				const int levels_left = std::max(1, integer_log2(number_of_actions_left) - 1); // the last level is when we have just 2 actions left
 				const int simulations_for_this_level = simulations_left / levels_left;
@@ -515,24 +528,18 @@ namespace ag
 
 //				std::cout << "levels left = " << levels_left << ", simulations left = " << simulations_left << ", simulations for this level = "
 //						<< simulations_for_this_level << ", expected visit count = " << expected_visit_count << '\n';
-//
 //				std::cout << "action list:\n";
-//				const int max_N = std::max_element(current_root->begin(), current_root->end(), [](const Edge &lhs, const Edge &rhs)
-//				{	return lhs.getVisits() < rhs.getVisits();})->getVisits();
+//				int max_N = 0;
+//				for (auto iter = action_list.begin(); iter < action_list.end(); iter++)
+//					max_N = std::max(max_N, iter->edge->getVisits());
 //				const float scale = (C_visit + max_N) * C_scale;
-//				for (int i = 0; i < number_of_actions_left; i++)
-//					std::cout << action_list[i].edge->toString() << " : noise=" << action_list[i].noise << " : logit=" << action_list[i].logit
-//							<< " : sigma(Q)=" << scale * get_q(action_list[i].edge) << '\n';
-//
-//				std::cout << "...\n";
-//				for (size_t i = number_of_actions_left; i < action_list.size(); i++)
-//					if (action_list[i].edge->isProven())
-//						std::cout << action_list[i].edge->toString() << " : noise=" << action_list[i].noise << " : logit=" << action_list[i].logit
-//								<< " : sigma(Q)=" << scale * get_q(action_list[i].edge) << '\n';
+//				for (auto iter = action_list.begin(); iter < action_list.end(); iter++)
+//					std::cout << iter->edge->toString() << " : noise=" << iter->noise << " : logit=" << iter->logit << " : sigma(Q)="
+//							<< scale * get_q(iter->edge) << '\n';
 			}
 		}
 
-		auto result = std::min_element(action_list.begin(), action_list.begin() + number_of_actions_left, [](const Data &lhs, const Data &rhs)
+		auto result = std::min_element(action_list.begin(), action_list.end(), [](const Data &lhs, const Data &rhs)
 		{	return visits_plus_virtual_loss(lhs.edge) < visits_plus_virtual_loss(rhs.edge);});
 		assert(result != action_list.end());
 
@@ -543,6 +550,7 @@ namespace ag
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
+		assert(is_initialized);
 
 		create_completed_Q(workspace, node, C_visit, C_scale);
 
@@ -564,20 +572,19 @@ namespace ag
 
 //		return PUCTSelector(1.0f).select(node);
 	}
-	void SequentialHalvingSelector::sort_workspace() noexcept
+	void SequentialHalvingSelector::sort_workspace(int topN) noexcept
 	{
 		int max_N = 0;
 		for (auto iter = action_list.begin(); iter < action_list.end(); iter++)
 			max_N = std::max(max_N, iter->edge->getVisits());
 
 		const float scale = (C_visit + max_N) * C_scale;
-		std::partial_sort(action_list.begin(), action_list.begin() + number_of_actions_left, action_list.end(),
-				[scale](const Data &lhs, const Data &rhs)
-				{
-					const float lhs_value = lhs.noise + lhs.logit + scale * get_q(lhs.edge) - 1.0e6f * lhs.edge->isProven();
-					const float rhs_value = rhs.noise + rhs.logit + scale * get_q(rhs.edge) - 1.0e6f * rhs.edge->isProven();
-					return lhs_value > rhs_value; // intentionally inverted to sort in descending order
-					});
+		std::partial_sort(action_list.begin(), action_list.begin() + topN, action_list.end(), [scale](const Data &lhs, const Data &rhs)
+		{
+			const float lhs_value = lhs.noise + lhs.logit + scale * get_q(lhs.edge);
+			const float rhs_value = rhs.noise + rhs.logit + scale * get_q(rhs.edge);
+			return lhs_value > rhs_value; // intentionally inverted to sort in descending order
+			});
 	}
 
 } /* namespace ag */
