@@ -38,28 +38,31 @@ namespace
 				return " W" + std::to_string(s.getDistanceToWinOrLoss()) + (s.getDistanceToWinOrLoss() < 10 ? " " : "");
 		}
 	}
-	std::string to_string(float f)
+	std::string to_string(int i)
 	{
-		const int t = static_cast<int>(1000 * f);
-		if (t == 0)
+		if (i == 0)
 			return "  _ ";
 		else
 		{
-			if (t < 10)
-				return "   " + std::to_string(t);
+			if (i < 10)
+				return "   " + std::to_string(i);
 			else
 			{
-				if (t < 100)
-					return "  " + std::to_string(t);
+				if (i < 100)
+					return "  " + std::to_string(i);
 				else
 				{
-					if (t == 1000)
-						return std::to_string(t);
+					if (i == 1000)
+						return std::to_string(i);
 					else
-						return " " + std::to_string(t);
+						return " " + std::to_string(i);
 				}
 			}
 		}
+	}
+	std::string to_string(float f)
+	{
+		return to_string(static_cast<int>(1000 * f));
 	}
 	std::string to_string(Value v)
 	{
@@ -245,6 +248,11 @@ namespace ag
 	{
 		assert(equalSize(board, policy));
 		return board_to_string(board, policy);
+	}
+	std::string Board::toString(const matrix<Sign> &board, const matrix<int> &visitCount)
+	{
+		assert(equalSize(board, visitCount));
+		return board_to_string(board, visitCount);
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<Value> &actionValues)
 	{
