@@ -46,7 +46,17 @@ namespace ag
 	{
 		games_to_play = numberOfGames;
 		evaluator_future = std::async(std::launch::async, [this]()
-		{	this->run();});
+		{
+			try
+			{
+				this->run();
+			}
+			catch (std::exception &e)
+			{
+				std::cout << "EvaluatorThread::generate() threw " << e.what() << std::endl;
+				exit(-1);
+			}
+		});
 	}
 	bool EvaluatorThread::isFinished() const
 	{

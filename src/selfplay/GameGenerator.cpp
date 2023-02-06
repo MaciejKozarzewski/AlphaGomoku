@@ -17,7 +17,7 @@ namespace ag
 	GameGenerator::GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator) :
 			game_buffer(gameBuffer),
 			nn_evaluator(evaluator),
-			opening_generator(gameOptions, 10),
+			opening_generator(gameOptions, 8),
 			game(gameOptions),
 			tree(selfplayOptions.tree_config),
 			search(gameOptions, selfplayOptions.search_config),
@@ -63,11 +63,15 @@ namespace ag
 
 		if (state == PREPARE_OPENING)
 		{
-			const bool isReady = prepare_opening();
-			if (isReady == false)
-				return GameGenerator::OK;
+			if (opening_generator.isEmpty())
+			{
+				const OpeningGenerator::Status status = opening_generator.generate(selfplay_config.search_config.max_batch_size, nn_evaluator,
+						search.getSolver());
+				return (status == OpeningGenerator::OK) ? GameGenerator::OK : GameGenerator::TASKS_NOT_READY;
+			}
 			else
 			{
+				game.loadOpening(opening_generator.pop());
 				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
 				prepare_search();
 			}
@@ -79,12 +83,14 @@ namespace ag
 			search.solve();
 			search.scheduleToNN(nn_evaluator);
 			state = GAMEPLAY_EXPAND_AND_BACKUP;
+			return GameGenerator::OK;
 		}
 
 		if (state == GAMEPLAY_EXPAND_AND_BACKUP)
 		{
 			if (not search.areTasksReady())
 				return GameGenerator::TASKS_NOT_READY;
+
 			search.generateEdges(tree);
 			search.expand(tree);
 			search.backup(tree);
@@ -111,19 +117,6 @@ namespace ag
 	/*
 	 * private
 	 */
-	bool GameGenerator::prepare_opening()
-	{
-		if (opening_generator.isEmpty())
-			opening_generator.generate(selfplay_config.search_config.max_batch_size, nn_evaluator, search.getSolver());
-
-		if (opening_generator.isEmpty())
-			return false;
-		else
-		{
-			game.loadOpening(opening_generator.pop());
-			return true;
-		}
-	}
 	void GameGenerator::make_move()
 	{
 		const GameConfig game_config = game.getConfig();
@@ -139,7 +132,7 @@ namespace ag
 //			std::cout << "   " << root_node.getEdge(i).toString() << '\n';
 //		tree.printSubtree(2, false);
 
-		BestEdgeSelector selector;
+		MaxValueSelector selector;
 		const Move move = selector.select(&root_node)->getMove();
 
 //		if (not is_forced_win_found)
@@ -151,7 +144,6 @@ namespace ag
 			game.addSearchData(state);
 //			state.print();
 		}
-
 		game.makeMove(move);
 
 		if (root_node.isProven())
@@ -161,8 +153,8 @@ namespace ag
 	{
 		search.cleanup(tree);
 		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
-//		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeSelector(SequentialHalvingSelector(search.getConfig().max_children, selfplay_config.simulations, 50.0f, 1.0f));
+		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
+//		tree.setEdgeSelector(SequentialHalvingSelector(search.getConfig().max_children, selfplay_config.simulations, 50.0f, 1.0f));
 		tree.setEdgeGenerator(SequentialHalvingGenerator(search.getConfig().max_children));
 	}
 

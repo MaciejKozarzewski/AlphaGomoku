@@ -10,6 +10,7 @@
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/Board.hpp>
+#include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/search/monte_carlo/Node.hpp>
 #include <alphagomoku/selfplay/NNInputFeatures.hpp>
 
@@ -48,13 +49,13 @@ namespace ag
 			matrix<Score> action_scores; /**< matrix of action scores returned from solver */
 			Score score; /**< whole position score computed by solver */
 
-			GameRules game_rules;
+			GameConfig game_config;
 			Sign sign_to_move = Sign::NONE;
 			bool was_processed_by_network = false; /**< flag indicating whether the task has been evaluated by neural network and can be used for edge generation */
 			bool was_processed_by_solver = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
 			bool must_defend = false; /**< flag indicating whether the player to move must defend a threat from the opponent */
 		public:
-			SearchTask(GameRules rules);
+			SearchTask(GameConfig config);
 			void set(const matrix<Sign> &base, Sign signToMove);
 			int getAbsoluteDepth() const noexcept
 			{
@@ -98,9 +99,9 @@ namespace ag
 			{
 				return edges;
 			}
-			GameRules getGameRules() const noexcept
+			GameConfig getGameConfig() const noexcept
 			{
-				return game_rules;
+				return game_config;
 			}
 			Sign getSignToMove() const noexcept
 			{
@@ -124,7 +125,7 @@ namespace ag
 			}
 			bool isReady() const noexcept
 			{
-				return was_processed_by_network or was_processed_by_solver;
+				return score.isProven() or wasProcessedByNetwork();
 			}
 			bool mustDefend() const noexcept
 			{
@@ -202,10 +203,10 @@ namespace ag
 	{
 			std::vector<SearchTask> tasks;
 			int current_size = 0;
-			GameRules game_rules;
+			GameConfig game_config;
 		public:
-			SearchTaskList(GameRules rules) noexcept :
-					game_rules(rules)
+			SearchTaskList(GameConfig config) noexcept :
+					game_config(config)
 			{
 			}
 			void resize(int newSize)
@@ -216,7 +217,7 @@ namespace ag
 						tasks.erase(tasks.begin() + newSize, tasks.end());
 					else
 						for (int i = capacity(); i < newSize; i++)
-							tasks.push_back(SearchTask(game_rules));
+							tasks.push_back(SearchTask(game_config));
 				}
 			}
 			int capacity() const noexcept

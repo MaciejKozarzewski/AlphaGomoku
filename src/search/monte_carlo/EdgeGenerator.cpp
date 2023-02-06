@@ -100,7 +100,7 @@ namespace
 			const Move move = edge->getMove();
 
 			Board::putMove(task.getBoard(), move);
-			const GameOutcome outcome = getOutcome_v2(task.getGameRules(), task.getBoard(), move);
+			const GameOutcome outcome = getOutcome_v2(task.getGameConfig().rules, task.getBoard(), move, task.getGameConfig().draw_after);
 			Board::undoMove(task.getBoard(), move);
 
 			switch (convertProvenValue(outcome, task.getSignToMove()))
@@ -217,6 +217,13 @@ namespace ag
 		if (not task.mustDefend())
 			prune_weak_moves(task.getEdges(), num);
 		renormalize_policy(task.getEdges());
+
+		if (task.getEdges().size() == 0) // TODO remove this later
+		{
+			std::cout << "---no-moves-generated---\n";
+			std::cout << task.toString() << '\n';
+			exit(-1);
+		}
 		assert(task.getEdges().size() > 0);
 	}
 

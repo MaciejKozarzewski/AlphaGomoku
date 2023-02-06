@@ -13,6 +13,7 @@
 #include <alphagomoku/search/monte_carlo/Tree.hpp>
 #include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
+#include <alphagomoku/selfplay/OpeningGenerator.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 
 namespace ag
@@ -44,6 +45,8 @@ namespace ag
 			void selectSolveEvaluate();
 			void expandBackup();
 			bool isSearchOver();
+			ThreatSpaceSearch& getSolver() noexcept;
+			NNEvaluator& getNNEvaluator() noexcept;
 			void scheduleSingleTask(SearchTask &task);
 			Move getMove() const noexcept;
 			SearchData getSearchData() const;
@@ -61,11 +64,9 @@ namespace ag
 			};
 			GameBuffer &game_buffer;
 			Game game;
-			SearchTask request;
-			bool is_request_scheduled = false;
+			OpeningGenerator opening_generator;
 
 			GameState state = GAME_NOT_STARTED;
-			int opening_trials = 0;
 			bool use_opening = false;
 			bool save_data = false;
 

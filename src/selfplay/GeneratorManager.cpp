@@ -76,7 +76,7 @@ namespace ag
 		NodeCacheStats result;
 		for (size_t i = 0; i < generators.size(); i++)
 			result += generators[i]->getCacheStats();
-		result /= static_cast<int>(generators.size());
+//		result /= static_cast<int>(generators.size());
 		return result;
 	}
 	SearchStats GeneratorThread::getSearchStats() const noexcept
@@ -84,7 +84,7 @@ namespace ag
 		SearchStats result;
 		for (size_t i = 0; i < generators.size(); i++)
 			result += generators[i]->getSearchStats();
-		result /= static_cast<int>(generators.size());
+//		result /= static_cast<int>(generators.size());
 		return result;
 	}
 	/*
@@ -105,6 +105,7 @@ namespace ag
 				}
 			}
 		}
+		nn_evaluator.asyncEvaluateGraphJoin();
 		nn_evaluator.unloadGraph();
 	}
 

@@ -59,7 +59,6 @@ namespace ag
 			void reset();
 			Status generate();
 		private:
-			bool prepare_opening();
 			void make_move();
 			void prepare_search();
 	};

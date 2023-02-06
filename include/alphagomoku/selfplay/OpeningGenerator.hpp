@@ -28,8 +28,8 @@ namespace ag
 					SearchTask task;
 					int desired_length = 0;
 					bool is_scheduled_to_nn = false;
-					OpeningUnderConstruction(GameRules rules) :
-							task(rules)
+					OpeningUnderConstruction(GameConfig config) :
+							task(config)
 					{
 					}
 					void reset()
@@ -47,12 +47,18 @@ namespace ag
 			std::vector<OpeningUnderConstruction> workspace;
 			int average_length;
 		public:
+			enum Status
+			{
+				OK,
+				TASKS_NOT_READY
+			};
+
 			OpeningGenerator(const GameConfig &gameOptions, int averageLength);
 			/*
 			 * \brief Performs single step of opening generation.
 			 * Reads completed requests from NNEvaluator, processes them and schedules more if necessary.
 			 */
-			void generate(size_t batchSize, NNEvaluator &evaluator, ThreatSpaceSearch &solver);
+			Status generate(size_t batchSize, NNEvaluator &evaluator, ThreatSpaceSearch &solver);
 			/*
 			 * \brief Returns one generated opening.
 			 */

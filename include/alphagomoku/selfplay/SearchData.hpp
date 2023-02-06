@@ -27,7 +27,7 @@ namespace ag
 	class SearchData
 	{
 		private:
-			static constexpr float scale = 65536.0f;
+			static constexpr float scale = 65535.0f;
 
 			struct internal_data
 			{

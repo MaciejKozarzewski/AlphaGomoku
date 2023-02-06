@@ -25,6 +25,10 @@ namespace ag
 			name(name),
 			simulations(options.simulations)
 	{
+		// TODO temporary hack to initialize shared hash table in the TSS
+		tree.setBoard(matrix<Sign>(gameOptions.rows, gameOptions.cols), Sign::CROSS, true);
+		search.select(tree);
+		search.setBatchSize(options.search_config.max_batch_size);
 	}
 	void Player::setSign(Sign s) noexcept
 	{
@@ -71,6 +75,14 @@ namespace ag
 		else
 			return false;
 	}
+	ThreatSpaceSearch& Player::getSolver() noexcept
+	{
+		return search.getSolver();
+	}
+	NNEvaluator& Player::getNNEvaluator() noexcept
+	{
+		return nn_evaluator;
+	}
 	void Player::scheduleSingleTask(SearchTask &task)
 	{
 		nn_evaluator.addToQueue(task);
@@ -105,7 +117,7 @@ namespace ag
 	EvaluationGame::EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening, bool saveData) :
 			game_buffer(gameBuffer),
 			game(gameConfig),
-			request(gameConfig.rules),
+			opening_generator(gameConfig, 8),
 			use_opening(useOpening),
 			save_data(saveData)
 	{
@@ -115,8 +127,6 @@ namespace ag
 		first_player.reset();
 		second_player.reset();
 		state = GAME_NOT_STARTED;
-		is_request_scheduled = false;
-		opening_trials = 0;
 		has_stored_opening = false;
 	}
 	void EvaluationGame::setFirstPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name)
@@ -134,7 +144,7 @@ namespace ag
 		if (use_opening)
 		{
 			if (has_stored_opening)
-			{
+			{ // use previously created opening, but with switched players
 				has_stored_opening = false;
 				first_player->setSign(Sign::CIRCLE);
 				second_player->setSign(Sign::CROSS);
@@ -142,31 +152,24 @@ namespace ag
 				game.loadOpening(opening);
 				return true;
 			}
-
-			if (is_request_scheduled == true)
+			else
 			{
-				if (request.wasProcessedByNetwork() == false)
+				if (opening_generator.isEmpty())
+					opening_generator.generate(8, first_player->getNNEvaluator(), first_player->getSolver());
+
+				if (opening_generator.isEmpty())
 					return false;
-				is_request_scheduled = false;
-				if (fabsf(request.getValue().win_rate - request.getValue().loss_rate()) < (0.05f + opening_trials * 0.01f))
+				else
 				{
-					opening_trials = 0;
 					has_stored_opening = true;
 					first_player->setSign(Sign::CROSS);
 					second_player->setSign(Sign::CIRCLE);
 					game.setPlayers(first_player->getName(), second_player->getName());
+					opening = opening_generator.pop();
+					game.loadOpening(opening);
 					return true;
 				}
-				else
-					opening_trials++;
 			}
-
-			opening = ag::prepareOpening(game.getConfig(), 2);
-			game.loadOpening(opening);
-			request.set(game.getBoard(), game.getSignToMove());
-			first_player->scheduleSingleTask(request);
-			is_request_scheduled = true;
-			return false;
 		}
 		else
 		{
@@ -191,8 +194,6 @@ namespace ag
 	{
 		if (state == GAME_NOT_STARTED)
 		{
-			if (use_opening)
-				opening_trials = 0;
 			state = PREPARE_OPENING;
 		}
 

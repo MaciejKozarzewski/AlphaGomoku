@@ -137,6 +137,7 @@ namespace ag
 		matrix<Sign> board(rows(), cols());
 		matrix<Score> action_scores(rows(), cols());
 		matrix<float> policy_prior(rows(), cols());
+		matrix<int> visit_count(rows(), cols());
 		matrix<Value> action_values(rows(), cols());
 
 		for (int r = 0; r < rows(); r++)
@@ -155,11 +156,10 @@ namespace ag
 		std::cout << "policy prior\n" << Board::toString(board, policy_prior);
 		for (int r = 0; r < rows(); r++)
 			for (int c = 0; c < cols(); c++)
-				policy_prior.at(r, c) = getVisitCount(r, c);
-		normalize(policy_prior);
-		std::cout << "visit count\n" << Board::toString(board, policy_prior);
+				visit_count.at(r, c) = getVisitCount(r, c);
+		std::cout << "visit count\n" << Board::toString(board, visit_count);
 		std::cout << "proven values\n" << Board::toString(board, action_scores);
-		std::cout << "action values\n" << Board::toString(board, action_values);
+		std::cout << "action values\n" << Board::toString(board, action_values) << '\n';
 	}
 	bool SearchData::isCorrect() const noexcept
 	{

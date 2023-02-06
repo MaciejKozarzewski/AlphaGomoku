@@ -25,8 +25,8 @@ namespace
 
 namespace ag
 {
-	SearchTask::SearchTask(GameRules rules) :
-			game_rules(rules)
+	SearchTask::SearchTask(GameConfig config) :
+			game_config(config)
 	{
 	}
 	void SearchTask::set(const matrix<Sign> &base, Sign signToMove)

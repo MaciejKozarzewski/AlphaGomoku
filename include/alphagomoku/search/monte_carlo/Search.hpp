@@ -45,6 +45,7 @@ namespace ag
 			uint64_t nb_proven_states = 0;
 			uint64_t nb_network_evaluations = 0;
 			uint64_t nb_node_count = 0;
+			uint64_t nb_batch_size = 0;
 
 			SearchStats();
 			std::string toString() const;

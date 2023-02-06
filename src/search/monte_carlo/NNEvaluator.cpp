@@ -170,8 +170,6 @@ namespace ag
 		const int batch_size = std::min(static_cast<int>(waiting_queue.size()), network.getBatchSize());
 		if (batch_size > 0)
 		{
-			stats.batch_sizes += batch_size; // statistics
-
 			in_progress_queue.assign(waiting_queue.begin(), waiting_queue.begin() + batch_size);
 			waiting_queue.erase(waiting_queue.begin(), waiting_queue.begin() + batch_size);
 
@@ -188,14 +186,15 @@ namespace ag
 		if (not network.isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		ml::Device::cpu().setNumberOfThreads(omp_threads);
-		assert(static_cast<int>(in_progress_queue.size()) <= network.getBatchSize());
 		const int batch_size = in_progress_queue.size();
+		assert(batch_size <= network.getBatchSize());
 		if (batch_size > 0)
 		{
 			stats.wait.startTimer();
 			network.asyncForwardJoin();
 			stats.wait.stopTimer();
 			stats.compute.stopTimer();
+			stats.batch_sizes += batch_size; // statistics
 
 			unpack_from_network();
 			in_progress_queue.clear();

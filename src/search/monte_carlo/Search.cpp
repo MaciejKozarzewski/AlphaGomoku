@@ -32,7 +32,8 @@ namespace ag
 		result += "nb_wasted_expansions   = " + std::to_string(nb_wasted_expansions) + '\n';
 		result += "nb_proven_states       = " + std::to_string(nb_proven_states) + '\n';
 		result += "nb_network_evaluations = " + std::to_string(nb_network_evaluations) + '\n';
-		result += "nb_node_count = " + std::to_string(nb_node_count) + '\n';
+		result += "nb_node_count          = " + std::to_string(nb_node_count) + '\n';
+		result += "avg batch size         = " + std::to_string((double) nb_batch_size / select.getTotalCount()) + '\n';
 		result += select.toString() + '\n';
 		result += solve.toString() + '\n';
 		result += schedule.toString() + '\n';
@@ -56,6 +57,7 @@ namespace ag
 		this->nb_proven_states += other.nb_proven_states;
 		this->nb_network_evaluations += other.nb_network_evaluations;
 		this->nb_node_count += other.nb_node_count;
+		this->nb_batch_size += other.nb_batch_size;
 		return *this;
 	}
 	SearchStats& SearchStats::operator/=(int i) noexcept
@@ -73,6 +75,7 @@ namespace ag
 		this->nb_proven_states /= i;
 		this->nb_network_evaluations /= i;
 		this->nb_node_count /= i;
+		this->nb_batch_size /= i;
 		return *this;
 	}
 	double SearchStats::getTotalTime() const noexcept
@@ -82,8 +85,8 @@ namespace ag
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
-			tasks_list_buffer_0(gameOptions.rules),
-			tasks_list_buffer_1(gameOptions.rules),
+			tasks_list_buffer_0(gameOptions),
+			tasks_list_buffer_1(gameOptions),
 			solver(gameOptions, searchOptions.solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
@@ -153,6 +156,7 @@ namespace ag
 				get_buffer().removeLast();
 			}
 		}
+		stats.nb_batch_size += get_buffer().size();
 	}
 	void Search::solve()
 	{
