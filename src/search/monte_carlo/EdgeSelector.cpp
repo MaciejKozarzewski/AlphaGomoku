@@ -58,7 +58,18 @@ namespace
 	}
 	float get_q(const Edge *edge) noexcept
 	{
-		return (edge->getVisits() > 0 or edge->isProven()) ? edge->getValue().getExpectation() : 0.0f;
+		switch (edge->getScore().getProvenValue())
+		{
+			case ProvenValue::LOSS:
+				return -100.0f + 0.1f * edge->getScore().getDistanceToWinOrLoss();
+			case ProvenValue::DRAW:
+				return Value::draw().getExpectation();
+			default:
+			case ProvenValue::UNKNOWN:
+				return (edge->getVisits() > 0) ? edge->getValue().getExpectation() : 0.0f;
+			case ProvenValue::WIN:
+				return +101.0f - 0.1f * edge->getScore().getDistanceToWinOrLoss();
+		}
 	}
 	void softmax(std::vector<float> &vec) noexcept
 	{
@@ -177,8 +188,8 @@ namespace
 			}
 			float operator()(const Edge *edge) const noexcept
 			{
-				const float Q = edge->getVisits() > 0 ? getQ(edge, style_factor) : parent_q; // init to parent
-//				const float Q = getQ(edge, style_factor); // init to Q head
+//				const float Q = edge->getVisits() > 0 ? getQ(edge, style_factor) : parent_q; // init to parent
+				const float Q = getQ(edge, style_factor); // init to Q head
 				const float U = edge->getPolicyPrior() * parent_sqrt_visit / (1.0f + edge->getVisits());
 				return Q * getVirtualLoss(edge) + U;
 			}
@@ -200,8 +211,8 @@ namespace
 			}
 			float operator()(const Edge *edge) const noexcept
 			{
-				const float Q = edge->getVisits() > 0 ? getQ(edge, style_factor) : parent_q; // init to parent
-//				const float Q = getQ(edge, style_factor); // init to Q head
+//				const float Q = edge->getVisits() > 0 ? getQ(edge, style_factor) : parent_q; // init to parent
+				const float Q = getQ(edge, style_factor); // init to Q head
 				const float U = noisy_policy[std::distance(first, edge)] * parent_sqrt_visit / (1.0f + edge->getVisits());
 				return Q * getVirtualLoss(edge) + U;
 			}
@@ -490,7 +501,7 @@ namespace ag
 		assert(node->isRoot());
 		is_initialized = true;
 		expected_visit_count = 0;
-		simulations_left = max_simulations - 1; // one simulation is used to evaluate and expand the root node
+		simulations_left = max_simulations;
 
 		action_list.clear();
 		for (Edge *iter = node->begin(); iter < node->end(); iter++)
@@ -515,27 +526,13 @@ namespace ag
 
 			if (is_level_complete)
 			{ // advance to the next level
-//				std::cout << "moving to the next level with " << action_list.size() << " actions\n";
-
 				const int number_of_actions_left = std::min((size_t) max_edges, action_list.size() - action_list.size() / 2);
-				std::cout << number_of_actions_left << " actions left\n";
 				sort_workspace(number_of_actions_left);
 				action_list.erase(action_list.begin() + number_of_actions_left, action_list.end());
 
 				const int levels_left = std::max(1, integer_log2(number_of_actions_left) - 1); // the last level is when we have just 2 actions left
 				const int simulations_for_this_level = simulations_left / levels_left;
 				expected_visit_count += std::max(1, simulations_for_this_level / number_of_actions_left);
-
-//				std::cout << "levels left = " << levels_left << ", simulations left = " << simulations_left << ", simulations for this level = "
-//						<< simulations_for_this_level << ", expected visit count = " << expected_visit_count << '\n';
-//				std::cout << "action list:\n";
-//				int max_N = 0;
-//				for (auto iter = action_list.begin(); iter < action_list.end(); iter++)
-//					max_N = std::max(max_N, iter->edge->getVisits());
-//				const float scale = (C_visit + max_N) * C_scale;
-//				for (auto iter = action_list.begin(); iter < action_list.end(); iter++)
-//					std::cout << iter->edge->toString() << " : noise=" << iter->noise << " : logit=" << iter->logit << " : sigma(Q)="
-//							<< scale * get_q(iter->edge) << '\n';
 			}
 		}
 
@@ -569,8 +566,6 @@ namespace ag
 		}
 		assert(selected != nullptr);
 		return selected;
-
-//		return PUCTSelector(1.0f).select(node);
 	}
 	void SequentialHalvingSelector::sort_workspace(int topN) noexcept
 	{

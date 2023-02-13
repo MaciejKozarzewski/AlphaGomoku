@@ -76,7 +76,7 @@ namespace ag
 	void TrainingManager::runIterationRL()
 	{
 		generateGames();
-//		runIterationSL();
+		runIterationSL();
 	}
 	void TrainingManager::runIterationSL()
 	{

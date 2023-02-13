@@ -154,16 +154,15 @@ namespace ag
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 			counter++;
 			if (counter % 60 == 0)
-			{
 				printStats();
-				counter = 0;
-			}
 			bool is_ready = true;
 			for (size_t i = 0; i < generators.size(); i++)
 				is_ready &= generators[i]->isFinished();
 			if (is_ready)
 				break;
 		}
+		if (counter < 60)
+			printStats();
 	}
 	void GeneratorManager::printStats()
 	{

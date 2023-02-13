@@ -49,7 +49,6 @@ namespace ag
 	{
 		if (state == GAME_NOT_STARTED)
 		{
-			is_forced_win_found = false;
 			game.beginGame();
 			tree.clear();
 			if (selfplay_config.use_opening)
@@ -135,26 +134,21 @@ namespace ag
 		MaxValueSelector selector;
 		const Move move = selector.select(&root_node)->getMove();
 
-//		if (not is_forced_win_found)
-		{
-			SearchData state(game_config.rows, game_config.cols);
-			state.setBoard(tree.getBoard());
-			state.setSearchResults(root_node);
-			state.setMove(move);
-			game.addSearchData(state);
-//			state.print();
-		}
-		game.makeMove(move);
+		SearchData state(game_config.rows, game_config.cols);
+		state.setBoard(tree.getBoard());
+		state.setSearchResults(root_node);
+		state.setMove(move);
+//		state.print();
 
-		if (root_node.isProven())
-			is_forced_win_found = true;
+		game.addSearchData(state);
+		game.makeMove(move);
 	}
 	void GameGenerator::prepare_search()
 	{
 		search.cleanup(tree);
 		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
-		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
-//		tree.setEdgeSelector(SequentialHalvingSelector(search.getConfig().max_children, selfplay_config.simulations, 50.0f, 1.0f));
+//		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
+		tree.setEdgeSelector(SequentialHalvingSelector(search.getConfig().max_children, selfplay_config.simulations, 50.0f, 1.0f));
 		tree.setEdgeGenerator(SequentialHalvingGenerator(search.getConfig().max_children));
 	}
 

@@ -106,12 +106,7 @@ namespace ag
 		network.loadFromFile(path);
 		network.setBatchSize(batch_size);
 		network.moveTo(device);
-//		network.convertToHalfFloats(); // TODO enable this feature later
-//		network.forward(1);
-//		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-//		network.asyncForwardLaunch(network.getBatchSize());
-//		network.asyncForwardJoin();
-//		exit(0);
+		network.convertToHalfFloats(); // TODO enable this feature later
 		available_symmetries = 4 + 4 * static_cast<int>(is_square(network.getInputShape()));
 	}
 	void NNEvaluator::unloadGraph()

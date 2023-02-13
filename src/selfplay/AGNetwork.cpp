@@ -154,38 +154,15 @@ namespace ag
 			actionValues[i] = Value(workspace[3 * i], workspace[3 * i + 1]);
 	}
 
-	struct asdf
-	{
-			TimedStat stat;
-			asdf(const std::string &str) :
-					stat(str)
-			{
-			}
-			~asdf()
-			{
-				std::cout << stat.toString() << '\n';
-			}
-	};
-
 	void AGNetwork::asyncForwardLaunch(int batch_size)
 	{
-		static asdf pack("pack_input_to_graph");
-		static asdf forward("forward");
-		static asdf copying("copying");
-
-		pack.stat.startTimer();
 		pack_input_to_graph(batch_size);
-		pack.stat.stopTimer();
 
-		forward.stat.startTimer();
 		graph.forward(batch_size);
-		forward.stat.stopTimer();
 
-		copying.stat.startTimer();
 		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
 		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
-		copying.stat.stopTimer();
 	}
 	void AGNetwork::asyncForwardJoin()
 	{
@@ -200,22 +177,6 @@ namespace ag
 		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
 		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
 		graph.context().synchronize();
-
-//		std::cout << "input:\n";
-//		for (int i = 0; i < 15; i++)
-//			for (int j = 0; j < 15; j++)
-//				std::cout << input_on_cpu->get( { 0, i, j, 0 }) << '\n';
-//
-//		std::cout << "policy:\n";
-//		for (int i = 0; i < 15; i++)
-//			for (int j = 0; j < 15; j++)
-//				std::cout << policy_on_cpu->get( { 0, i, j, 0 }) << '\n';
-//		std::cout << "value:\n" << value_on_cpu->get( { 0, 0 }) << " " << value_on_cpu->get( { 0, 1 }) << " " << value_on_cpu->get( { 0, 2 }) << '\n';
-//		std::cout << "action values:\n";
-//		for (int i = 0; i < 15; i++)
-//			for (int j = 0; j < 15; j++)
-//				std::cout << action_values_on_cpu->get( { 0, i, j, 0 }) << ' ' << action_values_on_cpu->get( { 0, i, j, 1 }) << ' '
-//						<< action_values_on_cpu->get( { 0, i, j, 2 }) << '\n';
 	}
 	void AGNetwork::backward(int batch_size)
 	{
@@ -407,9 +368,12 @@ namespace ag
 		graph.addOutput(q, 0.1f);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer(trainingOptions.learning_rate));
+		graph.setOptimizer(ml::Optimizer());
 		if (trainingOptions.l2_regularization != 0.0)
+		{
 			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+			graph.getNode(graph.numberOfNodes() - 2).getLayer().setRegularizer(ml::Regularizer(0.1f * trainingOptions.l2_regularization));
+		}
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 	void AGNetwork::reallocate_tensors()

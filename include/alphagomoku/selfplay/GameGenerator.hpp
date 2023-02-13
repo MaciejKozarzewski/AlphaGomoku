@@ -40,7 +40,6 @@ namespace ag
 			Search search;
 
 			GameState state = GAME_NOT_STARTED;
-			bool is_forced_win_found = false;
 
 			SelfplayConfig selfplay_config;
 		public:

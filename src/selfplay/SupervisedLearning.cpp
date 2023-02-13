@@ -59,6 +59,7 @@ namespace
 		float sum_v = 0.0f, sum_q = 0.0f, sum_p = 0.0f;
 		for (int row = 0; row < sample.rows(); row++)
 			for (int col = 0; col < sample.cols(); col++)
+			{
 				if (sample.getVisitCount(row, col) > 0 or sample.getActionScore(row, col).isProven())
 				{
 					const Score score = sample.getActionScore(row, col);
@@ -72,8 +73,15 @@ namespace
 					max_N = std::max(max_N, visits);
 					sum_N += visits;
 				}
-		const float inv_N = 1.0f / sum_N;
-		const float V_mix = (sample.getMinimaxValue().getExpectation() - sum_v * inv_N) + (1.0f - inv_N) / sum_p * sum_q;
+			}
+		float V_mix = 0.0f;
+		if (sum_N > 0) //or sum_p > 0.0f)
+		{
+			const float inv_N = 1.0f / sum_N;
+			V_mix = (sample.getMinimaxValue().getExpectation() - sum_v * inv_N) + (1.0f - inv_N) / sum_p * sum_q;
+		}
+		else
+			V_mix = sample.getMinimaxValue().getExpectation();
 
 		for (int row = 0; row < sample.rows(); row++)
 			for (int col = 0; col < sample.cols(); col++)
@@ -128,16 +136,18 @@ namespace
 							break;
 					}
 				}
+		assert(shift != std::numeric_limits<float>::lowest());
 
 		float inv_sum = 0.0f;
 		for (int i = 0; i < result.policy.size(); i++)
 			if (result.board[i] == Sign::NONE)
 			{
-				result.policy[i] = std::exp(result.policy[i] - shift);
+				result.policy[i] = std::exp(std::max(-100.0f, result.policy[i] - shift));
 				if (result.policy[i] < 1.0e-9f)
 					result.policy[i] = 0.0f;
 				inv_sum += result.policy[i];
 			}
+		assert(inv_sum > 0.0f);
 		inv_sum = 1.0f / inv_sum;
 
 		for (int i = 0; i < result.policy.size(); i++)
@@ -169,14 +179,15 @@ namespace
 //			}
 //		normalize(result.policy);
 
-		std::cout << "Sample from buffer\n";
-		sample.print();
-		std::cout << "Prepared training data pack\n";
-		std::cout << "Sign to move " << result.sign_to_move << '\n';
-		std::cout << "Value target = " << result.value.toString() << '\n';
-		std::cout << "Board\n" << Board::toString(result.board);
-		std::cout << "Policy target\n" << Board::toString(result.board, result.policy);
-		std::cout << "Action values target\n" << Board::toString(result.board, result.action_values);
+//		std::cout << "Sample from buffer\n";
+//		sample.print();
+//		std::cout << "Prepared training data pack\n";
+//		std::cout << "Sign to move " << result.sign_to_move << '\n';
+//		std::cout << "Value target = " << result.value.toString() << '\n';
+//		std::cout << "Board\n" << Board::toString(result.board);
+//		std::cout << "Policy target\n" << Board::toString(result.board, result.policy);
+//		std::cout << "Action values target\n" << Board::toString(result.board, result.action_values);
+//		exit(0);
 
 		if (perform_augmentations)
 			augment_data_pack(result);
@@ -276,7 +287,6 @@ namespace ag
 
 				data_packs.at(b) = prepare_data_pack(sample, config.augment_training_data);
 			}
-			exit(0);
 
 			push_input_data_to_model(data_packs, model);
 			model.forward(batch_size);
@@ -306,19 +316,18 @@ namespace ag
 			while (counter < buffer.size() and this_batch < batch_size)
 			{
 				const SearchData &sample = buffer.getFromBuffer(counter).getSample();
+				data_packs.at(this_batch) = prepare_data_pack(sample, config.augment_training_data);
 				counter++;
 				this_batch++;
-
-				data_packs.at(this_batch) = prepare_data_pack(sample, config.augment_training_data);
 			}
 
 			push_input_data_to_model(data_packs, model);
-			model.forward(batch_size);
+			model.forward(this_batch);
 
 			push_target_data_to_model(data_packs, model);
 
-			std::vector<float> loss = model.getLoss(batch_size);
-			auto accuracy = model.getAccuracy(batch_size);
+			std::vector<float> loss = model.getLoss(this_batch);
+			auto accuracy = model.getAccuracy(this_batch);
 			updateValidationStats(loss, accuracy);
 		}
 	}

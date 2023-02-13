@@ -106,7 +106,6 @@ namespace ag
 			if (iter->is_scheduled_to_nn)
 			{
 				assert(iter->task.wasProcessedByNetwork());
-//				std::cout << iter->task.getValue().getExpectation() << '\n';
 				if (std::fabs(iter->task.getValue().getExpectation() - 0.5f) < 0.1f)
 					completed_openings.push_back(iter->moves);
 				iter->reset();
