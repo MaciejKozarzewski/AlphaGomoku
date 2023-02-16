@@ -5,9 +5,11 @@
 doc/html/*
 doc/latex/*
 bin/*
+build/*
 bin/objects/*
 extern/openblas/*
 extern/libml/*
+extern/minml/*
 /contrib/mingw64/*
 *.pyc
 gmon.out

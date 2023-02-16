@@ -48,6 +48,7 @@ namespace ag
 
 			int rows() const noexcept;
 			int cols() const noexcept;
+			void getBoard(matrix<Sign> &board) const noexcept;
 
 			void setBoard(const matrix<Sign> &board) noexcept;
 			void setSearchResults(const Node &node) noexcept;

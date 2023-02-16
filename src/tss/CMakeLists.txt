@@ -1,0 +1,1 @@
+target_sources(AlphaGomoku PRIVATE 	SimpleEvaluator.cpp)

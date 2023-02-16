@@ -18,6 +18,7 @@
 #include <minml/layers/Conv2D.hpp>
 #include <minml/layers/Dense.hpp>
 #include <minml/layers/Add.hpp>
+#include <minml/layers/GlobalBroadcastHW.hpp>
 #include <minml/layers/BatchNormalization.hpp>
 #include <minml/layers/Softmax.hpp>
 #include <minml/layers/Parameter.hpp>
@@ -317,6 +318,7 @@ namespace ag
 		auto x = graph.addInput( { batch_size, game_config.rows, game_config.cols, 32 });
 		x = graph.add(ml::Conv2D(filters, 5, "linear").useBias(false), x);
 		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
+//		x = graph.add(ml::GlobalBroadcastHW(), x);
 
 		for (int i = 0; i < blocks; i++)
 		{
@@ -339,6 +341,8 @@ namespace ag
 			y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
 
 			x = graph.add(ml::Add("relu"), { x, y });
+//			if ((i + 1) % 5 == 0)
+//				x = graph.add(ml::GlobalBroadcastHW(), x);
 		}
 
 		// policy head

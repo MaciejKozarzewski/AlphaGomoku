@@ -53,6 +53,11 @@ namespace ag
 	{
 		return actions.cols();
 	}
+	void SearchData::getBoard(matrix<Sign> &board) const noexcept
+	{
+		for (int i = 0; i < board.size(); i++)
+			board[i] = static_cast<Sign>(actions[i].sign_and_visit_count & 0x0003);
+	}
 	void SearchData::setBoard(const matrix<Sign> &board) noexcept
 	{
 		for (int i = 0; i < board.size(); i++)

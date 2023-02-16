@@ -824,12 +824,12 @@ void run_training()
 		sl.train(network, buffer, 1000);
 //		sl.saveTrainingHistory("/home/maciek/alphagomoku/minml_test/");
 		network.saveToFile(
-				"/home/maciek/alphagomoku/minml_test/minml_btl_" + std::to_string(training_config.blocks) + "x"
+				"/home/maciek/alphagomoku/minml_test/minml_brd_" + std::to_string(training_config.blocks) + "x"
 						+ std::to_string(training_config.filters) + ".bin");
 	}
 	network.optimize();
 	network.saveToFile(
-			"/home/maciek/alphagomoku/minml_test/minml_btl_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
+			"/home/maciek/alphagomoku/minml_test/minml_brd_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
 					+ "_opt.bin");
 }
 
@@ -842,17 +842,17 @@ void test_evaluate()
 	cfg.simulations = 1000;
 //	cfg.search_config.solver_level = 0;
 //	cfg.search_config.solver_max_positions = 100;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/solver/checkpoint/network_31_opt.bin", "all");
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/sv/checkpoint/network_31_opt.bin", "all");
 //	cfg.search_config.solver_level = 3;
 
 //	cfg.simulations = 3000;
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/solver_2/checkpoint/network_23_opt.bin", "nowin");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/broadcast/checkpoint/network_30_opt.bin", "nowin");
 
 	manager.generate(1000);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/solver_2.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/broadcast.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -876,19 +876,23 @@ int main(int argc, char *argv[])
 //	test_expand();
 //	return 0;
 
-//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/q_head/", "/home/maciek/alphagomoku/new_runs_2023/solver/");
-//	for (int i = 0; i < 32; i++)
-//		tm.runIterationSL();
+	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/sv/", "/home/maciek/alphagomoku/new_runs_2023/solver/");
+	for (int i = 0; i < 32; i++)
+		tm.runIterationSL();
 
-	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/solver_2/");
-	for (int i = 0; i < 100; i++)
-		tm.runIterationRL();
+//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/solver_2/");
+//	for (int i = 0; i < 100; i++)
+//		tm.runIterationRL();
 	return 0;
 	{
-		AGNetwork network;
-		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/solver_2/checkpoint/network_2.bin");
+		GameConfig game_config(GameRules::STANDARD, 15, 15);
+		TrainingConfig cfg;
+		cfg.blocks = 5;
+		cfg.filters = 128;
+		AGNetwork network(game_config, cfg);
+//		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/solver_2/checkpoint/network_2.bin");
 		network.setBatchSize(2);
-		network.moveTo(ml::Device::cpu());
+		network.moveTo(ml::Device::cuda(0));
 
 		matrix<Sign> board(12, 12);
 		board = Board::fromString(""
