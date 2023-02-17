@@ -861,8 +861,8 @@ int main(int argc, char *argv[])
 {
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
-	test_evaluate();
-	return 0;
+//	test_evaluate();
+//	return 0;
 
 //	{
 //		GameBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/no_solver/train_buffer/buffer_17.bin");
@@ -876,38 +876,41 @@ int main(int argc, char *argv[])
 //	test_expand();
 //	return 0;
 
-	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/sv/", "/home/maciek/alphagomoku/new_runs_2023/solver/");
-	for (int i = 0; i < 32; i++)
-		tm.runIterationSL();
+//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/sv/", "/home/maciek/alphagomoku/new_runs_2023/solver/");
+//	for (int i = 0; i < 32; i++)
+//		tm.runIterationSL();
 
 //	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/solver_2/");
 //	for (int i = 0; i < 100; i++)
 //		tm.runIterationRL();
-	return 0;
+//	return 0;
 	{
-		GameConfig game_config(GameRules::STANDARD, 15, 15);
+		GameConfig game_config(GameRules::STANDARD, 20, 20);
 		TrainingConfig cfg;
-		cfg.blocks = 5;
+		cfg.blocks = 10;
 		cfg.filters = 128;
 		AGNetwork network(game_config, cfg);
+		network.optimize();
+//		network.convertToHalfFloats();
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/solver_2/checkpoint/network_2.bin");
-		network.setBatchSize(2);
-		network.moveTo(ml::Device::cuda(0));
+		network.setBatchSize(12);
+		network.moveTo(ml::Device::cpu());
 
-		matrix<Sign> board(12, 12);
-		board = Board::fromString(""
-				" _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ O _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ O _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" X _ _ O _ _ _ _ _ _ _ _\n"
-				" _ X _ O X _ _ _ _ _ _ _\n"
-				" _ O X X _ _ _ _ _ _ _ _\n"
-				" _ X O O X _ _ _ _ _ _ _\n"
-				" _ _ X X _ _ _ _ _ _ _ _\n"
-				" O _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _\n");
+		matrix<Sign> board(15, 15);
+//		board = Board::fromString(""
+//				" _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ O _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ O _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" X _ _ O _ _ _ _ _ _ _ _\n"
+//				" _ X _ O X _ _ _ _ _ _ _\n"
+//				" _ O X X _ _ _ _ _ _ _ _\n"
+//				" _ X O O X _ _ _ _ _ _ _\n"
+//				" _ _ X X _ _ _ _ _ _ _ _\n"
+//				" O _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _\n");
+
 //		board = Board::fromString(" O _ O X X O O X O _ _ X _ _ _\n"
 //				" _ X O X O X O X X X O O _ _ _\n"
 //				" X O X O X O X O X O X O X _ _\n"
@@ -924,10 +927,26 @@ int main(int argc, char *argv[])
 //				" _ _ O X O O X X O O X O O _ _\n"
 //				" _ X _ _ X X O X O _ O O X _ _\n");
 		network.packInputData(0, board, Sign::CROSS);
-		network.forward(2);
+		network.forward(1);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-		matrix<float> policy(12, 12);
-		matrix<Value> action_values(12, 12);
+		const double start = getTime();
+		int repeats = 0;
+		for (; repeats < 1000; repeats++)
+		{
+			network.forward(network.getBatchSize());
+			if ((getTime() - start) > 10.0)
+				break;
+		}
+		const double stop = getTime();
+		const double time = stop - start;
+
+		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
+		std::cout << "n/s = " << network.getBatchSize() * repeats / time << '\n';
+		return 0;
+
+		matrix<float> policy(15, 15);
+		matrix<Value> action_values(15, 15);
 		Value value;
 
 		network.unpackOutput(0, policy, action_values, value);
