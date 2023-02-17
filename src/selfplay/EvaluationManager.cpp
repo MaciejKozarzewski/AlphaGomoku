@@ -96,17 +96,17 @@ namespace ag
 
 	GameBuffer& EvaluationManager::getGameBuffer(int threadIndex) noexcept
 	{
-		return evaluators[threadIndex]->getGameBuffer();
+		return evaluators.at(threadIndex)->getGameBuffer();
 	}
 	void EvaluationManager::setFirstPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
 	{
 		wait_for_finish();
-		evaluators[threadIndex]->setFirstPlayer(options, pathToNetwork, name);
+		evaluators.at(threadIndex)->setFirstPlayer(options, pathToNetwork, name);
 	}
 	void EvaluationManager::setSecondPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
 	{
 		wait_for_finish();
-		evaluators[threadIndex]->setSecondPlayer(options, pathToNetwork, name);
+		evaluators.at(threadIndex)->setSecondPlayer(options, pathToNetwork, name);
 	}
 	void EvaluationManager::setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
 	{

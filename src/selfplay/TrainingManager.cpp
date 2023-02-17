@@ -51,7 +51,7 @@ namespace ag
 {
 	TrainingManager::TrainingManager(std::string workingDirectory, std::string pathToData) :
 			config(load_config(workingDirectory)),
-			metadata( { { "last_checkpoint", 0 }, { "best_checkpoint", 0 }, { "learning_steps", 0 } }),
+			metadata( { { "last_checkpoint", 0 }, { "learning_steps", 0 } }),
 			working_dir(workingDirectory + '/'),
 			path_to_data(pathToData.empty() ? working_dir : pathToData),
 			generator_manager(config.game_config, config.generation_config),
@@ -83,10 +83,34 @@ namespace ag
 		train();
 		validate();
 		supervised_learning_manager.saveTrainingHistory(working_dir);
-
-		evaluate();
 		metadata["last_checkpoint"] = get_last_checkpoint() + 1;
 		saveMetadata();
+
+		if (config.evaluation_config.use_evaluation)
+		{
+			if (config.evaluation_config.in_parallel)
+			{
+				if (evaluation_future.valid())
+				{
+					std::cout << "Waiting for previous evaluation to finish..." << std::endl;
+					evaluation_future.wait();
+				}
+				evaluation_future = std::async(std::launch::async, [this]()
+				{
+					try
+					{
+						this->evaluate();
+					}
+					catch (std::exception &e)
+					{
+						std::cout << "TrainingManager::runIterationSL() threw " << e.what() << std::endl;
+						exit(-1);
+					}
+				});
+			}
+			else
+				evaluate();
+		}
 	}
 	/*
 	 * private
@@ -135,14 +159,14 @@ namespace ag
 			return;
 		}
 
-		std::string path_to_best_network = working_dir + "/checkpoint/network_" + std::to_string(get_best_checkpoint()) + "_opt.bin";
-		std::cout << "Loading " << path_to_best_network << '\n';
+		std::string path_to_last_network = working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint()) + "_opt.bin";
+		std::cout << "Loading " << path_to_last_network << '\n';
 		const int training_games = config.generation_config.games_per_iteration;
 		const int validation_games = std::max(1.0, training_games * config.training_config.validation_percent);
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
 		generator_manager.getGameBuffer().clear();
-		generator_manager.generate(path_to_best_network, training_games + validation_games);
+		generator_manager.generate(path_to_last_network, training_games + validation_games);
 		if (generator_manager.getGameBuffer().isCorrect() == false)
 			throw std::runtime_error("generated buffer is invalid");
 		std::cout << "Finished generating games\n";
@@ -193,25 +217,21 @@ namespace ag
 	{
 		const int epoch = get_last_checkpoint();
 
-		if (config.evaluation_config.use_evaluation == false)
-		{
-			metadata["best_checkpoint"] = epoch + 1;
-			return;
-		}
 		std::string path_to_networks = working_dir + "/checkpoint/network_";
 
-		std::string first_network = path_to_networks + std::to_string(epoch + 1) + "_opt.bin";
-		std::string first_name = get_name(epoch + 1);
+		std::string first_network = path_to_networks + std::to_string(epoch) + "_opt.bin";
+		std::string first_name = get_name(epoch);
 		evaluator_manager.setFirstPlayer(config.evaluation_config.selfplay_options, first_network, first_name);
 
-		std::cout << "Evaluating network " << epoch + 1 << " against";
+		std::cout << "Evaluating network " << epoch << " against";
 		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
 		{
-			std::string second_network = path_to_networks + std::to_string(std::max(0, epoch - i)) + "_opt.bin";
-			std::string second_name = get_name(std::max(0, epoch - i));
+			const int index = std::max(0, epoch - 1 - i);
+			std::string second_network = path_to_networks + std::to_string(index) + "_opt.bin";
+			std::string second_name = get_name(index);
 
 			evaluator_manager.setSecondPlayer(i, config.evaluation_config.selfplay_options, second_network, second_name);
-			std::cout << ((i == 0) ? " " : ", ") << std::to_string(std::max(0, epoch - i));
+			std::cout << ((i == 0) ? " " : ", ") << std::to_string(index);
 		}
 		std::cout << '\n';
 
@@ -219,21 +239,12 @@ namespace ag
 		std::string to_save;
 		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
 			to_save += evaluator_manager.getGameBuffer(i).generatePGN();
+		std::cout << "Evaluation finished\n";
+
+		std::lock_guard<std::mutex> lock(rating_mutex);
 		std::ofstream file(working_dir + "/rating.pgn", std::fstream::app);
 		file << to_save;
 		file.close();
-
-		if (config.evaluation_config.use_gating)
-		{
-			GameBufferStats stats;
-			for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
-				stats += evaluator_manager.getGameBuffer(i).getStats();
-			if (stats.cross_win + 0.5 * stats.draws >= config.evaluation_config.gating_threshold)
-				metadata["best_checkpoint"] = epoch + 1;
-		}
-		else
-			metadata["best_checkpoint"] = epoch + 1;
-		std::cout << "Evaluation finished\n";
 	}
 	void TrainingManager::splitBuffer(GameBuffer &buffer, int training_games, int validation_games)
 	{
@@ -263,10 +274,6 @@ namespace ag
 	int TrainingManager::get_last_checkpoint() const
 	{
 		return static_cast<int>(metadata["last_checkpoint"]);
-	}
-	int TrainingManager::get_best_checkpoint() const
-	{
-		return static_cast<int>(metadata["best_checkpoint"]);
 	}
 
 } /* namespace ag */

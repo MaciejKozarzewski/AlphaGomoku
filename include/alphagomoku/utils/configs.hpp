@@ -144,8 +144,7 @@ namespace ag
 	struct EvaluationConfig
 	{
 			bool use_evaluation = true;
-			bool use_gating = false;
-			double gating_threshold = 0.55;
+			bool in_parallel = true;
 			SelfplayConfig selfplay_options;
 
 			EvaluationConfig() = default;

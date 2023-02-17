@@ -27,6 +27,8 @@ namespace ag
 
 			GeneratorManager generator_manager;
 			EvaluationManager evaluator_manager;
+			std::future<void> evaluation_future;
+			std::mutex rating_mutex;
 			SupervisedLearning supervised_learning_manager;
 
 		public:
@@ -48,7 +50,6 @@ namespace ag
 			void loadBuffer(GameBuffer &result, const std::string &path);
 
 			int get_last_checkpoint() const;
-			int get_best_checkpoint() const;
 	};
 
 } /* namespace ag */

@@ -168,8 +168,7 @@ namespace ag
 
 	EvaluationConfig::EvaluationConfig(const Json &options) :
 			use_evaluation(get_value<bool>(options, "use_evaluation")),
-			use_gating(get_value<bool>(options, "use_gating")),
-			gating_threshold(get_value<double>(options, "gating_threshold")),
+			in_parallel(get_value<bool>(options, "in_parallel")),
 			selfplay_options(options["selfplay_options"])
 	{
 	}
@@ -177,8 +176,7 @@ namespace ag
 	{
 		Json result;
 		result["use_evaluation"] = use_evaluation;
-		result["use_gating"] = use_gating;
-		result["gating_threshold"] = gating_threshold;
+		result["in_parallel"] = in_parallel;
 		result["selfplay_options"] = selfplay_options.toJson();
 		return result;
 	}

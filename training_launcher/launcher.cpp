@@ -880,10 +880,10 @@ int main(int argc, char *argv[])
 //	for (int i = 0; i < 32; i++)
 //		tm.runIterationSL();
 
-//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/solver_2/");
-//	for (int i = 0; i < 100; i++)
-//		tm.runIterationRL();
-//	return 0;
+	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_evaluate/");
+	for (int i = 0; i < 100; i++)
+		tm.runIterationRL();
+	return 0;
 	{
 		GameConfig game_config(GameRules::STANDARD, 20, 20);
 		TrainingConfig cfg;

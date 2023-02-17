@@ -307,7 +307,7 @@ namespace ag
 
 		const int batch_size = model.getInputShape().firstDim();
 
-		std::vector<DataPack> data_packs(batch_size);
+		std::vector<DataPack> data_packs(std::min(batch_size, buffer.size()));
 
 		int counter = 0;
 		while (counter < buffer.size())
