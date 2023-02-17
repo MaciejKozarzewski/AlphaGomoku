@@ -24,6 +24,7 @@ add_subdirectory("src/utils/")
 set_target_properties(AlphaGomoku PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_include_directories(AlphaGomoku PUBLIC "${PROJECT_SOURCE_DIR}/include")
 target_include_directories(AlphaGomoku PUBLIC "${MINML_BACKEND_PATH}/include")
+target_compile_options(AlphaGomoku PUBLIC -march=native)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_WITH_CUDA)
 	if (WIN32)
@@ -57,7 +58,9 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
 endif()
 
 add_executable(ag_player "player_launcher/launcher.cpp")
+set_target_properties(ag_player PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_link_libraries(ag_player PUBLIC AlphaGomoku)
 
 add_executable(ag_training "training_launcher/launcher.cpp")
+set_target_properties(ag_training PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_link_libraries(ag_training PUBLIC AlphaGomoku)
