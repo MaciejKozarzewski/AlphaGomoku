@@ -11,9 +11,9 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/ZobristHashing.hpp>
 #include <alphagomoku/search/Score.hpp>
-#include <alphagomoku/utils/AlignedStorage.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
+#include <alphagomoku/utils/AlignedAllocator.hpp>
 
 #include <array>
 #include <vector>
@@ -134,7 +134,9 @@ namespace ag
 					}
 			};
 
-			AlignedStorage<std::array<Entry, N>, 64> m_hashtable;
+			using bucket_type = std::array<Entry, N>;
+
+			std::vector<bucket_type, AlignedAllocator<bucket_type, sizeof(bucket_type)>> m_hashtable;
 			FastZobristHashing m_hash_function;
 			HashKey64 m_mask;
 			int m_base_generation = 0;
@@ -146,9 +148,13 @@ namespace ag
 			{
 				clear();
 			}
+			constexpr int getBucketSize() const noexcept
+			{
+				return N;
+			}
 			int64_t getMemory() const noexcept
 			{
-				return m_hashtable.sizeInBytes() + m_hash_function.getMemory();
+				return sizeof(bucket_type) * m_hashtable.size() + m_hash_function.getMemory();
 			}
 			const FastZobristHashing& getHashFunction() const noexcept
 			{
@@ -164,7 +170,7 @@ namespace ag
 			}
 			SharedTableData seek(const HashKey128 &hash) const noexcept
 			{
-				const std::array<Entry, N> &bucket = m_hashtable[hash.getLow() & m_mask];
+				const bucket_type &bucket = m_hashtable[hash.getLow() & m_mask];
 				for (size_t i = 0; i < bucket.size(); i++)
 				{
 					const Entry entry = bucket[i]; // copy entry to stack to prevent surprises from read/write race
@@ -178,7 +184,7 @@ namespace ag
 				value.set_generation_and_key(m_base_generation, hash.getLow());
 				const Entry new_entry(hash, value);
 
-				std::array<Entry, N> &bucket = m_hashtable[hash.getLow() & m_mask];
+				bucket_type &bucket = m_hashtable[hash.getLow() & m_mask];
 				// first check if this position is already stored in the bucket
 				if (value.score().isProven() or value.bound() == Bound::EXACT) // but only if the new score is proven or exact
 					for (size_t i = 0; i < bucket.size(); i++)
@@ -208,11 +214,14 @@ namespace ag
 			double loadFactor(bool approximate = false) const noexcept
 			{
 				const size_t size = approximate ? std::max(m_hashtable.size() >> 10, (size_t) 1024) : m_hashtable.size();
-				double result = 0.0;
+				uint64_t result = 0;
 				for (size_t i = 0; i < size; i++)
-					for (int j = 0; j < N; j++)
-						result += (m_hashtable[i][j].getValue().bound() != Bound::NONE);
-				return result / (size * N);
+				{
+					const bucket_type &bucket = m_hashtable[i];
+					for (size_t j = 0; j < bucket.size(); j++)
+						result += (bucket[j].getValue().bound() != Bound::NONE);
+				}
+				return static_cast<double>(result) / (size * getBucketSize());
 			}
 		private:
 			int get_value_of(const Entry &entry) const noexcept

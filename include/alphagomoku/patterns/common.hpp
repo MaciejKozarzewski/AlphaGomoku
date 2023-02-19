@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_PATTERNS_COMMON_HPP_
 
 #include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/utils/AlignedAllocator.hpp>
 
 #include <cinttypes>
 #include <cassert>
@@ -234,6 +235,11 @@ namespace ag
 			{
 				return begin() + size();
 			}
+	};
+
+	class LocationList: public std::vector<Location, AlignedAllocator<Location, 64>>
+	{
+		public:
 	};
 
 } /* namespace ag */

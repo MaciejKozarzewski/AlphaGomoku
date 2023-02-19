@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_AB_SEARCH_NNUE_WRAPPERS_HPP_
 #define ALPHAGOMOKU_AB_SEARCH_NNUE_WRAPPERS_HPP_
 
-#include <alphagomoku/utils/AlignedStorage.hpp>
+//#include <alphagomoku/utils/AlignedStorage.hpp>
 
 #include <cassert>
 #include <cinttypes>
@@ -173,7 +173,7 @@ namespace ag
 
 		class QuantizedLayer
 		{
-				AlignedStorage<int8_t, 32> data;
+				std::vector<int8_t> data;
 			public:
 				Wrapper2D<int8_t> weights;
 				Wrapper1D<int32_t> bias;
@@ -187,7 +187,7 @@ namespace ag
 		};
 		class RealSpaceLayer
 		{
-				AlignedStorage<float, 32> data;
+				std::vector<float> data;
 			public:
 				Wrapper2D<float> weights;
 				Wrapper1D<float> bias;

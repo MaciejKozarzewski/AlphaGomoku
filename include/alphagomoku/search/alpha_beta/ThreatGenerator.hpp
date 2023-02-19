@@ -56,7 +56,7 @@ namespace ag
 			};
 			GameConfig game_config;
 			PatternCalculator &pattern_calculator;
-			std::vector<Location> temporary_list;
+			LocationList temporary_list;
 			mutable std::vector<std::pair<Location, bool>> forbidden_moves_cache;
 
 			BitMask2D<uint32_t, 32> moves;
@@ -72,7 +72,7 @@ namespace ag
 			template<AddMode Mode>
 			void add_move(Location location, Score s = Score()) noexcept;
 			template<AddMode Mode>
-			void add_moves(const std::vector<Location> &locations, Score s = Score()) noexcept;
+			void add_moves(const LocationList &locations, Score s = Score()) noexcept;
 			template<AddMode Mode, typename T>
 			void add_moves(const T begin, const T end, Score s = Score()) noexcept;
 			ShortVector<Location, 6> get_defensive_moves(Location location, Direction dir);
@@ -90,11 +90,11 @@ namespace ag
 			Sign get_opponent_sign() const noexcept;
 			ThreatType get_own_threat_at(int row, int col) const noexcept;
 			ThreatType get_opponent_threat_at(int row, int col) const noexcept;
-			const std::vector<Location>& get_own_threats(ThreatType tt) const noexcept;
-			const std::vector<Location>& get_opponent_threats(ThreatType tt) const noexcept;
+			const LocationList& get_own_threats(ThreatType tt) const noexcept;
+			const LocationList& get_opponent_threats(ThreatType tt) const noexcept;
 			bool is_anything_forbidden_for(Sign sign) const noexcept;
 			bool is_forbidden(Sign sign, Location loc) const noexcept;
-			const std::vector<Location>& get_copy_of(const std::vector<Location> &list);
+			const LocationList& get_copy_of(const LocationList &list);
 			bool is_move_valid(Move m) const noexcept;
 	};
 

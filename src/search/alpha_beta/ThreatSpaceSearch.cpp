@@ -155,10 +155,14 @@ namespace ag
 		switch (mode)
 		{
 			case TssMode::BASIC:
+			{
+				score = threat_generator.generate(actions, GeneratorMode::BASIC);
+				break;
+			}
 			case TssMode::STATIC:
 			{
-				TimerGuard tg(stats.move_generation);
-				score = threat_generator.generate(actions, static_cast<GeneratorMode>(search_mode));
+//				TimerGuard tg(stats.move_generation);
+				score = threat_generator.generate(actions, GeneratorMode::STATIC);
 				break;
 			}
 			case TssMode::RECURSIVE:
@@ -333,7 +337,7 @@ namespace ag
 
 		{ // threat generator is combined with static solver
 //			TimerGuard tg(stats.move_generation);
-			const Score static_score = threat_generator.generate(actions, static_cast<GeneratorMode>(search_mode));
+			const Score static_score = threat_generator.generate(actions, GeneratorMode::VCF);
 			if (static_score.isProven())
 				return static_score;
 			actions.moveCloserToFront(hash_move, 0);
@@ -357,7 +361,7 @@ namespace ag
 			Score action_score;
 
 			shared_table->getHashFunction().updateHash(hash_key, move);
-			shared_table->prefetch(hash_key); // TODO check if this improves anything
+			shared_table->prefetch(hash_key);
 
 			ActionList next_ply_actions(actions, actions[i]);
 			pattern_calculator.addMove(move);

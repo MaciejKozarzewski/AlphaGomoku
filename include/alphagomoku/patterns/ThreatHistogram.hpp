@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_PATTERNS_THREATHISTOGRAM_HPP_
 
 #include <alphagomoku/patterns/ThreatTable.hpp>
+#include <alphagomoku/patterns/common.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 #include <algorithm>
@@ -19,14 +20,14 @@ namespace ag
 {
 	class ThreatHistogram
 	{
-			std::array<std::vector<Location>, 10> threats;
+			std::array<LocationList, 10> threats;
 		public:
 			ThreatHistogram()
 			{
 				for (size_t i = 1; i < threats.size(); i++) // do not reserve for 'NONE' threat
 					threats[i].reserve(128);
 			}
-			const std::vector<Location>& get(ThreatType threat) const noexcept
+			const LocationList& get(ThreatType threat) const noexcept
 			{
 				assert(static_cast<size_t>(threat) < threats.size());
 				return threats[static_cast<size_t>(threat)];
@@ -36,7 +37,7 @@ namespace ag
 				assert(static_cast<size_t>(threat) < threats.size());
 				if (threat != ThreatType::NONE)
 				{
-					std::vector<Location> &list = threats[static_cast<size_t>(threat)];
+					LocationList &list = threats[static_cast<size_t>(threat)];
 					const uint16_t *ptr = reinterpret_cast<uint16_t*>(list.data());
 					const uint16_t value = location.toShort();
 					const int length = list.size();
@@ -44,8 +45,8 @@ namespace ag
 					const __m256i val = _mm256_set1_epi16(value);
 					for (int i = 0; i < length; i += 32, ptr += 32)
 					{
-						const __m256i tmp0 = _mm256_loadu_si256((const __m256i*) (ptr + 0));
-						const __m256i tmp1 = _mm256_loadu_si256((const __m256i*) (ptr + 16));
+						const __m256i tmp0 = _mm256_load_si256((const __m256i*) (ptr + 0));
+						const __m256i tmp1 = _mm256_load_si256((const __m256i*) (ptr + 16));
 						const __m256i cmp0 = _mm256_cmpeq_epi16(tmp0, val);
 						const __m256i cmp1 = _mm256_cmpeq_epi16(tmp1, val);
 						const __m256i tmp = _mm256_permute4x64_epi64(_mm256_packs_epi16(cmp0, cmp1), 0b11'01'10'00);
@@ -65,8 +66,8 @@ namespace ag
 					const __m128i val = _mm_set1_epi16(value);
 					for (int i = 0; i < length; i += 16, ptr += 16)
 					{
-						const __m128i tmp0 = _mm_loadu_si128((const __m128i*) (ptr + 0));
-						const __m128i tmp1 = _mm_loadu_si128((const __m128i*) (ptr + 8));
+						const __m128i tmp0 = _mm_load_si128((const __m128i*) (ptr + 0));
+						const __m128i tmp1 = _mm_load_si128((const __m128i*) (ptr + 8));
 						const __m128i cmp0 = _mm_cmpeq_epi16(tmp0, val);
 						const __m128i cmp1 = _mm_cmpeq_epi16(tmp1, val);
 						const __m128i tmp = _mm_packs_epi16(cmp0, cmp1);
@@ -98,7 +99,7 @@ namespace ag
 				assert(static_cast<size_t>(threat) < threats.size());
 				if (threat != ThreatType::NONE)
 				{
-					std::vector<Location> &list = threats[static_cast<size_t>(threat)];
+					LocationList &list = threats[static_cast<size_t>(threat)];
 					if (list.size() == list.capacity())
 						list.reserve(2 * list.capacity()); // ensuring that the size will remain divisible by 32
 					list.push_back(location);

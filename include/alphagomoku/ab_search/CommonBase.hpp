@@ -53,11 +53,11 @@ namespace ag
 				}
 				const std::vector<Location>& get_own_threats(ThreatType tt) const noexcept
 				{
-					return pattern_calculator.getThreatHistogram(get_own_sign()).get(tt);
+//					return pattern_calculator.getThreatHistogram(get_own_sign()).get(tt);
 				}
 				const std::vector<Location>& get_opponent_threats(ThreatType tt) const noexcept
 				{
-					return pattern_calculator.getThreatHistogram(get_opponent_sign()).get(tt);
+//					return pattern_calculator.getThreatHistogram(get_opponent_sign()).get(tt);
 				}
 				bool is_own_4x4_fork_forbidden() const noexcept
 				{

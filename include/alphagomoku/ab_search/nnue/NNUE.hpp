@@ -59,7 +59,7 @@ namespace ag
 		class InferenceNNUE
 		{
 				GameConfig game_config;
-				AlignedStorage<int32_t, 32> accumulator_stack;
+				std::vector<int32_t> accumulator_stack;
 				int current_depth = 0;
 				const NNUEWeights *weights;
 

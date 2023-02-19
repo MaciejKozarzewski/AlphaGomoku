@@ -11,7 +11,6 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/ab_search/FastHashFunction.hpp>
 #include <alphagomoku/ab_search/Score.hpp>
-#include <alphagomoku/utils/AlignedStorage.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
 
@@ -114,7 +113,7 @@ namespace ag
 						}
 				};
 
-				AlignedStorage<std::array<Entry, N>, 64> m_hashtable;
+				std::vector<std::array<Entry, N>> m_hashtable;
 				FastHashFunction<64> m_hash_function;
 				HashKey<64> m_mask;
 			public:
@@ -205,7 +204,7 @@ namespace ag
 						}
 				};
 
-				AlignedStorage<Entry, 16> m_hashtable;
+				std::vector<Entry> m_hashtable;
 				FastHashFunction<64> m_hash_function;
 				HashKey<64> m_mask;
 			public:

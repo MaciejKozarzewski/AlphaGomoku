@@ -165,7 +165,7 @@ namespace ag
 		}
 	}
 	template<ThreatGenerator::AddMode Mode>
-	void ThreatGenerator::add_moves(const std::vector<Location> &moves, Score s) noexcept
+	void ThreatGenerator::add_moves(const LocationList &moves, Score s) noexcept
 	{
 		for (auto iter = moves.begin(); iter < moves.end(); iter++)
 			add_move<Mode>(*iter, s);
@@ -284,7 +284,7 @@ namespace ag
 		assert(actions->baseline_score == Score());
 		assert(actions->must_defend == false && actions->has_initiative == false);
 
-		const std::vector<Location> &own_fives = get_own_threats(ThreatType::FIVE);
+		const LocationList &own_fives = get_own_threats(ThreatType::FIVE);
 		if (own_fives.size() > 0)
 		{ // not often (approximately 1 in 600 positions, in renju 1 in 200)
 			actions->has_initiative = true;
@@ -303,7 +303,7 @@ namespace ag
 			return Result();
 
 		// we must copy as the check for forbidden moves may reorder the elements in the original list
-		const std::vector<Location> &opponent_fives = get_copy_of(get_opponent_threats(ThreatType::FIVE));
+		const LocationList &opponent_fives = get_copy_of(get_opponent_threats(ThreatType::FIVE));
 		actions->must_defend = true;
 		actions->baseline_score = Score::loss_in(2);
 
@@ -393,7 +393,7 @@ namespace ag
 		  // it is very rare (approximately 1 in 500.000 positions) but we must check this in order to have correct results
 
 			// we must copy as the check for forbidden moves may reorder the elements in the original list
-			const std::vector<Location> &opp_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
+			const LocationList &opp_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
 			for (auto move = opp_fork_3x3.begin(); move < opp_fork_3x3.end(); move++)
 			{
 				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
@@ -405,7 +405,7 @@ namespace ag
 			}
 		}
 
-		const std::vector<Location> &own_open_four = get_own_threats(ThreatType::OPEN_4);
+		const LocationList &own_open_four = get_own_threats(ThreatType::OPEN_4);
 		add_moves<EXCLUDE_DUPLICATE>(own_open_four, Score::win_in(3));
 		if (hidden_open_four_count + own_open_four.size() > 0)
 		{ // frequent in renju (1 in 20) but rare otherwise (approximately 1 in 450 positions)
@@ -413,7 +413,7 @@ namespace ag
 			return Result::canStopNow(Score::win_in(3));
 		}
 
-		const std::vector<Location> &own_fork_4x4 = get_own_threats(ThreatType::FORK_4x4);
+		const LocationList &own_fork_4x4 = get_own_threats(ThreatType::FORK_4x4);
 		if (own_fork_4x4.size() > 0 and not is_anything_forbidden_for(get_own_sign()))
 		{ // rare (approximately 1 in 1700 positions)
 			actions->has_initiative = true;
@@ -426,7 +426,7 @@ namespace ag
 		  // it is quite frequent (approximately 1 in 300 positions) and we can successfully solve ~98% of such positions
 
 			// we must copy as the check for forbidden moves may reorder the elements in the original list
-			const std::vector<Location> &own_half_open_four = get_copy_of(get_own_threats(ThreatType::HALF_OPEN_4));
+			const LocationList &own_half_open_four = get_copy_of(get_own_threats(ThreatType::HALF_OPEN_4));
 			for (auto move = own_half_open_four.begin(); move < own_half_open_four.end(); move++)
 			{ // we take advantage of the fact that in renju, half-open fours always come in pairs, for example !XX!X
 			  // we can loop over available half-open fours and check if any of them is on the spot forbidden for the opponent
@@ -495,7 +495,7 @@ namespace ag
 			// otherwise, if there is no move that can defend against all threats it is a loss in 4 (provided that we can't make any own fours)
 			DefensiveMoves defensive_moves;
 
-			const std::vector<Location> &opp_open_four = get_opponent_threats(ThreatType::OPEN_4);
+			const LocationList &opp_open_four = get_opponent_threats(ThreatType::OPEN_4);
 			for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
 			{
 				actions->must_defend = true;
@@ -511,7 +511,7 @@ namespace ag
 				}
 			}
 
-			const std::vector<Location> &opp_fork_4x4 = get_opponent_threats(ThreatType::FORK_4x4);
+			const LocationList &opp_fork_4x4 = get_opponent_threats(ThreatType::FORK_4x4);
 			ShortVector<Location, 24> storage;
 			for (auto move = opp_fork_4x4.begin(); move < opp_fork_4x4.end(); move++)
 			{
@@ -550,7 +550,7 @@ namespace ag
 		else
 		{ // in renju rule there are too complex dependencies between defensive and forbidden moves, this is why we add all defensive moves
 			{ // artificial scope so that the list below is not used later
-				const std::vector<Location> &opp_open_four = get_copy_of(get_opponent_threats(ThreatType::OPEN_4));
+				const LocationList &opp_open_four = get_copy_of(get_opponent_threats(ThreatType::OPEN_4));
 				for (auto move = opp_open_four.begin(); move < opp_open_four.end(); move++)
 				{
 					actions->must_defend = true;
@@ -566,7 +566,7 @@ namespace ag
 			  // it is very rare (approximately 1 in 400.000 positions) but we must do this in order to have correct results
 
 				// we must copy as the check for forbidden moves may reorder the elements in the original list
-				const std::vector<Location> &opp_fork_3x3 = get_copy_of(get_opponent_threats(ThreatType::FORK_3x3));
+				const LocationList &opp_fork_3x3 = get_copy_of(get_opponent_threats(ThreatType::FORK_3x3));
 				for (auto move = opp_fork_3x3.begin(); move < opp_fork_3x3.end(); move++)
 				{
 					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
@@ -583,7 +583,7 @@ namespace ag
 			if (not is_anything_forbidden_for(get_opponent_sign()))
 			{
 				// we must copy as the check for forbidden moves may reorder the elements in the original list
-				const std::vector<Location> &opp_fork_4x4 = get_copy_of(get_opponent_threats(ThreatType::FORK_4x4));
+				const LocationList &opp_fork_4x4 = get_copy_of(get_opponent_threats(ThreatType::FORK_4x4));
 				for (auto move = opp_fork_4x4.begin(); move < opp_fork_4x4.end(); move++)
 				{
 					actions->must_defend = true;
@@ -626,7 +626,7 @@ namespace ag
 			const int half_open_4_count = get_opponent_threats(ThreatType::HALF_OPEN_4).size();
 			if ((open_4_count + fork_4x4_count + fork_4x3_count + half_open_4_count) == 0)
 			{ // opponent has no four to make
-				const std::vector<Location> &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
+				const LocationList &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
 				add_moves<EXCLUDE_DUPLICATE>(own_fork_3x3, Score::win_in(5));
 				if (own_fork_3x3.size() > 0) // it happens quite often (approximately 1 in 150 positions)
 					best_score = std::max(best_score, Score::win_in(5));
@@ -643,7 +643,7 @@ namespace ag
 	Score ThreatGenerator::add_own_4x3_forks()
 	{
 		Score result;
-		const std::vector<Location> &own_fork_4x3 = get_own_threats(ThreatType::FORK_4x3);
+		const LocationList &own_fork_4x3 = get_own_threats(ThreatType::FORK_4x3);
 		for (auto iter = own_fork_4x3.begin(); iter < own_fork_4x3.end(); iter++)
 		{
 			const Score solution = try_solve_own_fork_4x3(*iter);
@@ -661,7 +661,7 @@ namespace ag
 		  // it is rare (approximately 1 in 60.000 positions) but cheap to check
 
 			// we must copy as the check for forbidden moves may reorder the elements in the original list
-			const std::vector<Location> &own_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
+			const LocationList &own_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
 			for (auto move = own_fork_3x3.begin(); move < own_fork_3x3.end(); move++)
 			{
 				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
@@ -763,11 +763,11 @@ namespace ag
 	{
 		return pattern_calculator.getThreatAt(get_opponent_sign(), row, col);
 	}
-	const std::vector<Location>& ThreatGenerator::get_own_threats(ThreatType tt) const noexcept
+	const LocationList& ThreatGenerator::get_own_threats(ThreatType tt) const noexcept
 	{
 		return pattern_calculator.getThreatHistogram(get_own_sign()).get(tt);
 	}
-	const std::vector<Location>& ThreatGenerator::get_opponent_threats(ThreatType tt) const noexcept
+	const LocationList& ThreatGenerator::get_opponent_threats(ThreatType tt) const noexcept
 	{
 		return pattern_calculator.getThreatHistogram(get_opponent_sign()).get(tt);
 	}
@@ -789,7 +789,7 @@ namespace ag
 		}
 		return false;
 	}
-	const std::vector<Location>& ThreatGenerator::get_copy_of(const std::vector<Location> &list)
+	const LocationList& ThreatGenerator::get_copy_of(const LocationList &list)
 	{
 		temporary_list = list;
 		return temporary_list;

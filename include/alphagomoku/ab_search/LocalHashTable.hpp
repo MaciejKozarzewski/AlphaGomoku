@@ -10,7 +10,6 @@
 
 #include <alphagomoku/ab_search/FastHashFunction.hpp>
 #include <alphagomoku/ab_search/Score.hpp>
-#include <alphagomoku/utils/AlignedStorage.hpp>
 
 #include <memory>
 #include <cassert>
@@ -49,7 +48,7 @@ namespace ag
 						}
 				};
 
-				AlignedStorage<Entry, 64> m_hashtable;
+				std::vector<Entry> m_hashtable;
 				HashKey<64> m_mask;
 			public:
 				LocalHashTable(size_t initialSize = 1024) :
