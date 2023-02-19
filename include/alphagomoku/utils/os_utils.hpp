@@ -39,6 +39,24 @@ namespace ag
 #endif
 	}
 
+	enum class SignalType
+	{
+		INT,
+		ILL,
+		ABRT,
+		FPE,
+		SEGV,
+		TERM
+	};
+	enum class SignalHandlerMode
+	{
+		DEFAULT,
+		IGNORE,
+		CUSTOM
+	};
+	void setupSignalHandler(SignalType type, SignalHandlerMode mode);
+	bool hasCapturedSignal(SignalType type) noexcept;
+
 } /* namespace ag */
 
 #endif /* INCLUDE_ALPHAGOMOKU_UTILS_OS_UTILS_HPP_ */
