@@ -113,6 +113,23 @@ namespace ag
 
 		return GameGenerator::OK;
 	}
+	Json GameGenerator::save(SerializedObject &binary_data)
+	{
+		Json result = game.serialize(binary_data);
+		result["state"] = static_cast<int>(state);
+		return result;
+	}
+	void GameGenerator::load(const Json &json, const SerializedObject &binary_data)
+	{
+		std::cout<<json.dump(2)<<'\n';
+		state = static_cast<GameState>(json["state"].getInt());
+		game = Game(json, binary_data);
+		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE or state == GAMEPLAY_EXPAND_AND_BACKUP)
+		{
+			prepare_search();
+			state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
+		}
+	}
 	/*
 	 * private
 	 */
@@ -131,7 +148,7 @@ namespace ag
 //			std::cout << "   " << root_node.getEdge(i).toString() << '\n';
 //		tree.printSubtree(2, false);
 
-		MaxValueSelector selector;
+		BestEdgeSelector selector;
 		const Move move = selector.select(&root_node)->getMove();
 
 		SearchData state(game_config.rows, game_config.cols);
@@ -147,8 +164,8 @@ namespace ag
 	{
 		search.cleanup(tree);
 		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
-//		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeSelector(SequentialHalvingSelector(search.getConfig().max_children, selfplay_config.simulations, 50.0f, 1.0f));
+		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
+//		tree.setEdgeSelector(SequentialHalvingSelector(search.getConfig().max_children, selfplay_config.simulations, 50.0f, 1.0f));
 		tree.setEdgeGenerator(SequentialHalvingGenerator(search.getConfig().max_children));
 	}
 

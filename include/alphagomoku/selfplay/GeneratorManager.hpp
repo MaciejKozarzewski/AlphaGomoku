@@ -51,6 +51,7 @@ namespace ag
 	{
 		private:
 			std::future<void> generator_future;
+			std::atomic<bool> is_running;
 
 			GeneratorManager &manager;
 			NNEvaluator nn_evaluator;
@@ -58,12 +59,15 @@ namespace ag
 		public:
 			GeneratorThread(GeneratorManager &manager, const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index);
 			void start();
+			void stop();
 			bool isFinished() const noexcept;
 			void clearStats() noexcept;
 			void resetGames();
 			NNEvaluatorStats getEvaluatorStats() const noexcept;
 			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
+			void saveGames(const std::string &path) const;
+			void loadGames(const std::string &path);
 		private:
 			void run();
 	};
@@ -76,10 +80,11 @@ namespace ag
 
 			int games_to_generate = 0;
 			std::string path_to_network;
-
+			std::string working_directory;
 		public:
 			GeneratorManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions);
 
+			void setWorkingDirectory(const std::string &path);
 			const GameBuffer& getGameBuffer() const noexcept;
 			GameBuffer& getGameBuffer() noexcept;
 			std::string getPathToNetwork() const;
@@ -89,6 +94,9 @@ namespace ag
 			bool hasEnoughGames() const noexcept;
 
 			void printStats();
+		private:
+			void save_games();
+			void load_games();
 	};
 
 } /* namespace ag */

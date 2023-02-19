@@ -55,11 +55,13 @@ namespace ag
 	}
 	void SearchData::getBoard(matrix<Sign> &board) const noexcept
 	{
+		assert(equalSize(board, actions));
 		for (int i = 0; i < board.size(); i++)
 			board[i] = static_cast<Sign>(actions[i].sign_and_visit_count & 0x0003);
 	}
 	void SearchData::setBoard(const matrix<Sign> &board) noexcept
 	{
+		assert(equalSize(board, actions));
 		for (int i = 0; i < board.size(); i++)
 			actions[i].sign_and_visit_count = (actions[i].sign_and_visit_count & 0xFFFC) | static_cast<uint16_t>(board[i]);
 	}

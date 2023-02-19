@@ -204,11 +204,11 @@ void test_pattern_calculator()
 
 	GameBuffer buffer;
 #ifdef NDEBUG
-	for (int i = 0; i < 17; i++)
+	for (int i = 20; i <= 24; i++)
 #else
-	for (int i = 0; i < 1; i++)
+	for (int i = 24; i <= 24; i++)
 #endif
-		buffer.load("/home/maciek/alphagomoku/run2022_15x15s2/train_buffer/buffer_" + std::to_string(i) + ".bin");
+		buffer.load("/home/maciek/alphagomoku/new_runs_2023/buffer_" + std::to_string(i) + ".bin");
 //		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
@@ -311,8 +311,10 @@ void test_pattern_calculator()
 						{
 							std::cout << "Threat histogram mismatch for circle\n";
 							std::cout << "Single step\n";
+							extractor_new2.print();
 							extractor_new2.getThreatHistogram(Sign::CIRCLE).print();
 							std::cout << "incremental\n";
+							extractor_new.print();
 							extractor_new.getThreatHistogram(Sign::CIRCLE).print();
 							exit(-1);
 						}
@@ -340,14 +342,12 @@ void test_proven_positions(int pos)
 
 	GameBuffer buffer;
 #ifdef NDEBUG
-	for (int i = 0; i <= 19 + 2 * (game_config.rows == 15); i++)
+	for (int i = 20; i <= 24; i++)
 #else
-	for (int i = 0; i < 1; i++)
+	for (int i = 24; i <= 24; i++)
 #endif
-		if (game_config.rows == 15)
-			buffer.load("/home/maciek/alphagomoku/run2022_15x15s2/train_buffer/buffer_" + std::to_string(i) + ".bin");
-		else
-			buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
+		buffer.load("/home/maciek/alphagomoku/new_runs_2023/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
 	ThreatSpaceSearch ts_search(game_config, pos);
@@ -1743,8 +1743,8 @@ int main(int argc, char *argv[])
 //	}
 
 //	test_nnue();
-//	test_feature_extractor();
-//	test_proven_positions(100);
+//	test_pattern_calculator();
+	test_proven_positions(100);
 //	test_proven_positions(1000);
 //	ab_search_test();
 //	test_search();
@@ -1754,7 +1754,7 @@ int main(int argc, char *argv[])
 //	test_static_solver();
 //	test_forbidden_moves();
 //	std::cout << "END" << std::endl;
-//	return 0;
+	return 0;
 //	experimental::WeightTable::combineAndStore("/home/maciek/Desktop/");
 
 //	GameConfig game_config(GameRules::STANDARD, 10);

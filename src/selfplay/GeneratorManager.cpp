@@ -8,6 +8,8 @@
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/selfplay/GameGenerator.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
+#include <alphagomoku/utils/file_util.hpp>
+#include <alphagomoku/utils/os_utils.hpp>
 
 #include <minml/core/Device.hpp>
 #include <minml/utils/json.hpp>
@@ -19,10 +21,12 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <csignal>
 
 namespace ag
 {
 	GeneratorThread::GeneratorThread(GeneratorManager &manager, const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index) :
+			is_running(true),
 			manager(manager),
 			nn_evaluator(selfplayOptions.device_config[index]),
 			generators(selfplayOptions.games_per_thread)
@@ -45,6 +49,11 @@ namespace ag
 				exit(-1);
 			}
 		});
+	}
+	void GeneratorThread::stop()
+	{
+		is_running.store(false);
+		generator_future.wait();
 	}
 	bool GeneratorThread::isFinished() const noexcept
 	{
@@ -87,13 +96,35 @@ namespace ag
 //		result /= static_cast<int>(generators.size());
 		return result;
 	}
+	void GeneratorThread::saveGames(const std::string &path) const
+	{
+		if (not isFinished())
+			throw std::logic_error("GeneratorThread::saveGames() : cannot save while the generator is running");
+
+		Json json(JsonType::Array);
+		SerializedObject so;
+		for (size_t i = 0; i < generators.size(); i++)
+			json[i] = generators[i]->save(so);
+
+		FileSaver fs(path);
+		fs.save(json, so, 2, true);
+	}
+	void GeneratorThread::loadGames(const std::string &path)
+	{
+		if (not isFinished())
+			throw std::logic_error("GeneratorThread::loadGames() : cannot load while the generator is running");
+
+		FileLoader fl(path, true);
+		for (size_t i = 0; i < generators.size(); i++)
+			generators[i]->load(fl.getJson()[i], fl.getBinaryData());
+	}
 	/*
 	 * private
 	 */
 	void GeneratorThread::run()
 	{
 		nn_evaluator.loadGraph(manager.getPathToNetwork());
-		while (not manager.hasEnoughGames())
+		while (is_running.load() and not manager.hasEnoughGames())
 		{
 			for (size_t i = 0; i < generators.size(); i++)
 			{
@@ -116,6 +147,10 @@ namespace ag
 			generators[i] = std::make_unique<GeneratorThread>(*this, gameOptions, selfplayOptions, i);
 	}
 
+	void GeneratorManager::setWorkingDirectory(const std::string &path)
+	{
+		working_directory = path;
+	}
 	const GameBuffer& GeneratorManager::getGameBuffer() const noexcept
 	{
 		return game_buffer;
@@ -141,6 +176,7 @@ namespace ag
 	{
 		games_to_generate = numberOfGames;
 		path_to_network = pathToNetwork;
+		load_games();
 
 		for (size_t i = 0; i < generators.size(); i++)
 		{
@@ -155,6 +191,21 @@ namespace ag
 			counter++;
 			if (counter % 60 == 0)
 				printStats();
+
+			if (counter == 25)
+				raise(SIGINT);
+
+			if (hasCapturedSignal(SignalType::INT))
+			{
+				std::cout << "Caught interruption signal" << std::endl;
+				for (size_t i = 0; i < generators.size(); i++)
+					generators[i]->stop();
+				std::cout << "Generators stopped" << std::endl;
+				save_games();
+				std::cout << "Exiting" << std::endl;
+				exit(0);
+			}
+
 			bool is_ready = true;
 			for (size_t i = 0; i < generators.size(); i++)
 				is_ready &= generators[i]->isFinished();
@@ -184,6 +235,55 @@ namespace ag
 		std::cout << evaluator_stats.toString();
 		std::cout << search_stats.toString();
 		std::cout << cache_stats.toString() << std::endl;
+	}
+	/*
+	 * private
+	 */
+	void GeneratorManager::save_games()
+	{
+		std::cout << working_directory << '\n';
+		if (working_directory.empty())
+			return;
+		std::cout << "Saving games" << std::endl;
+
+		std::string path = working_directory + "/saved_state/";
+		if (not pathExists(path))
+			createDirectory(path);
+
+		for (size_t i = 0; i < generators.size(); i++)
+		{
+			const std::string tmp = path + "thread_" + std::to_string(i) + ".bin";
+			if (pathExists(tmp))
+			{
+				std::cout << "Removing previous state" << std::endl;
+				removeFile(tmp);
+			}
+			generators[i]->saveGames(tmp);
+			std::cout << "Saved " << tmp << std::endl;
+		}
+	}
+	void GeneratorManager::load_games()
+	{
+		if (working_directory.empty())
+			return;
+
+		std::string path = working_directory + "/saved_state/";
+		if (not pathExists(path))
+		{
+			std::cout << "No saved games were found" << std::endl;
+			return;
+		}
+
+		std::cout << "Loading games" << std::endl;
+		for (size_t i = 0; i < generators.size(); i++)
+		{
+			const std::string tmp = path + "thread_" + std::to_string(i) + ".bin";
+			if (pathExists(tmp))
+			{
+				generators[i]->loadGames(tmp);
+				std::cout << "Loaded " << tmp << std::endl;
+			}
+		}
 	}
 
 } /* namespace ag */

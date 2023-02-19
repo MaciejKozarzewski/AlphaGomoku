@@ -13,7 +13,6 @@
 #include <alphagomoku/utils/misc.hpp>
 
 #include <string>
-#include <filesystem>
 
 namespace
 {
@@ -29,9 +28,12 @@ namespace
 	}
 	MasterLearningConfig load_config(std::string path)
 	{
+		if(not pathExists(path))
+			createDirectory(path);
+
 		path += "/config.json";
 
-		if (std::filesystem::exists(path))
+		if (pathExists(path))
 			return MasterLearningConfig(FileLoader(path).getJson());
 		else
 		{ // create a default config
@@ -40,7 +42,7 @@ namespace
 			output.open(path.data(), std::ios::app);
 			output << cfg.toJson().dump(2) << '\n';
 			output.close();
-			std::cout << "Created default config" << std::endl;
+			std::cout << "Created default configuration file, exiting" << std::endl;
 			exit(0);
 			return cfg;
 		}
@@ -117,15 +119,15 @@ namespace ag
 	 */
 	void TrainingManager::initFolderTree()
 	{
-		std::filesystem::create_directory(working_dir + "/checkpoint/"); // create folder for networks
-		std::filesystem::create_directory(working_dir + "/train_buffer/"); // create folder for buffers
-		std::filesystem::create_directory(working_dir + "/valid_buffer/"); // create folder for buffers
+		createDirectory(working_dir + "/checkpoint/"); // create folder for networks
+		createDirectory(working_dir + "/train_buffer/"); // create folder for buffers
+		createDirectory(working_dir + "/valid_buffer/"); // create folder for buffers
 	}
 	void TrainingManager::saveMetadata()
 	{
 		std::string dataPath = working_dir + "/metadata.json";
-		if (std::filesystem::exists(dataPath))
-			std::filesystem::remove(dataPath);
+		if (pathExists(dataPath))
+			removeFile(dataPath);
 
 		std::ofstream output;
 		output.open(dataPath.data(), std::ios::app);
@@ -133,7 +135,7 @@ namespace ag
 	}
 	bool TrainingManager::loadMetadata()
 	{
-		if (not std::filesystem::exists(working_dir + "/metadata.json"))
+		if (not pathExists(working_dir + "/metadata.json"))
 			return false;
 		else
 		{
@@ -153,18 +155,19 @@ namespace ag
 	}
 	void TrainingManager::generateGames()
 	{
-		if (std::filesystem::exists(working_dir + "/train_buffer/buffer_" + std::to_string(get_last_checkpoint()) + ".bin"))
+		if (pathExists(working_dir + "/train_buffer/buffer_" + std::to_string(get_last_checkpoint()) + ".bin"))
 		{
 			std::cout << "Buffer " + std::to_string(get_last_checkpoint()) + " already exists\n";
 			return;
 		}
 
 		std::string path_to_last_network = working_dir + "/checkpoint/network_" + std::to_string(get_last_checkpoint()) + "_opt.bin";
-		std::cout << "Loading " << path_to_last_network << '\n';
+		std::cout << "Using " << path_to_last_network << '\n';
 		const int training_games = config.generation_config.games_per_iteration;
 		const int validation_games = std::max(1.0, training_games * config.training_config.validation_percent);
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
+		generator_manager.setWorkingDirectory(working_dir);
 		generator_manager.getGameBuffer().clear();
 		generator_manager.generate(path_to_last_network, training_games + validation_games);
 		if (generator_manager.getGameBuffer().isCorrect() == false)

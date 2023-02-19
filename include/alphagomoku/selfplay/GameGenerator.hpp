@@ -57,6 +57,8 @@ namespace ag
 
 			void reset();
 			Status generate();
+			Json save(SerializedObject &binary_data);
+			void load(const Json &json, const SerializedObject &binary_data);
 		private:
 			void make_move();
 			void prepare_search();

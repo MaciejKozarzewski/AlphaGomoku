@@ -34,12 +34,12 @@ namespace ag
 			use_count(current_board.size(), 0),
 			outcome(outcomeFromString(json["outcome"]))
 	{
-		size_t offset = json["binary_offset"];
-		size_t nb_of_moves = json["nb_of_moves"];
+		size_t offset = json["binary_offset"].getLong();
+		const size_t nb_of_moves = json["nb_of_moves"].getInt();
 		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(Move))
-			played_moves.push_back(binary_data.load<Move>(offset));
+			makeMove(binary_data.load<Move>(offset));
 
-		size_t nb_of_states = json["nb_of_states"];
+		const size_t nb_of_states = json["nb_of_states"].getInt();
 		for (size_t i = 0; i < nb_of_states; i++)
 			addSearchData(SearchData(binary_data, offset));
 	}
