@@ -17,6 +17,10 @@
 
 namespace ag
 {
+	bool pathExists(const std::string &path);
+	bool createDirectory(const std::string &path);
+	bool removeFile(const std::string &path);
+
 	class FileSaver
 	{
 			std::string path;
