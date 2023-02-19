@@ -23,7 +23,11 @@ namespace
 			int omp_threads;
 	};
 
-	const std::vector<int> batch_size = { 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128 };
+	const std::vector<int>& batch_sizes()
+	{
+		static const std::vector<int> result = { 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128 };
+		return result;
+	}
 
 	Json test_speed(double max_time, const std::string &path, HardwareTestConfig config)
 	{
@@ -33,7 +37,7 @@ namespace
 		for (size_t i = 0; i < networks.size(); i++)
 		{
 			networks[i].loadFromFile(path);
-			networks[i].setBatchSize(batch_size.back());
+			networks[i].setBatchSize(batch_sizes().back());
 			networks[i].moveTo(config.device);
 		}
 
@@ -71,12 +75,12 @@ namespace
 		result["samples"] = Json(JsonType::Array);
 		result["time"] = Json(JsonType::Array);
 
-		for (size_t i = 0; i < batch_size.size(); i++)
+		for (size_t i = 0; i < batch_sizes().size(); i++)
 		{
 			total_samples = 0;
 			total_time = 0.0;
 			for (size_t j = 0; j < threads.size(); j++)
-				threads[j] = std::thread(benchmark_function, j, batch_size[i]);
+				threads[j] = std::thread(benchmark_function, j, batch_sizes()[i]);
 
 			for (size_t j = 0; j < threads.size(); j++)
 				if (threads[j].joinable())
@@ -84,7 +88,7 @@ namespace
 
 			if (total_samples == 0)
 				return Json(); // network inference didn't work for some reason (most likely out of memory)
-			result["batch"][i] = batch_size[i];
+			result["batch"][i] = batch_sizes()[i];
 			result["samples"][i] = total_samples;
 			result["time"][i] = total_time / threads.size();
 		}
@@ -119,7 +123,7 @@ namespace ag
 				configs_to_test.push_back( { ml::Device::cuda(device_index), search_threads, 1 });
 
 		const int overhead_time = 2; /**< in seconds */
-		const int estimated_time = ((batch_size.size() * benchmarking_time + overhead_time) * configs_to_test.size() + 59.9) / 60.0;
+		const int estimated_time = ((batch_sizes().size() * benchmarking_time + overhead_time) * configs_to_test.size() + 59.9) / 60.0;
 
 		/* run benchmarks */
 		output_sender.send("Detected following devices:\n" + ml::Device::hardwareInfo());
