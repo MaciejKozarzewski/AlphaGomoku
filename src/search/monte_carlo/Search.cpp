@@ -85,8 +85,8 @@ namespace ag
 	}
 
 	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
-			tasks_list_buffer_0(gameOptions),
-			tasks_list_buffer_1(gameOptions),
+			tasks_list_buffer_0(gameOptions, searchOptions.max_batch_size),
+			tasks_list_buffer_1(gameOptions, searchOptions.max_batch_size),
 			solver(gameOptions, searchOptions.solver_max_positions),
 			game_config(gameOptions),
 			search_config(searchOptions)
@@ -113,7 +113,6 @@ namespace ag
 	}
 	SearchStats Search::getStats() const noexcept
 	{
-//		ts_search.print_stats();
 		return stats;
 	}
 
@@ -121,7 +120,7 @@ namespace ag
 	{
 		solver.setSharedTable(tree.getSharedHashTable());
 
-		while (get_buffer().size() < get_buffer().capacity() and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
+		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
 		{
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_buffer().getNext();
@@ -156,23 +155,19 @@ namespace ag
 				get_buffer().removeLast();
 			}
 		}
-		stats.nb_batch_size += get_buffer().size();
+		stats.nb_batch_size += get_buffer().storedElements();
 	}
 	void Search::solve()
 	{
-		const TssMode level = static_cast<TssMode>(search_config.solver_level);
-		const int positions = search_config.solver_max_positions;
-
-		for (int i = 0; i < get_buffer().size(); i++)
-			if (not get_buffer().get(i).wasProcessedBySolver())
-			{
-				TimerGuard timer(stats.solve);
-				solver.solve(get_buffer().get(i), level, positions);
-			}
+		for (int i = 0; i < get_buffer().storedElements(); i++)
+		{
+			TimerGuard timer(stats.solve);
+			solver.solve(get_buffer().get(i), static_cast<TssMode>(search_config.solver_level), search_config.solver_max_positions);
+		}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
 	{
-		for (int i = 0; i < get_buffer().size(); i++)
+		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
 			TimerGuard timer(stats.schedule);
 			if (not get_buffer().get(i).getScore().isProven())
@@ -184,14 +179,14 @@ namespace ag
 	}
 	bool Search::areTasksReady() const noexcept
 	{
-		for (int i = 0; i < get_buffer().size(); i++)
+		for (int i = 0; i < get_buffer().storedElements(); i++)
 			if (not get_buffer().get(i).isReady())
 				return false;
 		return true;
 	}
 	void Search::generateEdges(const Tree &tree)
 	{
-		for (int i = 0; i < get_buffer().size(); i++)
+		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
 			TimerGuard timer(stats.generate);
 			tree.generateEdges(get_buffer().get(i));
@@ -199,7 +194,7 @@ namespace ag
 	}
 	void Search::expand(Tree &tree)
 	{
-		for (int i = 0; i < get_buffer().size(); i++)
+		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
 			TimerGuard timer(stats.expand);
 			const ExpandOutcome out = tree.expand(get_buffer().get(i));
@@ -208,8 +203,8 @@ namespace ag
 	}
 	void Search::backup(Tree &tree)
 	{
-		stats.nb_node_count += get_buffer().size();
-		for (int i = 0; i < get_buffer().size(); i++)
+		stats.nb_node_count += get_buffer().storedElements();
+		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
 			TimerGuard timer(stats.backup);
 			tree.backup(get_buffer().get(i));
@@ -220,10 +215,10 @@ namespace ag
 	{
 		for (int b = 0; b < 2; b++)
 		{
-			for (int i = 0; i < get_buffer().size(); i++)
+			useBuffer(b);
+			for (int i = 0; i < get_buffer().storedElements(); i++)
 				tree.cancelVirtualLoss(get_buffer().get(i));
 			get_buffer().clear();
-			switchBuffer();
 		}
 	}
 	void Search::tune()
@@ -242,19 +237,22 @@ namespace ag
 			last_tuning_point.node_count = stats.nb_node_count;
 		}
 	}
+	void Search::useBuffer(int index) noexcept
+	{
+		assert(index == 0 || index == 1);
+		current_task_buffer = index;
+	}
 	void Search::switchBuffer() noexcept
 	{
 		current_task_buffer = 1 - current_task_buffer;
 	}
 	void Search::setBatchSize(int batchSize) noexcept
 	{
-		tasks_list_buffer_0.resize(batchSize);
-		tasks_list_buffer_1.resize(batchSize);
+		get_buffer().resize(batchSize);
 	}
 	/*
 	 * private
 	 */
-
 	const SearchTaskList& Search::get_buffer() const noexcept
 	{
 		return (current_task_buffer == 0) ? tasks_list_buffer_0 : tasks_list_buffer_1;
@@ -263,15 +261,9 @@ namespace ag
 	{
 		return (current_task_buffer == 0) ? tasks_list_buffer_0 : tasks_list_buffer_1;
 	}
-//	int Search::get_batch_size(int simulation_count) const noexcept
-//	{
-//		return search_config.max_batch_size;
-//		const int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
-//		return std::max(1, std::min(search_config.max_batch_size, tmp));
-//	}
 	bool Search::is_duplicate(const SearchTask &task) const noexcept
 	{
-		for (int i = 0; i < get_buffer().size() - 1; i++)
+		for (int i = 0; i < get_buffer().storedElements() - 1; i++)
 			if (task.getLastPair().edge == get_buffer().get(i).getLastPair().edge)
 				return true;
 		return false;

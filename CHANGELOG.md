@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 - Added support for Renju and Caro rule (without new networks so far).
 - Added basic support for Yixin protocol.
 - Added support for more opening rules.
+- Search with GPU uses double buffering to improve performance (on my machine up to 20% faster for 1 thread/GPU, 10% for 2 threads/GPU).
+- Neural network is using Gomoku-specific input features.
+- Neural network has additional output head for action values.
  
 ### Changed
 - Reduced memory consumption by about 8% (on average).

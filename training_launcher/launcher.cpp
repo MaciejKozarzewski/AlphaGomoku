@@ -43,6 +43,8 @@
 #include <istream>
 #include <thread>
 #include <filesystem>
+#include <csignal>
+#include <new>
 
 #include <alphagomoku/utils/configs.hpp>
 
@@ -842,25 +844,81 @@ void test_evaluate()
 	cfg.simulations = 1000;
 //	cfg.search_config.solver_level = 0;
 //	cfg.search_config.solver_max_positions = 100;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/sv/checkpoint/network_31_opt.bin", "all");
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/seq_network_26_opt.bin", "seq");
 //	cfg.search_config.solver_level = 3;
 
 //	cfg.simulations = 3000;
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/broadcast/checkpoint/network_30_opt.bin", "nowin");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "puct");
 
 	manager.generate(1000);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/broadcast.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/seq_vs_puct.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
+
+//// no inline, required by [replacement.functions]/3
+//void* operator new(std::size_t sz)
+//{
+//	std::printf("1) new(size_t), size = %zu\n", sz);
+//	if (sz == 0)
+//		++sz; // avoid std::malloc(0) which may return nullptr on success
+//
+//	if (void *ptr = std::malloc(sz))
+//		return ptr;
+//
+//	throw std::bad_alloc { }; // required by [new.delete.single]/3
+//}
+//
+//// no inline, required by [replacement.functions]/3
+//void* operator new[](std::size_t sz)
+//{
+//	std::printf("2) new[](size_t), size = %zu\n", sz);
+//	if (sz == 0)
+//		++sz; // avoid std::malloc(0) which may return nullptr on success
+//
+//	if (void *ptr = std::malloc(sz))
+//		return ptr;
+//
+//	throw std::bad_alloc { }; // required by [new.delete.single]/3
+//}
+//
+//void operator delete(void *ptr) noexcept
+//{
+//	std::puts("3) delete(void*)");
+//	std::free(ptr);
+//}
+//
+//void operator delete(void *ptr, std::size_t size) noexcept
+//{
+//	std::printf("4) delete(void*, size_t), size = %zu\n", size);
+//	std::free(ptr);
+//}
+//
+//void operator delete[](void *ptr) noexcept
+//{
+//	std::puts("5) delete[](void* ptr)");
+//	std::free(ptr);
+//}
+//
+//void operator delete[](void *ptr, std::size_t size) noexcept
+//{
+//	std::printf("6) delete[](void*, size_t), size = %zu\n", size);
+//	std::free(ptr);
+//}
 
 int main(int argc, char *argv[])
 {
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
+	setupSignalHandler(SignalType::INT, SignalHandlerMode::CUSTOM);
+//	printf("SignalValue:    %i\n", hasCapturedSignal(SignalType::INT));
+//	printf("Sending signal: %d\n", SIGINT);
+//	raise(SIGINT);
+//	printf("SignalValue:    %d\n", hasCapturedSignal(SignalType::INT));
+
 //	test_evaluate();
 //	return 0;
 
@@ -880,16 +938,18 @@ int main(int argc, char *argv[])
 //	for (int i = 0; i < 32; i++)
 //		tm.runIterationSL();
 
-	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_evaluate/");
+	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_save_load/");
 	for (int i = 0; i < 100; i++)
 		tm.runIterationRL();
 	return 0;
 	{
 		GameConfig game_config(GameRules::STANDARD, 20, 20);
+		return 0;
 		TrainingConfig cfg;
 		cfg.blocks = 10;
 		cfg.filters = 128;
 		AGNetwork network(game_config, cfg);
+		return 0;
 		network.optimize();
 //		network.convertToHalfFloats();
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/solver_2/checkpoint/network_2.bin");

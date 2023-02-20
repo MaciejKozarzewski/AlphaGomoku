@@ -92,6 +92,7 @@ namespace ag
 			void cleanup(Tree &tree);
 			void tune();
 
+			void useBuffer(int index) noexcept;
 			void switchBuffer() noexcept;
 			void setBatchSize(int batchSize) noexcept;
 		private:

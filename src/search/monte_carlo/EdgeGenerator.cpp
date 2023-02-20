@@ -176,7 +176,7 @@ namespace ag
 	}
 	void BaseGenerator::generate(SearchTask &task) const
 	{
-		assert(task.wasProcessedByNetwork() or task.wasProcessedBySolver());
+		assert(task.isReady());
 
 		create_legal_edges(task, true);
 		initialize_edges(task);
@@ -207,6 +207,7 @@ namespace ag
 	}
 	void SequentialHalvingGenerator::generate(SearchTask &task) const
 	{
+		assert(task.isReady());
 		const int num = (task.getRelativeDepth() == 0) ? std::numeric_limits<int>::max() : max_edges;
 		const bool prune = (task.getRelativeDepth() != 0);
 
@@ -238,6 +239,7 @@ namespace ag
 	}
 	void BalancedGenerator::generate(SearchTask &task) const
 	{
+		assert(task.isReady());
 		if (task.getAbsoluteDepth() < balance_depth)
 			BaseGenerator().generate(task);
 		else
@@ -255,7 +257,7 @@ namespace ag
 	}
 	void CenterExcludingGenerator::generate(SearchTask &task) const
 	{
-		assert(task.wasProcessedByNetwork() or task.wasProcessedBySolver());
+		assert(task.isReady());
 
 		if (task.getRelativeDepth() == 0)
 		{
@@ -285,7 +287,7 @@ namespace ag
 	}
 	void CenterOnlyGenerator::generate(SearchTask &task) const
 	{
-		assert(task.wasProcessedByNetwork() or task.wasProcessedBySolver());
+		assert(task.isReady());
 
 		if (task.getRelativeDepth() == 0)
 		{
@@ -314,7 +316,7 @@ namespace ag
 	}
 	void SymmetricalExcludingGenerator::generate(SearchTask &task) const
 	{
-		assert(task.wasProcessedByNetwork() or task.wasProcessedBySolver());
+		assert(task.isReady());
 
 		if (task.getRelativeDepth() == 0)
 		{

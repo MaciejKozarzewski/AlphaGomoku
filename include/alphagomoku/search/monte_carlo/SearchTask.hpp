@@ -202,45 +202,45 @@ namespace ag
 	class SearchTaskList
 	{
 			std::vector<SearchTask> tasks;
-			int current_size = 0;
 			GameConfig game_config;
+			int stored_elements = 0;
+			int max_size = 0;
 		public:
-			SearchTaskList(GameConfig config) noexcept :
+			SearchTaskList(GameConfig config, size_t maxSize) noexcept :
 					game_config(config)
 			{
+				resize(maxSize);
 			}
-			void resize(int newSize)
+			void resize(size_t newMaxSize)
 			{
-				if (newSize != capacity())
-				{
-					if (newSize < capacity())
-						tasks.erase(tasks.begin() + newSize, tasks.end());
-					else
-						for (int i = capacity(); i < newSize; i++)
-							tasks.push_back(SearchTask(game_config));
-				}
+				assert(stored_elements == 0);
+				max_size = newMaxSize;
+				if (newMaxSize > tasks.size())
+					for (int i = tasks.size(); i < max_size; i++)
+						tasks.push_back(SearchTask(game_config));
 			}
-			int capacity() const noexcept
+			int maxSize() const noexcept
 			{
-				return tasks.capacity();
+				return max_size;
 			}
-			int size() const noexcept
+			int storedElements() const noexcept
 			{
-				return current_size;
+				return stored_elements;
 			}
 			void clear() noexcept
 			{
-				current_size = 0;
+				stored_elements = 0;
 			}
 			SearchTask& getNext()
 			{
-				current_size++;
-				return tasks.at(current_size - 1);
+				assert(stored_elements < max_size);
+				stored_elements++;
+				return tasks.at(stored_elements - 1);
 			}
 			void removeLast() noexcept
 			{
-				assert(current_size > 0);
-				current_size--;
+				assert(stored_elements > 0);
+				stored_elements--;
 			}
 			SearchTask& get(int index)
 			{

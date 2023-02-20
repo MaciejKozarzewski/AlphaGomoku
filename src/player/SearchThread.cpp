@@ -14,6 +14,15 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 
+namespace
+{
+	int get_batch_size(int simulation_count, int max_batch_size) noexcept
+	{
+		const int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
+		return std::max(1, std::min(max_batch_size, tmp));
+	}
+}
+
 namespace ag
 {
 	SearchThread::SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators) :
@@ -73,43 +82,50 @@ namespace ag
 					return;
 			}
 
-			while (true)
-			{
-				{ /* artificial scope for lock */
-					TreeLock lock(tree);
-					search.select(tree);
-				}
-				SpeedSummary info;
-				NNEvaluator &evaluator = evaluator_pool.get();
-				if (evaluator.isOnGPU())
-				{ // run solver asynchronously to the network evaluation
-					search.solve(); // TODO add double buffering
-					search.scheduleToNN(evaluator);
-					evaluator.asyncEvaluateGraphLaunch();
-					// TODO and move solve into here
-					info = evaluator.asyncEvaluateGraphJoin();
-				}
-				else
-				{
-					search.solve();
-					search.scheduleToNN(evaluator);
-					info = evaluator.evaluateGraph();
-				}
-				evaluator_pool.release(evaluator);
+			NNEvaluator &evaluator = evaluator_pool.get();
+			if (evaluator.isOnGPU())
+				asynchronous_run(evaluator);
+			else
+				serial_run(evaluator);
 
-				search.generateEdges(tree); // this step doesn't require locking the tree
-				{ /* artificial scope for lock */
-					TreeLock lock(tree);
-					search.expand(tree);
-					search.backup(tree);
-					if (isStopConditionFulfilled())
-						break;
-				}
-				search.tune();
-				std::lock_guard lock(search_mutex);
-				if (is_running == false)
-					break;
-			}
+			evaluator_pool.release(evaluator);
+
+//			while (true)
+//			{
+//				{ /* artificial scope for lock */
+//					TreeLock lock(tree);
+//					search.select(tree);
+//				}
+//				SpeedSummary info;
+//				if (evaluator.isOnGPU())
+//				{ // run solver asynchronously to the network evaluation
+//					search.solve(); // TODO add double buffering
+//					search.scheduleToNN(evaluator);
+//					evaluator.asyncEvaluateGraphLaunch();
+//					// TODO and move solve into here
+//					info = evaluator.asyncEvaluateGraphJoin();
+//				}
+//				else
+//				{
+//					search.solve();
+//					search.scheduleToNN(evaluator);
+//					info = evaluator.evaluateGraph();
+//				}
+//
+//				search.generateEdges(tree); // this step doesn't require locking the tree
+//				{ /* artificial scope for lock */
+//					TreeLock lock(tree);
+//					search.expand(tree);
+//					search.backup(tree);
+//					if (isStopConditionFulfilled())
+//						break;
+//				}
+//				search.tune();
+//				std::lock_guard lock(search_mutex);
+//				if (is_running == false)
+//					break;
+//			}
+
 			TreeLock lock(tree);
 			search.cleanup(tree);
 		} catch (std::exception &e)
@@ -124,6 +140,66 @@ namespace ag
 	/*
 	 * private
 	 */
+	void SearchThread::serial_run(NNEvaluator &evaluator)
+	{
+		while (true)
+		{
+			{ /* artificial scope for lock */
+				TreeLock lock(tree);
+				const int batch_size = get_batch_size(tree.getSimulationCount(), search.getConfig().max_batch_size);
+				search.setBatchSize(batch_size);
+				search.select(tree);
+			}
+			search.solve();
+			search.scheduleToNN(evaluator);
+			const SpeedSummary info = evaluator.evaluateGraph();
+
+			search.generateEdges(tree); // this step doesn't require locking the tree
+			{ /* artificial scope for lock */
+				TreeLock lock(tree);
+				search.expand(tree);
+				search.backup(tree);
+				if (isStopConditionFulfilled())
+					break;
+			}
+			search.tune();
+			std::lock_guard lock(search_mutex);
+			if (is_running == false)
+			{
+				std::cout << "is_running = " << is_running << '\n';
+				break;
+			}
+		}
+	}
+	void SearchThread::asynchronous_run(NNEvaluator &evaluator)
+	{
+		search.useBuffer(0);
+		while (true)
+		{
+			search.generateEdges(tree); // this step doesn't require locking the tree
+			{ /* artificial scope for lock */
+				TreeLock lock(tree);
+				search.expand(tree);
+				search.backup(tree);
+				if (isStopConditionFulfilled())
+					break;
+				const int batch_size = get_batch_size(tree.getSimulationCount(), search.getConfig().max_batch_size);
+				search.setBatchSize(batch_size);
+				search.select(tree);
+			}
+			search.solve();
+			search.scheduleToNN(evaluator);
+			const SpeedSummary info = evaluator.asyncEvaluateGraphJoin();
+			evaluator.asyncEvaluateGraphLaunch();
+			search.switchBuffer();
+
+			search.tune();
+			std::lock_guard lock(search_mutex);
+			if (is_running == false)
+				break;
+		}
+		evaluator.asyncEvaluateGraphJoin();
+	}
 	bool SearchThread::isStopConditionFulfilled() const
 	{
 		// assuming tree is locked

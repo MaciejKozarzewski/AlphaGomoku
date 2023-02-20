@@ -10,6 +10,7 @@
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 namespace ag
@@ -121,7 +122,6 @@ namespace ag
 	}
 	void GameGenerator::load(const Json &json, const SerializedObject &binary_data)
 	{
-		std::cout<<json.dump(2)<<'\n';
 		state = static_cast<GameState>(json["state"].getInt());
 		game = Game(json, binary_data);
 		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE or state == GAMEPLAY_EXPAND_AND_BACKUP)
@@ -140,10 +140,13 @@ namespace ag
 //		std::cout << "after search\n";
 //		std::cout << tree.getMemory() / 1024 << "kB\n";
 //		std::cout << tree.getNodeCacheStats().toString() << '\n';
+//		std::cout << search.getStats().toString() << '\n';
+//		std::cout << nn_evaluator.getStats().toString() << '\n';
+//		search.getSolver().print_stats();
 //		std::cout << Board::toString(game.getBoard(), true);
 //		std::cout << root_node.toString() << '\n';
 //		root_node.sortEdges();
-//		for (int i = 0; i < std::min(10, root_node.numberOfEdges()); i++)
+//		for (int i = 0; i < std::min(20, root_node.numberOfEdges()); i++)
 //		for (int i = 0; i < root_node.numberOfEdges(); i++)
 //			std::cout << "   " << root_node.getEdge(i).toString() << '\n';
 //		tree.printSubtree(2, false);

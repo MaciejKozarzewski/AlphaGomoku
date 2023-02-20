@@ -192,9 +192,6 @@ namespace ag
 			if (counter % 60 == 0)
 				printStats();
 
-			if (counter == 25)
-				raise(SIGINT);
-
 			if (hasCapturedSignal(SignalType::INT))
 			{
 				std::cout << "Caught interruption signal" << std::endl;

@@ -44,6 +44,8 @@ namespace ag
 
 			SearchStats getSearchStats() const noexcept;
 		private:
+			void serial_run(NNEvaluator &evaluator);
+			void asynchronous_run(NNEvaluator &evaluator);
 			bool isStopConditionFulfilled() const;
 	};
 } /* namespace ag */
