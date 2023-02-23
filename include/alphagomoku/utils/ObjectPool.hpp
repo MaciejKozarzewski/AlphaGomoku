@@ -8,6 +8,8 @@
 #ifndef ALPHAGOMOKU_UTILS_OBJECTPOOL_HPP_
 #define ALPHAGOMOKU_UTILS_OBJECTPOOL_HPP_
 
+#include <alphagomoku/utils/AlignedAllocator.hpp>
+
 #include <vector>
 #include <algorithm>
 #include <cassert>
@@ -123,7 +125,7 @@ namespace ag
 			class OwningBlockOfObjects
 			{
 				private:
-					std::vector<T> m_objects;
+					std::vector<T, AlignedAllocator<T, 64>> m_objects;
 					std::vector<bool> m_is_free;
 					size_t m_index;
 
