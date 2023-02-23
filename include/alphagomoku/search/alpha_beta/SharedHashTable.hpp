@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_TSS_SHAREDHASHTABLE_HPP_
-#define ALPHAGOMOKU_TSS_SHAREDHASHTABLE_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_ALPHA_BETA_SHAREDHASHTABLE_HPP_
+#define ALPHAGOMOKU_SEARCH_ALPHA_BETA_SHAREDHASHTABLE_HPP_
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/ZobristHashing.hpp>
@@ -232,4 +232,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_TSS_SHAREDHASHTABLE_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_ALPHA_BETA_SHAREDHASHTABLE_HPP_ */

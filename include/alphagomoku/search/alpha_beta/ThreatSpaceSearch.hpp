@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_TSS_THREATSPACESEARCH_HPP_
-#define ALPHAGOMOKU_TSS_THREATSPACESEARCH_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATSPACESEARCH_HPP_
+#define ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATSPACESEARCH_HPP_
 
 #include <alphagomoku/search/alpha_beta/ActionList.hpp>
 #include <alphagomoku/search/alpha_beta/SharedHashTable.hpp>
@@ -115,4 +115,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_TSS_THREATSPACESEARCH_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATSPACESEARCH_HPP_ */

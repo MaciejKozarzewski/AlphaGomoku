@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_ZOBRISTHASHING_HPP_
-#define ALPHAGOMOKU_MCTS_ZOBRISTHASHING_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_ZOBRISTHASHING_HPP_
+#define ALPHAGOMOKU_SEARCH_ZOBRISTHASHING_HPP_
 
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
@@ -127,4 +127,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_ZOBRISTHASHING_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_ZOBRISTHASHING_HPP_ */

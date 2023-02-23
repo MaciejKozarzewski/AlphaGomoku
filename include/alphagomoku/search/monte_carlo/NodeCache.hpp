@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_NODECACHE_HPP_
-#define ALPHAGOMOKU_MCTS_NODECACHE_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_NODECACHE_HPP_
+#define ALPHAGOMOKU_SEARCH_MONTE_CARLO_NODECACHE_HPP_
 
 #include <alphagomoku/search/monte_carlo/Node.hpp>
 #include <alphagomoku/search/ZobristHashing.hpp>
@@ -139,4 +139,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_NODECACHE_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_NODECACHE_HPP_ */

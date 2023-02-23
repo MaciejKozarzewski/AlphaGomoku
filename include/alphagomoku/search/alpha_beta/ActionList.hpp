@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_TSS_ACTION_LIST_HPP_
-#define ALPHAGOMOKU_TSS_ACTION_LIST_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_ALPHA_BETA_ACTION_LIST_HPP_
+#define ALPHAGOMOKU_SEARCH_ALPHA_BETA_ACTION_LIST_HPP_
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/Score.hpp>
@@ -38,6 +38,7 @@ namespace ag
 	class ActionList
 	{
 			friend class ActionStack;
+
 			const Action *m_parent = nullptr;
 			Action *m_children = nullptr;
 			size_t m_size = 0;
@@ -166,4 +167,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_TSS_ACTION_LIST_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_ALPHA_BETA_ACTION_LIST_HPP_ */

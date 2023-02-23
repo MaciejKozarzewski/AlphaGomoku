@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ARGUMENT_PARSER_HPP_
-#define ARGUMENT_PARSER_HPP_
+#ifndef ALPHAGOMOKU_UTILS_ARGUMENTPARSER_HPP_
+#define ALPHAGOMOKU_UTILS_ARGUMENTPARSER_HPP_
 
 #include <string>
 #include <variant>
@@ -38,7 +38,7 @@ namespace ag
 			std::string m_short_name; /**< shortened name of a argument */
 			std::string m_help; /**< help message for a argument */
 			ArgumentType m_type; /**< type of a argument */
-			bool m_is_required = false; /**< flag indicating whether an argument must be specified, always true for positional ones*/
+			bool m_is_required = false; /**< flag indicating whether an argument must be specified, always true for positional ones */
 			bool m_has_been_parsed = false;
 		public:
 			/**
@@ -112,4 +112,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ARGUMENT_PARSER_HPP_ */
+#endif /* ALPHAGOMOKU_UTILS_ARGUMENTPARSER_HPP_ */

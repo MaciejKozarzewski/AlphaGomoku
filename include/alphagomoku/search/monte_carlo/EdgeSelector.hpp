@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_EDGESELECTOR_HPP_
-#define ALPHAGOMOKU_MCTS_EDGESELECTOR_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGESELECTOR_HPP_
+#define ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGESELECTOR_HPP_
 
 #include <memory>
 #include <vector>
@@ -173,4 +173,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_EDGESELECTOR_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGESELECTOR_HPP_ */

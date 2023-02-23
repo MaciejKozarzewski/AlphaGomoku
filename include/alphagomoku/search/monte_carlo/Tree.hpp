@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_TREE_HPP_
-#define ALPHAGOMOKU_MCTS_TREE_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_TREE_HPP_
+#define ALPHAGOMOKU_SEARCH_MONTE_CARLO_TREE_HPP_
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/monte_carlo/NodeCache.hpp>
@@ -119,4 +119,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_TREE_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_TREE_HPP_ */

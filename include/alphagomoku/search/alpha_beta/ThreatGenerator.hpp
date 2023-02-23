@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_TSS_THREATGENERATOR_HPP_
-#define ALPHAGOMOKU_TSS_THREATGENERATOR_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATGENERATOR_HPP_
+#define ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATGENERATOR_HPP_
 
 #include <alphagomoku/search/Score.hpp>
 #include <alphagomoku/patterns/common.hpp>
@@ -100,4 +100,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_TSS_THREATGENERATOR_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATGENERATOR_HPP_ */

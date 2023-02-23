@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef INCLUDE_ALPHAGOMOKU_UTILS_OS_UTILS_HPP_
-#define INCLUDE_ALPHAGOMOKU_UTILS_OS_UTILS_HPP_
+#ifndef ALPHAGOMOKU_UTILS_OS_UTILS_HPP_
+#define ALPHAGOMOKU_UTILS_OS_UTILS_HPP_
 
 #include <string>
 
@@ -59,4 +59,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* INCLUDE_ALPHAGOMOKU_UTILS_OS_UTILS_HPP_ */
+#endif /* ALPHAGOMOKU_UTILS_OS_UTILS_HPP_ */
