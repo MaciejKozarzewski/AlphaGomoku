@@ -17,7 +17,8 @@
 
 namespace ag
 {
-	enum class GameOutcome;
+	enum class GameOutcome
+	;
 } /* namespace ag */
 
 namespace ag
@@ -33,29 +34,6 @@ namespace ag
 
 	std::string toString(ProvenValue pv);
 	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove);
-
-	/*
-	 * ProvenValue inversion rules:
-	 *  LOSS     -> WIN
-	 *  DRAW     -> DRAW
-	 *	UNKNOWN  -> UNKNOWN
-	 *  WIN      -> LOSS
-	 */
-	inline ProvenValue invertProvenValue(ProvenValue pv) noexcept
-	{
-		switch (pv)
-		{
-			case ProvenValue::LOSS:
-				return ProvenValue::WIN;
-			case ProvenValue::DRAW:
-				return ProvenValue::DRAW;
-			default:
-			case ProvenValue::UNKNOWN:
-				return ProvenValue::UNKNOWN;
-			case ProvenValue::WIN:
-				return ProvenValue::LOSS;
-		}
-	}
 
 	class Score
 	{
@@ -164,11 +142,11 @@ namespace ag
 			}
 			static Score min_eval() noexcept
 			{
-				return Score(ProvenValue::UNKNOWN, -4000);
+				return Score(-4000);
 			}
 			static Score max_eval() noexcept
 			{
-				return Score(ProvenValue::UNKNOWN, +4000);
+				return Score(+4000);
 			}
 
 			static Score loss() noexcept
@@ -215,7 +193,18 @@ namespace ag
 			}
 			friend Score operator-(const Score &a) noexcept
 			{
-				return Score(invertProvenValue(a.getProvenValue()), -a.getEval());
+				switch (a.getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return Score(ProvenValue::WIN, -a.getEval());
+					case ProvenValue::DRAW:
+						return Score(ProvenValue::DRAW, a.getEval());
+					default:
+					case ProvenValue::UNKNOWN:
+						return Score(ProvenValue::UNKNOWN, -a.getEval());
+					case ProvenValue::WIN:
+						return Score(ProvenValue::LOSS, -a.getEval());
+				}
 			}
 			friend Score operator+(const Score &a, int i) noexcept
 			{
@@ -276,6 +265,6 @@ namespace ag
 		return stream << score.toString();
 	}
 
-} /* namespace */
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_SEARCH_SCORE_HPP_ */
