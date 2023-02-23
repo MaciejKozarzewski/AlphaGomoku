@@ -176,7 +176,7 @@ namespace ag
 	{
 		games_to_generate = numberOfGames;
 		path_to_network = pathToNetwork;
-		load_games();
+		load_state();
 
 		for (size_t i = 0; i < generators.size(); i++)
 		{
@@ -198,7 +198,7 @@ namespace ag
 				for (size_t i = 0; i < generators.size(); i++)
 					generators[i]->stop();
 				std::cout << "Generators stopped" << std::endl;
-				save_games();
+				save_state();
 				std::cout << "Exiting" << std::endl;
 				exit(0);
 			}
@@ -236,30 +236,28 @@ namespace ag
 	/*
 	 * private
 	 */
-	void GeneratorManager::save_games()
+	void GeneratorManager::save_state()
 	{
 		std::cout << working_directory << '\n';
 		if (working_directory.empty())
 			return;
-		std::cout << "Saving games" << std::endl;
 
 		std::string path = working_directory + "/saved_state/";
 		if (not pathExists(path))
 			createDirectory(path);
 
+		std::cout << "Saving buffer" << std::endl;
+		game_buffer.save(path + "buffer.bin");
+
+		std::cout << "Saving games" << std::endl;
 		for (size_t i = 0; i < generators.size(); i++)
 		{
 			const std::string tmp = path + "thread_" + std::to_string(i) + ".bin";
-			if (pathExists(tmp))
-			{
-				std::cout << "Removing previous state" << std::endl;
-				removeFile(tmp);
-			}
 			generators[i]->saveGames(tmp);
 			std::cout << "Saved " << tmp << std::endl;
 		}
 	}
-	void GeneratorManager::load_games()
+	void GeneratorManager::load_state()
 	{
 		if (working_directory.empty())
 			return;
@@ -267,8 +265,14 @@ namespace ag
 		std::string path = working_directory + "/saved_state/";
 		if (not pathExists(path))
 		{
-			std::cout << "No saved games were found" << std::endl;
+			std::cout << "No saved state was found" << std::endl;
 			return;
+		}
+
+		if (pathExists(path + "buffer.bin"))
+		{
+			game_buffer.load(path + "buffer.bin");
+			std::cout << "Loaded buffer:\n" << game_buffer.getStats().toString() << std::endl;
 		}
 
 		std::cout << "Loading games" << std::endl;

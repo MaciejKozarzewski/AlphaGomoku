@@ -95,8 +95,8 @@ namespace ag
 
 			void printStats();
 		private:
-			void save_games();
-			void load_games();
+			void save_state();
+			void load_state();
 	};
 
 } /* namespace ag */
