@@ -18,6 +18,7 @@ namespace ag
 			static const int minor = 5;
 			static const int revision = 0;
 	};
+
 	class ProgramInfo
 	{
 		public:
@@ -47,7 +48,7 @@ namespace ag
 			}
 			static std::string copyright()
 			{
-				return "Copyright (C) 2017-2022 " + author();
+				return "Copyright (C) 2017-2023 " + author();
 			}
 			static std::string build()
 			{
