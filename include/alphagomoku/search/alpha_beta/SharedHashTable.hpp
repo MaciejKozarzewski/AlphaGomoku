@@ -209,7 +209,7 @@ namespace ag
 			}
 			void prefetch(const HashKey128 &hash) const noexcept
 			{
-				prefetch_memory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash.getLow() & m_mask));
+				prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash.getLow() & m_mask));
 			}
 			double loadFactor(bool approximate = false) const noexcept
 			{

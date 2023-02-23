@@ -15,12 +15,12 @@ namespace ag
 	/*
 	 * \brief Returns path to the executable including executable name
 	 */
-	std::string get_executable_path();
+	std::string getExecutablePath();
 
 	/*
 	 * \brief Parses the path to extract path and executable name.
 	 */
-	std::pair<std::string, std::string> parse_launch_path(std::string text);
+	std::pair<std::string, std::string> parseLaunchPath(std::string text);
 
 	enum class PrefetchMode
 	{
@@ -28,7 +28,7 @@ namespace ag
 		WRITE
 	};
 	template<PrefetchMode Mode, int LocalityHint>
-	void prefetch_memory(const void *ptr) noexcept
+	void prefetchMemory(const void *ptr) noexcept
 	{
 #if (defined(__GNUC__) && defined(__cplusplus)) || defined(__clang__)
 		__builtin_prefetch(ptr, static_cast<int>(Mode), LocalityHint);

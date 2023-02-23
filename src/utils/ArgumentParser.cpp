@@ -173,8 +173,8 @@ namespace ag
 		if (arguments.size() == 0)
 			throw ParsingError("Parser requires at least one argument - executable launch path");
 
-		std::string executable_path = static_cast<std::string>(get_executable_path());
-		const std::pair<std::string, std::string> tmp = parse_launch_path(executable_path);
+		std::string executable_path = static_cast<std::string>(getExecutablePath());
+		const std::pair<std::string, std::string> tmp = parseLaunchPath(executable_path);
 		m_launch_path = tmp.first;
 		m_executable_name = tmp.second;
 		size_t arg_counter = 1;

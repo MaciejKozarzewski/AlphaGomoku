@@ -156,7 +156,7 @@ namespace ag
 				}
 				void prefetch(HashKey<64> hash) const noexcept
 				{
-					prefetch_memory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash & m_mask));
+					prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash & m_mask));
 				}
 				void prepareForNextMove() noexcept
 				{
@@ -240,7 +240,7 @@ namespace ag
 				}
 				void prefetch(HashKey<64> hash) const noexcept
 				{
-					prefetch_memory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash & m_mask));
+					prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash & m_mask));
 				}
 		};
 	} /* namespace obsolete */

@@ -75,7 +75,7 @@ namespace
 
 namespace ag
 {
-	std::string get_executable_path()
+	std::string getExecutablePath()
 	{
 #if defined(_WIN32)
 		char path[MAX_PATH] = { 0 };
@@ -88,7 +88,7 @@ namespace ag
 #endif
 	}
 
-	std::pair<std::string, std::string> parse_launch_path(std::string text)
+	std::pair<std::string, std::string> parseLaunchPath(std::string text)
 	{
 		if (text.find('\\') == std::string::npos and text.find('/') == std::string::npos) // no slashes
 			return std::pair<std::string, std::string>( { "", text });
