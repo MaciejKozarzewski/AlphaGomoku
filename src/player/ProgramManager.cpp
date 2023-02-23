@@ -22,7 +22,6 @@
 
 #include <alphagomoku/player/controllers/dispatcher.hpp>
 
-#include <filesystem>
 #include <iostream>
 
 namespace
@@ -236,7 +235,7 @@ namespace ag
 	{
 		output_sender.send("Starting automatic configuration");
 		const std::string path_to_benchmark = argument_parser.getLaunchPath() + "benchmark.json";
-		if (not std::filesystem::exists(path_to_benchmark))
+		if (not pathExists(path_to_benchmark))
 		{
 			output_sender.send(
 					"No benchmark file was found, create it by launching " + ProgramInfo::name() + " from command line with parameter '--benchmark'");
@@ -270,7 +269,7 @@ namespace ag
 	}
 	bool ProgramManager::load_config(const std::string &path)
 	{
-		if (std::filesystem::exists(path))
+		if (pathExists(path))
 		{
 			try
 			{
@@ -287,7 +286,7 @@ namespace ag
 			output_sender.send("Could not load configuration file.");
 			output_sender.send("You can generate new one by launching " + ProgramInfo::name() + " from command line with parameter '--configure'");
 			output_sender.send(
-					"If you are sure that configuration file exists, it means that the launch path was not parsed correctly due to some special characters in it.");
+					"If you are sure that configuration file exists, it means that the launch path was not parsed correctly (probably because of some special characters in it).");
 		}
 		return false;
 	}
@@ -357,8 +356,8 @@ namespace ag
 	{
 		if (static_cast<bool>(config["use_logging"]))
 		{
-			if (not std::filesystem::exists(argument_parser.getLaunchPath() + "logs"))
-				std::filesystem::create_directory(argument_parser.getLaunchPath() + "logs");
+			if (not pathExists(argument_parser.getLaunchPath() + "logs"))
+				createDirectory(argument_parser.getLaunchPath() + "logs");
 			logfile = std::ofstream(argument_parser.getLaunchPath() + "logs" + path_separator + currentDateTime() + ".log");
 			Logger::enable();
 			Logger::redirectTo(logfile);

@@ -90,42 +90,6 @@ namespace ag
 
 			evaluator_pool.release(evaluator);
 
-//			while (true)
-//			{
-//				{ /* artificial scope for lock */
-//					TreeLock lock(tree);
-//					search.select(tree);
-//				}
-//				SpeedSummary info;
-//				if (evaluator.isOnGPU())
-//				{ // run solver asynchronously to the network evaluation
-//					search.solve(); // TODO add double buffering
-//					search.scheduleToNN(evaluator);
-//					evaluator.asyncEvaluateGraphLaunch();
-//					// TODO and move solve into here
-//					info = evaluator.asyncEvaluateGraphJoin();
-//				}
-//				else
-//				{
-//					search.solve();
-//					search.scheduleToNN(evaluator);
-//					info = evaluator.evaluateGraph();
-//				}
-//
-//				search.generateEdges(tree); // this step doesn't require locking the tree
-//				{ /* artificial scope for lock */
-//					TreeLock lock(tree);
-//					search.expand(tree);
-//					search.backup(tree);
-//					if (isStopConditionFulfilled())
-//						break;
-//				}
-//				search.tune();
-//				std::lock_guard lock(search_mutex);
-//				if (is_running == false)
-//					break;
-//			}
-
 			TreeLock lock(tree);
 			search.cleanup(tree);
 		} catch (std::exception &e)
@@ -165,10 +129,7 @@ namespace ag
 			search.tune();
 			std::lock_guard lock(search_mutex);
 			if (is_running == false)
-			{
-				std::cout << "is_running = " << is_running << '\n';
 				break;
-			}
 		}
 	}
 	void SearchThread::asynchronous_run(NNEvaluator &evaluator)
@@ -205,6 +166,11 @@ namespace ag
 		// assuming tree is locked
 		if (tree.getNodeCount() == 0)
 			return false; // there must be at least one node (root node) in the tree
+		if (tree.getSimulationCount() >= Search::maximum_number_of_simulations)
+		{
+			Logger::write("Reached maximum number of simulations");
+			return true;
+		}
 		if (tree.getMemory() >= settings.getMaxMemory())
 		{
 			Logger::write("Reached memory limit");

@@ -202,6 +202,10 @@ void test_pattern_calculator()
 //	GameConfig game_config(GameRules::FREESTYLE, 20);
 	GameConfig game_config(GameRules::STANDARD, 15);
 
+	PatternTable::get(game_config.rules);
+	ThreatTable::get(game_config.rules);
+	DefensiveMoveTable::get(game_config.rules);
+
 	GameBuffer buffer;
 #ifdef NDEBUG
 	for (int i = 20; i <= 24; i++)
@@ -241,8 +245,8 @@ void test_pattern_calculator()
 
 			for (int k = 0; k < 100; k++)
 			{
-				int x = randInt(game_config.rows);
-				int y = randInt(game_config.cols);
+				const int x = randInt(game_config.rows);
+				const int y = randInt(game_config.cols);
 				if (board.at(x, y) == Sign::NONE)
 				{
 					Sign sign = static_cast<Sign>(randInt(1, 3));
@@ -256,70 +260,70 @@ void test_pattern_calculator()
 				}
 			}
 
-			extractor_new2.setBoard(board, sample.getMove().sign);
-			for (int x = 0; x < game_config.rows; x++)
-				for (int y = 0; y < game_config.cols; y++)
-				{
-					for (Direction dir = 0; dir < 4; dir++)
-					{
-						if (extractor_new2.getNormalPatternAt(x, y, dir) != extractor_new.getNormalPatternAt(x, y, dir))
-						{
-							std::cout << "Raw pattern mismatch\n";
-							std::cout << "Single step\n";
-							extractor_new2.printRawFeature(x, y);
-							std::cout << "incremental\n";
-							extractor_new.printRawFeature(x, y);
-							exit(-1);
-						}
-						if (extractor_new2.getPatternTypeAt(Sign::CROSS, x, y, dir) != extractor_new.getPatternTypeAt(Sign::CROSS, x, y, dir)
-								or extractor_new2.getPatternTypeAt(Sign::CIRCLE, x, y, dir)
-										!= extractor_new.getPatternTypeAt(Sign::CIRCLE, x, y, dir))
-						{
-							std::cout << "Pattern type mismatch\n";
-							std::cout << "Single step\n";
-							extractor_new2.printRawFeature(x, y);
-							std::cout << "incremental\n";
-							extractor_new.printRawFeature(x, y);
-							exit(-1);
-						}
-					}
-					if (extractor_new2.getThreatAt(Sign::CROSS, x, y) != extractor_new.getThreatAt(Sign::CROSS, x, y)
-							or extractor_new2.getThreatAt(Sign::CIRCLE, x, y) != extractor_new.getThreatAt(Sign::CIRCLE, x, y))
-					{
-						std::cout << "Threat type mismatch\n";
-						std::cout << "Single step\n";
-						extractor_new2.printThreat(x, y);
-						std::cout << "incremental\n";
-						extractor_new.printThreat(x, y);
-						exit(-1);
-					}
-
-					for (int i = 0; i < 10; i++)
-					{
-						if (extractor_new2.getThreatHistogram(Sign::CROSS).get((ThreatType) i).size()
-								!= extractor_new.getThreatHistogram(Sign::CROSS).get((ThreatType) i).size())
-						{
-							std::cout << "Threat histogram mismatch for cross\n";
-							std::cout << "Single step\n";
-							extractor_new2.getThreatHistogram(Sign::CROSS).print();
-							std::cout << "incremental\n";
-							extractor_new.getThreatHistogram(Sign::CROSS).print();
-							exit(-1);
-						}
-						if (extractor_new2.getThreatHistogram(Sign::CIRCLE).get((ThreatType) i).size()
-								!= extractor_new.getThreatHistogram(Sign::CIRCLE).get((ThreatType) i).size())
-						{
-							std::cout << "Threat histogram mismatch for circle\n";
-							std::cout << "Single step\n";
-							extractor_new2.print();
-							extractor_new2.getThreatHistogram(Sign::CIRCLE).print();
-							std::cout << "incremental\n";
-							extractor_new.print();
-							extractor_new.getThreatHistogram(Sign::CIRCLE).print();
-							exit(-1);
-						}
-					}
-				}
+//			extractor_new2.setBoard(board, sample.getMove().sign);
+//			for (int x = 0; x < game_config.rows; x++)
+//				for (int y = 0; y < game_config.cols; y++)
+//				{
+//					for (Direction dir = 0; dir < 4; dir++)
+//					{
+//						if (extractor_new2.getNormalPatternAt(x, y, dir) != extractor_new.getNormalPatternAt(x, y, dir))
+//						{
+//							std::cout << "Raw pattern mismatch\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.printRawFeature(x, y);
+//							std::cout << "incremental\n";
+//							extractor_new.printRawFeature(x, y);
+//							exit(-1);
+//						}
+//						if (extractor_new2.getPatternTypeAt(Sign::CROSS, x, y, dir) != extractor_new.getPatternTypeAt(Sign::CROSS, x, y, dir)
+//								or extractor_new2.getPatternTypeAt(Sign::CIRCLE, x, y, dir)
+//										!= extractor_new.getPatternTypeAt(Sign::CIRCLE, x, y, dir))
+//						{
+//							std::cout << "Pattern type mismatch\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.printRawFeature(x, y);
+//							std::cout << "incremental\n";
+//							extractor_new.printRawFeature(x, y);
+//							exit(-1);
+//						}
+//					}
+//					if (extractor_new2.getThreatAt(Sign::CROSS, x, y) != extractor_new.getThreatAt(Sign::CROSS, x, y)
+//							or extractor_new2.getThreatAt(Sign::CIRCLE, x, y) != extractor_new.getThreatAt(Sign::CIRCLE, x, y))
+//					{
+//						std::cout << "Threat type mismatch\n";
+//						std::cout << "Single step\n";
+//						extractor_new2.printThreat(x, y);
+//						std::cout << "incremental\n";
+//						extractor_new.printThreat(x, y);
+//						exit(-1);
+//					}
+//
+//					for (int i = 0; i < 10; i++)
+//					{
+//						if (extractor_new2.getThreatHistogram(Sign::CROSS).get((ThreatType) i).size()
+//								!= extractor_new.getThreatHistogram(Sign::CROSS).get((ThreatType) i).size())
+//						{
+//							std::cout << "Threat histogram mismatch for cross\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.getThreatHistogram(Sign::CROSS).print();
+//							std::cout << "incremental\n";
+//							extractor_new.getThreatHistogram(Sign::CROSS).print();
+//							exit(-1);
+//						}
+//						if (extractor_new2.getThreatHistogram(Sign::CIRCLE).get((ThreatType) i).size()
+//								!= extractor_new.getThreatHistogram(Sign::CIRCLE).get((ThreatType) i).size())
+//						{
+//							std::cout << "Threat histogram mismatch for circle\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.print();
+//							extractor_new2.getThreatHistogram(Sign::CIRCLE).print();
+//							std::cout << "incremental\n";
+//							extractor_new.print();
+//							extractor_new.getThreatHistogram(Sign::CIRCLE).print();
+//							exit(-1);
+//						}
+//					}
+//				}
 		}
 	}
 
@@ -502,9 +506,9 @@ void test_search()
 	SearchConfig search_config;
 	search_config.max_batch_size = 32;
 	search_config.exploration_constant = 1.25f;
-	search_config.max_children = 30;
+	search_config.max_children = 32;
 	search_config.solver_level = 2;
-	search_config.solver_max_positions = 500;
+	search_config.solver_max_positions = 100;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
@@ -519,7 +523,7 @@ void test_search()
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku532/networks/standard_10x128.bin");
-	nn_evaluator.loadGraph("/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin");
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
 //	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_75_opt.bin");
 
@@ -1417,6 +1421,46 @@ void test_search()
 // @formatter:on
 	sign_to_move = Sign::CROSS;
 
+// @formatter:off
+	board = Board::fromString(
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ X O _ _ O X _ _ _ _ _ _\n"
+			" _ _ _ O _ O X O X _ _ _ _ _ _\n"
+			" _ _ _ _ X X O _ X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X O _ _ _ _ _ _\n"
+			" _ _ _ _ X O O X _ _ X _ _ _ _\n"
+			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+// @formatter:on
+	sign_to_move = Sign::CROSS;
+
+//	board = Board::fromString(""
+//			/*         a b c d e f g h i j k l m n o        */
+//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+//			/*  3 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  3 */
+//			/*  4 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  4 */
+//			/*  5 */ " _ _ _ X O _ _ O X _ _ _ _ _ _\n" /*  5 */
+//			/*  6 */ " _ _ _ O O O X O X _ _ _ _ _ _\n" /*  6 */
+//			/*  7 */ " _ _ X _ X X O _ X _ _ _ _ _ _\n" /*  7 */
+//			/*  8 */ " _ _ _ O X _ X X O _ _ _ _ _ _\n" /*  8 */
+//			/*  9 */ " _ _ _ _ X O O X _ _ X _ _ _ _\n" /*  9 */
+//			/* 10 */ " _ _ _ _ X _ O _ _ _ _ _ _ _ _\n" /* 10 */
+//			/* 11 */ " _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+//			/*         a b c d e f g h i j k l m n o        */);
+//	sign_to_move = Sign::CROSS;
+
 	GameConfig cfg(GameRules::STANDARD, 15, 15);
 	ThreatSpaceSearch ts_search(cfg, 1000000);
 	std::shared_ptr<SharedHashTable<4>> sht = std::make_shared<SharedHashTable<4>>(cfg.rows, cfg.cols, 1048576);
@@ -1428,9 +1472,9 @@ void test_search()
 //	vcf_solver.print_stats();
 //	std::cout << "\n\n\n" << task.toString() << '\n';
 
-//	SearchTask task2(game_config.rules);
+//	SearchTask task2(game_config);
 //	task2.set(board, sign_to_move);
-//	ts_search.solve(task2, tss::TssMode::ITERATIVE_DEEPENING, 10000000);
+//	ts_search.solve(task2, TssMode::RECURSIVE, 100000);
 //	std::cout << "\n\n\n";
 //	ts_search.print_stats();
 //	std::cout << "\n\n\n" << task2.toString() << '\n';
@@ -1439,9 +1483,8 @@ void test_search()
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
 	tree.setEdgeSelector(PUCTSelector(1.25f));
-//	tree.setEdgeSelector(QHeadSelector(1.25f));
 //	tree.setEdgeSelector(UctSelector(0.05f));
-	tree.setEdgeGenerator(BaseGenerator(search_config.max_children));
+	tree.setEdgeGenerator(BaseGenerator(search_config.max_children, true));
 
 	int next_step = 0;
 	for (int j = 0; j <= 10000; j++)
@@ -1449,15 +1492,12 @@ void test_search()
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ..." << std::endl;
-			next_step += 10000;
+			next_step += 100000;
 		}
 		search.select(tree, 10000);
 		search.solve();
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
-//		nn_evaluator.asyncEvaluateGraphLaunch();
-//		search.solve(true);
-//		nn_evaluator.asyncEvaluateGraphJoin();
 
 		search.generateEdges(tree);
 		search.expand(tree);
@@ -1485,6 +1525,7 @@ void test_search()
 
 	matrix<float> policy(game_config.rows, game_config.cols);
 	matrix<ProvenValue> proven_values(game_config.rows, game_config.cols);
+	proven_values.fill(ProvenValue::UNKNOWN);
 	for (int i = 0; i < info.numberOfEdges(); i++)
 	{
 		const Edge &edge = info.getEdge(i);
@@ -1550,6 +1591,8 @@ void test_search()
 	tree.select(task);
 	tree.cancelVirtualLoss(task);
 
+	std::cout << task.toString() << '\n';
+
 	for (int i = 0; i < task.visitedPathLength(); i++)
 	{
 		if (i < 10 and task.visitedPathLength() >= 10)
@@ -1558,6 +1601,14 @@ void test_search()
 			std::cout << " ";
 		std::cout << i << " : " << task.getPair(i).edge->getMove().toString() << " : " << task.getPair(i).edge->toString() << '\n';
 	}
+
+//	task.getLastPair().node->sortEdges();
+//	std::cout << task.getLastPair().node->toString() << '\n';
+//	for (int i = 0; i < task.getLastPair().node->numberOfEdges(); i++)
+//		std::cout << task.getLastPair().node->getEdge(i).getMove().toString() << " : " << task.getLastPair().node->getEdge(i).toString() << '\n';
+//	std::cout << '\n';
+
+	std::cout << "END" << std::endl;
 
 //	Board::putMove(board, Move(Sign::CIRCLE, 0, 0));
 //	Board::putMove(board, Move(Sign::CROSS, 0, 1));
@@ -1696,25 +1747,22 @@ void test_nnue()
 
 void test_evaluate()
 {
-	MasterLearningConfig config(FileLoader("/home/maciek/Desktop/solver/config.json").getJson());
+	MasterLearningConfig config(FileLoader("/home/maciek/alphagomoku/new_runs_2023/config.json").getJson());
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-	cfg.simulations = 1000;
-	cfg.search_config.solver_level = 3;
-	cfg.search_config.solver_max_positions = 100;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin", "res");
-	cfg.search_config.solver_level = 3;
-//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin", "parent");
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "bugged");
 
-	cfg.simulations = 3000;
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/minml_test/minml_btl_10x128_opt.bin", "btl_x3");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/network_11_opt.bin", "correct");
 
-	manager.generate(100);
+	const double start = getTime();
+	manager.generate(1000);
+	const double stop = getTime();
+	std::cout << "generated in " << (stop - start) << '\n';
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/Desktop/solver/tests/btl_x3_vs_res.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/correct.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -1744,11 +1792,11 @@ int main(int argc, char *argv[])
 
 //	test_nnue();
 //	test_pattern_calculator();
-	test_proven_positions(100);
+//	test_proven_positions(100);
 //	test_proven_positions(1000);
 //	ab_search_test();
 //	test_search();
-//	test_evaluate();
+	test_evaluate();
 //	test_search_with_solver(10000);
 //	train_simple_evaluation();
 //	test_static_solver();

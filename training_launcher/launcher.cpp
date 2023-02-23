@@ -671,9 +671,8 @@ void test_expand()
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
 	tree.setEdgeSelector(SequentialHalvingSelector(search_config.max_children, 100));
-	tree.setEdgeGenerator(SequentialHalvingGenerator(search_config.max_children));
 //	tree.setEdgeSelector(NoisyPUCTSelector(1.0f, 0.5f));
-//	tree.setEdgeGenerator(BaseGenerator(search_config.max_children));
+	tree.setEdgeGenerator(BaseGenerator(search_config.max_children, true));
 
 	search.setBatchSize(search_config.max_batch_size);
 	int next_step = 0;
@@ -759,7 +758,7 @@ void test_expand()
 		switch (info.getEdge(i).getScore().getProvenValue())
 		{
 			case ProvenValue::LOSS:
-				Q = -100.0f + 0.1f * info.getEdge(i).getScore().getDistanceToWinOrLoss();
+				Q = -100.0f + 0.1f * info.getEdge(i).getScore().getDistance();
 				break;
 			case ProvenValue::DRAW:
 				Q = Value::draw().getExpectation();
@@ -769,7 +768,7 @@ void test_expand()
 				Q = (info.getEdge(i).getVisits() > 0) ? info.getEdge(i).getValue().getExpectation() : V_mix;
 				break;
 			case ProvenValue::WIN:
-				Q = +101.0f - 0.1f * info.getEdge(i).getScore().getDistanceToWinOrLoss();
+				Q = +101.0f - 0.1f * info.getEdge(i).getScore().getDistance();
 				break;
 		}
 		const float sigma_Q = (50 + max_N) * Q;
@@ -841,20 +840,17 @@ void test_evaluate()
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-	cfg.simulations = 1000;
-//	cfg.search_config.solver_level = 0;
-//	cfg.search_config.solver_max_positions = 100;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/seq_network_26_opt.bin", "seq");
-//	cfg.search_config.solver_level = 3;
+	cfg.simulations = 200;
+	cfg.search_config.exploration_constant = 1.0f;
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "name1");
 
-//	cfg.simulations = 3000;
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "puct");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "name2");
 
 	manager.generate(1000);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/seq_vs_puct.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/puct_200.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -938,10 +934,43 @@ int main(int argc, char *argv[])
 //	for (int i = 0; i < 32; i++)
 //		tm.runIterationSL();
 
-	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_save_load/");
-	for (int i = 0; i < 100; i++)
-		tm.runIterationRL();
+//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_save_load/");
+//	for (int i = 0; i < 100; i++)
+//		tm.runIterationRL();
+//	return 0;
+
+	std::string path;
+	ArgumentParser ap;
+	ap.addArgument("path", [&](const std::string &arg)
+	{	path = arg;});
+	ap.parseArguments(argc, argv);
+
+	if (path.empty())
+	{
+		std::cout << "Path is empty, exiting" << std::endl;
+		return 0;
+	}
+
+	if (std::filesystem::exists(path + "/config.json"))
+	{
+		TrainingManager tm(path);
+		for (int i = 0; i < 200; i++)
+			tm.runIterationRL();
+	}
+	else
+	{
+		if (not std::filesystem::exists(path))
+		{
+			std::filesystem::create_directory(path);
+			std::cout << "Created working directory" << std::endl;
+		}
+		MasterLearningConfig cfg;
+		FileSaver fs(path + "/config.json");
+		fs.save(cfg.toJson(), SerializedObject(), 2, false);
+		std::cout << "Created default configuration file, exiting." << std::endl;
+	}
 	return 0;
+
 	{
 		GameConfig game_config(GameRules::STANDARD, 20, 20);
 		return 0;
@@ -1194,38 +1223,6 @@ int main(int argc, char *argv[])
 //	benchmark_features();
 //	find_proven_positions("/home/maciek/alphagomoku/standard_15x15/train_buffer/", 100);
 //	return 0;
-
-	std::string path;
-	ArgumentParser ap;
-	ap.addArgument("path", [&](const std::string &arg)
-	{	path = arg;});
-	ap.parseArguments(argc, argv);
-
-	if (path.empty())
-	{
-		std::cout << "Path is empty, exiting" << std::endl;
-		return 0;
-	}
-
-	if (std::filesystem::exists(path + "/config.json"))
-	{
-		TrainingManager tm(path);
-		for (int i = 0; i < 200; i++)
-			tm.runIterationRL();
-	}
-	else
-	{
-		if (not std::filesystem::exists(path))
-		{
-			std::filesystem::create_directory(path);
-			std::cout << "Created working directory" << std::endl;
-		}
-		MasterLearningConfig cfg;
-		FileSaver fs(path + "/config.json");
-		fs.save(cfg.toJson(), SerializedObject(), 2, false);
-		std::cout << "Created default configuration file, exiting." << std::endl;
-	}
-	return 0;
 
 	/*
 	 GameConfig game_config(GameRules::STANDARD, 15);
