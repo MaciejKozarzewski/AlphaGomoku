@@ -47,7 +47,7 @@ namespace ag
 			{
 				m_data.assign(m_data.size(), T { });
 			}
-			void fill(T value)
+			void fill(const T& value)
 			{
 				m_data.assign(m_data.size(), value);
 			}
