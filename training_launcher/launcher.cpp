@@ -44,6 +44,7 @@
 #include <thread>
 #include <filesystem>
 #include <csignal>
+#include <map>
 #include <new>
 
 #include <alphagomoku/utils/configs.hpp>
@@ -840,17 +841,17 @@ void test_evaluate()
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-	cfg.simulations = 200;
-	cfg.search_config.exploration_constant = 1.0f;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "name1");
+//	cfg.simulations = 200;
+//	cfg.search_config.exploration_constant = 1.0f;
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "bugged");
 
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "name2");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/network_17_opt.bin", "correct_17");
 
-	manager.generate(1000);
+	manager.generate(750);
 	std::string to_save;
 	for (int i = 0; i < manager.numberOfThreads(); i++)
 		to_save += manager.getGameBuffer(i).generatePGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/puct_200.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/correct.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -910,13 +911,83 @@ int main(int argc, char *argv[])
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 	setupSignalHandler(SignalType::INT, SignalHandlerMode::CUSTOM);
+
+//	{
+//		GameBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/buffer_20.bin");
+//		std::cout << buffer.getStats().toString() << '\n';
+//
+//		int total_positions = 0;
+//		int total_visited_actions = 0;
+//		int actions_with_score = 0;
+//		for (int i = 0; i < buffer.size(); i++)
+////		int i = 1;
+//		{
+//			for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
+//			{
+//				const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
+//				total_positions++;
+//				std::map<Score, int> scores;
+//				for (int row = 0; row < 15; row++)
+//					for (int col = 0; col < 15; col++)
+//					{
+//						const Score sc = sample.getActionScore(row, col);
+//						if (sample.getSign(row, col) == Sign::NONE)
+//						{
+//							total_visited_actions += static_cast<int>(sample.getVisitCount(row, col) > 0);
+//							if (sample.getVisitCount(row, col) == 0)
+//							{
+//								auto iter = scores.find(sc);
+//								if (iter == scores.end())
+//									scores.insert( { sc, 1 });
+//								else
+//									iter->second++;
+//							}
+//						}
+//					}
+//				int most_common_score_count = 0;
+//				for (auto iter = scores.begin(); iter != scores.end(); iter++)
+//					most_common_score_count = std::max(iter->second, most_common_score_count);
+//
+//				for (auto iter = scores.begin(); iter != scores.end(); iter++)
+//					if (iter->second != most_common_score_count)
+//						actions_with_score += iter->second;
+//
+////				for (auto iter = scores.begin(); iter != scores.end(); iter++)
+////					std::cout << iter->first.toFormattedString() << " " << iter->second << '\n';
+////				std::cout << '\n';
+//			}
+//		}
+//		std::cout << total_positions << " positions\n";
+//		std::cout << total_visited_actions << " visited actions\n";
+//		std::cout << actions_with_score << " actions with score\n";
+////		const SearchData &sample = buffer.getFromBuffer(1).getSample(0);
+////		sample.print();
+////		float sum_p = 0.0f;
+////		int unvisited_actions = 0;
+////		for (int row = 0; row < 15; row++)
+////			for (int col = 0; col < 15; col++)
+////			{
+////				const Move m(row, col, sample.getSign(row, col));
+////				if (sample.getVisitCount(row, col) > 0)
+////					std::cout << m.text() << " : " << sample.getVisitCount(row, col) << " : " << sample.getPolicyPrior(row, col) << '\n';
+////				else
+////				{
+////					sum_p += sample.getPolicyPrior(row, col);
+////					unvisited_actions++;
+////				}
+////			}
+////		std::cout << "unvisited actions count = " << unvisited_actions << '\n';
+////		std::cout << "unvisited policy sum = " << sum_p << " (" << sum_p / unvisited_actions << ")\n";
+//		return 0;
+//	}
+
 //	printf("SignalValue:    %i\n", hasCapturedSignal(SignalType::INT));
 //	printf("Sending signal: %d\n", SIGINT);
 //	raise(SIGINT);
 //	printf("SignalValue:    %d\n", hasCapturedSignal(SignalType::INT));
 
-//	test_evaluate();
-//	return 0;
+	test_evaluate();
+	return 0;
 
 //	{
 //		GameBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/no_solver/train_buffer/buffer_17.bin");
@@ -934,10 +1005,10 @@ int main(int argc, char *argv[])
 //	for (int i = 0; i < 32; i++)
 //		tm.runIterationSL();
 
-//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_save_load/");
-//	for (int i = 0; i < 100; i++)
-//		tm.runIterationRL();
-//	return 0;
+	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_save_load/");
+	for (int i = 0; i < 100; i++)
+		tm.runIterationRL();
+	return 0;
 
 	std::string path;
 	ArgumentParser ap;

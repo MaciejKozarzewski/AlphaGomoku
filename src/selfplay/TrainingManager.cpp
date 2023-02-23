@@ -28,7 +28,7 @@ namespace
 	}
 	MasterLearningConfig load_config(std::string path)
 	{
-		if(not pathExists(path))
+		if (not pathExists(path))
 			createDirectory(path);
 
 		path += "/config.json";
@@ -79,6 +79,8 @@ namespace ag
 	{
 		generateGames();
 		runIterationSL();
+		if (hasCapturedSignal(SignalType::INT))
+			exit(0);
 	}
 	void TrainingManager::runIterationSL()
 	{
@@ -97,6 +99,8 @@ namespace ag
 					std::cout << "Waiting for previous evaluation to finish..." << std::endl;
 					evaluation_future.wait();
 				}
+				if (hasCapturedSignal(SignalType::INT))
+					return;
 				evaluation_future = std::async(std::launch::async, [this]()
 				{
 					try
@@ -170,6 +174,8 @@ namespace ag
 		generator_manager.setWorkingDirectory(working_dir);
 		generator_manager.getGameBuffer().clear();
 		generator_manager.generate(path_to_last_network, training_games + validation_games);
+		if (hasCapturedSignal(SignalType::INT))
+			return;
 		if (generator_manager.getGameBuffer().isCorrect() == false)
 			throw std::runtime_error("generated buffer is invalid");
 		std::cout << "Finished generating games\n";
@@ -239,6 +245,9 @@ namespace ag
 		std::cout << '\n';
 
 		evaluator_manager.generate(config.evaluation_config.selfplay_options.games_per_iteration);
+		if (hasCapturedSignal(SignalType::INT))
+			return;
+
 		std::string to_save;
 		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
 			to_save += evaluator_manager.getGameBuffer(i).generatePGN();

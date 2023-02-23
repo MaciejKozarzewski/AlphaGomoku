@@ -199,8 +199,7 @@ namespace ag
 					generators[i]->stop();
 				std::cout << "Generators stopped" << std::endl;
 				save_state();
-				std::cout << "Exiting" << std::endl;
-				exit(0);
+				return;
 			}
 
 			bool is_ready = true;
@@ -238,7 +237,6 @@ namespace ag
 	 */
 	void GeneratorManager::save_state()
 	{
-		std::cout << working_directory << '\n';
 		if (working_directory.empty())
 			return;
 
@@ -273,9 +271,9 @@ namespace ag
 		{
 			game_buffer.load(path + "buffer.bin");
 			std::cout << "Loaded buffer:\n" << game_buffer.getStats().toString() << std::endl;
+			removeFile(path + "buffer.bin");
 		}
 
-		std::cout << "Loading games" << std::endl;
 		for (size_t i = 0; i < generators.size(); i++)
 		{
 			const std::string tmp = path + "thread_" + std::to_string(i) + ".bin";
@@ -283,6 +281,7 @@ namespace ag
 			{
 				generators[i]->loadGames(tmp);
 				std::cout << "Loaded " << tmp << std::endl;
+				removeFile(tmp);
 			}
 		}
 	}

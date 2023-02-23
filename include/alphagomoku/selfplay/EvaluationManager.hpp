@@ -30,6 +30,7 @@ namespace ag
 	{
 		private:
 			std::future<void> evaluator_future;
+			std::atomic<bool> is_running;
 			NNEvaluator first_nn_evaluator;
 			NNEvaluator second_nn_evaluator;
 			std::vector<std::unique_ptr<EvaluationGame>> evaluators;
@@ -42,6 +43,7 @@ namespace ag
 			void setSecondPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
 			GameBuffer& getGameBuffer() noexcept;
 			void generate(int numberOfGames);
+			void stop();
 			bool isFinished() const;
 		private:
 			void run();

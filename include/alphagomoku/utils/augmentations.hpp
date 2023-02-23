@@ -90,7 +90,7 @@ namespace ag
 				for (int i = 0; i < height / 2; i++)
 					for (int j = i; j < height1 - i; j++)
 					{
-						T tmp = input.at(i, j);
+						const T tmp = input.at(i, j);
 						input.at(i, j) = input.at(j, height1 - i);
 						input.at(j, height1 - i) = input.at(height1 - i, height1 - j);
 						input.at(height1 - i, height1 - j) = input.at(height1 - j, i);
@@ -104,7 +104,7 @@ namespace ag
 				for (int i = 0; i < height / 2; i++)
 					for (int j = i; j < height1 - i; j++)
 					{
-						T tmp = input.at(i, j);
+						const T tmp = input.at(i, j);
 						input.at(i, j) = input.at(height1 - j, i);
 						input.at(height1 - j, i) = input.at(height1 - i, height1 - j);
 						input.at(height1 - i, height1 - j) = input.at(j, height1 - i);

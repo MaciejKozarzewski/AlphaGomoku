@@ -102,7 +102,7 @@ namespace ag
 		private:
 			std::vector<HashKey64> m_keys;
 		public:
-			FullZobristHashing() = default;
+			FullZobristHashing() noexcept = default;
 			FullZobristHashing(int boardHeight, int boardWidth);
 			HashKey64 getHash(const matrix<Sign> &board, Sign signToMove) const noexcept;
 	};
@@ -114,7 +114,7 @@ namespace ag
 			int m_rows = 0;
 			int m_columns = 0;
 		public:
-			FastZobristHashing() = default;
+			FastZobristHashing() noexcept = default;
 			FastZobristHashing(int boardHeight, int boardWidth);
 			int64_t getMemory() const noexcept;
 			HashKey128 getHash(const matrix<Sign> &board) const noexcept;

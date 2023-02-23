@@ -149,7 +149,7 @@ namespace ag
 //		root_node.sortEdges();
 //		for (int i = 0; i < std::min(20, root_node.numberOfEdges()); i++)
 //		for (int i = 0; i < root_node.numberOfEdges(); i++)
-//			std::cout << "   " << root_node.getEdge(i).toString() << '\n';
+//			std::cout << "    " << root_node.getEdge(i).toString() << '\n';
 //		tree.printSubtree(2, false);
 
 		BestEdgeSelector selector;

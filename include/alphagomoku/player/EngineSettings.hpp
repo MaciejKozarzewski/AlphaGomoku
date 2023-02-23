@@ -20,8 +20,7 @@ namespace ag
 {
 	struct Option;
 	class Move;
-	enum class GameRules
-	;
+	enum class GameRules;
 } /* namespace ag */
 
 namespace ag

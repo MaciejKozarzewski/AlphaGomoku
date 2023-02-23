@@ -117,7 +117,7 @@ namespace ag
 			 */
 			Node* seek(const matrix<Sign> &board, Sign signToMove) const noexcept;
 			/**
-			 * \brief Inserts new entry to the cache.
+			 * \brief Inserts new entry to the cache and returns pointer to it.
 			 * The inserted entry must not be in cache.
 			 */
 			Node* insert(const matrix<Sign> &board, Sign signToMove, int numberOfEdges);
@@ -127,7 +127,7 @@ namespace ag
 			 */
 			void remove(const matrix<Sign> &board, Sign signToMove) noexcept;
 			/**
-			 * \brief Changes the number of bins to 2^newSize.
+			 * \brief Changes the number of bins.
 			 */
 			void resize(size_t newSize);
 

@@ -17,6 +17,7 @@ namespace ag
 {
 
 	EvaluatorThread::EvaluatorThread(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index) :
+			is_running(true),
 			first_nn_evaluator(selfplayOptions.device_config[index]),
 			second_nn_evaluator(selfplayOptions.device_config[index]),
 			evaluators(selfplayOptions.games_per_thread)
@@ -58,6 +59,11 @@ namespace ag
 			}
 		});
 	}
+	void EvaluatorThread::stop()
+	{
+		is_running.store(false);
+		evaluator_future.wait();
+	}
 	bool EvaluatorThread::isFinished() const
 	{
 		if (evaluator_future.valid())
@@ -74,7 +80,7 @@ namespace ag
 	void EvaluatorThread::run()
 	{
 		game_buffer.clear();
-		while (game_buffer.size() < games_to_play)
+		while (is_running.load() and game_buffer.size() < games_to_play)
 		{
 			first_nn_evaluator.asyncEvaluateGraphJoin();
 			for (size_t i = 0; i < evaluators.size(); i++)
@@ -141,20 +147,35 @@ namespace ag
 	}
 	void EvaluationManager::generate(int numberOfGames)
 	{
+		const int progress_increment = numberOfGames / 4;
+		int progress_counter = progress_increment;
+
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->generate(numberOfGames / evaluators.size());
+		{
+			const int tmp = numberOfGames / (evaluators.size() - i);
+			evaluators[i]->generate(tmp);
+			numberOfGames -= tmp;
+		}
 
 		int time_counter = 0;
-		int game_counter = numberOfGames / 4;
 		while (true)
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 			time_counter++;
-			if (time_counter % 60 == 0 or this->numberOfGames() >= game_counter)
+			if (time_counter % 60 == 0 or this->numberOfGames() >= progress_counter)
 			{
 				std::cout << this->numberOfGames() << " games played..." << std::endl;
 				time_counter = 0;
-				game_counter += numberOfGames / 4;
+				progress_counter += progress_increment;
+			}
+
+			if (hasCapturedSignal(SignalType::INT))
+			{
+				std::cout << "Caught interruption signal" << std::endl;
+				for (size_t i = 0; i < evaluators.size(); i++)
+					evaluators[i]->stop();
+				std::cout << "Evaluators stopped" << std::endl;
+				return;
 			}
 
 			bool is_ready = true;

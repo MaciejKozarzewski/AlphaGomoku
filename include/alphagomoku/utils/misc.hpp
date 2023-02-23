@@ -37,6 +37,13 @@ namespace ag
 	bool randBool();
 
 	template<typename T>
+	constexpr T clip(T value, T lower, T upper) noexcept
+	{
+		assert(lower < upper);
+		return std::min(upper, std::max(lower, value));
+	}
+
+	template<typename T>
 	constexpr bool isPowerOf2(T x) noexcept
 	{
 		return (x > 0) && !(x & (x - 1));
