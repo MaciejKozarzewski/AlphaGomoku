@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_EDGEGENERATOR_HPP_
-#define ALPHAGOMOKU_MCTS_EDGEGENERATOR_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGEGENERATOR_HPP_
+#define ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGEGENERATOR_HPP_
 
 #include <alphagomoku/utils/matrix.hpp>
 
@@ -39,21 +39,9 @@ namespace ag
 	{
 		private:
 			int max_edges;
+			bool fully_expand_root;
 		public:
-			BaseGenerator(int maxEdges = std::numeric_limits<int>::max());
-			std::unique_ptr<EdgeGenerator> clone() const;
-			void generate(SearchTask &task) const;
-	};
-
-	/*
-	 * \brief
-	 */
-	class SequentialHalvingGenerator: public EdgeGenerator
-	{
-		private:
-			int max_edges;
-		public:
-			SequentialHalvingGenerator(int maxEdges);
+			BaseGenerator(int maxEdges, bool fullyExpandRoot);
 			std::unique_ptr<EdgeGenerator> clone() const;
 			void generate(SearchTask &task) const;
 	};
@@ -115,4 +103,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_EDGEGENERATOR_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGEGENERATOR_HPP_ */

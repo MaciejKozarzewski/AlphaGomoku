@@ -120,6 +120,8 @@ namespace ag
 	{
 		solver.setSharedTable(tree.getSharedHashTable());
 
+		int number_of_trials = 1000;
+
 		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
 		{
 			TimerGuard timer(stats.select);
@@ -146,7 +148,8 @@ namespace ag
 			if (out == SelectOutcome::REACHED_PROVEN_STATE)
 			{ // this was added to allow the search to correctly continue even if the tree is proven and we re-visit already proven edges
 				assert(current_task.visitedPathLength() > 0);
-				const Score s = current_task.getLastEdge()->getScore();
+				Score s = -current_task.getLastEdge()->getScore();
+				s.decreaseDistance(); // we get score from an edge, so we pretend it comes from a node one ply deeper
 				current_task.setScore(s);
 				current_task.setValue(s.convertToValue());
 				current_task.markAsProcessedBySolver();
@@ -154,6 +157,10 @@ namespace ag
 				stats.nb_proven_states++;
 				get_buffer().removeLast();
 			}
+
+			number_of_trials--;
+			if (number_of_trials <= 0)
+				break; // required to avoid getting stuck in this loop forever
 		}
 		stats.nb_batch_size += get_buffer().storedElements();
 	}

@@ -25,18 +25,10 @@ namespace
 	}
 	std::string to_string(Score s)
 	{
-		switch (s.getProvenValue())
-		{
-			default:
-			case ProvenValue::UNKNOWN:
-				return "  _ ";
-			case ProvenValue::LOSS:
-				return " L" + std::to_string(s.getDistanceToWinOrLoss()) + (s.getDistanceToWinOrLoss() < 10 ? " " : "");
-			case ProvenValue::DRAW:
-				return "  D ";
-			case ProvenValue::WIN:
-				return " W" + std::to_string(s.getDistanceToWinOrLoss()) + (s.getDistanceToWinOrLoss() < 10 ? " " : "");
-		}
+		if (s.getEval() == 0 and not s.isProven())
+			return "  _ ";
+		else
+			return s.toFormattedString();
 	}
 	std::string to_string(int i)
 	{

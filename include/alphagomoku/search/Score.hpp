@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_SCORE_HPP_
-#define ALPHAGOMOKU_MCTS_SCORE_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_SCORE_HPP_
+#define ALPHAGOMOKU_SEARCH_SCORE_HPP_
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/Value.hpp>
@@ -83,28 +83,48 @@ namespace ag
 				assert(-4000 <= evaluation && evaluation <= 4000);
 				m_data |= static_cast<uint16_t>(4000 + evaluation);
 			}
-			void increaseDistanceToWinOrLoss() noexcept
+			void increaseDistance() noexcept
 			{
 				switch (getProvenValue())
 				{
-					default:
-						break;
 					case ProvenValue::LOSS:
+					case ProvenValue::DRAW:
 						*this = *this + 1;
+						break;
+					default:
+					case ProvenValue::UNKNOWN:
 						break;
 					case ProvenValue::WIN:
 						*this = *this - 1;
 						break;
 				}
 			}
-			int getDistanceToWinOrLoss() const noexcept
+			void decreaseDistance() noexcept
 			{
 				switch (getProvenValue())
 				{
-					default:
-						return 4000;
 					case ProvenValue::LOSS:
+					case ProvenValue::DRAW:
+						*this = *this - 1;
+						break;
+					default:
+					case ProvenValue::UNKNOWN:
+						break;
+					case ProvenValue::WIN:
+						*this = *this + 1;
+						break;
+				}
+			}
+			int getDistance() const noexcept
+			{
+				switch (getProvenValue())
+				{
+					case ProvenValue::LOSS:
+					case ProvenValue::DRAW:
 						return getEval();
+					default:
+					case ProvenValue::UNKNOWN:
+						return 4000;
 					case ProvenValue::WIN:
 						return -getEval();
 				}
@@ -142,6 +162,14 @@ namespace ag
 			{
 				return Score(ProvenValue::WIN, +4000);
 			}
+			static Score min_eval() noexcept
+			{
+				return Score(ProvenValue::UNKNOWN, -4000);
+			}
+			static Score max_eval() noexcept
+			{
+				return Score(ProvenValue::UNKNOWN, +4000);
+			}
 
 			static Score loss() noexcept
 			{
@@ -158,6 +186,10 @@ namespace ag
 			static Score draw() noexcept
 			{
 				return Score(ProvenValue::DRAW);
+			}
+			static Score draw_in(int plys) noexcept
+			{
+				return Score(ProvenValue::DRAW, plys);
 			}
 			static Score win() noexcept
 			{
@@ -218,25 +250,6 @@ namespace ag
 			{
 				return lhs.m_data >= rhs.m_data;
 			}
-			std::string toString() const
-			{
-				switch (getProvenValue())
-				{
-					case ProvenValue::LOSS:
-						return "LOSS in " + std::to_string(getEval());
-					case ProvenValue::DRAW:
-						return "DRAW";
-					default:
-					case ProvenValue::UNKNOWN:
-						if (getEval() > 0)
-							return "+" + std::to_string(getEval());
-						else
-							return std::to_string(getEval());
-					case ProvenValue::WIN:
-						return "WIN in " + std::to_string(-getEval());
-				}
-			}
-
 			Value convertToValue() const noexcept
 			{
 				switch (getProvenValue())
@@ -253,6 +266,9 @@ namespace ag
 						return Value();
 				}
 			}
+
+			std::string toString() const;
+			std::string toFormattedString() const;
 	};
 
 	inline std::ostream& operator<<(std::ostream &stream, Score score)
@@ -262,4 +278,4 @@ namespace ag
 
 } /* namespace */
 
-#endif /* ALPHAGOMOKU_MCTS_SCORE_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_SCORE_HPP_ */

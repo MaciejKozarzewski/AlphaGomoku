@@ -101,7 +101,7 @@ namespace
 					switch (score.getProvenValue())
 					{
 						case ProvenValue::LOSS:
-							Q = -100.0f + 0.1f * score.getDistanceToWinOrLoss();
+							Q = -100.0f + 0.1f * score.getDistance();
 							break;
 						case ProvenValue::DRAW:
 							Q = Value::draw().getExpectation();
@@ -111,7 +111,7 @@ namespace
 							Q = (visits > 0) ? value.getExpectation() : V_mix;
 							break;
 						case ProvenValue::WIN:
-							Q = +101.0f - 0.1f * score.getDistanceToWinOrLoss();
+							Q = +101.0f - 0.1f * score.getDistance();
 							break;
 					}
 					const float sigma_Q = (50 + max_N) * Q;

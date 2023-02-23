@@ -51,7 +51,7 @@ namespace ag
 			{
 				stop_search();
 				const SearchSummary summary = search_engine.getSummary( { }, false);
-				if (summary.node.getValue().getExpectation() < 0.5f)
+				if (summary.node.getExpectation() < 0.5f)
 					outputQueue.push(Message(MessageType::BEST_MOVE, "swap"));
 				else
 					outputQueue.push(Message(MessageType::BEST_MOVE, get_best_move(summary)));

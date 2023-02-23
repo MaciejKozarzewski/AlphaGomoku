@@ -62,7 +62,7 @@ namespace ag
 				const SearchSummary summary = search_engine.getSummary( { }, false);
 				Logger::write(summary.node.toString());
 
-				const float expectation_value = summary.node.getValue().getExpectation();
+				const float expectation_value = summary.node.getExpectation();
 				Logger::write("Evaluated 3 stone opening : " + std::to_string(100 * expectation_value) + "% probability of winning");
 				if (expectation_value < 1.0f / 3.0f)
 				{
@@ -139,7 +139,7 @@ namespace ag
 			{
 				stop_search();
 				const SearchSummary summary = search_engine.getSummary( { }, false);
-				if (summary.node.getValue().getExpectation() < 0.5f)
+				if (summary.node.getExpectation() < 0.5f)
 					outputQueue.push(Message(MessageType::BEST_MOVE, "swap"));
 				else
 					outputQueue.push(Message(MessageType::BEST_MOVE, get_best_move(summary)));

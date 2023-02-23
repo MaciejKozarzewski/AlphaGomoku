@@ -16,36 +16,130 @@ namespace
 {
 	using namespace ag;
 
-	float getVirtualLoss(const Edge *edge) noexcept
+	float getVirtualLoss(const Edge &edge) noexcept
 	{
-		assert(edge != nullptr);
-		const float visits = 1.0e-8f + edge->getVisits();
-		const float virtual_loss = edge->getVirtualLoss();
+		const float visits = 1.0e-8f + edge.getVisits();
+		const float virtual_loss = edge.getVirtualLoss();
 		return visits / (visits + virtual_loss);
 	}
-	template<typename T>
-	float getQ(const T *n, float styleFactor) noexcept
+	int visitsPlusVirtualLoss(const Edge &edge) noexcept
 	{
-		assert(n != nullptr);
-		return n->getWinRate() + styleFactor * n->getDrawRate();
-	}
-	template<typename T>
-	float getProvenQ(const T *node) noexcept
-	{
-		assert(node != nullptr);
-		return static_cast<int>(node->getScore().isWin()) - static_cast<int>(node->getScore().isLoss());
-	}
-	template<typename T>
-	float getBalance(const T *node) noexcept
-	{
-		assert(node != nullptr);
-		return 1.0f - fabsf(node->getWinRate() - node->getLossRate());
+		return edge.getVisits() + edge.getVirtualLoss() + 1000000 * edge.isProven();
 	}
 
-	int visits_plus_virtual_loss(const Edge *edge) noexcept
+	struct UCT
 	{
-		return edge->getVisits() + edge->getVirtualLoss() + 1000000 * edge->isProven();
-	}
+			const float parent_log_visit;
+			const float exploration_constant;
+			const float style_factor;
+			UCT(int parentVisits, float explorationConstant, float styleFactor) noexcept :
+					parent_log_visit(logf(parentVisits)),
+					exploration_constant(explorationConstant),
+					style_factor(styleFactor)
+			{
+			}
+			float operator()(const Edge &edge) const noexcept
+			{
+				const float Q = edge.getExpectation(style_factor) * getVirtualLoss(edge);
+				const float U = exploration_constant * sqrtf(parent_log_visit / (1.0f + edge.getVisits()));
+				const float P = edge.getPolicyPrior() / (1.0f + edge.getVisits());
+				return Q + U + P;
+			}
+	};
+	struct PUCT
+	{
+			const float parent_sqrt_visit;
+			const float style_factor;
+			PUCT(const Node &parent, float explorationConstant, float styleFactor) noexcept :
+					parent_sqrt_visit(explorationConstant * sqrtf(parent.getVisits())),
+					style_factor(styleFactor)
+			{
+			}
+			float operator()(const Edge &edge) const noexcept
+			{
+				const float Q = edge.getExpectation(style_factor);
+				const float U = edge.getPolicyPrior() * parent_sqrt_visit / (1.0f + edge.getVisits());
+				return Q * getVirtualLoss(edge) + U;
+			}
+	};
+	struct NoisyPUCT
+	{
+			const float parent_sqrt_visit;
+			const float style_factor;
+			const std::vector<float> &noisy_policy;
+			const Edge *first;
+			NoisyPUCT(const Node &parent, float explorationConstant, float styleFactor, const std::vector<float> &noisyPolicy) noexcept :
+					parent_sqrt_visit(explorationConstant * sqrtf(parent.getVisits())),
+					style_factor(styleFactor),
+					noisy_policy(noisyPolicy),
+					first(parent.begin())
+			{
+			}
+			float operator()(const Edge &edge) const noexcept
+			{
+				const float Q = edge.getExpectation(style_factor);
+				const float U = noisy_policy[std::distance(first, &edge)] * parent_sqrt_visit / (1.0f + edge.getVisits());
+				return Q * getVirtualLoss(edge) + U;
+			}
+	};
+	struct MaxValue
+	{
+			const float style_factor;
+			const int min_visit_count;
+			MaxValue(float styleFactor, int minVisitCount = -1) noexcept :
+					style_factor(styleFactor),
+					min_visit_count(minVisitCount)
+			{
+			}
+			float operator()(const Edge &edge) const noexcept
+			{
+				switch (edge.getScore().getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return -100.0f + 0.1f * edge.getScore().getDistance();
+					case ProvenValue::DRAW:
+						return Value::draw().getExpectation();
+					default:
+					case ProvenValue::UNKNOWN:
+						return (edge.getVisits() > min_visit_count) ? edge.getExpectation(style_factor) : 0.0f;
+					case ProvenValue::WIN:
+						return +101.0f - 0.1f * edge.getScore().getDistance();
+				}
+			}
+	};
+	struct BestEdge
+	{
+			const int parent_visits;
+			const float style_factor;
+			BestEdge(int parentVisits, float styleFactor) noexcept :
+					parent_visits(parentVisits),
+					style_factor(styleFactor)
+			{
+			}
+			float operator()(const Edge &edge) const noexcept
+			{
+				return edge.getVisits() + edge.getExpectation(style_factor) * parent_visits + 0.001f * edge.getPolicyPrior();
+			}
+	};
+	struct MaxBalance
+	{
+			float operator()(const Edge &edge) const noexcept
+			{
+				switch (edge.getScore().getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return 0.0f;
+					case ProvenValue::DRAW:
+						return 1.0f * getVirtualLoss(edge);
+					default:
+					case ProvenValue::UNKNOWN:
+						return (1.0f - std::fabs(edge.getWinRate() - edge.getLossRate())) * getVirtualLoss(edge);
+					case ProvenValue::WIN:
+						return 0.0f;
+				}
+			}
+	};
+
 	int integer_log2(int x) noexcept
 	{
 		int result = 0;
@@ -55,21 +149,6 @@ namespace
 			result++;
 		}
 		return result;
-	}
-	float get_q(const Edge *edge) noexcept
-	{
-		switch (edge->getScore().getProvenValue())
-		{
-			case ProvenValue::LOSS:
-				return -100.0f + 0.1f * edge->getScore().getDistanceToWinOrLoss();
-			case ProvenValue::DRAW:
-				return Value::draw().getExpectation();
-			default:
-			case ProvenValue::UNKNOWN:
-				return (edge->getVisits() > 0) ? edge->getValue().getExpectation() : 0.0f;
-			case ProvenValue::WIN:
-				return +101.0f - 0.1f * edge->getScore().getDistanceToWinOrLoss();
-		}
 	}
 	void softmax(std::vector<float> &vec) noexcept
 	{
@@ -102,7 +181,7 @@ namespace
 				return Value::draw().getExpectation();
 				default:
 				case ProvenValue::UNKNOWN:
-				return edge->getValue().getExpectation();
+				return edge->getExpectation();
 				case ProvenValue::WIN:
 				return Value::win().getExpectation();
 			}
@@ -113,19 +192,19 @@ namespace
 
 		float V_mix;
 		if (node->getVisits() == 1)
-			V_mix = node->getValue().getExpectation();
+			V_mix = node->getExpectation();
 		else
 		{
 			for (Edge *edge = node->begin(); edge < node->end(); edge++)
 				if (edge->getVisits() > 0 or edge->isProven())
 				{
-					sum_v += edge->getValue().getExpectation() * edge->getVisits();
+					sum_v += edge->getExpectation() * edge->getVisits();
 					sum_q += edge->getPolicyPrior() * get_expectation(edge);
 					sum_p += edge->getPolicyPrior();
 					max_N = std::max(max_N, edge->getVisits());
 				}
 			const float inv_N = 1.0f / node->getVisits();
-			V_mix = (node->getValue().getExpectation() - sum_v * inv_N) + (1.0f - inv_N) * sum_q / sum_p;
+			V_mix = (node->getExpectation() - sum_v * inv_N) + (1.0f - inv_N) * sum_q / sum_p;
 		}
 
 		result.clear();
@@ -135,17 +214,17 @@ namespace
 			switch (edge->getScore().getProvenValue())
 			{
 				case ProvenValue::LOSS:
-					Q = -100.0f + 0.1f * edge->getScore().getDistanceToWinOrLoss();
+					Q = -100.0f + 0.1f * edge->getScore().getDistance();
 					break;
 				case ProvenValue::DRAW:
 					Q = Value::draw().getExpectation();
 					break;
 				default:
 				case ProvenValue::UNKNOWN:
-					Q = (edge->getVisits() > 0) ? edge->getValue().getExpectation() : V_mix;
+					Q = (edge->getVisits() > 0) ? edge->getExpectation() : V_mix;
 					break;
 				case ProvenValue::WIN:
-					Q = +101.0f - 0.1f * edge->getScore().getDistanceToWinOrLoss();
+					Q = +101.0f - 0.1f * edge->getScore().getDistance();
 					break;
 			}
 			const float sigma_Q = (cVisit + max_N) * cScale * Q;
@@ -155,122 +234,6 @@ namespace
 
 		softmax(result);
 	}
-
-	struct UCT
-	{
-			const float parent_log_visit;
-			const float exploration_constant;
-			const float style_factor;
-			UCT(int parentVisits, float explorationConstant, float styleFactor) noexcept :
-					parent_log_visit(logf(parentVisits)),
-					exploration_constant(explorationConstant),
-					style_factor(styleFactor)
-			{
-			}
-			float operator()(const Edge *edge) const noexcept
-			{
-				const float Q = getQ(edge, style_factor) * getVirtualLoss(edge);
-				const float U = exploration_constant * sqrtf(parent_log_visit / (1.0f + edge->getVisits()));
-				const float P = edge->getPolicyPrior() / (1.0f + edge->getVisits());
-				return Q + U + P;
-			}
-	};
-	struct PUCT
-	{
-			const float parent_sqrt_visit;
-			const float parent_q;
-			const float style_factor;
-			PUCT(const Node *parent, float explorationConstant, float styleFactor) noexcept :
-					parent_sqrt_visit(explorationConstant * sqrtf(parent->getVisits())),
-					parent_q(getQ(parent, styleFactor)),
-					style_factor(styleFactor)
-			{
-			}
-			float operator()(const Edge *edge) const noexcept
-			{
-//				const float Q = edge->getVisits() > 0 ? getQ(edge, style_factor) : parent_q; // init to parent
-				const float Q = getQ(edge, style_factor); // init to Q head
-				const float U = edge->getPolicyPrior() * parent_sqrt_visit / (1.0f + edge->getVisits());
-				return Q * getVirtualLoss(edge) + U;
-			}
-	};
-	struct NoisyPUCT
-	{
-			const float parent_sqrt_visit;
-			const float parent_q;
-			const float style_factor;
-			const std::vector<float> &noisy_policy;
-			const Edge *first;
-			NoisyPUCT(const Node *parent, float explorationConstant, float styleFactor, const std::vector<float> &noisyPolicy) noexcept :
-					parent_sqrt_visit(explorationConstant * sqrtf(parent->getVisits())),
-					parent_q(getQ(parent, styleFactor)),
-					style_factor(styleFactor),
-					noisy_policy(noisyPolicy),
-					first(parent->begin())
-			{
-			}
-			float operator()(const Edge *edge) const noexcept
-			{
-//				const float Q = edge->getVisits() > 0 ? getQ(edge, style_factor) : parent_q; // init to parent
-				const float Q = getQ(edge, style_factor); // init to Q head
-				const float U = noisy_policy[std::distance(first, edge)] * parent_sqrt_visit / (1.0f + edge->getVisits());
-				return Q * getVirtualLoss(edge) + U;
-			}
-	};
-	struct MaxValue
-	{
-			const float style_factor;
-			MaxValue(float styleFactor) noexcept :
-					style_factor(styleFactor)
-			{
-			}
-			float operator()(const Edge *edge) const noexcept
-			{
-				switch (edge->getScore().getProvenValue())
-				{
-					case ProvenValue::LOSS:
-						return -100.0f + 0.1f * edge->getScore().getDistanceToWinOrLoss();
-					case ProvenValue::DRAW:
-						return Value::draw().getExpectation();
-					default:
-					case ProvenValue::UNKNOWN:
-						return getQ(edge, style_factor);
-					case ProvenValue::WIN:
-						return +101.0f - 0.1f * edge->getScore().getDistanceToWinOrLoss();
-				}
-			}
-	};
-	struct BestEdge
-	{
-			const int parent_visits;
-			const float style_factor;
-			BestEdge(int parentVisits, float styleFactor) noexcept :
-					parent_visits(parentVisits),
-					style_factor(styleFactor)
-			{
-			}
-			float operator()(const Edge *edge) const noexcept
-			{
-				return edge->getVisits() + getQ(edge, style_factor) * parent_visits + 0.001f * edge->getPolicyPrior();
-			}
-	};
-
-	template<class Op>
-	struct EdgeComparator
-	{
-			Op op;
-			EdgeComparator(Op o) noexcept :
-					op(o)
-			{
-			}
-			bool operator()(const Edge *lhs, const Edge *rhs) const noexcept
-			{
-				if (lhs->isProven() or rhs->isProven())
-					return lhs->getScore() > rhs->getScore();
-				else
-					return op(lhs) > op(rhs);
-			}
-	};
 
 }
 
@@ -290,12 +253,12 @@ namespace ag
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
 
-		const PUCT op(node, exploration_constant, style_factor);
+		const PUCT op(*node, exploration_constant, style_factor);
 		const EdgeComparator<PUCT> greater_than(op);
 
 		Edge *best_edge = node->begin();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			if (greater_than(edge, best_edge))
+			if (greater_than(*edge, *best_edge))
 				best_edge = edge;
 		return best_edge;
 	}
@@ -318,7 +281,7 @@ namespace ag
 
 		Edge *best_edge = node->begin();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			if (greater_than(edge, best_edge))
+			if (greater_than(*edge, *best_edge))
 				best_edge = edge;
 		return best_edge;
 	}
@@ -351,12 +314,12 @@ namespace ag
 				is_initialized = true;
 			}
 
-			const NoisyPUCT op(node, exploration_constant, style_factor, noisy_policy);
+			const NoisyPUCT op(*node, exploration_constant, style_factor, noisy_policy);
 			const EdgeComparator<NoisyPUCT> greater_than(op);
 
 			Edge *best_edge = node->begin();
 			for (Edge *edge = node->begin(); edge < node->end(); edge++)
-				if (greater_than(edge, best_edge))
+				if (greater_than(*edge, *best_edge))
 					best_edge = edge;
 			return best_edge;
 		}
@@ -379,19 +342,14 @@ namespace ag
 		assert(node->isLeaf() == false);
 		if (node->getDepth() < balance_depth)
 		{
-			Edge *selected = nullptr;
-			float bestValue = std::numeric_limits<float>::lowest();
+			const MaxBalance op;
+			const EdgeComparator<MaxBalance> greater_than(op);
+
+			Edge *best_edge = node->begin();
 			for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			{
-				const float Q = getBalance(edge) * getVirtualLoss(edge) - 10.0f * edge->isProven();
-				if (Q > bestValue)
-				{
-					selected = edge;
-					bestValue = Q;
-				}
-			}
-			assert(selected != nullptr); // there should always be some best edge
-			return selected;
+				if (greater_than(*edge, *best_edge))
+					best_edge = edge;
+			return best_edge;
 		}
 		else
 			return base_selector->select(node);
@@ -414,7 +372,7 @@ namespace ag
 
 		Edge *best_edge = node->begin();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			if (greater_than(edge, best_edge))
+			if (greater_than(*edge, *best_edge))
 				best_edge = edge;
 		return best_edge;
 	}
@@ -458,7 +416,7 @@ namespace ag
 
 		Edge *best_edge = node->begin();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			if (greater_than(edge, best_edge))
+			if (greater_than(*edge, *best_edge))
 				best_edge = edge;
 		return best_edge;
 	}
@@ -526,18 +484,33 @@ namespace ag
 
 			if (is_level_complete)
 			{ // advance to the next level
+//				std::cout << "moving to the next level with " << action_list.size() << " actions\n";
+
 				const int number_of_actions_left = std::min((size_t) max_edges, action_list.size() - action_list.size() / 2);
+//				std::cout << number_of_actions_left << " actions left\n";
 				sort_workspace(number_of_actions_left);
 				action_list.erase(action_list.begin() + number_of_actions_left, action_list.end());
 
 				const int levels_left = std::max(1, integer_log2(number_of_actions_left) - 1); // the last level is when we have just 2 actions left
 				const int simulations_for_this_level = simulations_left / levels_left;
 				expected_visit_count += std::max(1, simulations_for_this_level / number_of_actions_left);
+
+//				std::cout << "levels left = " << levels_left << ", simulations left = " << simulations_left << ", simulations for this level = "
+//						<< simulations_for_this_level << ", expected visit count = " << expected_visit_count << '\n';
+//				std::cout << "action list:\n";
+//				int max_N = 0;
+//				for (auto iter = action_list.begin(); iter < action_list.end(); iter++)
+//					max_N = std::max(max_N, iter->edge->getVisits());
+//				const float scale = (C_visit + max_N) * C_scale;
+//				MaxValue op(0.5f, 0);
+//				for (auto iter = action_list.begin(); iter < action_list.end(); iter++)
+//					std::cout << iter->edge->toString() << " : noise=" << iter->noise << " : logit=" << iter->logit << " : sigma(Q)="
+//							<< scale * op(*(iter->edge)) << '\n';
 			}
 		}
 
 		auto result = std::min_element(action_list.begin(), action_list.end(), [](const Data &lhs, const Data &rhs)
-		{	return visits_plus_virtual_loss(lhs.edge) < visits_plus_virtual_loss(rhs.edge);});
+		{	return visitsPlusVirtualLoss(*lhs.edge) < visitsPlusVirtualLoss(*rhs.edge);});
 		assert(result != action_list.end());
 
 		simulations_left--;
@@ -557,7 +530,7 @@ namespace ag
 		float max_diff = std::numeric_limits<float>::lowest();
 		for (int i = 0; i < node->numberOfEdges(); i++)
 		{
-			const float diff = (workspace[i] - node->getEdge(i).getVisits() * inv_visits) * getVirtualLoss(node->begin() + i);
+			const float diff = (workspace[i] - node->getEdge(i).getVisits() * inv_visits) * getVirtualLoss(node->getEdge(i));
 			if (diff > max_diff)
 			{
 				selected = node->begin() + i;
@@ -574,10 +547,11 @@ namespace ag
 			max_N = std::max(max_N, iter->edge->getVisits());
 
 		const float scale = (C_visit + max_N) * C_scale;
-		std::partial_sort(action_list.begin(), action_list.begin() + topN, action_list.end(), [scale](const Data &lhs, const Data &rhs)
+		MaxValue op(0.5f, 0);
+		std::partial_sort(action_list.begin(), action_list.begin() + topN, action_list.end(), [scale, op](const Data &lhs, const Data &rhs)
 		{
-			const float lhs_value = lhs.noise + lhs.logit + scale * get_q(lhs.edge);
-			const float rhs_value = rhs.noise + rhs.logit + scale * get_q(rhs.edge);
+			const float lhs_value = lhs.noise + lhs.logit + scale * op(*lhs.edge);
+			const float rhs_value = rhs.noise + rhs.logit + scale * op(*rhs.edge);
 			return lhs_value > rhs_value; // intentionally inverted to sort in descending order
 			});
 	}

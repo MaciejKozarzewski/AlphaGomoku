@@ -10,6 +10,7 @@
 
 namespace ag
 {
+
 	std::string toString(ProvenValue pv)
 	{
 		switch (pv)
@@ -40,6 +41,67 @@ namespace ag
 			case GameOutcome::CIRCLE_WIN:
 				return (signToMove == Sign::CIRCLE) ? ProvenValue::WIN : ProvenValue::LOSS;
 		}
+	}
+
+	std::string Score::toString() const
+	{
+		switch (getProvenValue())
+		{
+			case ProvenValue::LOSS:
+				return "LOSS in " + std::to_string(getEval());
+			case ProvenValue::DRAW:
+				return "DRAW in " + std::to_string(getEval());
+			default:
+			case ProvenValue::UNKNOWN:
+				if (getEval() > 0)
+					return "+" + std::to_string(getEval());
+				else
+					return std::to_string(getEval());
+			case ProvenValue::WIN:
+				return "WIN in " + std::to_string(-getEval());
+		}
+	}
+	std::string Score::toFormattedString() const
+	{
+		std::string result;
+		if (isProven())
+		{
+			const int dist = getDistance();
+			if (dist < 10)
+				result += ' ';
+			if (dist < 100)
+				result += ' ';
+			switch (getProvenValue())
+			{
+				default:
+					break;
+				case ProvenValue::LOSS:
+					result += 'L';
+					break;
+				case ProvenValue::DRAW:
+					result += 'D';
+					break;
+				case ProvenValue::WIN:
+					result += 'W';
+					break;
+			}
+			result += std::to_string(dist);
+		}
+		else
+		{
+			const int eval = std::abs(getEval());
+			if (eval < 10)
+				result += ' ';
+			if (eval < 100)
+				result += ' ';
+			if (getEval() == 0)
+				result += ' ';
+			else
+				result += (getEval() > 0) ? '+' : '-';
+			result += std::to_string(eval);
+		}
+		assert(result.size() == 4);
+		return result;
 	}
 
 } /* namespace ag */

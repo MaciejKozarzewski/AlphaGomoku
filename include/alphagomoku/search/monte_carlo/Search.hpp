@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_SEARCH_HPP_
-#define ALPHAGOMOKU_MCTS_SEARCH_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_SEARCH_HPP_
+#define ALPHAGOMOKU_SEARCH_MONTE_CARLO_SEARCH_HPP_
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/monte_carlo/SearchTask.hpp>
@@ -74,6 +74,7 @@ namespace ag
 			TuningPoint last_tuning_point;
 			int current_task_buffer = 0;
 		public:
+			static constexpr int maximum_number_of_simulations = 16777216;
 			Search(GameConfig gameOptions, SearchConfig searchOptions);
 
 			int64_t getMemory() const noexcept;
@@ -82,7 +83,7 @@ namespace ag
 			void clearStats() noexcept;
 			SearchStats getStats() const noexcept;
 
-			void select(Tree &tree, int maxSimulations = std::numeric_limits<int>::max());
+			void select(Tree &tree, int maxSimulations = maximum_number_of_simulations);
 			void solve();
 			void scheduleToNN(NNEvaluator &evaluator);
 			bool areTasksReady() const noexcept;
@@ -103,4 +104,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_SEARCH_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_SEARCH_HPP_ */

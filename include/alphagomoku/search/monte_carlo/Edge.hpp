@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_EDGE_HPP_
-#define ALPHAGOMOKU_MCTS_EDGE_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGE_HPP_
+#define ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGE_HPP_
 
 #include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/search/Score.hpp>
@@ -69,6 +69,10 @@ namespace ag
 			Value getValue() const noexcept
 			{
 				return value;
+			}
+			float getExpectation(float styleFactor = 0.5f) const noexcept
+			{
+				return getValue().getExpectation(styleFactor);
 			}
 			int getVisits() const noexcept
 			{
@@ -146,6 +150,23 @@ namespace ag
 			Edge copyInfo() const noexcept;
 	};
 
+	template<class Op>
+	struct EdgeComparator
+	{
+			Op op;
+			EdgeComparator(Op o) noexcept :
+					op(o)
+			{
+			}
+			bool operator()(const Edge &lhs, const Edge &rhs) const noexcept
+			{
+				if (lhs.isProven() or rhs.isProven())
+					return lhs.getScore() > rhs.getScore();
+				else
+					return op(lhs) > op(rhs);
+			}
+	};
+
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_EDGE_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGE_HPP_ */

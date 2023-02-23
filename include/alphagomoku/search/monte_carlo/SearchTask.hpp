@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_SEARCHTASK_HPP_
-#define ALPHAGOMOKU_MCTS_SEARCHTASK_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_SEARCHTASK_HPP_
+#define ALPHAGOMOKU_SEARCH_MONTE_CARLO_SEARCHTASK_HPP_
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/Board.hpp>
@@ -37,6 +37,7 @@ namespace ag
 		private:
 			std::vector<NodeEdgePair> visited_path;/**< trajectory within the tree visited during select phase */
 			std::vector<Edge> edges; /**< edges created by EdgeGenerator */
+			std::vector<Move> defensive_moves;
 
 			matrix<Sign> board; /**< board representation of a state at the end of visited_path */
 
@@ -53,7 +54,6 @@ namespace ag
 			Sign sign_to_move = Sign::NONE;
 			bool was_processed_by_network = false; /**< flag indicating whether the task has been evaluated by neural network and can be used for edge generation */
 			bool was_processed_by_solver = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
-			bool must_defend = false; /**< flag indicating whether the player to move must defend a threat from the opponent */
 		public:
 			SearchTask(GameConfig config);
 			void set(const matrix<Sign> &base, Sign signToMove);
@@ -99,6 +99,14 @@ namespace ag
 			{
 				return edges;
 			}
+			const std::vector<Move>& getDefensiveMoves() const noexcept
+			{
+				return defensive_moves;
+			}
+			std::vector<Move>& getDefensiveMoves() noexcept
+			{
+				return defensive_moves;
+			}
 			GameConfig getGameConfig() const noexcept
 			{
 				return game_config;
@@ -129,7 +137,7 @@ namespace ag
 			}
 			bool mustDefend() const noexcept
 			{
-				return must_defend;
+				return defensive_moves.size() > 0;
 			}
 			const NNInputFeatures& getFeatures() const noexcept
 			{
@@ -181,10 +189,6 @@ namespace ag
 			{
 				was_processed_by_solver = true;
 			}
-			void setMustDefendFlag(bool flag) noexcept
-			{
-				must_defend = flag;
-			}
 
 			void setValue(Value v) noexcept
 			{
@@ -195,6 +199,7 @@ namespace ag
 				score = s;
 			}
 
+			void addDefensiveMove(Move move);
 			void addEdge(Move move);
 			std::string toString() const;
 	};
@@ -254,4 +259,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_SEARCHTASK_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_SEARCHTASK_HPP_ */

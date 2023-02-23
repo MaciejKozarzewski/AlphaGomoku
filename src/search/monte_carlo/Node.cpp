@@ -14,36 +14,21 @@
 namespace
 {
 	using namespace ag;
-	double get_edge_value(const Edge &edge) noexcept
+	struct edge_value
 	{
-		return edge.getVisits() + edge.getValue().getExpectation() + 0.001 * edge.getPolicyPrior();
-	}
-
-	struct CompareEdges
-	{
-			bool operator()(const Edge &lhs, const Edge &rhs) const noexcept
+			double operator()(const Edge &edge) const noexcept
 			{
-				if (lhs.isProven() or rhs.isProven())
-					return lhs.getScore() > rhs.getScore();
-				else
-					return get_edge_value(lhs) > get_edge_value(rhs);
+				return edge.getVisits() + edge.getExpectation() + 0.001 * edge.getPolicyPrior();
 			}
 	};
-
-	std::string format_score(Score s)
+	std::string flags_to_string(uint16_t flags)
 	{
-		switch (s.getProvenValue())
-		{
-			case ProvenValue::LOSS:
-				return "LOSS in " + sfill(s.getEval(), 3, false);
-			case ProvenValue::DRAW:
-				return "DRAW       ";
-			default:
-			case ProvenValue::UNKNOWN:
-				return sfill(s.getEval(), 4, true);
-			case ProvenValue::WIN:
-				return "WIN  in " + sfill(s.getEval(), 3, false);
-		}
+		std::string result;
+		result += std::to_string((flags & 1u) != 0);
+		result += std::to_string((flags & 2u) != 0);
+		result += std::to_string((flags & 4u) != 0);
+		result += std::to_string((flags & 8u) != 0);
+		return result;
 	}
 }
 
@@ -53,7 +38,7 @@ namespace ag
 	{
 		std::string result = "depth=";
 		result += std::to_string(getDepth());
-		result += " : S=" + getScore().toString();
+		result += " : S=" + getScore().toFormattedString();
 		result += " : Q=" + getValue().toString();
 		result += " : Visits=" + std::to_string(getVisits());
 #ifndef NDEBUG
@@ -61,13 +46,16 @@ namespace ag
 #endif
 		result += " : Edges=" + std::to_string(numberOfEdges());
 #ifndef NDEBUG
+		result += " : flags=" + flags_to_string(flags);
 		result += " : now moving=" + ag::toString(sign_to_move);
 #endif
 		return result;
 	}
 	void Node::sortEdges() const
 	{
-		std::sort(this->begin(), this->end(), CompareEdges());
+		edge_value op;
+		EdgeComparator<edge_value> comp(op);
+		std::sort(this->begin(), this->end(), comp);
 	}
 
 } /* namespace ag */

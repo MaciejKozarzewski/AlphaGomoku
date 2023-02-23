@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_NODE_HPP_
-#define ALPHAGOMOKU_MCTS_NODE_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_NODE_HPP_
+#define ALPHAGOMOKU_SEARCH_MONTE_CARLO_NODE_HPP_
 
 #include <alphagomoku/search/monte_carlo/Edge.hpp>
 #include <alphagomoku/game/Move.hpp>
@@ -14,15 +14,19 @@
 #include <alphagomoku/search/Value.hpp>
 
 #include <string>
-#include <cassert>
 #include <cinttypes>
 #include <cmath>
+#include <cassert>
 
 namespace ag
 {
 	class Node
 	{
-		private:
+			static constexpr uint16_t is_owning = 0x0001u;
+			static constexpr uint16_t is_root = 0x0002u;
+			static constexpr uint16_t must_defend = 0x0004u;
+			static constexpr uint16_t is_fully_expanded = 0x0008u;
+
 			Edge *edges = nullptr;
 			Value value;
 			int32_t visits = 0;
@@ -31,18 +35,32 @@ namespace ag
 			int16_t depth = 0;
 			int16_t virtual_loss = 0;
 			Sign sign_to_move = Sign::NONE;
-			bool is_owning = false;
-			bool is_root = false;
+			uint16_t flags = 0; // from least significant bit: is_owning, is_root, must_defend, is_fully_expanded
+
+			void set_flag(uint16_t f) noexcept
+			{
+				flags |= f;
+			}
+			void clear_flag(uint16_t f) noexcept
+			{
+				flags &= (~f);
+			}
+			bool get_flag(uint16_t f) const noexcept
+			{
+				return (flags & f) != 0;
+			}
 		public:
-			Node() = default;
-			Node(const Node &other) :
+			Node() noexcept = default;
+			Node(const Node &other) noexcept :
 					value(other.value),
 					visits(other.visits),
 					score(other.score),
 					depth(other.depth),
 					virtual_loss(other.virtual_loss),
-					sign_to_move(other.sign_to_move)
+					sign_to_move(other.sign_to_move),
+					flags(other.flags)
 			{
+				clear_flag(is_owning);
 			}
 			Node(Node &&other) noexcept :
 					edges(other.edges),
@@ -53,14 +71,13 @@ namespace ag
 					depth(other.depth),
 					virtual_loss(other.virtual_loss),
 					sign_to_move(other.sign_to_move),
-					is_owning(other.is_owning),
-					is_root(other.is_root)
+					flags(other.flags)
 			{
 				other.edges = nullptr;
 				other.number_of_edges = 0;
-				other.is_owning = false;
+				clear_flag(is_owning);
 			}
-			Node& operator=(const Node &other)
+			Node& operator=(const Node &other) noexcept
 			{
 				edges = nullptr;
 				value = other.value;
@@ -70,8 +87,8 @@ namespace ag
 				depth = other.depth;
 				virtual_loss = other.virtual_loss;
 				sign_to_move = other.sign_to_move;
-				is_owning = false;
-				is_owning = other.is_root;
+				flags = other.flags;
+				clear_flag(is_owning);
 				return *this;
 			}
 			Node& operator=(Node &&other) noexcept
@@ -84,13 +101,12 @@ namespace ag
 				std::swap(this->depth, other.depth);
 				std::swap(this->virtual_loss, other.virtual_loss);
 				std::swap(this->sign_to_move, other.sign_to_move);
-				std::swap(this->is_owning, other.is_owning);
-				std::swap(this->is_root, other.is_root);
+				std::swap(this->flags, other.flags);
 				return *this;
 			}
-			~Node()
+			~Node() noexcept
 			{
-				if (is_owning)
+				if (isOwning())
 					delete[] edges;
 			}
 
@@ -102,12 +118,25 @@ namespace ag
 				depth = 0;
 				virtual_loss = 0;
 				sign_to_move = Sign::NONE;
-				is_root = false;
+				clear_flag(is_root);
+				clear_flag(must_defend);
 			}
 
+			bool isOwning() const noexcept
+			{
+				return get_flag(is_owning);
+			}
 			bool isRoot() const noexcept
 			{
-				return is_root;
+				return get_flag(is_root);
+			}
+			bool mustDefend() const noexcept
+			{
+				return get_flag(must_defend);
+			}
+			bool isFullyExpanded() const noexcept
+			{
+				return get_flag(is_fully_expanded);
 			}
 			bool isLeaf() const noexcept
 			{
@@ -151,6 +180,10 @@ namespace ag
 			{
 				return value;
 			}
+			float getExpectation(float styleFactor = 0.5f) const noexcept
+			{
+				return getValue().getExpectation(styleFactor);
+			}
 			int getVisits() const noexcept
 			{
 				return visits;
@@ -186,33 +219,41 @@ namespace ag
 
 			void markAsRoot() noexcept
 			{
-				is_root = true;
+				set_flag(is_root);
+			}
+			void markAsDefensive() noexcept
+			{
+				set_flag(must_defend);
+			}
+			void markAsFullyExpanded() noexcept
+			{
+				set_flag(is_fully_expanded);
 			}
 			void createEdges(int number) noexcept
 			{
-				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
-				if (is_owning and number != number_of_edges)
+				assert(0 <= number && number < std::numeric_limits<int16_t>::max());
+				if (isOwning() and number != number_of_edges)
 					delete[] edges;
 				edges = new Edge[number];
 				number_of_edges = static_cast<int16_t>(number);
-				is_owning = true;
+				set_flag(is_owning);
 			}
 			void setEdges(Edge *ptr, int number) noexcept
 			{
-				assert(number >= 0 && number < std::numeric_limits<int16_t>::max());
-				if (is_owning)
+				assert(0 <= number && number < std::numeric_limits<int16_t>::max());
+				if (isOwning())
 					delete[] edges;
 				edges = ptr;
 				number_of_edges = static_cast<int16_t>(number);
-				is_owning = false;
+				clear_flag(is_owning);
 			}
 			void freeEdges() noexcept
 			{
-				if (is_owning)
+				if (isOwning())
 					delete[] edges;
 				number_of_edges = 0;
 				edges = nullptr;
-				is_owning = false;
+				clear_flag(is_owning);
 			}
 			void setValue(Value value) noexcept
 			{
@@ -235,7 +276,7 @@ namespace ag
 			}
 			void setDepth(int d) noexcept
 			{
-				assert(d >= 0 && d < std::numeric_limits<int16_t>::max());
+				assert(0 <= d && d < std::numeric_limits<int16_t>::max());
 				depth = d;
 			}
 			void increaseVirtualLoss() noexcept
@@ -259,8 +300,8 @@ namespace ag
 
 			void removeEdge(int index)
 			{
-				assert(is_owning); // removing edges of non-owning nodes (in the tree) might not be the best idea, even if it's correctly implemented (which I'm not sure)
-				assert(index >= 0 && index < number_of_edges);
+				assert(isOwning()); // removing edges of non-owning nodes (in the tree) might not be the best idea, even if it's correctly implemented (which I'm not sure)
+				assert(0 <= index && index < number_of_edges);
 				std::swap(edges[index], edges[number_of_edges - 1]);
 				number_of_edges--;
 			}
@@ -271,4 +312,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_NODE_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_NODE_HPP_ */

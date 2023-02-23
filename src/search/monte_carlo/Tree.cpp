@@ -79,7 +79,7 @@ namespace
 		if (edge->isLeaf())
 			return false;
 		Score tmp = edge->getNode()->getScore();
-		tmp.increaseDistanceToWinOrLoss();
+		tmp.increaseDistance();
 		if (edge->getScore() != -tmp)
 			return true;
 		if ((edge->getValue() - edge->getNode()->getValue().getInverted()).abs() >= leak_threshold)
@@ -89,17 +89,19 @@ namespace
 	void update_score(Edge *edge) noexcept
 	{
 		assert(edge != nullptr);
-		assert(edge->isLeaf() == false);
-		Score tmp = edge->getNode()->getScore();
-		tmp.increaseDistanceToWinOrLoss();
-		edge->setScore(-tmp);
+		if (not edge->isLeaf())
+		{
+			Score tmp = edge->getNode()->getScore();
+			tmp.increaseDistance();
+			edge->setScore(-tmp);
+		}
 	}
 	void update_score(Node *node) noexcept
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
 
-		Score result = Score::min_value();
+		Score result = (node->mustDefend() or node->isFullyExpanded()) ? Score::min_value() : Score::min_eval();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			result = std::max(result, edge->getScore());
 		node->setScore(result);
@@ -215,9 +217,6 @@ namespace ag
 		Node *node = root_node;
 		while (node != nullptr)
 		{
-			if (node->isProven())
-				return SelectOutcome::REACHED_PROVEN_STATE;
-
 			Edge *edge = edge_selector->select(node);
 			task.append(node, edge);
 			node->increaseVirtualLoss();
@@ -236,7 +235,10 @@ namespace ag
 				return SelectOutcome::INFORMATION_LEAK;
 		}
 		max_depth = std::max(max_depth, task.visitedPathLength());
-		return SelectOutcome::REACHED_LEAF;
+		if (task.visitedPathLength() > 0 and task.getLastEdge()->isProven())
+			return SelectOutcome::REACHED_PROVEN_STATE;
+		else
+			return SelectOutcome::REACHED_LEAF;
 	}
 	void Tree::generateEdges(SearchTask &task) const
 	{
@@ -257,6 +259,10 @@ namespace ag
 			for (int i = 0; i < number_of_edges; i++)
 				node_to_add->getEdge(i) = task.getEdges()[i];
 			node_to_add->updateValue(task.getValue()); // 'updateValue' is called because it increases visit count from 0 to 1 ('setValue' doesn't do that)
+			if (task.mustDefend())
+				node_to_add->markAsDefensive();
+			if ((node_to_add->numberOfEdges() + node_to_add->getDepth()) == task.getBoard().size())
+				node_to_add->markAsFullyExpanded();
 			update_score(node_to_add);
 
 			if (task.visitedPathLength() > 0)
@@ -282,7 +288,7 @@ namespace ag
 	}
 	void Tree::backup(const SearchTask &task)
 	{
-		assert(task.wasProcessedByNetwork() or task.wasProcessedBySolver());
+		assert(task.isReady());
 		const Value value = task.getValue();
 		for (int i = 0; i < task.visitedPathLength(); i++)
 		{
@@ -305,8 +311,6 @@ namespace ag
 			NodeEdgePair pair = task.getPair(i);
 			update_score(pair.edge);
 			update_score(pair.node);
-			if (pair.node->isProven() == false)
-				break; // if the node is not proven it will not change the tree above
 		}
 	}
 	void Tree::correctInformationLeak(const SearchTask &task)

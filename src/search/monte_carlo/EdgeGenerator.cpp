@@ -40,14 +40,11 @@ namespace
 			}
 		}
 	}
-	struct CompareEdges
+	struct MaxPolicyPrior
 	{
-			bool operator()(const Edge &lhs, const Edge &rhs) const noexcept
+			float operator()(const Edge &edge) const noexcept
 			{
-				if (lhs.getScore().getProvenValue() == rhs.getScore().getProvenValue() and lhs.getScore() == rhs.getScore())
-					return lhs.getPolicyPrior() > rhs.getPolicyPrior();
-				else
-					return lhs.getScore() > rhs.getScore();
+				return edge.getPolicyPrior();
 			}
 	};
 
@@ -56,7 +53,8 @@ namespace
 		if (edges.size() <= max_edges)
 			return;
 
-		std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), CompareEdges());
+		MaxPolicyPrior op;
+		std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), EdgeComparator<MaxPolicyPrior>(op));
 		edges.erase(edges.begin() + max_edges, edges.end());
 	}
 
@@ -114,7 +112,7 @@ namespace
 					break;
 				case ProvenValue::DRAW:
 					has_draw_edge = true;
-					edge->setScore(Score::draw());
+					edge->setScore(Score::draw_in(1));
 					edge->setValue(Value::draw());
 					break;
 				case ProvenValue::WIN:
@@ -132,7 +130,7 @@ namespace
 		}
 		if (has_draw_edge)
 		{
-			task.setScore(Score::draw());
+			task.setScore(Score::draw_in(1));
 			task.setValue(Value::draw());
 			return;
 		}
@@ -166,57 +164,37 @@ namespace
 
 namespace ag
 {
-	BaseGenerator::BaseGenerator(int maxEdges) :
-			max_edges(maxEdges)
+	BaseGenerator::BaseGenerator(int maxEdges, bool fullyExpandRoot) :
+			max_edges(maxEdges),
+			fully_expand_root(fullyExpandRoot)
 	{
 	}
 	std::unique_ptr<EdgeGenerator> BaseGenerator::clone() const
 	{
-		return std::make_unique<BaseGenerator>(max_edges);
+		return std::make_unique<BaseGenerator>(max_edges, fully_expand_root);
 	}
 	void BaseGenerator::generate(SearchTask &task) const
 	{
 		assert(task.isReady());
 
-		create_legal_edges(task, true);
-		initialize_edges(task);
-		if (not task.wasProcessedBySolver())
-			check_terminal_conditions(task);
-		if (not task.mustDefend())
-			prune_weak_moves(task.getEdges(), max_edges);
-		renormalize_policy(task.getEdges());
-
-		if (task.getEdges().size() == 0) // TODO remove this later
+		if (task.mustDefend() and task.getRelativeDepth() > 0)
 		{
-			std::cout << "---no-moves-generated---\n";
-			std::cout << task.toString() << '\n';
-			exit(-1);
+			assert(task.wasProcessedBySolver());
+			for (size_t i = 0; i < task.getDefensiveMoves().size(); i++)
+				task.addEdge(task.getDefensiveMoves()[i]);
+			initialize_edges(task);
 		}
+		else
+		{
+			const int num = (task.getRelativeDepth() == 0 and fully_expand_root) ? std::numeric_limits<int>::max() : max_edges;
+			const bool early_prune = (task.getRelativeDepth() != 0);
 
-		assert(task.getEdges().size() > 0);
-	}
-
-	SequentialHalvingGenerator::SequentialHalvingGenerator(int maxEdges) :
-			max_edges(maxEdges)
-	{
-		assert(isPowerOf2(maxEdges));
-	}
-	std::unique_ptr<EdgeGenerator> SequentialHalvingGenerator::clone() const
-	{
-		return std::make_unique<SequentialHalvingGenerator>(max_edges);
-	}
-	void SequentialHalvingGenerator::generate(SearchTask &task) const
-	{
-		assert(task.isReady());
-		const int num = (task.getRelativeDepth() == 0) ? std::numeric_limits<int>::max() : max_edges;
-		const bool prune = (task.getRelativeDepth() != 0);
-
-		create_legal_edges(task, prune);
-		initialize_edges(task);
-		if (not task.wasProcessedBySolver())
-			check_terminal_conditions(task);
-		if (not task.mustDefend())
+			create_legal_edges(task, early_prune);
+			initialize_edges(task);
+			if (not task.wasProcessedBySolver())
+				check_terminal_conditions(task);
 			prune_weak_moves(task.getEdges(), num);
+		}
 		renormalize_policy(task.getEdges());
 
 		if (task.getEdges().size() == 0) // TODO remove this later
@@ -225,6 +203,7 @@ namespace ag
 			std::cout << task.toString() << '\n';
 			exit(-1);
 		}
+
 		assert(task.getEdges().size() > 0);
 	}
 
@@ -241,7 +220,7 @@ namespace ag
 	{
 		assert(task.isReady());
 		if (task.getAbsoluteDepth() < balance_depth)
-			BaseGenerator().generate(task);
+			BaseGenerator(std::numeric_limits<int>::max(), true).generate(task);
 		else
 			base_generator->generate(task);
 	}

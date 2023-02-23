@@ -224,7 +224,7 @@ namespace ag
 
 		if (pattern_calculator.getCurrentDepth() + 1 >= number_of_moves_for_draw)
 		{ // next move will end the game with a draw
-			actions->baseline_score = Score::draw();
+			actions->baseline_score = Score::draw_in(1);
 			if (is_anything_forbidden_for(get_own_sign()))
 			{ // only if there can be any forbidden move, so in renju and for cross (black) player
 				temporary_list.clear();
@@ -238,8 +238,8 @@ namespace ag
 							switch (threat)
 							{
 								default: // no forbidden threat, add this move and exit
-									add_move<EXCLUDE_DUPLICATE>(Location(row, col), Score::draw());
-									return Result::canStopNow(Score::draw());
+									add_move<EXCLUDE_DUPLICATE>(Location(row, col), Score::draw_in(1));
+									return Result::canStopNow(Score::draw_in(1));
 								case ThreatType::FORK_3x3: // possibly forbidden, may require costly checking
 									temporary_list.push_back(Location(row, col));
 									break;
@@ -258,8 +258,8 @@ namespace ag
 						add_move<EXCLUDE_DUPLICATE>(*move, Score::loss_in(1));
 					else
 					{ // found non-forbidden 3x3 fork, can play it to draw
-						add_move<EXCLUDE_DUPLICATE>(*move, Score::draw());
-						return Result::canStopNow(Score::draw());
+						add_move<EXCLUDE_DUPLICATE>(*move, Score::draw_in(1));
+						return Result::canStopNow(Score::draw_in(1));
 					}
 				}
 				return Result::canStopNow(Score::loss_in(1)); // could not find any non-forbidden move
@@ -270,10 +270,10 @@ namespace ag
 					for (int col = 0; col < game_config.cols; col++)
 						if (pattern_calculator.signAt(row, col) == Sign::NONE)
 						{ // found at least one move that leads to draw, can stop now
-							add_move<EXCLUDE_DUPLICATE>(Location(row, col), Score::draw());
-							return Result::canStopNow(Score::draw());
+							add_move<EXCLUDE_DUPLICATE>(Location(row, col), Score::draw_in(1));
+							return Result::canStopNow(Score::draw_in(1));
 						}
-				return Result::canStopNow(Score::draw()); // the game ends up with a draw even if there is no move to play
+				return Result::canStopNow(Score::draw_in(1)); // the game ends up with a draw even if there is no move to play
 			}
 		}
 		return Result::mustContinue();
@@ -477,15 +477,15 @@ namespace ag
 		assert(actions->must_defend == false && actions->has_initiative == false);
 
 		const bool has_any_four = pattern_calculator.getThreatHistogram(get_own_sign()).hasAnyFour();
-//			if (pattern_calculator.getThreatHistogram(get_own_sign()).hasAnyFour())
-//			{ // any four that we can make may help to gain initiative
-//				actions->has_initiative = true;
-//				const Score best_score = add_own_4x3_forks();
-//				if (best_score.isWin())
-//					return Result::canStopNow(best_score);
-//				else
-//					add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
-//			}
+//		if (pattern_calculator.getThreatHistogram(get_own_sign()).hasAnyFour())
+//		{ // any four that we can make may help to gain initiative
+//			actions->has_initiative = true;
+//			const Score best_score = add_own_4x3_forks();
+//			if (best_score.isWin())
+//				return Result::canStopNow(best_score);
+//			else
+//				add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
+//		}
 		actions->baseline_score = Score::loss_in(4); // will be reverted at the end if there are no threats
 
 		if (game_config.rules != GameRules::RENJU)
@@ -675,33 +675,34 @@ namespace ag
 
 		// in theory we can exclude half-open fours where the opponent can create a winning threat in response
 		// they are rare (less than 0.5% of all half-open fours) and the check is very costly so we don't do this
-//			const std::vector<Location> &own_half_open_fours = get_own_threats(ThreatType::HALF_OPEN_4);
-//			for (auto move = own_half_open_fours.begin(); move < own_half_open_fours.end(); move++)
+//		const std::vector<Location> &own_half_open_fours = get_own_threats(ThreatType::HALF_OPEN_4);
+//		for (auto move = own_half_open_fours.begin(); move < own_half_open_fours.end(); move++)
+//		{
+//			const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
+//			const Direction dir = group.findDirectionOf(PatternType::HALF_OPEN_4);
+//			ShortVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move->row, move->col, dir);
+//			defensive_moves.remove(*move); // excluding move at the spot that we occupied to create this threat
+//
+//			ThreatType best_opponent_threat = ThreatType::NONE;
+//			for (auto iter = defensive_moves.begin(); iter < defensive_moves.end(); iter++)
+//				best_opponent_threat = std::max(best_opponent_threat, get_opponent_threat_at(iter->row, iter->col));
+//
+//			switch (best_opponent_threat)
 //			{
-//				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
-//				const Direction dir = group.findDirectionOf(PatternType::HALF_OPEN_4);
-//				ShortVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move->row, move->col, dir);
-//				defensive_moves.remove(*move); // excluding move at the spot that we occupied to create this threat
-//
-//				ThreatType best_opponent_threat = ThreatType::NONE;
-//				for (auto iter = defensive_moves.begin(); iter < defensive_moves.end(); iter++)
-//					best_opponent_threat = std::max(best_opponent_threat, get_opponent_threat_at(iter->row, iter->col));
-//
-//				switch (best_opponent_threat)
+//				default:
 //				{
-//					default:
-//					{
-//						hidden_count++;
-//						add_move<EXCLUDE_DUPLICATE>(*move);
-//						break;
-//					}
-//					case ThreatType::FORK_4x4:
-//					case ThreatType::OPEN_4:
-//					case ThreatType::FIVE:
-//						break;
+//					hidden_count++;
+//					add_move<EXCLUDE_DUPLICATE>(*move);
+//					break;
 //				}
+//				case ThreatType::FORK_4x4:
+//				case ThreatType::OPEN_4:
+//				case ThreatType::FIVE:
+//					break;
 //			}
-//			return hidden_count;
+//		}
+//		return hidden_count;
+
 		add_moves<EXCLUDE_DUPLICATE>(get_own_threats(ThreatType::HALF_OPEN_4)); // half-open four is a threat of win in 1
 		return hidden_count + get_own_threats(ThreatType::HALF_OPEN_4).size();
 	}

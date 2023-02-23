@@ -156,6 +156,7 @@ namespace ag
 		{
 			case TssMode::BASIC:
 			{
+//				TimerGuard tg(stats.move_generation);
 				score = threat_generator.generate(actions, GeneratorMode::BASIC);
 				break;
 			}
@@ -200,9 +201,10 @@ namespace ag
 			task.getActionScores().at(m.row, m.col) = iter->score;
 			if (iter->score.isProven())
 				task.getActionValues().at(m.row, m.col) = convertScoreToValue(iter->score);
+			if (actions.must_defend)
+				task.addDefensiveMove(m);
 		}
 		task.setScore(score);
-		task.setMustDefendFlag(actions.must_defend);
 		task.markAsProcessedBySolver();
 		if (score.isProven())
 			task.setValue(convertScoreToValue(score));
@@ -345,11 +347,12 @@ namespace ag
 
 		{ // evaluation
 //			TimerGuard tg(stats.evaluate);
-			if (depthRemaining <= 0) // if it is a leaf, evaluate the position
+			if (depthRemaining <= 0 or actions.isEmpty()) // if it is a leaf, evaluate the position
 				return evaluate();
 		}
 
 		const Score original_alpha = alpha;
+//		Score best_score = actions.must_defend ? Score::min_value() : Score::min_eval(); // setup initial value of the score
 		Score best_score = Score::min_value(); // setup initial value of the score
 		for (int i = 0; i < actions.size(); i++)
 		{
@@ -374,7 +377,7 @@ namespace ag
 //			evaluator.update(pattern_calculator); // updating in reverse direction (undoing moves) does not cost anything but is required to correctly set current depth
 //			stats.evaluate.stopTimer();
 
-			action_score.increaseDistanceToWinOrLoss();
+			action_score.increaseDistance();
 			actions[i].score = action_score; // required for recovering of the search results
 
 			best_score = std::max(best_score, action_score);
@@ -386,7 +389,7 @@ namespace ag
 		//  - no actions were generated, or
 		//  - all actions are losing but we don't have to defend
 		// we need to override the score with something, for example with static evaluation
-		if (actions.isEmpty() or (best_score.isLoss() and not actions.must_defend))
+		if (best_score.isLoss() and not actions.must_defend)
 			best_score = evaluate();
 
 		if (best_score.isProven())

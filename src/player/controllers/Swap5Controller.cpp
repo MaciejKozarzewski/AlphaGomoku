@@ -70,7 +70,7 @@ namespace ag
 					outputQueue.push(Message(MessageType::BEST_MOVE, get_balanced_move(summary)));
 				else
 				{
-					if (summary.node.getValue().getExpectation() < 0.5f)
+					if (summary.node.getExpectation() < 0.5f)
 						outputQueue.push(Message(MessageType::BEST_MOVE, "swap"));
 					else
 						outputQueue.push(Message(MessageType::BEST_MOVE, get_balanced_move(summary)));

@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_MCTS_VALUE_HPP_
-#define ALPHAGOMOKU_MCTS_VALUE_HPP_
+#ifndef ALPHAGOMOKU_SEARCH_VALUE_HPP_
+#define ALPHAGOMOKU_SEARCH_VALUE_HPP_
 
 #include <alphagomoku/game/Move.hpp>
 
@@ -38,9 +38,10 @@ namespace ag
 			{
 				return 1.0f - (win_rate + draw_rate);
 			}
-			float getExpectation() const noexcept
+			float getExpectation(float w = 0.5f) const noexcept
 			{
-				return win_rate + 0.5f * draw_rate;
+				assert(0.0f <= w && w <= 1.0f);
+				return win_rate + w * draw_rate;
 			}
 			Value getInverted() const noexcept
 			{
@@ -112,4 +113,4 @@ namespace ag
 
 } /* namespace ag */
 
-#endif /* ALPHAGOMOKU_MCTS_VALUE_HPP_ */
+#endif /* ALPHAGOMOKU_SEARCH_VALUE_HPP_ */
