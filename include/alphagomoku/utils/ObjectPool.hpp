@@ -8,8 +8,6 @@
 #ifndef ALPHAGOMOKU_UTILS_OBJECTPOOL_HPP_
 #define ALPHAGOMOKU_UTILS_OBJECTPOOL_HPP_
 
-#include <alphagomoku/utils/AlignedAllocator.hpp>
-
 #include <vector>
 #include <algorithm>
 #include <cassert>
@@ -37,7 +35,7 @@ namespace ag
 			{
 			}
 		public:
-			BlockDescriptor() = default;
+			BlockDescriptor() noexcept = default;
 			/**
 			 * \brief Extract elements from the block, effectively reducing its size
 			 */
@@ -125,7 +123,7 @@ namespace ag
 			class OwningBlockOfObjects
 			{
 				private:
-					std::vector<T, AlignedAllocator<T, 64>> m_objects;
+					std::vector<T> m_objects;
 					std::vector<bool> m_is_free;
 					size_t m_index;
 
@@ -208,14 +206,10 @@ namespace ag
 
 			size_t m_allocated_objects = 0;
 			size_t m_used_objects = 0;
-
 		public:
 			ObjectPool(size_t bucketSize = 1000, size_t expectedMaxBlockSize = 100) :
 					m_list_of_small_blocks(expectedMaxBlockSize + 1),
 					m_bucket_size(bucketSize)
-			{
-			}
-			~ObjectPool()
 			{
 			}
 			size_t getUsedObjects() const noexcept
