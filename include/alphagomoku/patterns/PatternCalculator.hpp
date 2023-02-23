@@ -115,6 +115,10 @@ namespace ag
 			{
 				return raw_patterns.getExtendedPatternAt(row, col, dir);
 			}
+			TwoPlayerGroup<DirectionGroup<PatternType>> getPatternsAt(int row, int col) const noexcept
+			{
+				return pattern_types.at(row, col);
+			}
 			DirectionGroup<PatternType> getPatternTypeAt(Sign sign, int row, int col) const noexcept
 			{
 				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
@@ -154,7 +158,23 @@ namespace ag
 						result.add(shiftInDirection(dir, i, Location(row, col)));
 				return result;
 			}
-			bool isForbidden(Sign sign, int row, int col) noexcept;
+			bool isForbidden(Sign sign, int row, int col) noexcept
+			{
+				if (game_config.rules == GameRules::RENJU and sign == Sign::CROSS)
+				{
+					if (signAt(row, col) != Sign::NONE)
+						return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
+
+					const ThreatEncoding threat = getThreatAt(Sign::CROSS, row, col);
+					if (threat.forCross() == ThreatType::OVERLINE)
+						return true;
+					if (threat.forCross() == ThreatType::FORK_4x4)
+						return true;
+					if (threat.forCross() == ThreatType::FORK_3x3)
+						return is_3x3_forbidden(sign, row, col);
+				}
+				return false;
+			}
 
 			void printRawFeature(int row, int col) const;
 			void printThreat(int row, int col) const;
@@ -162,6 +182,7 @@ namespace ag
 			void print(Move lastMove = Move()) const;
 			void print_stats() const;
 		private:
+			bool is_3x3_forbidden(Sign sign, int row, int col) noexcept;
 			void classify_feature_types() noexcept;
 			void prepare_threat_lists();
 			void update_around(int row, int col, Sign s, UpdateMode mode) noexcept;

@@ -12,33 +12,32 @@
 namespace
 {
 	using namespace ag;
-	uint32_t encode_patterns(DirectionGroup<PatternType> group)
+	uint32_t encode_patterns(TwoPlayerGroup<DirectionGroup<PatternType>> patterns, Sign ownSign) noexcept
 	{
-		uint32_t result = 0;
+		static const uint32_t table1[8] = { 0u, 0u, 1u, (1u << 4), 0u, 0u, 0u, 0u };
+		static const uint32_t table2[8] = { 0u, 0u, 0u, 0u, (1u << 8u), (1u << 9u), (1u << 10u), (1u << 11u) };
+
+		uint32_t result1 = 0, result2 = 0;
 		for (uint32_t i = 0; i < 4u; i++)
-			if (group[i] == PatternType::OPEN_3)
-				result |= (1u << i);
-		for (uint32_t i = 0; i < 4u; i++)
-			if (group[i] == PatternType::HALF_OPEN_4)
-				result |= (1u << (4 + i));
-		if (group.contains(PatternType::OPEN_4))
-			result |= (1u << 8u);
-		if (group.contains(PatternType::DOUBLE_4))
-			result |= (1u << 9u);
-		if (group.contains(PatternType::FIVE))
-			result |= (1u << 10u);
-		if (group.contains(PatternType::OVERLINE))
-			result |= (1u << 11u);
-		return result;
+		{
+			const int idx1 = static_cast<int>(patterns.for_cross[i]);
+			const int idx2 = static_cast<int>(patterns.for_circle[i]);
+			result1 |= (table1[idx1] << i) | table2[idx1];
+			result2 |= (table1[idx2] << i) | table2[idx2];
+		}
+		if (ownSign == Sign::CROSS)
+			return (result1 << 8u) | (result2 << 20u);
+		else
+			return (result1 << 20u) | (result2 << 8u);
 	}
 	template<int D0, int D1, int D2, int D3>
-	uint32_t shuffle_directions(const uint32_t data)
+	uint32_t shuffle_directions(const uint32_t data) noexcept
 	{
 		static_assert(D0 >= 0 && D0 < 4, "can only shuffle four bits");
 		static_assert(D1 >= 0 && D1 < 4, "can only shuffle four bits");
 		static_assert(D2 >= 0 && D2 < 4, "can only shuffle four bits");
 		static_assert(D3 >= 0 && D3 < 4, "can only shuffle four bits");
-		static_assert(D0 != D1 && D0 != D2 && D0 != D3 && D1 != D2 && D1 != D3 && D2 != D3, "each bit must be used once");
+		static_assert(D0 != D1 && D0 != D2 && D0 != D3 && D1 != D2 && D1 != D3 && D2 != D3, "each bit must be used exactly once");
 
 		constexpr uint32_t mask = (1u << 8u) | (1u << 12u) | (1u << 20u) | (1u << 24u); // shuffling bits 8-11, 12-15, 20-23, 24-17
 
@@ -89,11 +88,8 @@ namespace ag
 		 *  31		1	opponent overline
 		 */
 		const Sign own_sign = calc.getSignToMove();
-		const Sign opponent_sign = invertSign(calc.getSignToMove());
 
-		const uint32_t legal = 1u;
-		const uint32_t own = 1u << 1u;
-		const uint32_t opp = 1u << 2u;
+		const uint32_t table[4] = { 1u, (own_sign == Sign::CROSS) ? 2u : 4u, (own_sign == Sign::CROSS) ? 4u : 2u, 0u };
 		const uint32_t forbidden = 1u << 3u;
 		const uint32_t color_to_move = (own_sign == Sign::CROSS) ? (1u << 4u) : (1u << 5u);
 		const uint32_t ones = 1u << 6u;
@@ -101,19 +97,16 @@ namespace ag
 		for (int row = 0; row < rows(); row++)
 			for (int col = 0; col < cols(); col++)
 			{
-				assert(calc.signAt(row, col) != Sign::ILLEGAL);
-
 				uint32_t tmp = color_to_move | ones; // base value
-				if (calc.signAt(row, col) == Sign::NONE)
-					tmp |= legal;
-				else
-					tmp |= (calc.signAt(row, col) == own_sign) ? own : opp;
-				if (calc.isForbidden(own_sign, row, col))
-					tmp |= forbidden;
-				tmp |= (encode_patterns(calc.getPatternTypeAt(own_sign, row, col)) << 8u);
-				tmp |= (encode_patterns(calc.getPatternTypeAt(opponent_sign, row, col)) << 20u);
+				tmp |= table[static_cast<int>(calc.signAt(row, col))];
+				tmp |= encode_patterns(calc.getPatternsAt(row, col), own_sign);
 				this->at(row, col) = tmp;
 			}
+		if (calc.getConfig().rules == GameRules::RENJU and own_sign == Sign::CROSS)
+			for (int row = 0; row < rows(); row++)
+				for (int col = 0; col < cols(); col++)
+					if (calc.isForbidden(own_sign, row, col))
+						this->at(row, col) |= forbidden;
 	}
 	void NNInputFeatures::augment(int mode) noexcept
 	{
@@ -122,6 +115,8 @@ namespace ag
 		// now we have to shuffle bits 8-11, 12-15, 20-23, 24-17 because their values depend on directions
 		switch (mode)
 		{
+			case 0:
+				break;
 			case 1: // reflect x
 			case -1:
 			case 2: // reflect y

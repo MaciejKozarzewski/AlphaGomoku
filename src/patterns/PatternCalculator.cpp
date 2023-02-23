@@ -98,54 +98,6 @@ namespace ag
 		current_depth--;
 		assert(current_depth >= 0);
 	}
-	bool PatternCalculator::isForbidden(Sign sign, int row, int col) noexcept
-	{
-		if (game_config.rules == GameRules::RENJU and sign == Sign::CROSS)
-		{
-			if (signAt(row, col) != Sign::NONE)
-				return false; // moves on occupied spots are not considered forbidden (they are simply illegal)
-
-			const ThreatEncoding threat = getThreatAt(Sign::CROSS, row, col);
-			if (threat.forCross() == ThreatType::OVERLINE)
-				return true;
-			if (threat.forCross() == ThreatType::FORK_4x4)
-				return true;
-			if (threat.forCross() == ThreatType::FORK_3x3)
-			{
-				int open3_count = 0;
-				for (Direction dir = 0; dir < 4; dir++)
-					if (getPatternTypeAt(Sign::CROSS, row, col, dir) == PatternType::OPEN_3)
-					{
-						const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(getNormalPatternAt(row, col, dir));
-						Board::putMove(internal_board, Move(row, col, Sign::CROSS));
-						for (int i = -padding; i <= padding; i++)
-						{
-							const Location loc = shiftInDirection(dir, i, Location(row, col));
-							if (promotion_moves[padding + i] == true and signAt(loc.row, loc.col) == Sign::NONE
-									and RawPatternCalculator::isStraightFourAt(internal_board, Move(Sign::CROSS, loc), dir))
-							{ // minor optimization as 'isStraightFourAt' works without adding new move to the pattern calculator
-								Board::undoMove(internal_board, Move(row, col, Sign::CROSS));
-								addMove(Move(row, col, Sign::CROSS));
-								const bool is_forbidden = isForbidden(sign, loc.row, loc.col);
-								undoMove(Move(row, col, Sign::CROSS));
-								Board::putMove(internal_board, Move(row, col, Sign::CROSS));
-
-								if (not is_forbidden)
-								{
-									open3_count++;
-									break;
-								}
-							}
-						}
-						Board::undoMove(internal_board, Move(row, col, Sign::CROSS));
-					}
-				if (open3_count >= 2)
-					return true;
-			}
-			return false;
-		}
-		return false;
-	}
 
 	void PatternCalculator::printRawFeature(int row, int col) const
 	{
@@ -239,6 +191,37 @@ namespace ag
 	/*
 	 * private
 	 */
+	bool PatternCalculator::is_3x3_forbidden(Sign sign, int row, int col) noexcept
+	{
+		int open3_count = 0;
+		for (Direction dir = 0; dir < 4; dir++)
+			if (getPatternTypeAt(Sign::CROSS, row, col, dir) == PatternType::OPEN_3)
+			{
+				const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(getNormalPatternAt(row, col, dir));
+				Board::putMove(internal_board, Move(row, col, Sign::CROSS));
+				for (int i = -padding; i <= padding; i++)
+				{
+					const Location loc = shiftInDirection(dir, i, Location(row, col));
+					if (promotion_moves[padding + i] == true and signAt(loc.row, loc.col) == Sign::NONE
+							and RawPatternCalculator::isStraightFourAt(internal_board, Move(Sign::CROSS, loc), dir))
+					{ // minor optimization as 'isStraightFourAt' works without adding new move to the pattern calculator
+						Board::undoMove(internal_board, Move(row, col, Sign::CROSS));
+						addMove(Move(row, col, Sign::CROSS));
+						const bool is_forbidden = isForbidden(sign, loc.row, loc.col);
+						undoMove(Move(row, col, Sign::CROSS));
+						Board::putMove(internal_board, Move(row, col, Sign::CROSS));
+
+						if (not is_forbidden)
+						{
+							open3_count++;
+							break;
+						}
+					}
+				}
+				Board::undoMove(internal_board, Move(row, col, Sign::CROSS));
+			}
+		return open3_count >= 2;
+	}
 	void PatternCalculator::classify_feature_types() noexcept
 	{
 		for (int row = 0; row < game_config.rows; row++)

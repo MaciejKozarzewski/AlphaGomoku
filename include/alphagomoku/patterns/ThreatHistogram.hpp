@@ -20,21 +20,22 @@ namespace ag
 {
 	class ThreatHistogram
 	{
-			std::array<LocationList, 10> threats;
+//			std::array<LocationList, 10> threats;
+			LocationList threats[10];
 		public:
 			ThreatHistogram()
 			{
-				for (size_t i = 1; i < threats.size(); i++) // do not reserve for 'NONE' threat
+				for (int i = 1; i < 10; i++) // do not reserve for 'NONE' threat
 					threats[i].reserve(128);
 			}
 			const LocationList& get(ThreatType threat) const noexcept
 			{
-				assert(static_cast<size_t>(threat) < threats.size());
+				assert(static_cast<int>(threat) < 10);
 				return threats[static_cast<size_t>(threat)];
 			}
 			void remove(ThreatType threat, Location location) noexcept
 			{
-				assert(static_cast<size_t>(threat) < threats.size());
+				assert(static_cast<int>(threat) < 10);
 				if (threat != ThreatType::NONE)
 				{
 					LocationList &list = threats[static_cast<size_t>(threat)];
@@ -96,7 +97,7 @@ namespace ag
 			}
 			void add(ThreatType threat, Location location) noexcept
 			{
-				assert(static_cast<size_t>(threat) < threats.size());
+				assert(static_cast<int>(threat) < 10);
 				if (threat != ThreatType::NONE)
 				{
 					LocationList &list = threats[static_cast<size_t>(threat)];
@@ -107,7 +108,7 @@ namespace ag
 			}
 			void clear() noexcept
 			{
-				for (size_t i = 0; i < threats.size(); i++)
+				for (int i = 0; i < 10; i++)
 					threats[i].clear();
 			}
 			bool hasAnyFour() const noexcept
@@ -124,7 +125,7 @@ namespace ag
 			}
 			void print() const
 			{
-				for (size_t i = 1; i < threats.size(); i++)
+				for (int i = 1; i < 10; i++)
 					for (size_t j = 0; j < threats[i].size(); j++)
 					{
 						std::cout << threats[i][j].toString() << " : " << threats[i][j].text() << ((threats[i][j].row < 10) ? " " : "") << " : "

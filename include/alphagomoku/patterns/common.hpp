@@ -77,7 +77,7 @@ namespace ag
 			T diagonal = T { };
 			T antidiagonal = T { };
 
-			T operator[](Direction direction) const noexcept
+			const T& operator[](Direction direction) const noexcept
 			{
 				assert(HORIZONTAL <= direction && direction <= ANTIDIAGONAL);
 				switch (direction)
@@ -116,7 +116,7 @@ namespace ag
 			}
 			bool contains(T value) const noexcept
 			{
-				return (horizontal == value) or (vertical == value) or (diagonal == value) or (antidiagonal == value);
+				return count(value) > 0;
 			}
 			T max() const noexcept
 			{
@@ -147,7 +147,7 @@ namespace ag
 	template<typename T, int N>
 	class ShortVector
 	{
-			std::array<T, N> m_data;
+			T m_data[N];
 			int m_size = 0;
 		public:
 			ShortVector() noexcept = default;
@@ -221,7 +221,7 @@ namespace ag
 			}
 			T* begin() noexcept
 			{
-				return m_data.data();
+				return m_data;
 			}
 			T* end() noexcept
 			{
@@ -229,7 +229,7 @@ namespace ag
 			}
 			const T* begin() const noexcept
 			{
-				return m_data.data();
+				return m_data;
 			}
 			const T* end() const noexcept
 			{
