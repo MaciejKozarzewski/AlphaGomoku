@@ -81,7 +81,7 @@ namespace ag
 			void setFirstPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
 			void setSecondPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
 			bool prepareOpening();
-			void generate();
+			void generate(int p = 3);
 		private:
 			Player& get_player() const noexcept;
 	};

@@ -76,11 +76,18 @@ namespace ag
 		game_buffer.clear();
 		while (game_buffer.size() < games_to_play)
 		{
-			for (size_t i = 0; i < evaluators.size() and game_buffer.size() < games_to_play; i++)
-				evaluators[i]->generate();
-			first_nn_evaluator.evaluateGraph();
-			second_nn_evaluator.evaluateGraph();
+			first_nn_evaluator.asyncEvaluateGraphJoin();
+			for (size_t i = 0; i < evaluators.size(); i++)
+				evaluators[i]->generate(1);
+			first_nn_evaluator.asyncEvaluateGraphLaunch();
+
+			second_nn_evaluator.asyncEvaluateGraphJoin();
+			for (size_t i = 0; i < evaluators.size(); i++)
+				evaluators[i]->generate(2);
+			second_nn_evaluator.asyncEvaluateGraphLaunch();
 		}
+		first_nn_evaluator.asyncEvaluateGraphJoin();
+		second_nn_evaluator.asyncEvaluateGraphJoin();
 		for (size_t i = 0; i < evaluators.size(); i++)
 			evaluators[i]->clear();
 		first_nn_evaluator.unloadGraph();

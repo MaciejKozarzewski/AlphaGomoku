@@ -26,7 +26,8 @@ namespace ag
 			simulations(options.simulations)
 	{
 		// TODO temporary hack to initialize shared hash table in the TSS
-		tree.setBoard(matrix<Sign>(gameOptions.rows, gameOptions.cols), Sign::CROSS, true);
+		setBoard(matrix<Sign>(gameOptions.rows, gameOptions.cols), Sign::CROSS);
+		search.setBatchSize(0);
 		search.select(tree);
 		search.setBatchSize(options.search_config.max_batch_size);
 	}
@@ -48,11 +49,11 @@ namespace ag
 		tree.setBoard(board, signToMove);
 
 		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children));
+		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children, true));
 	}
 	void Player::selectSolveEvaluate()
 	{
-		search.select(tree);
+		search.select(tree, simulations);
 		search.solve();
 		const int tmp = nn_evaluator.getQueueSize();
 		search.scheduleToNN(nn_evaluator);
@@ -93,6 +94,7 @@ namespace ag
 		Node root_node = tree.getInfo( { });
 		Edge *edge = selector.select(&root_node);
 
+//		std::cout << "Player : " << getName() << '\n';
 //		std::cout << Board::toString(tree.getBoard()) << '\n';
 //		std::cout << root_node.toString() << '\n';
 //		for (int i = 0; i < root_node.numberOfEdges(); i++)
@@ -190,7 +192,7 @@ namespace ag
 			return true;
 		}
 	}
-	void EvaluationGame::generate()
+	void EvaluationGame::generate(int p)
 	{
 		if (state == GAME_NOT_STARTED)
 		{
@@ -207,6 +209,23 @@ namespace ag
 				state = GAMEPLAY_SELECT_SOLVE_EVALUATE;
 				get_player().setBoard(game.getBoard(), game.getSignToMove());
 			}
+		}
+
+		switch (p)
+		{
+			case 1: // run generation only for the first player
+				if (game.getSignToMove() == first_player->getSign())
+					break;
+				else
+					return;
+			case 2: // run generation only for the second player
+				if (game.getSignToMove() == second_player->getSign())
+					break;
+				else
+					return;
+			default:
+			case 3: // run generation for both players
+				break;
 		}
 
 		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE)
