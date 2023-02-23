@@ -28,9 +28,10 @@ namespace
 	TwoPlayerGroup<DirectionGroup<PatternType>> convert_to_patterns(GameRules rules, DirectionGroup<NormalPattern> raw)
 	{
 		TwoPlayerGroup<DirectionGroup<PatternType>> result;
+		const PatternTable &table = PatternTable::get(rules);
 		for (Direction dir = 0; dir < 4; dir++)
 		{
-			const PatternEncoding tmp = PatternTable::get(rules).getPatternType(raw[dir]);
+			const PatternEncoding tmp = table.getPatternType(raw[dir]);
 			result.for_cross[dir] = tmp.forCross();
 			result.for_circle[dir] = tmp.forCircle();
 		}
@@ -132,8 +133,6 @@ namespace ag
 	}
 	bool isForbidden(const matrix<Sign> &board, Move move)
 	{
-		constexpr int Pad = 5;
-
 		if (move.sign == Sign::CIRCLE)
 			return false; // circle (or white) doesn't have any forbidden moves
 		if (board.at(move.row, move.col) != Sign::NONE)
@@ -153,11 +152,11 @@ namespace ag
 					Board::putMove(tmp_board, move);
 					const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(raw_patterns[dir]);
 					bool is_really_an_open3 = false;
-					for (int i = -Pad; i <= Pad; i++)
+					for (int i = -5; i <= 5; i++)
 						if (i != 0)
 						{
 							const Location loc = shiftInDirection(dir, i, move);
-							if (promotion_moves[Pad + i] == true and tmp_board.at(loc.row, loc.col) == Sign::NONE) // promotion move will never be outside board
+							if (promotion_moves[5 + i] == true and tmp_board.at(loc.row, loc.col) == Sign::NONE) // promotion move will never be outside board
 								if (RawPatternCalculator::isStraightFourAt(tmp_board, Move(loc, Sign::CROSS), dir)
 										and not isForbidden(tmp_board, Move(loc, Sign::CROSS)))
 								{

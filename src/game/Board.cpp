@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <x86intrin.h>
 #include <cassert>
 
 namespace
@@ -193,8 +194,8 @@ namespace ag
 	{
 		if (signToMove != Sign::CROSS and signToMove != Sign::CIRCLE)
 			return false;
-		int cross_count = std::count(board.begin(), board.end(), Sign::CROSS);
-		int circle_count = std::count(board.begin(), board.end(), Sign::CIRCLE);
+		const int cross_count = std::count(board.begin(), board.end(), Sign::CROSS);
+		const int circle_count = std::count(board.begin(), board.end(), Sign::CIRCLE);
 
 		if (signToMove == Sign::CROSS)
 			return cross_count == circle_count;
@@ -256,7 +257,7 @@ namespace ag
 	{
 		assert(equalSize(from, to));
 		for (int i = 0; i < from.size(); i++)
-			if (to.data()[i] != from.data()[i] and from.data()[i] != Sign::NONE)
+			if (to[i] != from[i] and from[i] != Sign::NONE)
 				return false;
 		return true;
 	}
@@ -283,8 +284,10 @@ namespace ag
 
 	int Board::numberOfMoves(const matrix<Sign> &board) noexcept
 	{
-		return std::count_if(board.begin(), board.end(), [](Sign s)
-		{	return s != Sign::NONE;});
+		int result = 0;
+		for (int i = 0; i < board.size(); i++)
+			result += static_cast<int>(board[i] != Sign::NONE);
+		return result;
 	}
 
 } /* namespace ag */

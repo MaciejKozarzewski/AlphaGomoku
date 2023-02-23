@@ -45,13 +45,11 @@ namespace ag
 {
 	float randFloat()
 	{
-		static const float tmp = 1.0f / 4294967295;
-		return get_random_int32() * tmp;
+		return get_random_int32() * 2.3283064370808e-10f;
 	}
 	double randDouble()
 	{
-		static const double tmp = 1.0f / (4294967296ull * 4294967296ull - 1);
-		return get_random_int64() * tmp;
+		return get_random_int64() * 5.42101086242752e-20;
 	}
 	float randGaussian()
 	{
@@ -97,7 +95,7 @@ namespace ag
 	}
 	bool randBool()
 	{
-		return (get_random_int32() & 1) == 0;
+		return get_random_int32() & 1;
 	}
 
 	std::string currentDateTime()
@@ -119,26 +117,26 @@ namespace ag
 		int count = 0;
 		float sum = 0.0f;
 		for (int i = 0; i < board.size(); i++)
-			if (board.data()[i] == Sign::NONE)
+			if (board[i] == Sign::NONE)
 			{
 				count++;
-				sum += policy.data()[i];
+				sum += policy[i];
 			}
 			else
-				policy.data()[i] = 0.0f;
+				policy[i] = 0.0f;
 
 		if (sum == 0.0f)
 		{
 			sum = 1.0f / count;
 			for (int i = 0; i < board.size(); i++)
-				if (board.data()[i] == Sign::NONE)
-					policy.data()[i] = sum;
+				if (board[i] == Sign::NONE)
+					policy[i] = sum;
 		}
 		else
 		{
 			sum = 1.0f / sum;
 			for (int i = 0; i < policy.size(); i++)
-				policy.data()[i] *= sum;
+				policy[i] *= sum;
 		}
 	}
 	void addNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight)
@@ -148,47 +146,41 @@ namespace ag
 		if (noiseWeight == 0.0f)
 			return;
 
-		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
-		const float range = 1.0f / generator.max();
-
 		std::vector<float> noise;
 		noise.reserve(policy.size());
 		float sum = 0.0f;
 		for (int i = 0; i < policy.size(); i++)
-			if (board.data()[i] == Sign::NONE)
+			if (board[i] == Sign::NONE)
 			{
-				noise.push_back(pow(generator() * range, 4) * (1.0f - sum));
+				noise.push_back(pow(randFloat(), 4) * (1.0f - sum));
 				sum += noise.back();
 			}
 		std::random_shuffle(noise.begin(), noise.end());
 		for (int i = 0, k = 0; i < board.size(); i++)
-			if (board.data()[i] == Sign::NONE)
+			if (board[i] == Sign::NONE)
 			{
-				policy.data()[i] = (1.0f - noiseWeight) * policy.data()[i] + noiseWeight * noise[k];
+				policy[i] = (1.0f - noiseWeight) * policy[i] + noiseWeight * noise[k];
 				k++;
 			}
 	}
 	matrix<float> getNoiseMatrix(const matrix<Sign> &board)
 	{
-		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
-		const float range = 1.0f / generator.max();
-
 		std::vector<float> noise;
 		noise.reserve(board.size());
 		float sum = 0.0f;
 		for (int i = 0; i < board.size(); i++)
-			if (board.data()[i] == Sign::NONE)
+			if (board[i] == Sign::NONE)
 			{
-				noise.push_back(pow(generator() * range, 4) * (1.0f - sum));
+				noise.push_back(pow(randFloat(), 4) * (1.0f - sum));
 				sum += noise.back();
 			}
 		std::random_shuffle(noise.begin(), noise.end());
 
 		matrix<float> result(board.rows(), board.cols());
 		for (int i = 0, k = 0; i < board.size(); i++)
-			if (board.data()[i] == Sign::NONE)
+			if (board[i] == Sign::NONE)
 			{
-				result.data()[i] = noise[k];
+				result[i] = noise[k];
 				k++;
 			}
 		return result;
@@ -197,7 +189,7 @@ namespace ag
 	void scaleArray(matrix<float> &array, float scale)
 	{
 		for (int i = 0; i < array.size(); i++)
-			array.data()[i] *= scale;
+			array[i] *= scale;
 	}
 
 	std::vector<float> averageStats(std::vector<float> &stats)
@@ -227,7 +219,7 @@ namespace ag
 		int i = 0;
 		for (; i < policy.size(); i++)
 		{
-			sum += policy.data()[i];
+			sum += policy[i];
 			if (r < sum)
 				break;
 		}
@@ -237,12 +229,12 @@ namespace ag
 	{
 		float r = std::accumulate(policy.begin(), policy.end(), 0.0f);
 		if (r == 0.0f)
-			std::fill(policy.begin(), policy.end(), 1.0f / policy.size());
+			policy.fill(1.0f / policy.size());
 		else
 		{
 			r = 1.0f / r;
 			for (int i = 0; i < policy.size(); i++)
-				policy.data()[i] *= r;
+				policy[i] *= r;
 		}
 	}
 	float max(const matrix<float> &policy)
@@ -260,8 +252,7 @@ namespace ag
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist)
 	{
-		assert(board.rows() == dist.rows());
-		assert(board.cols() == dist.cols());
+		assert(equalSize(board, dist));
 		if (Board::isEmpty(board))
 		{
 			for (int i = 0; i < board.rows(); i++)
@@ -274,10 +265,10 @@ namespace ag
 		}
 
 		for (int i = 0; i < board.size(); i++)
-			if (board.data()[i] != Sign::NONE)
-				dist.data()[i] = 0.0f;
+			if (board[i] != Sign::NONE)
+				dist[i] = 0.0f;
 			else
-				dist.data()[i] = 1.0e-6f;
+				dist[i] = 1.0e-6f;
 
 		float tmp = 2.0f + randFloat();
 		for (int k = 0; k < board.rows(); k++)
