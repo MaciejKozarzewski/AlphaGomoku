@@ -8,9 +8,20 @@
 #include <alphagomoku/search/Score.hpp>
 #include <alphagomoku/game/rules.hpp>
 
+namespace
+{
+	std::string spaces(int x)
+	{
+		if (x < 10)
+			return "  ";
+		if (x < 100)
+			return " ";
+		return "";
+	}
+}
+
 namespace ag
 {
-
 	std::string toString(ProvenValue pv)
 	{
 		switch (pv)
@@ -66,11 +77,8 @@ namespace ag
 		std::string result;
 		if (isProven())
 		{
-			const int dist = getDistance();
-			if (dist < 10)
-				result += ' ';
-			if (dist < 100)
-				result += ' ';
+			const int dist = std::min(getDistance(), 999);
+			result = spaces(dist);
 			switch (getProvenValue())
 			{
 				default:
@@ -89,11 +97,8 @@ namespace ag
 		}
 		else
 		{
-			const int eval = std::abs(getEval());
-			if (eval < 10)
-				result += ' ';
-			if (eval < 100)
-				result += ' ';
+			const int eval = std::min(std::abs(getEval()), 999);
+			result = spaces(eval);
 			if (getEval() == 0)
 				result += ' ';
 			else
