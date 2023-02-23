@@ -77,8 +77,8 @@ namespace ag
 
 			actions.at(m.row, m.col).policy_prior = static_cast<int>(edge->getPolicyPrior() * scale);
 			actions.at(m.row, m.col).score = edge->getScore();
-			actions.at(m.row, m.col).win_rate = static_cast<int>(edge->getValue().win_rate * scale);
-			actions.at(m.row, m.col).draw_rate = static_cast<int>(edge->getValue().draw_rate * scale);
+			actions.at(m.row, m.col).win_rate = static_cast<int>(edge->getWinRate() * scale);
+			actions.at(m.row, m.col).draw_rate = static_cast<int>(edge->getDrawRate() * scale);
 		}
 		minimax_value = node.getValue();
 		minimax_score = node.getScore();
