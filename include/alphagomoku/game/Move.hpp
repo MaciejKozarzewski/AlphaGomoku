@@ -40,7 +40,7 @@ namespace ag
 	std::string operator+(const std::string &lhs, Sign rhs);
 	std::string operator+(Sign lhs, const std::string &rhs);
 
-	struct Location
+	struct alignas(2) Location
 	{
 			int8_t row = 0;
 			int8_t col = 0;
@@ -99,7 +99,7 @@ namespace ag
 			}
 	};
 
-	struct Move
+	struct alignas(4) Move
 	{
 			Sign sign = Sign::NONE;
 			int8_t row = 0;

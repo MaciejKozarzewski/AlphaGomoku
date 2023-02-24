@@ -70,7 +70,7 @@ namespace ag
 	}
 
 	template<typename T>
-	struct DirectionGroup
+	struct alignas(4 * sizeof(T)) DirectionGroup
 	{
 			T horizontal = T { };
 			T vertical = T { };
