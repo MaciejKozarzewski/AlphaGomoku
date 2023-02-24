@@ -33,25 +33,11 @@ namespace
 	}
 	std::string to_string(int i)
 	{
+		assert(0 <= i && i <= 1000);
 		if (i == 0)
 			return "  _ ";
 		else
-		{
-			if (i < 10)
-				return "   " + std::to_string(i);
-			else
-			{
-				if (i < 100)
-					return "  " + std::to_string(i);
-				else
-				{
-					if (i == 1000)
-						return std::to_string(i);
-					else
-						return " " + std::to_string(i);
-				}
-			}
-		}
+			return sfill(i, 4, false);
 	}
 	std::string to_string(float f)
 	{
@@ -59,41 +45,16 @@ namespace
 	}
 	std::string to_string(Value v)
 	{
-		const int t = static_cast<int>(1000 * v.getExpectation());
-		if (t == 0)
-			return "  _ ";
-		else
-		{
-			if (t < 10)
-				return "   " + std::to_string(t);
-			else
-			{
-				if (t < 100)
-					return "  " + std::to_string(t);
-				else
-				{
-					if (t == 1000)
-						return std::to_string(t);
-					else
-						return " " + std::to_string(t);
-				}
-			}
-		}
+		return to_string(static_cast<int>(1000 * v.getExpectation()));
 	}
 
-	std::string pretty_print_top_row(int columns, int spacingLeft = 1, int spacingRight = 0)
+	std::string pretty_print_top_row(int columns, int spacingLeft, int spacingRight)
 	{
-		std::string result = "/*         ";
-		std::string spaces_left(spacingLeft, ' ');
-		std::string spaces_right(spacingRight, ' ');
+		const std::string spaces_left(spacingLeft, ' ');
+		const std::string spaces_right(spacingRight, ' ');
+		std::string result = "/*        ";
 		for (int i = 0; i < columns; i++)
-		{
-			if (i > 0)
-				result += spaces_left;
-			result += static_cast<char>(static_cast<int>('a') + i);
-			if (i < columns - 1)
-				result += spaces_right;
-		}
+			result += spaces_left + static_cast<char>(static_cast<int>('a') + i) + spaces_right;
 		return result + "        */";
 	}
 	std::string pretty_print_side_info(int row)
@@ -105,11 +66,15 @@ namespace
 	}
 
 	template<class T>
-	std::string board_to_string(const matrix<Sign> &board, const T &other)
+	std::string board_to_string(const matrix<Sign> &board, const T &other, bool prettyPrint)
 	{
 		std::string result;
+		if (prettyPrint)
+			result += pretty_print_top_row(board.cols(), 3, 1) + '\n';
 		for (int i = 0; i < board.rows(); i++)
 		{
+			if (prettyPrint)
+				result += pretty_print_side_info(i) + " \"";
 			for (int j = 0; j < board.cols(); j++)
 			{
 				if (board.at(i, j) == Sign::NONE)
@@ -117,8 +82,12 @@ namespace
 				else
 					result += "  " + to_string(board.at(i, j)) + " ";
 			}
+			if (prettyPrint)
+				result += "\" " + pretty_print_side_info(i);
 			result += '\n';
 		}
+		if (prettyPrint)
+			result += pretty_print_top_row(board.cols(), 3, 1) + '\n';
 		return result;
 	}
 
@@ -217,7 +186,7 @@ namespace ag
 	{
 		std::string result;
 		if (prettyPrint)
-			result += pretty_print_top_row(board.cols(), 1) + '\n';
+			result += pretty_print_top_row(board.cols(), 1, 0) + '\n';
 		for (int i = 0; i < board.rows(); i++)
 		{
 			if (prettyPrint)
@@ -229,28 +198,28 @@ namespace ag
 			result += '\n';
 		}
 		if (prettyPrint)
-			result += pretty_print_top_row(board.cols(), 1) + '\n';
+			result += pretty_print_top_row(board.cols(), 1, 0) + '\n';
 		return result;
 	}
-	std::string Board::toString(const matrix<Sign> &board, const matrix<Score> &actionScores)
+	std::string Board::toString(const matrix<Sign> &board, const matrix<Score> &actionScores, bool prettyPrint)
 	{
 		assert(equalSize(board, actionScores));
-		return board_to_string(board, actionScores);
+		return board_to_string(board, actionScores, prettyPrint);
 	}
-	std::string Board::toString(const matrix<Sign> &board, const matrix<float> &policy)
+	std::string Board::toString(const matrix<Sign> &board, const matrix<float> &policy, bool prettyPrint)
 	{
 		assert(equalSize(board, policy));
-		return board_to_string(board, policy);
+		return board_to_string(board, policy, prettyPrint);
 	}
-	std::string Board::toString(const matrix<Sign> &board, const matrix<int> &visitCount)
+	std::string Board::toString(const matrix<Sign> &board, const matrix<int> &visitCount, bool prettyPrint)
 	{
 		assert(equalSize(board, visitCount));
-		return board_to_string(board, visitCount);
+		return board_to_string(board, visitCount, prettyPrint);
 	}
-	std::string Board::toString(const matrix<Sign> &board, const matrix<Value> &actionValues)
+	std::string Board::toString(const matrix<Sign> &board, const matrix<Value> &actionValues, bool prettyPrint)
 	{
 		assert(equalSize(board, actionValues));
-		return board_to_string(board, actionValues);
+		return board_to_string(board, actionValues, prettyPrint);
 	}
 
 	bool Board::isTransitionPossible(const matrix<Sign> &from, const matrix<Sign> &to) noexcept

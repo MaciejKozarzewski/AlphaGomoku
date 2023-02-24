@@ -13,8 +13,7 @@
 
 namespace ag
 {
-	enum class GameRules
-	;
+	enum class GameRules;
 	class Value;
 	class Score;
 }
@@ -53,19 +52,19 @@ namespace ag
 			/**
 			 * @brief Generates string representation of board state together with information about proven values.
 			 */
-			static std::string toString(const matrix<Sign> &board, const matrix<Score> &actionScores);
+			static std::string toString(const matrix<Sign> &board, const matrix<Score> &actionScores, bool prettyPrint = false);
 			/**
 			 * @brief Generates string representation of board state together with information about policy priors.
 			 */
-			static std::string toString(const matrix<Sign> &board, const matrix<float> &policy);
+			static std::string toString(const matrix<Sign> &board, const matrix<float> &policy, bool prettyPrint = false);
 			/**
 			 * @brief Generates string representation of board state together with information about visit couns.
 			 */
-			static std::string toString(const matrix<Sign> &board, const matrix<int> &visitCount);
+			static std::string toString(const matrix<Sign> &board, const matrix<int> &visitCount, bool prettyPrint = false);
 			/**
 			 * @brief Generates string representation of board state together with information about action values.
 			 */
-			static std::string toString(const matrix<Sign> &board, const matrix<Value> &actionValues);
+			static std::string toString(const matrix<Sign> &board, const matrix<Value> &actionValues, bool prettyPrint = false);
 	};
 } /* namespace ag */
 
