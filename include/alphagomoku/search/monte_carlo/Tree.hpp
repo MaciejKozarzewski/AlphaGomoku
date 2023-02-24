@@ -52,7 +52,7 @@ namespace ag
 			mutable std::mutex tree_mutex;
 
 			NodeCache node_cache;
-			std::shared_ptr<SharedHashTable<4>> shared_hash_table;
+			std::shared_ptr<SharedHashTable> shared_hash_table;
 			Node *root_node = nullptr; // non-owning
 
 			std::unique_ptr<EdgeSelector> edge_selector;
@@ -88,7 +88,7 @@ namespace ag
 			void cancelVirtualLoss(const SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 
-			std::shared_ptr<SharedHashTable<4>> getSharedHashTable() noexcept;
+			std::shared_ptr<SharedHashTable> getSharedHashTable() noexcept;
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
 

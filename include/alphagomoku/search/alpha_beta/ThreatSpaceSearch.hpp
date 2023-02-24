@@ -81,8 +81,8 @@ namespace ag
 			PatternCalculator pattern_calculator;
 			ThreatGenerator threat_generator;
 
-			std::shared_ptr<SharedHashTable<4>> shared_table;
-			HashKey128 hash_key;
+			std::shared_ptr<SharedHashTable> shared_table;
+			HashKey64 hash_key;
 
 			size_t step_counter = 0;
 			int tuning_step = 2;
@@ -93,7 +93,7 @@ namespace ag
 			ThreatSpaceSearch(GameConfig gameConfig, int maxPositions = 100);
 
 			int64_t getMemory() const noexcept;
-			void setSharedTable(std::shared_ptr<SharedHashTable<4>> table) noexcept;
+			void setSharedTable(std::shared_ptr<SharedHashTable> table) noexcept;
 			void solve(SearchTask &task, TssMode mode, int maxPositions);
 			void tune(float speed);
 

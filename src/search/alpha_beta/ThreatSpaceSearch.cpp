@@ -134,7 +134,7 @@ namespace ag
 	{
 		return action_stack.size() * sizeof(Action);
 	}
-	void ThreatSpaceSearch::setSharedTable(std::shared_ptr<SharedHashTable<4>> table) noexcept
+	void ThreatSpaceSearch::setSharedTable(std::shared_ptr<SharedHashTable> table) noexcept
 	{
 		shared_table = table;
 	}
@@ -169,8 +169,8 @@ namespace ag
 			case TssMode::RECURSIVE:
 			default:
 			{
-				if (shared_table == nullptr)
-					throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
+//				if (shared_table == nullptr)
+//					throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
 
 //				stats.evaluate.startTimer();
 //				evaluator.refresh(pattern_calculator); // set up NNUE state
@@ -308,14 +308,15 @@ namespace ag
 	 */
 	Score ThreatSpaceSearch::recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot)
 	{
-		actions.clear();
 		assert(Score::min_value() <= alpha);
 		assert(alpha < beta);
 		assert(beta <= Score::max_value());
 
+		actions.clear();
+
 		Move hash_move;
 		{ // lookup to the shared hash table
-//			TimerGuard tg(stats.hashtable);
+			TimerGuard tg(stats.hashtable);
 			const SharedTableData tt_entry = shared_table->seek(hash_key);
 			const Bound tt_bound = tt_entry.bound();
 
@@ -328,17 +329,16 @@ namespace ag
 				if (is_move_legal(hash_move) and not isRoot)
 				{ // we must not terminate search at root with just one best action on hash table hit, as the other modules require full list of actions
 					const Score tt_score = tt_entry.score();
-					if (tt_score.isProven()
-							or (tt_entry.depth() >= depthRemaining
-									and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
-											or (tt_bound == Bound::UPPER and tt_score <= alpha))))
+					if (tt_entry.depth() >= depthRemaining
+							and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
+									or (tt_bound == Bound::UPPER and tt_score <= alpha)))
 						return tt_score;
 				}
 			}
 		}
 
 		{ // threat generator is combined with static solver
-//			TimerGuard tg(stats.move_generation);
+			TimerGuard tg(stats.move_generation);
 			const Score static_score = threat_generator.generate(actions, GeneratorMode::VCF);
 			if (static_score.isProven())
 				return static_score;
@@ -346,13 +346,12 @@ namespace ag
 		}
 
 		{ // evaluation
-//			TimerGuard tg(stats.evaluate);
-			if (depthRemaining <= 0 or actions.isEmpty()) // if it is a leaf, evaluate the position
+			TimerGuard tg(stats.evaluate);
+			if (depthRemaining <= 0) // if it is a leaf, evaluate the position
 				return evaluate();
 		}
 
 		const Score original_alpha = alpha;
-//		Score best_score = actions.must_defend ? Score::min_value() : Score::min_eval(); // setup initial value of the score
 		Score best_score = Score::min_value(); // setup initial value of the score
 		for (int i = 0; i < actions.size(); i++)
 		{
@@ -368,6 +367,7 @@ namespace ag
 
 			ActionList next_ply_actions(actions, actions[i]);
 			pattern_calculator.addMove(move);
+
 			action_score = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions, false);
 			pattern_calculator.undoMove(move);
 
@@ -382,20 +382,18 @@ namespace ag
 
 			best_score = std::max(best_score, action_score);
 			alpha = std::max(alpha, action_score);
-			if (action_score >= beta or action_score.isWin())
+			if (action_score >= beta)
 				break;
 		}
 		// if either
 		//  - no actions were generated, or
 		//  - all actions are losing but we don't have to defend
 		// we need to override the score with something, for example with static evaluation
-		if (best_score.isLoss() and not actions.must_defend)
+		if (actions.isEmpty() or (best_score.isLoss() and not actions.must_defend))
 			best_score = evaluate();
 
-		if (best_score.isProven())
 		{ // insert new data to the hash table
-//			TimerGuard tg(stats.hashtable);
-			const Move best_move = actions.isEmpty() ? Move() : std::max_element(actions.begin(), actions.end())->move;
+			TimerGuard tg(stats.hashtable);
 			Bound bound = Bound::NONE;
 			if (best_score <= original_alpha)
 				bound = Bound::UPPER;
@@ -406,8 +404,8 @@ namespace ag
 				else
 					bound = Bound::EXACT;
 			}
-			shared_table->insert(hash_key,
-					SharedTableData(actions.must_defend, actions.has_initiative, bound, depthRemaining, best_score, best_move));
+			SharedTableData entry(actions.must_defend, actions.has_initiative, bound, depthRemaining, best_score, actions.getBestMove());
+			shared_table->insert(hash_key, entry);
 		}
 
 		return best_score;

@@ -135,6 +135,18 @@ namespace ag
 					}
 				return false;
 			}
+			Move getBestMove() const noexcept
+			{
+				Score best_score = Score::min_value();
+				Move result;
+				for (auto iter = begin(); iter < end(); iter++)
+					if (iter->score >= best_score)
+					{
+						best_score = iter->score;
+						result = iter->move;
+					}
+				return result;
+			}
 			void print() const
 			{
 				std::cout << "List of actions:\n";

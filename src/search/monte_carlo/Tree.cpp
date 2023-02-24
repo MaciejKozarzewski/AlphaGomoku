@@ -131,7 +131,7 @@ namespace ag
 		{
 			const GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
 			node_cache = NodeCache(game_config, tree_config);
-			shared_hash_table = std::make_shared<SharedHashTable<4>>(newBoard.rows(), newBoard.cols(), tree_config.solver_hash_table_size);
+			shared_hash_table = std::make_shared<SharedHashTable>(newBoard.rows(), newBoard.cols(), tree_config.solver_hash_table_size);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
@@ -352,7 +352,7 @@ namespace ag
 		print_node(root_node, max_print_depth, sort, top_n, 0);
 	}
 
-	std::shared_ptr<SharedHashTable<4>> Tree::getSharedHashTable() noexcept
+	std::shared_ptr<SharedHashTable> Tree::getSharedHashTable() noexcept
 	{
 		return shared_hash_table;
 	}

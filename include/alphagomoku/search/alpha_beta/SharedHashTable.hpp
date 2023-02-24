@@ -29,114 +29,109 @@ namespace ag
 		EXACT
 	};
 
-	template<int N>
 	class SharedHashTable;
 
 	class SharedTableData
 	{
-			template<int N>
 			friend class SharedHashTable;
 
-			static constexpr uint64_t mask = 0xFFFF000000000000ull;
+			union
+			{
+					struct
+					{
+							uint8_t flags_bound_gen;
+							int8_t depth;
+							uint16_t score;
+							uint16_t move;
+							uint16_t key;
+					} data;
+					uint64_t raw_bytes;
+			};
 
-			uint64_t m_data = 0;
+			static constexpr uint64_t key_mask = 0xFFFF000000000000ull;
 			void set_generation_and_key(int gen, uint64_t key) noexcept
 			{
-				m_data &= ~(mask | 0x00000000000000F0); // clear 16 highest bits and 4 bits where generation is stored
-				m_data |= static_cast<uint64_t>(std::max(0, std::min(15, gen))) << 4ull; // 4 bits
-				m_data |= (key & mask); // 16 highest bits
+				assert(0 <= gen && gen < max_generation);
+				raw_bytes &= ~(key_mask | 0x00000000000000F0); // clear 16 highest bits and 4 bits where generation is stored
+				raw_bytes |= static_cast<uint64_t>(gen) << 4ull; // 4 bits
+				raw_bytes |= (key & key_mask); // 16 highest bits
 			}
 		public:
+			static constexpr int max_generation = 16;
 			SharedTableData() noexcept :
-					SharedTableData(false, false, Bound::NONE, 0, Score(), Move())
+		SharedTableData(false, false, Bound::NONE, 0, Score(), Move())
 			{
 			}
-			SharedTableData(uint64_t data) :
-					m_data(data)
+			SharedTableData(bool mustDefend, bool hasInitiative, Bound bound, int depth, Score score, Move bestMove) noexcept
 			{
-			}
-			SharedTableData(bool mustDefend, bool hasInitiative, Bound bound, int depth, Score score, Move bestMove) :
-					m_data(0)
-			{
-				m_data |= static_cast<uint64_t>(mustDefend); // 1 bit
-				m_data |= static_cast<uint64_t>(hasInitiative) << 1ull; // 1 bit
-				m_data |= static_cast<uint64_t>(bound) << 2ull; // 2 bits
+				data.flags_bound_gen = static_cast<uint8_t>(mustDefend); // 1 bit
+				data.flags_bound_gen |= static_cast<uint8_t>(hasInitiative) << 1ull; // 1 bit
+				data.flags_bound_gen |= static_cast<uint8_t>(bound) << 2ull; // 2 bits
 				// omitting 4 bits for generation (it is set by the hashtable, not by the user)
-				m_data |= static_cast<uint64_t>(128 + std::max(-128, std::min(127, depth))) << 8ull; // 8 bits
-				m_data |= static_cast<uint64_t>(Score::to_short(score)) << 16ull; // 16 bits
-				m_data |= static_cast<uint64_t>(bestMove.toShort()) << 32ull; // 16 bits
-				// omitting 16 bits for key (it is set by the hashtable, not by the user)
+				assert(-128 <= depth && depth <= 127);
+				data.depth = static_cast<int8_t>(depth); // 8 bits
+				data.score = Score::to_short(score); // 16 bits
+				data.move = bestMove.toShort(); // 16 bits
+				data.key = 0u; // key is set by the hashtable, not by the user
 			}
-			operator uint64_t() const noexcept
+
+			SharedTableData(const SharedTableData &other) noexcept :
+					raw_bytes(other.raw_bytes)
 			{
-				return m_data;
+			}
+			SharedTableData(SharedTableData &&other) noexcept :
+					raw_bytes(other.raw_bytes)
+			{
+			}
+			SharedTableData& operator=(const SharedTableData &other) noexcept
+			{
+				this->raw_bytes = other.raw_bytes;
+				return *this;
+			}
+			SharedTableData& operator=(SharedTableData &&other) noexcept
+			{
+				this->raw_bytes = other.raw_bytes;
+				return *this;
 			}
 			bool mustDefend() const noexcept
 			{
-				return m_data & 1ull;
+				return data.flags_bound_gen & 1ull;
 			}
 			bool hasInitiative() const noexcept
 			{
-				return (m_data >> 1ull) & 1ull;
+				return data.flags_bound_gen & 2ull;
 			}
 			Bound bound() const noexcept
 			{
-				return static_cast<Bound>((m_data >> 2ull) & 3ull);
+				return static_cast<Bound>((data.flags_bound_gen >> 2ull) & 3ull);
 			}
 			int generation() const noexcept
 			{
-				return (m_data >> 4ull) & 15ull;
+				return (data.flags_bound_gen >> 4ull) & 15ull;
 			}
 			int depth() const noexcept
 			{
-				return static_cast<int>((m_data >> 8ull) & 255ull) - 128;
+				return data.depth;
 			}
 			Score score() const noexcept
 			{
-				return Score::from_short((m_data >> 16ull) & 65535ull);
+				return Score::from_short(data.score);
 			}
 			Move move() const noexcept
 			{
-				return Move::move_from_short((m_data >> 32ull) & 65535ull);
+				return Move::move_from_short(data.move);
 			}
-			HashKey64 key() const noexcept
+			bool key_matches(uint64_t key) const noexcept
 			{
-				return m_data & mask; // extract 16 highest bits
+				return (raw_bytes & key_mask) == (key & key_mask);
 			}
+
 	};
-	template<int N>
 	class SharedHashTable
 	{
-			class Entry
-			{
-					static constexpr HashKey64 mask = 0xFFFF000000000000ull;
+			using bucket_type = std::array<SharedTableData, 4>;
 
-					HashKey64 m_key = 0u;
-					SharedTableData m_value;
-				public:
-					Entry() noexcept = default;
-					Entry(const HashKey128 &key, SharedTableData value) noexcept :
-							m_key(key.getHigh() ^ value),
-							m_value(value)
-					{
-					}
-					HashKey64 getKey() const noexcept
-					{
-						return m_key ^ m_value;
-					}
-					SharedTableData getValue() const noexcept
-					{
-						return m_value;
-					}
-					bool key_matches(const HashKey128 &key) const noexcept
-					{
-						return getKey() == key.getHigh() and getValue().key() == (key.getLow() & mask);
-					}
-			};
-
-			using bucket_type = std::array<Entry, N>;
-
-			std::vector<bucket_type, AlignedAllocator<bucket_type, sizeof(bucket_type)>> m_hashtable;
+			std::vector<bucket_type, AlignedAllocator<bucket_type, 64>> m_hashtable;
 			FastZobristHashing m_hash_function;
 			HashKey64 m_mask;
 			int m_base_generation = 0;
@@ -150,7 +145,7 @@ namespace ag
 			}
 			constexpr int getBucketSize() const noexcept
 			{
-				return N;
+				return 4;
 			}
 			int64_t getMemory() const noexcept
 			{
@@ -162,54 +157,45 @@ namespace ag
 			}
 			void clear() noexcept
 			{
-				std::fill(m_hashtable.begin(), m_hashtable.end(), std::array<Entry, N>());
+				std::fill(m_hashtable.begin(), m_hashtable.end(), bucket_type());
 			}
 			void increaseGeneration() noexcept
 			{
-				m_base_generation = (m_base_generation + 1) % 16;
+				m_base_generation = (m_base_generation + 1) % SharedTableData::max_generation;
 			}
-			SharedTableData seek(const HashKey128 &hash) const noexcept
+			SharedTableData seek(const HashKey64 &hash) const noexcept
 			{
-				const bucket_type &bucket = m_hashtable[hash.getLow() & m_mask];
-				for (size_t i = 0; i < bucket.size(); i++)
-				{
-					const Entry entry = bucket[i]; // copy entry to stack to prevent surprises from read/write race
-					if (entry.key_matches(hash))
-						return entry.getValue();
-				}
+				const bucket_type local_bucket = m_hashtable[hash & m_mask];
+				for (size_t i = 0; i < local_bucket.size(); i++)
+					if (local_bucket[i].key_matches(hash))
+						return local_bucket[i];
 				return SharedTableData();
 			}
-			void insert(const HashKey128 &hash, SharedTableData value) noexcept
+			void insert(const HashKey64 &hash, SharedTableData value) noexcept
 			{
-				value.set_generation_and_key(m_base_generation, hash.getLow());
-				const Entry new_entry(hash, value);
+				value.set_generation_and_key(m_base_generation, hash);
 
-				bucket_type &bucket = m_hashtable[hash.getLow() & m_mask];
+				bucket_type &shared_bucket = m_hashtable[hash & m_mask];
+				const bucket_type local_bucket = shared_bucket;
 				// first check if this position is already stored in the bucket
 				if (value.score().isProven() or value.bound() == Bound::EXACT) // but only if the new score is proven or exact
-					for (size_t i = 0; i < bucket.size(); i++)
-					{
-						const Entry entry = bucket[i]; // copy entry to stack to prevent surprises from read/write race
-						if (entry.key_matches(hash))
+					for (size_t i = 0; i < local_bucket.size(); i++)
+						if (local_bucket[i].key_matches(hash))
 						{
-							bucket[i] = new_entry;
+							shared_bucket[i] = value;
 							return;
 						}
-					}
 
 				// now find the least valuable entry to replace
-				Entry *found = &bucket[0]; // first entry is the 'always replace' one
-				for (size_t i = 1; i < bucket.size(); i++)
-				{ // loop over entries that are replaced based on depth
-					const Entry entry = bucket[i]; // copy entry to stack to prevent surprises from read/write race
-					if (get_value_of(entry) < get_value_of(*found))
-						found = &bucket[i];
-				}
-				*found = new_entry;
+				int idx = 0;
+				for (size_t i = 1; i < local_bucket.size(); i++)  // loop over entries that are replaced based on depth
+					if (get_value_of(local_bucket[i]) < get_value_of(local_bucket[idx]))
+						idx = i;
+				shared_bucket[idx] = value;
 			}
-			void prefetch(const HashKey128 &hash) const noexcept
+			void prefetch(const HashKey64 &hash) const noexcept
 			{
-				prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash.getLow() & m_mask));
+				prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash & m_mask));
 			}
 			double loadFactor(bool approximate = false) const noexcept
 			{
@@ -217,16 +203,16 @@ namespace ag
 				uint64_t result = 0;
 				for (size_t i = 0; i < size; i++)
 				{
-					const bucket_type &bucket = m_hashtable[i];
-					for (size_t j = 0; j < bucket.size(); j++)
-						result += (bucket[j].getValue().bound() != Bound::NONE);
+					const bucket_type local_bucket = m_hashtable[i];
+					for (size_t j = 0; j < local_bucket.size(); j++)
+						result += (local_bucket[j].bound() != Bound::NONE);
 				}
 				return static_cast<double>(result) / (size * getBucketSize());
 			}
 		private:
-			int get_value_of(const Entry &entry) const noexcept
+			int get_value_of(const SharedTableData &entry) const noexcept
 			{
-				return entry.getValue().depth() - (m_base_generation - entry.getValue().generation());
+				return entry.depth() - (m_base_generation - entry.generation());
 			}
 	};
 
