@@ -13,10 +13,12 @@ All notable changes to this project will be documented in this file.
 - Neural network has additional output head for action values.
  
 ### Changed
-- Reduced memory consumption by about 8% (on average).
+- Reduced memory consumption of MCTS by about 8% (on average).
+- Reduced memory consumption of TSS by 50%.
 - Improved solver.
  
 ### Fixed
+- Fixed crash when the time for turn is very small and no nodes have been searched (now there is at least 1).
 
 ## [5.3.4] - 2022-04-20
  

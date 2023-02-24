@@ -62,6 +62,7 @@ namespace ag
 			void startSearch();
 			void stopSearch();
 			bool isSearchFinished() const noexcept;
+			bool isRootEvaluated() const noexcept;
 
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;

@@ -18,7 +18,6 @@
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 
-
 #include <minml/utils/json.hpp>
 
 #include <filesystem>
@@ -90,7 +89,7 @@ namespace ag
 	{
 		assert(isSearchFinished());
 		TreeLock lock(tree);
-		tree.setBoard(board, signToMove);
+		tree.setBoard(board, signToMove, true);
 	}
 	void SearchEngine::setEdgeSelector(const EdgeSelector &selector)
 	{
@@ -126,6 +125,10 @@ namespace ag
 			if (search_threads[i]->isRunning())
 				return false;
 		return true;
+	}
+	bool SearchEngine::isRootEvaluated() const noexcept
+	{
+		return tree.getNodeCount() > 0;
 	}
 	const matrix<Sign>& SearchEngine::getBoard() const noexcept
 	{

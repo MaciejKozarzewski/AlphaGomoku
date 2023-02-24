@@ -112,7 +112,7 @@ namespace ag
 	 */
 	bool EngineController::is_search_completed(double timeout) const
 	{
-		return time_manager.getElapsedTime() > timeout or search_engine.isSearchFinished();
+		return (time_manager.getElapsedTime() > timeout or search_engine.isSearchFinished()) and search_engine.isRootEvaluated();
 	}
 	void EngineController::start_best_move_search()
 	{

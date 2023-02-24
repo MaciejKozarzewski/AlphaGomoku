@@ -120,7 +120,7 @@ namespace ag
 	{
 		solver.setSharedTable(tree.getSharedHashTable());
 
-		int number_of_trials = 1000;
+		int number_of_trials = 10 * get_buffer().maxSize();
 
 		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
 		{
@@ -158,9 +158,11 @@ namespace ag
 				get_buffer().removeLast();
 			}
 
+			// in theory we can keep hitting information leaks of proven states forever
+			// this is why we exit the loop after certain number of search tasks
 			number_of_trials--;
 			if (number_of_trials <= 0)
-				break; // required to avoid getting stuck in this loop forever
+				break;
 		}
 		stats.nb_batch_size += get_buffer().storedElements();
 	}
