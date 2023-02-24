@@ -322,7 +322,7 @@ namespace ag
 			else
 				result = ((value > 0) ? '+' : '-') + result;
 		}
-		for (int i = 0; i < length - isSigned - (int) result.size(); i++)
+		while (static_cast<int>(result.size()) < length)
 			result = ' ' + result;
 		return result;
 	}
