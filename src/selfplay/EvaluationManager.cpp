@@ -23,7 +23,7 @@ namespace ag
 			evaluators(selfplayOptions.games_per_thread)
 	{
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i] = std::make_unique<EvaluationGame>(gameOptions, game_buffer, selfplayOptions.use_opening, selfplayOptions.save_data);
+			evaluators[i] = std::make_unique<EvaluationGame>(gameOptions, *this, selfplayOptions.use_opening);
 	}
 	void EvaluatorThread::setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
 	{
@@ -39,8 +39,14 @@ namespace ag
 		for (size_t i = 0; i < evaluators.size(); i++)
 			evaluators[i]->setSecondPlayer(options, second_nn_evaluator, name);
 	}
-	GameBuffer& EvaluatorThread::getGameBuffer() noexcept
+	void EvaluatorThread::addToBuffer(const Game &game)
 	{
+		std::lock_guard<std::mutex> lock(game_buffer_mutex);
+		game_buffer.push_back(game);
+	}
+	const std::vector<Game>& EvaluatorThread::getGameBuffer() noexcept
+	{
+		assert(isFinished());
 		return game_buffer;
 	}
 	void EvaluatorThread::generate(int numberOfGames)
@@ -107,9 +113,20 @@ namespace ag
 			evaluators[i] = std::make_unique<EvaluatorThread>(gameOptions, selfplayOptions, i);
 	}
 
-	GameBuffer& EvaluationManager::getGameBuffer(int threadIndex) noexcept
+	const std::vector<Game>& EvaluationManager::getGameBuffer(int threadIndex) const
 	{
 		return evaluators.at(threadIndex)->getGameBuffer();
+	}
+	std::string EvaluationManager::getPGN() const
+	{
+		std::string result;
+		for (size_t i = 0; i < evaluators.size(); i++)
+		{
+			const std::vector<Game> &buffer = getGameBuffer(i);
+			for (size_t j = 0; j < buffer.size(); j++)
+				result += buffer[j].generatePGN();
+		}
+		return result;
 	}
 	void EvaluationManager::setFirstPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
 	{

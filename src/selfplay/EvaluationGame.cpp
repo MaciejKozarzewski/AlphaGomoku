@@ -6,7 +6,7 @@
  */
 
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
-#include <alphagomoku/selfplay/SearchData.hpp>
+#include <alphagomoku/selfplay/EvaluationManager.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
@@ -91,7 +91,7 @@ namespace ag
 	Move Player::getMove() const noexcept
 	{
 		BestEdgeSelector selector;
-		Node root_node = tree.getInfo( { });
+		const Node root_node = tree.getInfo( { });
 		Edge *edge = selector.select(&root_node);
 
 //		std::cout << "Player : " << getName() << '\n';
@@ -102,26 +102,12 @@ namespace ag
 
 		return edge->getMove();
 	}
-	SearchData Player::getSearchData() const
-	{
-		const Node root_node = tree.getInfo( { });
 
-		BestEdgeSelector selector;
-		const Move move = selector.select(&root_node)->getMove();
-
-		SearchData result(game_config.rows, game_config.cols);
-		result.setBoard(tree.getBoard());
-		result.setSearchResults(root_node);
-		result.setMove(move);
-		return result;
-	}
-
-	EvaluationGame::EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening, bool saveData) :
-			game_buffer(gameBuffer),
+	EvaluationGame::EvaluationGame(GameConfig gameConfig, EvaluatorThread &manager, bool useOpening) :
+			manager_thread(manager),
 			game(gameConfig),
 			opening_generator(gameConfig, 8),
-			use_opening(useOpening),
-			save_data(saveData)
+			use_opening(useOpening)
 	{
 	}
 	void EvaluationGame::clear()
@@ -240,13 +226,10 @@ namespace ag
 			get_player().expandBackup();
 			if (get_player().isSearchOver())
 			{
-				if (save_data)
-					game.addSearchData(get_player().getSearchData());
 				game.makeMove(get_player().getMove());
 				if (game.isOver())
 				{
-					game.resolveOutcome();
-					game_buffer.addToBuffer(game);
+					manager_thread.addToBuffer(game);
 					state = GAME_NOT_STARTED;
 					return;
 				}

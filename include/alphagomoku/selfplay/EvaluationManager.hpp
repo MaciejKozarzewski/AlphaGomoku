@@ -8,8 +8,8 @@
 #ifndef ALPHAGOMOKU_EVALUATION_EVALUATIONMANAGER_HPP_
 #define ALPHAGOMOKU_EVALUATION_EVALUATIONMANAGER_HPP_
 
+#include <alphagomoku/selfplay/EvaluationGame.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
-#include <alphagomoku/selfplay/GameBuffer.hpp>
 
 #include <cinttypes>
 #include <string>
@@ -17,8 +17,6 @@
 
 namespace ag
 {
-	class EvaluationManager;
-	class EvaluationGame;
 	class GameConfig;
 	class SelfplayConfig;
 } /* namespace ag */
@@ -35,13 +33,15 @@ namespace ag
 			NNEvaluator second_nn_evaluator;
 			std::vector<std::unique_ptr<EvaluationGame>> evaluators;
 
-			GameBuffer game_buffer;
+			std::mutex game_buffer_mutex;
+			std::vector<Game> game_buffer;
 			int games_to_play = 0;
 		public:
 			EvaluatorThread(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index);
 			void setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
 			void setSecondPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
-			GameBuffer& getGameBuffer() noexcept;
+			void addToBuffer(const Game &game);
+			const std::vector<Game>& getGameBuffer() noexcept;
 			void generate(int numberOfGames);
 			void stop();
 			bool isFinished() const;
@@ -56,7 +56,8 @@ namespace ag
 		public:
 			EvaluationManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions);
 
-			GameBuffer& getGameBuffer(int threadIndex) noexcept;
+			const std::vector<Game>& getGameBuffer(int threadIndex) const;
+			std::string getPGN() const;
 
 			void setFirstPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
 			void setSecondPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);

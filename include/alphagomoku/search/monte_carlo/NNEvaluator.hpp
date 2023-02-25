@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_NNEVALUATOR_HPP_
 #define ALPHAGOMOKU_SEARCH_MONTE_CARLO_NNEVALUATOR_HPP_
 
-#include <alphagomoku/selfplay/AGNetwork.hpp>
+#include <alphagomoku/networks/AGNetwork.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 
 #include <string>

@@ -6,7 +6,7 @@
  */
 
 #include "test_rules.hpp"
-#include <alphagomoku/rules/game_rules.hpp>
+//#include <alphagomoku/rules/game_rules.hpp>
 
 #include <gtest/gtest.h>
 

@@ -2,7 +2,7 @@
 # Change Log
 All notable changes to this project will be documented in this file.
  
-## [Unreleased] - 2022-09-23
+## [Unreleased] - 2022-02-24
  
 ### Added
 - Added support for Renju and Caro rule (without new networks so far).

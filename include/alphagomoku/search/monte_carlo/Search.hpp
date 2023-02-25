@@ -9,9 +9,9 @@
 #define ALPHAGOMOKU_SEARCH_MONTE_CARLO_SEARCH_HPP_
 
 #include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/game/Game.hpp>
 #include <alphagomoku/search/monte_carlo/SearchTask.hpp>
 #include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
-#include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/utils/matrix.hpp>

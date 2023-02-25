@@ -6,8 +6,9 @@
  */
 
 #include <alphagomoku/selfplay/GameGenerator.hpp>
-#include <alphagomoku/selfplay/GameBuffer.hpp>
-#include <alphagomoku/selfplay/SearchData.hpp>
+#include <alphagomoku/selfplay/GeneratorManager.hpp>
+#include <alphagomoku/dataset/data_packs.hpp>
+
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
@@ -15,8 +16,9 @@
 
 namespace ag
 {
-	GameGenerator::GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator) :
-			game_buffer(gameBuffer),
+	GameGenerator::GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GeneratorManager &manager,
+			NNEvaluator &evaluator) :
+			manager(manager),
 			nn_evaluator(evaluator),
 			opening_generator(gameOptions, 8),
 			game(gameOptions),
@@ -52,6 +54,7 @@ namespace ag
 		if (state == GAME_NOT_STARTED)
 		{
 			game.beginGame();
+			game_data_storage.clear();
 			tree.clear();
 			if (selfplay_config.use_opening)
 				state = PREPARE_OPENING;
@@ -101,9 +104,11 @@ namespace ag
 				make_move();
 				if (game.isOver())
 				{
-					game.resolveOutcome();
-					if (game.getNumberOfSamples() > 0)
-						game_buffer.addToBuffer(game);
+					const GameOutcome outcome = game.getOutcome();
+					game_data_storage.setOutcome(outcome);
+					game_data_storage.addMoves(game.getMoves());
+					if (game_data_storage.numberOfSamples() > 0)
+						manager.addToBuffer(game_data_storage);
 					state = GAME_NOT_STARTED;
 					return GameGenerator::OK;
 				}
@@ -119,6 +124,8 @@ namespace ag
 	{
 		Json result = game.serialize(binary_data);
 		result["state"] = static_cast<int>(state);
+		result["offset"] = binary_data.size();
+		game_data_storage.serialize(binary_data);
 		return result;
 	}
 	void GameGenerator::load(const Json &json, const SerializedObject &binary_data)
@@ -155,13 +162,10 @@ namespace ag
 		BestEdgeSelector selector;
 		const Move move = selector.select(&root_node)->getMove();
 
-		SearchData state(game_config.rows, game_config.cols);
-		state.setBoard(tree.getBoard());
-		state.setSearchResults(root_node);
-		state.setMove(move);
-//		state.print();
+		SearchDataPack sample(root_node, game.getBoard());
+//		data.print();
 
-		game.addSearchData(state);
+		game_data_storage.addSample(sample);
 		game.makeMove(move);
 	}
 	void GameGenerator::prepare_search()

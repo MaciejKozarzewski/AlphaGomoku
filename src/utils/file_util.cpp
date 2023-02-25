@@ -97,6 +97,9 @@ namespace ag
 	}
 	size_t FileLoader::find_split_point() const noexcept
 	{
+		if (loaded_data[0] == 'n' and loaded_data[1] == 'u' and loaded_data[2] == 'l' and loaded_data[3] == 'l')
+			return 5;
+
 		int opened_braces = 0;
 		for (size_t i = 0; i < loaded_data.size(); i++)
 		{

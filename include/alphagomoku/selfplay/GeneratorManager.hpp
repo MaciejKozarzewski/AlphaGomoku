@@ -8,8 +8,7 @@
 #ifndef SELFPLAY_GENERATORMANAGER_HPP_
 #define SELFPLAY_GENERATORMANAGER_HPP_
 
-#include <alphagomoku/selfplay/Game.hpp>
-#include <alphagomoku/selfplay/GameBuffer.hpp>
+#include <alphagomoku/dataset/GameDataBuffer.hpp>
 #include <alphagomoku/selfplay/GameGenerator.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 
@@ -75,8 +74,9 @@ namespace ag
 	class GeneratorManager
 	{
 		private:
+			mutable std::mutex buffer_mutex;
 			std::vector<std::unique_ptr<GeneratorThread>> generators;
-			GameBuffer game_buffer;
+			GameDataBuffer game_buffer;
 
 			int games_to_generate = 0;
 			std::string path_to_network;
@@ -85,8 +85,10 @@ namespace ag
 			GeneratorManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions);
 
 			void setWorkingDirectory(const std::string &path);
-			const GameBuffer& getGameBuffer() const noexcept;
-			GameBuffer& getGameBuffer() noexcept;
+			void addToBuffer(const GameDataStorage &gameData);
+
+			const GameDataBuffer& getGameBuffer() const noexcept;
+			GameDataBuffer& getGameBuffer() noexcept;
 			std::string getPathToNetwork() const;
 
 			void resetGames();

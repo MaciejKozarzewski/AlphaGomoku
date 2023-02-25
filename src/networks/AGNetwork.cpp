@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/selfplay/AGNetwork.hpp>
+#include <alphagomoku/networks/AGNetwork.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/search/Value.hpp>

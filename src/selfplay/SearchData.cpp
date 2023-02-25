@@ -165,7 +165,7 @@ namespace ag
 			for (int c = 0; c < cols(); c++)
 				visit_count.at(r, c) = getVisitCount(r, c);
 		std::cout << "visit count\n" << Board::toString(board, visit_count);
-		std::cout << "proven values\n" << Board::toString(board, action_scores);
+		std::cout << "action score\n" << Board::toString(board, action_scores);
 		std::cout << "action values\n" << Board::toString(board, action_values) << '\n';
 	}
 	bool SearchData::isCorrect() const noexcept

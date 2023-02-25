@@ -8,10 +8,10 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/rules.hpp>
-#include <alphagomoku/mcts/Edge.hpp>
-#include <alphagomoku/mcts/Node.hpp>
-#include <alphagomoku/mcts/SearchTask.hpp>
-#include <alphagomoku/mcts/Value.hpp>
+#include <alphagomoku/search/monte_carlo/Edge.hpp>
+#include <alphagomoku/search/monte_carlo/Node.hpp>
+#include <alphagomoku/search/monte_carlo/SearchTask.hpp>
+#include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <gtest/gtest.h>
 #include <iostream>

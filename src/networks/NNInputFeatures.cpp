@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/selfplay/NNInputFeatures.hpp>
+#include <alphagomoku/networks/NNInputFeatures.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 

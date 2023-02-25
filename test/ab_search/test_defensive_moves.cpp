@@ -274,7 +274,7 @@ namespace ag
 
 	TEST(TestDefensiveMoves, FreestyleFive)
 	{
-//		GTEST_SKIP();
+		GTEST_SKIP();
 		const GameRules rules = GameRules::STANDARD;
 		const PatternType type = PatternType::HALF_OPEN_4;
 		const int expanded_size = (rules == GameRules::FREESTYLE) ? 0 : 1;

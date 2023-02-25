@@ -17,29 +17,12 @@
 class Json;
 namespace ag
 {
-	class GameBuffer;
+	class GameDataBuffer;
 	class AGNetwork;
 } /* namespace ag */
 
 namespace ag
 {
-	struct DataPack
-	{
-			matrix<Sign> board;
-			matrix<float> policy;
-			matrix<Value> action_values;
-			Value value;
-			Sign sign_to_move = Sign::NONE;
-
-			DataPack() noexcept = default;
-			DataPack(int rows, int cols) :
-					board(rows, cols),
-					policy(rows, cols),
-					action_values(rows, cols)
-			{
-			}
-	};
-
 	class SupervisedLearning
 	{
 			int learning_steps = 0;
@@ -53,8 +36,8 @@ namespace ag
 			SupervisedLearning(const TrainingConfig &config);
 			void updateTrainingStats(const std::vector<float> &loss, std::vector<float> &acc);
 			void updateValidationStats(const std::vector<float> &loss, std::vector<float> &acc);
-			void train(AGNetwork &model, GameBuffer &buffer, int steps);
-			void validate(AGNetwork &model, GameBuffer &buffer);
+			void train(AGNetwork &model, GameDataBuffer &buffer, int steps);
+			void validate(AGNetwork &model, GameDataBuffer &buffer);
 			void saveTrainingHistory(const std::string &workingDirectory);
 			void clearStats();
 

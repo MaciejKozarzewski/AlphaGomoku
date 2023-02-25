@@ -11,7 +11,7 @@
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/game/Board.hpp>
-#include <alphagomoku/selfplay/Game.hpp>
+#include <alphagomoku/game/Game.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/file_util.hpp>

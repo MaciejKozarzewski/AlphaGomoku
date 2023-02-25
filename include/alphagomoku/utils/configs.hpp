@@ -128,7 +128,6 @@ namespace ag
 	{
 			bool use_opening = true;
 			bool use_symmetries = true;
-			bool save_data = true;
 			int games_per_iteration = 100;
 			int games_per_thread = 8;
 			int simulations = 100;

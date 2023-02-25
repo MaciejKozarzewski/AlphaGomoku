@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/rules/Line.hpp>
-#include <alphagomoku/rules/game_rules.hpp>
+//#include <alphagomoku/rules/Line.hpp>
+//#include <alphagomoku/rules/game_rules.hpp>
 #include <stddef.h>
 #include <array>
 #include <iostream>

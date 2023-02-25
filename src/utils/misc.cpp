@@ -295,6 +295,8 @@ namespace ag
 			board.clear();
 			Sign sign_to_move = Sign::CROSS;
 			int opening_moves = std::max(minNumberOfMoves, randInt(6) + randInt(6) + randInt(6));
+			if (randInt(1000) == 0)
+				opening_moves = 0;
 			for (int i = 0; i < opening_moves; i++)
 			{
 				generateOpeningMap(board, map_dist);

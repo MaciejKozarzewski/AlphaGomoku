@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef ALPHAGOMOKU_SELFPLAY_GAME_HPP_
-#define ALPHAGOMOKU_SELFPLAY_GAME_HPP_
+#ifndef ALPHAGOMOKU_GAME_GAME_HPP_
+#define ALPHAGOMOKU_GAME_GAME_HPP_
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/rules.hpp>
@@ -18,11 +18,6 @@
 
 class Json;
 class SerializedObject;
-namespace ag
-{
-	class EvaluationRequest;
-	class SearchData;
-} /* namespace ag */
 
 namespace ag
 {
@@ -32,12 +27,8 @@ namespace ag
 		private:
 			GameConfig game_config;
 
-			std::vector<SearchData> search_data;
 			std::vector<Move> played_moves;
 			matrix<Sign> current_board;
-
-			mutable std::vector<int> use_count;
-			GameOutcome outcome = GameOutcome::UNKNOWN;
 
 			std::string cross_player_name;
 			std::string circle_player_name;
@@ -49,30 +40,28 @@ namespace ag
 			int rows() const noexcept;
 			int cols() const noexcept;
 			GameRules getRules() const noexcept;
-			int length() const noexcept;
+
 			void beginGame();
+			void loadOpening(const std::vector<Move> &moves);
 			Sign getSignToMove() const noexcept;
 			Move getLastMove() const noexcept;
+			Move getMove(int index) const noexcept;
+			const std::vector<Move> getMoves() const noexcept;
 			const matrix<Sign>& getBoard() const noexcept;
-			void loadOpening(const std::vector<Move> &moves);
+
+			int numberOfMoves() const noexcept;
 			void undoMove(Move move);
 			void makeMove(Move move);
-			void addSearchData(const SearchData &state);
-			void resolveOutcome();
+
 			bool isOver() const;
 			bool isDraw() const;
 			GameOutcome getOutcome() const noexcept;
+
 			void setPlayers(const std::string &crossPlayerName, const std::string &circlePlayerName);
 			std::string generatePGN(bool fullGameHistory = false) const;
-
-			bool isCorrect() const;
-			int getNumberOfSamples() const noexcept;
-			const SearchData& getSample(int index = -1) const;
-			SearchData& getSample(int index = -1);
-			int randomizeState() const;
 
 			Json serialize(SerializedObject &binary_data) const;
 	};
 }
 
-#endif /* ALPHAGOMOKU_SELFPLAY_GAME_HPP_ */
+#endif /* ALPHAGOMOKU_GAME_GAME_HPP_ */

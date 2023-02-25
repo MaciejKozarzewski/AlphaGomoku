@@ -9,7 +9,7 @@
 #define ALPHAGOMOKU_SELFPLAY_AGNETWORK_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/selfplay/NNInputFeatures.hpp>
+#include <alphagomoku/networks/NNInputFeatures.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 

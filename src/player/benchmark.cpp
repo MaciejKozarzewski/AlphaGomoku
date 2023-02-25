@@ -8,7 +8,7 @@
 #include <alphagomoku/player/ProgramManager.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
-#include <alphagomoku/selfplay/AGNetwork.hpp>
+#include <alphagomoku/networks/AGNetwork.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/version.hpp>
 

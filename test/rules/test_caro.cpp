@@ -6,7 +6,7 @@
  */
 
 #include "test_rules.hpp"
-#include <alphagomoku/rules/caro.hpp>
+//#include <alphagomoku/rules/caro.hpp>
 
 #include <gtest/gtest.h>
 

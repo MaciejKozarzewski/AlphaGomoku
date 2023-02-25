@@ -5,16 +5,16 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/selfplay/AGNetwork.hpp>
-#include <alphagomoku/selfplay/GameBuffer.hpp>
-#include <alphagomoku/selfplay/Game.hpp>
-#include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
+#include <alphagomoku/networks/AGNetwork.hpp>
+#include <alphagomoku/dataset/GameDataBuffer.hpp>
+#include <alphagomoku/dataset/data_packs.hpp>
+#include <alphagomoku/dataset/Sampler.hpp>
+#include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
-#include <alphagomoku/game/Board.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -26,183 +26,23 @@ namespace
 {
 	using namespace ag;
 
-	void augment_data_pack(DataPack &pack)
+	void augment_data_pack(TrainingDataPack &pack)
 	{
 		const int r = randInt(available_symmetries(pack.board));
 		ag::augment(pack.board, r);
-		ag::augment(pack.policy, r);
-		ag::augment(pack.action_values, r);
+		ag::augment(pack.policy_target, r);
+		ag::augment(pack.action_values_target, r);
 	}
-	DataPack prepare_data_pack(const SearchData &sample, bool perform_augmentations)
-	{
-		DataPack result(sample.rows(), sample.cols());
-		result.value = convertOutcome(sample.getOutcome(), sample.getMove().sign);
-		result.sign_to_move = sample.getMove().sign;
 
-		auto get_expectation = [](Score score, Value value)
-		{
-			switch (score.getProvenValue())
-			{
-				case ProvenValue::LOSS:
-				return Value::loss().getExpectation();
-				case ProvenValue::DRAW:
-				return Value::draw().getExpectation();
-				default:
-				case ProvenValue::UNKNOWN:
-				return value.getExpectation();
-				case ProvenValue::WIN:
-				return Value::win().getExpectation();
-			}
-		};
-
-		int max_N = 0, sum_N = 0;
-		float sum_v = 0.0f, sum_q = 0.0f, sum_p = 0.0f;
-		for (int row = 0; row < sample.rows(); row++)
-			for (int col = 0; col < sample.cols(); col++)
-			{
-				if (sample.getVisitCount(row, col) > 0 or sample.getActionScore(row, col).isProven())
-				{
-					const Score score = sample.getActionScore(row, col);
-					const Value value = sample.getActionValue(row, col);
-					const int visits = std::max(1, sample.getVisitCount(row, col)); // proven action counts as 1 visit (even though it might not have been visited by the search)
-					const float policy_prior = sample.getPolicyPrior(row, col);
-
-					sum_v += value.getExpectation() * visits;
-					sum_q += policy_prior * get_expectation(score, value);
-					sum_p += policy_prior;
-					max_N = std::max(max_N, visits);
-					sum_N += visits;
-				}
-			}
-		float V_mix = 0.0f;
-		if (sum_N > 0) //or sum_p > 0.0f)
-		{
-			const float inv_N = 1.0f / sum_N;
-			V_mix = (sample.getMinimaxValue().getExpectation() - sum_v * inv_N) + (1.0f - inv_N) / sum_p * sum_q;
-		}
-		else
-			V_mix = sample.getMinimaxValue().getExpectation();
-
-		for (int row = 0; row < sample.rows(); row++)
-			for (int col = 0; col < sample.cols(); col++)
-				result.board.at(row, col) = sample.getSign(row, col);
-
-		float shift = std::numeric_limits<float>::lowest();
-		for (int row = 0; row < sample.rows(); row++)
-			for (int col = 0; col < sample.cols(); col++)
-				if (sample.getSign(row, col) == Sign::NONE)
-				{
-					const int visits = sample.getVisitCount(row, col);
-					const Score score = sample.getActionScore(row, col);
-					const Value value = sample.getActionValue(row, col);
-					const float policy_prior = sample.getPolicyPrior(row, col);
-
-					float Q;
-					switch (score.getProvenValue())
-					{
-						case ProvenValue::LOSS:
-							Q = -100.0f + 0.1f * score.getDistance();
-							break;
-						case ProvenValue::DRAW:
-							Q = Value::draw().getExpectation();
-							break;
-						default:
-						case ProvenValue::UNKNOWN:
-							Q = (visits > 0) ? value.getExpectation() : V_mix;
-							break;
-						case ProvenValue::WIN:
-							Q = +101.0f - 0.1f * score.getDistance();
-							break;
-					}
-					const float sigma_Q = (50 + max_N) * Q;
-					const float logit = safe_log(policy_prior);
-
-					result.policy.at(row, col) = logit + sigma_Q;
-					shift = std::max(shift, result.policy.at(row, col));
-
-					switch (sample.getActionScore(row, col).getProvenValue())
-					{
-						case ProvenValue::UNKNOWN:
-							result.action_values.at(row, col) = sample.getActionValue(row, col);
-							break;
-						case ProvenValue::LOSS:
-							result.action_values.at(row, col) = Value::loss();
-							break;
-						case ProvenValue::DRAW:
-							result.action_values.at(row, col) = Value::draw();
-							break;
-						case ProvenValue::WIN:
-							result.action_values.at(row, col) = Value::win();
-							break;
-					}
-				}
-		assert(shift != std::numeric_limits<float>::lowest());
-
-		float inv_sum = 0.0f;
-		for (int i = 0; i < result.policy.size(); i++)
-			if (result.board[i] == Sign::NONE)
-			{
-				result.policy[i] = std::exp(std::max(-100.0f, result.policy[i] - shift));
-				if (result.policy[i] < 1.0e-9f)
-					result.policy[i] = 0.0f;
-				inv_sum += result.policy[i];
-			}
-		assert(inv_sum > 0.0f);
-		inv_sum = 1.0f / inv_sum;
-
-		for (int i = 0; i < result.policy.size(); i++)
-			result.policy[i] *= inv_sum;
-
-//		for (int row = 0; row < sample.rows(); row++)
-//			for (int col = 0; col < sample.cols(); col++)
-//			{
-//				result.board.at(row, col) = sample.getSign(row, col);
-//				switch (sample.getActionScore(row, col).getProvenValue())
-//				{
-//					case ProvenValue::UNKNOWN:
-//						result.policy.at(row, col) = sample.getVisitCount(row, col);
-//						result.action_values.at(row, col) = sample.getActionValue(row, col);
-//						break;
-//					case ProvenValue::LOSS:
-//						result.policy.at(row, col) = 1.0e-6f;
-//						result.action_values.at(row, col) = Value::loss();
-//						break;
-//					case ProvenValue::DRAW:
-//						result.policy.at(row, col) = sample.getVisitCount(row, col);
-//						result.action_values.at(row, col) = Value::draw();
-//						break;
-//					case ProvenValue::WIN:
-//						result.policy.at(row, col) = 1.0e6f;
-//						result.action_values.at(row, col) = Value::win();
-//						break;
-//				}
-//			}
-//		normalize(result.policy);
-
-//		std::cout << "Sample from buffer\n";
-//		sample.print();
-//		std::cout << "Prepared training data pack\n";
-//		std::cout << "Sign to move " << result.sign_to_move << '\n';
-//		std::cout << "Value target = " << result.value.toString() << '\n';
-//		std::cout << "Board\n" << Board::toString(result.board);
-//		std::cout << "Policy target\n" << Board::toString(result.board, result.policy);
-//		std::cout << "Action values target\n" << Board::toString(result.board, result.action_values);
-//		exit(0);
-
-		if (perform_augmentations)
-			augment_data_pack(result);
-
-		return result;
-	}
-	void mask_out_target_data_pack(const DataPack &output, DataPack &target)
+	void mask_out_target_data_pack(const TrainingDataPack &output, TrainingDataPack &target)
 	{
 		assert(equalSize(output.board, target.board));
-		assert(equalSize(output.policy, target.policy));
-		assert(equalSize(output.action_values, target.action_values));
+		assert(equalSize(output.policy_target, target.policy_target));
+		assert(equalSize(output.action_values_target, target.action_values_target));
 
-		for (int i = 0; i < output.action_values.size(); i++)
-			if (target.policy[i] == 0.0f) // if all fields are zero it means that we don't have any target data for this spot
-				target.action_values[i] = output.action_values[i]; // in such case we set value of the target to the output from the network, zeroing the gradient
+		for (int i = 0; i < output.action_values_target.size(); i++)
+			if (target.visit_count[i] == 0) // if an action was not visited then we don't have any target data for this spot
+				target.action_values_target[i] = output.action_values_target[i]; // in such case we set value of the target to the output from the network, zeroing the gradient
 
 //		std::cout << "Output from network\n";
 //		std::cout << "Value output = " << output.value.toString() << '\n';
@@ -217,21 +57,21 @@ namespace
 //		std::cout << "Action values target\n" << Board::toString(matrix<Sign>(15, 15), target.action_values);
 //		std::cout << "\n------------------------------------------------------------------------\n";
 	}
-	void push_input_data_to_model(std::vector<DataPack> &inputs, AGNetwork &model)
+	void push_input_data_to_model(std::vector<TrainingDataPack> &inputs, AGNetwork &model)
 	{
 		assert(model.getBatchSize() >= static_cast<int>(inputs.size()));
 		for (size_t i = 0; i < inputs.size(); i++)
 			model.packInputData(i, inputs.at(i).board, inputs.at(i).sign_to_move);
 	}
-	void push_target_data_to_model(std::vector<DataPack> &targets, AGNetwork &model)
+	void push_target_data_to_model(std::vector<TrainingDataPack> &targets, AGNetwork &model)
 	{
 		assert(model.getBatchSize() >= static_cast<int>(targets.size()));
-		DataPack output_data_pack(model.getInputShape()[1], model.getInputShape()[2]);
+		TrainingDataPack output_data_pack(model.getInputShape()[1], model.getInputShape()[2]);
 		for (size_t i = 0; i < targets.size(); i++)
 		{
-			model.unpackOutput(i, output_data_pack.policy, output_data_pack.action_values, output_data_pack.value);
+			model.unpackOutput(i, output_data_pack.policy_target, output_data_pack.action_values_target, output_data_pack.value_target);
 			mask_out_target_data_pack(output_data_pack, targets[i]);
-			model.packTargetData(i, targets[i].policy, targets[i].action_values, targets[i].value);
+			model.packTargetData(i, targets[i].policy_target, targets[i].action_values_target, targets[i].value_target);
 		}
 	}
 }
@@ -260,32 +100,28 @@ namespace ag
 			validation_loss.at(1 + i) += loss.at(i);
 		addVectors(validation_accuracy, acc);
 	}
-	void SupervisedLearning::train(AGNetwork &model, GameBuffer &buffer, int steps)
+	void SupervisedLearning::train(AGNetwork &model, GameDataBuffer &buffer, int steps)
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
 		const int batch_size = model.getInputShape().firstDim();
+		const int rows = model.getInputShape().dim(1);
+		const int cols = model.getInputShape().dim(2);
 
-		std::vector<int> training_sample_order = permutation(buffer.size());
-		size_t training_sample_index = 0;
+		Sampler sampler(buffer);
 
-		std::vector<DataPack> data_packs(batch_size);
+		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
 
 		for (int i = 0; i < steps; i++)
 		{
 			if ((i + 1) % std::max(1, (steps / 10)) == 0)
 				std::cout << i + 1 << '\n';
+
 			for (int b = 0; b < batch_size; b++)
 			{
-				const SearchData &sample = buffer.getFromBuffer(training_sample_order.at(training_sample_index)).getSample();
-				training_sample_index++;
-				if (training_sample_index >= training_sample_order.size())
-				{
-					training_sample_order = permutation(training_sample_order.size());
-					training_sample_index = 0;
-				}
-
-				data_packs.at(b) = prepare_data_pack(sample, config.augment_training_data);
+				sampler.get(data_packs.at(b));
+				if (config.augment_training_data)
+					augment_data_pack(data_packs.at(b));
 			}
 
 			push_input_data_to_model(data_packs, model);
@@ -301,13 +137,17 @@ namespace ag
 			learning_steps++;
 		}
 	}
-	void SupervisedLearning::validate(AGNetwork &model, GameBuffer &buffer)
+	void SupervisedLearning::validate(AGNetwork &model, GameDataBuffer &buffer)
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
 		const int batch_size = model.getInputShape().firstDim();
+		const int rows = model.getInputShape().dim(1);
+		const int cols = model.getInputShape().dim(2);
 
-		std::vector<DataPack> data_packs(std::min(batch_size, buffer.size()));
+		Sampler sampler(buffer);
+
+		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
 
 		int counter = 0;
 		while (counter < buffer.size())
@@ -315,8 +155,7 @@ namespace ag
 			int this_batch = 0;
 			while (counter < buffer.size() and this_batch < batch_size)
 			{
-				const SearchData &sample = buffer.getFromBuffer(counter).getSample();
-				data_packs.at(this_batch) = prepare_data_pack(sample, config.augment_training_data);
+				sampler.get(data_packs.at(this_batch));
 				counter++;
 				this_batch++;
 			}

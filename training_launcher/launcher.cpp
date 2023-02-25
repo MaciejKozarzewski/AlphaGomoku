@@ -6,30 +6,33 @@
  */
 
 #include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/game/Game.hpp>
+#include <alphagomoku/game/Board.hpp>
+#include <alphagomoku/networks/AGNetwork.hpp>
+#include <alphagomoku/networks/NNInputFeatures.hpp>
 #include <alphagomoku/search/monte_carlo/Search.hpp>
 #include <alphagomoku/search/monte_carlo/Tree.hpp>
-#include <alphagomoku/selfplay/AGNetwork.hpp>
-#include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
-#include <alphagomoku/utils/file_util.hpp>
-#include <alphagomoku/utils/matrix.hpp>
-#include <alphagomoku/utils/misc.hpp>
-#include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
-#include <alphagomoku/selfplay/NNInputFeatures.hpp>
 #include <alphagomoku/selfplay/OpeningGenerator.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/ObjectPool.hpp>
+#include <alphagomoku/utils/file_util.hpp>
+#include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
+#include <alphagomoku/dataset/data_packs.hpp>
+#include <alphagomoku/dataset/SearchDataStorage.hpp>
+#include <alphagomoku/dataset/GameDataStorage.hpp>
 
 #include <minml/graph/Graph.hpp>
 #include <minml/core/Device.hpp>
@@ -458,19 +461,19 @@ bool is_symmetric(const matrix<Sign> &board)
 
 void check_all_dataset(const std::string &path, int counter)
 {
-	size_t all_positions = 0;
-	size_t all_games = 0;
-	size_t sym_positions = 0;
-
-	matrix<Sign> board(12, 12);
-	for (int i = 0; i < counter; i++)
-	{
-		GameBuffer buffer(path + "buffer_" + std::to_string(i) + ".bin");
-
-		all_positions = 0;
-		for (int j = 0; j < buffer.size(); j++)
-			all_positions += buffer.getFromBuffer(j).getNumberOfSamples();
-		std::cout << i << " " << all_positions << " " << buffer.size() << '\n';
+//	size_t all_positions = 0;
+//	size_t all_games = 0;
+//	size_t sym_positions = 0;
+//
+//	matrix<Sign> board(12, 12);
+//	for (int i = 0; i < counter; i++)
+//	{
+//		GameBuffer buffer(path + "buffer_" + std::to_string(i) + ".bin");
+//
+//		all_positions = 0;
+//		for (int j = 0; j < buffer.size(); j++)
+//			all_positions += buffer.getFromBuffer(j).getNumberOfSamples();
+//		std::cout << i << " " << all_positions << " " << buffer.size() << '\n';
 
 //		all_games += buffer.size();
 //		for (int j = 0; j < buffer.size(); j++)
@@ -484,7 +487,7 @@ void check_all_dataset(const std::string &path, int counter)
 //			}
 //		}
 //		std::cout << i << " " << sym_positions << " / " << all_positions << " in " << all_games << " games\n";
-	}
+//	}
 }
 
 void find_proven_positions(const std::string &path, int index)
@@ -597,7 +600,7 @@ void generate_openings(int number)
 	evaluator.loadGraph("/home/maciek/alphagomoku/minml_test/minml3v7_10x128_opt.bin");
 
 	ThreatSpaceSearch solver(game_config);
-	std::shared_ptr<SharedHashTable<4>> sht = std::make_shared<SharedHashTable<4>>(game_config.rows, game_config.cols, 1048576);
+	std::shared_ptr<SharedHashTable> sht = std::make_shared<SharedHashTable>(game_config.rows, game_config.cols, 1048576);
 	solver.setSharedTable(sht);
 
 	OpeningGenerator generator(game_config, 10);
@@ -795,44 +798,44 @@ void test_expand()
 void run_training()
 {
 	ml::Device::setNumberOfThreads(1);
-	GameBuffer buffer("/home/maciek/alphagomoku/standard_test/train_buffer/buffer_0.bin");
-	std::cout << buffer.getStats().toString() << '\n';
-
-	GameConfig game_config(GameRules::STANDARD, 15);
-	TrainingConfig training_config;
-	training_config.augment_training_data = true;
-	training_config.blocks = 10;
-	training_config.filters = 128;
-	training_config.device_config.batch_size = 64;
-	training_config.l2_regularization = 5.0e-5f;
-
-	AGNetwork network(game_config, training_config);
-//	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3_5x64.bin");
-	network.moveTo(ml::Device::cuda(1));
-//	network.moveTo(ml::Device::cpu());
-//	network.forward(2);
-//	network.backward(2);
-//	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-	SupervisedLearning sl(training_config);
-
-	for (int e = 0; e < 100; e++)
-	{
-		if (e == 40)
-			network.changeLearningRate(1.0e-4f);
-		if (e == 80)
-			network.changeLearningRate(1.0e-5f);
-		sl.clearStats();
-		sl.train(network, buffer, 1000);
-//		sl.saveTrainingHistory("/home/maciek/alphagomoku/minml_test/");
-		network.saveToFile(
-				"/home/maciek/alphagomoku/minml_test/minml_brd_" + std::to_string(training_config.blocks) + "x"
-						+ std::to_string(training_config.filters) + ".bin");
-	}
-	network.optimize();
-	network.saveToFile(
-			"/home/maciek/alphagomoku/minml_test/minml_brd_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
-					+ "_opt.bin");
+//	GameBuffer buffer("/home/maciek/alphagomoku/standard_test/train_buffer/buffer_0.bin");
+//	std::cout << buffer.getStats().toString() << '\n';
+//
+//	GameConfig game_config(GameRules::STANDARD, 15);
+//	TrainingConfig training_config;
+//	training_config.augment_training_data = true;
+//	training_config.blocks = 10;
+//	training_config.filters = 128;
+//	training_config.device_config.batch_size = 64;
+//	training_config.l2_regularization = 5.0e-5f;
+//
+//	AGNetwork network(game_config, training_config);
+////	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3_5x64.bin");
+//	network.moveTo(ml::Device::cuda(1));
+////	network.moveTo(ml::Device::cpu());
+////	network.forward(2);
+////	network.backward(2);
+////	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+//
+//	SupervisedLearning sl(training_config);
+//
+//	for (int e = 0; e < 100; e++)
+//	{
+//		if (e == 40)
+//			network.changeLearningRate(1.0e-4f);
+//		if (e == 80)
+//			network.changeLearningRate(1.0e-5f);
+//		sl.clearStats();
+////		sl.train(network, buffer, 1000);
+////		sl.saveTrainingHistory("/home/maciek/alphagomoku/minml_test/");
+//		network.saveToFile(
+//				"/home/maciek/alphagomoku/minml_test/minml_brd_" + std::to_string(training_config.blocks) + "x"
+//						+ std::to_string(training_config.filters) + ".bin");
+//	}
+//	network.optimize();
+//	network.saveToFile(
+//			"/home/maciek/alphagomoku/minml_test/minml_brd_" + std::to_string(training_config.blocks) + "x" + std::to_string(training_config.filters)
+//					+ "_opt.bin");
 }
 
 void test_evaluate()
@@ -843,14 +846,12 @@ void test_evaluate()
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
 //	cfg.simulations = 200;
 //	cfg.search_config.exploration_constant = 1.0f;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin", "bugged");
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/network_17_opt.bin", "correct_17");
 
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/network_17_opt.bin", "correct_17");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/network_25_opt.bin", "correct_25");
 
-	manager.generate(750);
-	std::string to_save;
-	for (int i = 0; i < manager.numberOfThreads(); i++)
-		to_save += manager.getGameBuffer(i).generatePGN();
+	manager.generate(1000);
+	const std::string to_save = manager.getPGN();
 	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/correct.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
@@ -912,14 +913,61 @@ int main(int argc, char *argv[])
 	std::cout << ml::Device::hardwareInfo() << '\n';
 	setupSignalHandler(SignalType::INT, SignalHandlerMode::CUSTOM);
 
-//	{
-//		GameBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/buffer_20.bin");
+	{
+//		GameBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/buffer_24.bin");
+//		buffer.load("/home/maciek/alphagomoku/new_runs_2023/buffer_21.bin");
+//		buffer.load("/home/maciek/alphagomoku/new_runs_2023/buffer_22.bin");
+//		buffer.load("/home/maciek/alphagomoku/new_runs_2023/buffer_23.bin");
+//		buffer.load("/home/maciek/alphagomoku/new_runs_2023/buffer_24.bin");
 //		std::cout << buffer.getStats().toString() << '\n';
+
+//		SerializedObject so;
+//		FileLoader fl("/home/maciek/cpp_workspace/AlphaGomoku/test_buffer.bin");
+//		size_t offset = 0;
 //
+//		for (int i = 0; i < 10; i++)
+//		{
+//			const GameDataStorage converted = convert(buffer.getFromBuffer(i));
+//			GameDataStorage loaded(fl.getBinaryData(), offset);
+//
+//			assert(converted.getOutcome() == loaded.getOutcome());
+//
+//			assert(converted.numberOfMoves() == loaded.numberOfMoves());
+//			for (int j = 0; j < loaded.numberOfMoves(); j++)
+//				assert(converted.getMove(j) == loaded.getMove(j));
+//
+//			assert(converted.numberOfSamples() == loaded.numberOfSamples());
+//			for (int j = 0; j < loaded.numberOfSamples(); j++)
+//			{
+//				const SearchResultPack pack1 = converted.getSample(j);
+//				const SearchResultPack pack2 = loaded.getSample(j);
+//				assert(pack1.action_scores == pack2.action_scores);
+//				assert(pack1.action_values == pack2.action_values);
+//				assert(pack1.board == pack2.board);
+//				assert(pack1.game_outcome == pack2.game_outcome);
+//				assert(pack1.minimax_score == pack2.minimax_score);
+//				assert(pack1.minimax_value == pack2.minimax_value);
+//				assert(pack1.played_move == pack2.played_move);
+//				assert(pack1.policy_prior == pack2.policy_prior);
+//				assert(pack1.visit_count == pack2.visit_count);
+//			}
+//		}
+//		std::cout << "ALL CORRECT" << std::endl;
+
+//		for (int i = 0; i < 10; i++)
+//		{
+//			const GameDataStorage tmp = convert(buffer.getFromBuffer(i));
+//			tmp.serialize(so);
+//		}
+//		std::cout << so.size() / 1048576.0 << "MB\n";
+//		FileSaver fs("/home/maciek/cpp_workspace/AlphaGomoku/test_buffer.bin");
+//		fs.save(Json(), so, -1, false);
+//		return 0;
+
 //		int total_positions = 0;
 //		int total_visited_actions = 0;
 //		int actions_with_score = 0;
-//		for (int i = 0; i < buffer.size(); i++)
+//		for (int i = 0; i < -buffer.size(); i++)
 ////		int i = 1;
 //		{
 //			for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
@@ -934,14 +982,11 @@ int main(int argc, char *argv[])
 //						if (sample.getSign(row, col) == Sign::NONE)
 //						{
 //							total_visited_actions += static_cast<int>(sample.getVisitCount(row, col) > 0);
-//							if (sample.getVisitCount(row, col) == 0)
-//							{
-//								auto iter = scores.find(sc);
-//								if (iter == scores.end())
-//									scores.insert( { sc, 1 });
-//								else
-//									iter->second++;
-//							}
+//							auto iter = scores.find(sc);
+//							if (iter == scores.end())
+//								scores.insert( { sc, 1 });
+//							else
+//								iter->second++;
 //						}
 //					}
 //				int most_common_score_count = 0;
@@ -960,34 +1005,66 @@ int main(int argc, char *argv[])
 //		std::cout << total_positions << " positions\n";
 //		std::cout << total_visited_actions << " visited actions\n";
 //		std::cout << actions_with_score << " actions with score\n";
-////		const SearchData &sample = buffer.getFromBuffer(1).getSample(0);
-////		sample.print();
-////		float sum_p = 0.0f;
-////		int unvisited_actions = 0;
-////		for (int row = 0; row < 15; row++)
-////			for (int col = 0; col < 15; col++)
-////			{
-////				const Move m(row, col, sample.getSign(row, col));
-////				if (sample.getVisitCount(row, col) > 0)
-////					std::cout << m.text() << " : " << sample.getVisitCount(row, col) << " : " << sample.getPolicyPrior(row, col) << '\n';
-////				else
-////				{
-////					sum_p += sample.getPolicyPrior(row, col);
-////					unvisited_actions++;
-////				}
-////			}
-////		std::cout << "unvisited actions count = " << unvisited_actions << '\n';
-////		std::cout << "unvisited policy sum = " << sum_p << " (" << sum_p / unvisited_actions << ")\n";
+
+//		const SearchData &sample = buffer.getFromBuffer(10).getSample(4);
+//		sample.print();
+//
+//		SearchDataPack pack(15, 15);
+//		for (int row = 0; row < 15; row++)
+//			for (int col = 0; col < 15; col++)
+//			{
+//				pack.board.at(row, col) = sample.getSign(row, col);
+//				pack.policy_prior.at(row, col) = sample.getPolicyPrior(row, col);
+//				pack.visit_count.at(row, col) = sample.getVisitCount(row, col);
+//				pack.action_values.at(row, col) = sample.getActionValue(row, col);
+//				pack.action_scores.at(row, col) = sample.getActionScore(row, col);
+//			}
+//		pack.minimax_value = sample.getMinimaxValue();
+//		pack.minimax_score = sample.getMinimaxScore();
+//		pack.game_outcome = sample.getOutcome();
+//		pack.played_move = sample.getMove();
+//
+//		SearchDataStorage storage;
+//		storage.loadFrom(pack);
+//		storage.print();
+//
+//		SearchDataPack loaded(15, 15);
+//
+//		storage.storeTo(loaded);
+//
+//		std::cout << "original\n";
+//		pack.print();
+//
+//		std::cout << "------------------------------------------------------------\nloaded\n";
+//		loaded.print();
+
+//		float sum_p = 0.0f;
+//		int unvisited_actions = 0;
+//		for (int row = 0; row < 15; row++)
+//			for (int col = 0; col < 15; col++)
+//			{
+//				const Move m(row, col, sample.getSign(row, col));
+//				if (sample.getVisitCount(row, col) > 0)
+//					std::cout << m.text() << " : " << sample.getVisitCount(row, col) << " : " << sample.getPolicyPrior(row, col) << '\n';
+//				else
+//				{
+//					sum_p += sample.getPolicyPrior(row, col);
+//					unvisited_actions++;
+//				}
+//			}
+//		std::cout << "unvisited actions count = " << unvisited_actions << '\n';
+//		std::cout << "unvisited policy sum = " << sum_p << " (" << sum_p / unvisited_actions << ")\n";
+//		std::cout << "END" << std::endl;
 //		return 0;
-//	}
+	}
 
 //	printf("SignalValue:    %i\n", hasCapturedSignal(SignalType::INT));
 //	printf("Sending signal: %d\n", SIGINT);
 //	raise(SIGINT);
 //	printf("SignalValue:    %d\n", hasCapturedSignal(SignalType::INT));
 
-	test_evaluate();
-	return 0;
+//	test_evaluate();
+//	return 0;
 
 //	{
 //		GameBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/no_solver/train_buffer/buffer_17.bin");
@@ -1005,7 +1082,7 @@ int main(int argc, char *argv[])
 //	for (int i = 0; i < 32; i++)
 //		tm.runIterationSL();
 
-	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_save_load/");
+	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/test_new/");
 	for (int i = 0; i < 100; i++)
 		tm.runIterationRL();
 	return 0;
@@ -1188,41 +1265,41 @@ int main(int argc, char *argv[])
 //	board.at(7, 7) = Sign::CIRCLE;
 	const Sign sign_to_move = Sign::CIRCLE;
 
-	for (int i = 0; i < 1; i++)
-	{
-		const SearchData &sample = buffer.getFromBuffer(i).getSample(0);
-//		sample.print();
-//		return 0;
-//		const Sign sign_to_move = sample.getMove().sign;
-//		sample.getBoard(board);
+//	for (int i = 0; i < 1; i++)
+//	{
+//		const SearchData &sample = buffer.getFromBuffer(i).getSample(0);
+////		sample.print();
+////		return 0;
+////		const Sign sign_to_move = sample.getMove().sign;
+////		sample.getBoard(board);
+//
+//		network.packInputData(i, board, sign_to_move);
+//	}
+//
+//	network.forward(1);
+//
+//	matrix<float> policy(15);
+//	matrix<Value> action_values(15);
+//	Value value;
 
-		network.packInputData(i, board, sign_to_move);
-	}
-
-	network.forward(1);
-
-	matrix<float> policy(15);
-	matrix<Value> action_values(15);
-	Value value;
-
-	for (int i = 0; i < 1; i++)
-	{
-		const Value value_target = convertOutcome(buffer.getFromBuffer(i).getSample(0).getOutcome(),
-				buffer.getFromBuffer(i).getSample(0).getMove().sign);
-//		const Value minimax = buffer.getFromBuffer(i).getSample(0).getMinimaxValue();
-//		buffer.getFromBuffer(i).getSample(0).getBoard(board);
-		network.unpackOutput(i, policy, action_values, value);
-		std::cout << '\n';
-		std::cout << Board::toString(board);
-		std::cout << "Network value   = " << value.toString() << " (target = " << value_target.toString() << ")\n";
-//		std::cout << "minimax = " << minimax.toString() << "\n";
-//		std::cout << "Proven value = " << toString(buffer.getFromBuffer(i).getSample(0).getProvenValue()) << "\n";
-		std::cout << "Network policy:\n" << Board::toString(board, policy) << '\n';
-		std::cout << "Network action values:\n" << Board::toString(board, action_values) << '\n';
-//		buffer.getFromBuffer(i).getSample(0).getPolicy(policy);
-//		std::cout << "Target:\n" << Board::toString(board, policy) << '\n';
-//		std::cout << buffer.getFromBuffer(i).getSample(0).getMove().text() << '\n';
-	}
+//	for (int i = 0; i < 1; i++)
+//	{
+//		const Value value_target = convertOutcome(buffer.getFromBuffer(i).getSample(0).getOutcome(),
+//				buffer.getFromBuffer(i).getSample(0).getMove().sign);
+////		const Value minimax = buffer.getFromBuffer(i).getSample(0).getMinimaxValue();
+////		buffer.getFromBuffer(i).getSample(0).getBoard(board);
+//		network.unpackOutput(i, policy, action_values, value);
+//		std::cout << '\n';
+//		std::cout << Board::toString(board);
+//		std::cout << "Network value   = " << value.toString() << " (target = " << value_target.toString() << ")\n";
+////		std::cout << "minimax = " << minimax.toString() << "\n";
+////		std::cout << "Proven value = " << toString(buffer.getFromBuffer(i).getSample(0).getProvenValue()) << "\n";
+//		std::cout << "Network policy:\n" << Board::toString(board, policy) << '\n';
+//		std::cout << "Network action values:\n" << Board::toString(board, action_values) << '\n';
+////		buffer.getFromBuffer(i).getSample(0).getPolicy(policy);
+////		std::cout << "Target:\n" << Board::toString(board, policy) << '\n';
+////		std::cout << buffer.getFromBuffer(i).getSample(0).getMove().text() << '\n';
+//	}
 
 //	network.collectCalibrationStats();
 

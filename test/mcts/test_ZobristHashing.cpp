@@ -5,7 +5,7 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/mcts/ZobristHashing.hpp>
+#include <alphagomoku/search/ZobristHashing.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <gtest/gtest.h>

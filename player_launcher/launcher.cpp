@@ -355,7 +355,7 @@ void test_proven_positions(int pos)
 	std::cout << buffer.getStats().toString() << '\n';
 
 	ThreatSpaceSearch ts_search(game_config, pos);
-	std::shared_ptr<SharedHashTable<4>> sht = std::make_shared<SharedHashTable<4>>(game_config.rows, game_config.cols, 1048576);
+	std::shared_ptr<SharedHashTable> sht = std::make_shared<SharedHashTable>(game_config.rows, game_config.cols, 1 << 23);
 	ts_search.setSharedTable(sht);
 
 	SearchTask task(game_config);
@@ -507,8 +507,8 @@ void test_search()
 	search_config.max_batch_size = 32;
 	search_config.exploration_constant = 1.25f;
 	search_config.max_children = 32;
-	search_config.solver_level = 2;
-	search_config.solver_max_positions = 100;
+	search_config.solver_level = 1;
+	search_config.solver_max_positions = 200;
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
@@ -519,11 +519,11 @@ void test_search()
 //	device_config.device = ml::Device::cpu();
 //#endif
 	NNEvaluator nn_evaluator(device_config);
-	nn_evaluator.useSymmetries(false);
+	nn_evaluator.useSymmetries(true);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/test5_15x15_standard/checkpoint/network_32_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/standard_2021/network_5x64wdl_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku532/networks/standard_10x128.bin");
-	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/puct_network_28_opt.bin");
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/network_25_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku521/networks/freestyle_12x12.bin");
 //	nn_evaluator.loadGraph("C:\\Users\\Maciek\\Desktop\\network_75_opt.bin");
 
@@ -1441,6 +1441,26 @@ void test_search()
 // @formatter:on
 	sign_to_move = Sign::CROSS;
 
+// @formatter:off
+	board = Board::fromString(
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ O X _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X X _ X O _ X X\n"
+			" _ _ _ _ _ _ _ O _ O O X _ X _\n"
+			" _ _ _ _ _ _ X _ X X O O X O _\n"
+			" _ _ _ _ _ _ _ _ O X _ O X _ _\n"
+			" _ _ _ _ _ _ X O O O O X O _ O\n"
+			" _ _ _ _ _ O _ _ X O X X O X _\n"
+			" _ _ _ _ _ _ X X O X X O O _ _\n"
+			" _ _ _ _ _ _ _ X O O X O X _ _\n"
+			" _ _ _ _ _ _ _ _ X O X X O _ _\n"
+			" _ _ _ _ _ _ _ _ _ O O X O _ _\n"
+			" _ _ _ _ _ O X O O O X O X _ _\n"
+			" _ _ _ _ _ _ _ _ _ X _ _ X _ _\n");
+// @formatter:on
+	sign_to_move = Sign::CIRCLE;
+
 //	board = Board::fromString(""
 //			/*         a b c d e f g h i j k l m n o        */
 //			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -1463,7 +1483,7 @@ void test_search()
 
 	GameConfig cfg(GameRules::STANDARD, 15, 15);
 	ThreatSpaceSearch ts_search(cfg, 1000000);
-	std::shared_ptr<SharedHashTable<4>> sht = std::make_shared<SharedHashTable<4>>(cfg.rows, cfg.cols, 1048576);
+	std::shared_ptr<SharedHashTable> sht = std::make_shared<SharedHashTable>(cfg.rows, cfg.cols, 1048576);
 	ts_search.setSharedTable(sht);
 
 	SearchTask task(game_config);
@@ -1792,11 +1812,10 @@ int main(int argc, char *argv[])
 
 //	test_nnue();
 //	test_pattern_calculator();
-//	test_proven_positions(100);
-//	test_proven_positions(1000);
+	test_proven_positions(100);
 //	ab_search_test();
 //	test_search();
-	test_evaluate();
+//	test_evaluate();
 //	test_search_with_solver(10000);
 //	train_simple_evaluation();
 //	test_static_solver();

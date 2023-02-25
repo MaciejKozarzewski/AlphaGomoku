@@ -5,10 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/TrainingManager.hpp>
-#include <alphagomoku/selfplay/EvaluationGame.hpp>
-#include <alphagomoku/selfplay/SearchData.hpp>
+#include <alphagomoku/dataset/GameDataBuffer.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
@@ -78,6 +76,8 @@ namespace ag
 	void TrainingManager::runIterationRL()
 	{
 		generateGames();
+		if (hasCapturedSignal(SignalType::INT))
+			exit(0);
 		runIterationSL();
 		if (hasCapturedSignal(SignalType::INT))
 			exit(0);
@@ -176,8 +176,6 @@ namespace ag
 		generator_manager.generate(path_to_last_network, training_games + validation_games);
 		if (hasCapturedSignal(SignalType::INT))
 			return;
-		if (generator_manager.getGameBuffer().isCorrect() == false)
-			throw std::runtime_error("generated buffer is invalid");
 		std::cout << "Finished generating games\n";
 
 		splitBuffer(generator_manager.getGameBuffer(), training_games, validation_games);
@@ -187,7 +185,7 @@ namespace ag
 	{
 		const int epoch = get_last_checkpoint();
 
-		GameBuffer buffer;
+		GameDataBuffer buffer;
 		loadBuffer(buffer, path_to_data + "/train_buffer/");
 		std::cout << buffer.getStats().toString() << '\n';
 
@@ -212,7 +210,7 @@ namespace ag
 	{
 		const int epoch = get_last_checkpoint();
 
-		GameBuffer buffer;
+		GameDataBuffer buffer;
 		loadBuffer(buffer, path_to_data + "/valid_buffer/");
 
 		AGNetwork model(config.game_config, working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
@@ -248,9 +246,7 @@ namespace ag
 		if (hasCapturedSignal(SignalType::INT))
 			return;
 
-		std::string to_save;
-		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
-			to_save += evaluator_manager.getGameBuffer(i).generatePGN();
+		const std::string to_save = evaluator_manager.getPGN();
 		std::cout << "Evaluation finished\n";
 
 		std::lock_guard<std::mutex> lock(rating_mutex);
@@ -258,12 +254,12 @@ namespace ag
 		file << to_save;
 		file.close();
 	}
-	void TrainingManager::splitBuffer(GameBuffer &buffer, int training_games, int validation_games)
+	void TrainingManager::splitBuffer(GameDataBuffer &buffer, int training_games, int validation_games)
 	{
 		std::cout << "Saving validation buffer\n";
-		GameBuffer tmp;
+		GameDataBuffer tmp(config.game_config);
 		for (int i = 0; i < validation_games; i++)
-			tmp.addToBuffer(buffer.getFromBuffer(training_games + i));
+			tmp.addGameData(buffer.getGameData(training_games + i));
 		tmp.save(working_dir + "/valid_buffer/buffer_" + std::to_string(get_last_checkpoint()) + ".bin");
 		tmp.clear();
 
@@ -271,7 +267,7 @@ namespace ag
 		buffer.removeRange(training_games, training_games + validation_games);
 		buffer.save(working_dir + "/train_buffer/buffer_" + std::to_string(get_last_checkpoint()) + ".bin");
 	}
-	void TrainingManager::loadBuffer(GameBuffer &result, const std::string &path)
+	void TrainingManager::loadBuffer(GameDataBuffer &result, const std::string &path)
 	{
 		int last_checkpoint = metadata["last_checkpoint"];
 		int buffer_size = config.training_config.buffer_size.getValue(last_checkpoint);
@@ -279,8 +275,6 @@ namespace ag
 		std::cout << "Loading buffers from " << std::max(0, last_checkpoint + 1 - buffer_size) << " to " << last_checkpoint << '\n';
 		for (int i = std::max(0, last_checkpoint + 1 - buffer_size); i <= last_checkpoint; i++)
 			result.load(path + "buffer_" + std::to_string(i) + ".bin");
-		if (result.isCorrect() == false)
-			throw std::runtime_error("loaded buffer is invalid");
 	}
 
 	int TrainingManager::get_last_checkpoint() const

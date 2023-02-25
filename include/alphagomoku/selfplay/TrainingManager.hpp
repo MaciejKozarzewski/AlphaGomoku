@@ -46,8 +46,8 @@ namespace ag
 			void train();
 			void validate();
 			void evaluate();
-			void splitBuffer(GameBuffer &buffer, int training_games, int validation_games);
-			void loadBuffer(GameBuffer &result, const std::string &path);
+			void splitBuffer(GameDataBuffer &buffer, int training_games, int validation_games);
+			void loadBuffer(GameDataBuffer &result, const std::string &path);
 
 			int get_last_checkpoint() const;
 	};

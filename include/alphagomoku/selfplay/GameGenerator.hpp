@@ -8,14 +8,15 @@
 #ifndef ALPHAGOMOKU_SELFPLAY_GAMEGENERATOR_HPP_
 #define ALPHAGOMOKU_SELFPLAY_GAMEGENERATOR_HPP_
 
-#include <alphagomoku/selfplay/Game.hpp>
+#include <alphagomoku/game/Game.hpp>
+#include <alphagomoku/dataset/GameDataStorage.hpp>
 #include <alphagomoku/selfplay/OpeningGenerator.hpp>
 #include <alphagomoku/search/monte_carlo/Tree.hpp>
 #include <alphagomoku/search/monte_carlo/Search.hpp>
 
 namespace ag
 {
-	class GameBuffer;
+	class GeneratorManager;
 	class NNEvaluator;
 } /* namespace ag */
 
@@ -31,10 +32,11 @@ namespace ag
 				GAMEPLAY_SELECT_SOLVE_EVALUATE,
 				GAMEPLAY_EXPAND_AND_BACKUP
 			};
-			GameBuffer &game_buffer;
+			GeneratorManager &manager;
 			NNEvaluator &nn_evaluator;
 			OpeningGenerator opening_generator;
 			Game game;
+			GameDataStorage game_data_storage;
 
 			Tree tree;
 			Search search;
@@ -49,7 +51,7 @@ namespace ag
 				TASKS_NOT_READY
 			};
 
-			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GameBuffer &gameBuffer, NNEvaluator &evaluator);
+			GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GeneratorManager &manager, NNEvaluator &evaluator);
 
 			void clearStats();
 			NodeCacheStats getCacheStats() const noexcept;

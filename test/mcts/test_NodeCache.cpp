@@ -5,8 +5,8 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/mcts/NodeCache.hpp>
-#include <alphagomoku/mcts/ZobristHashing.hpp>
+#include <alphagomoku/search/monte_carlo/NodeCache.hpp>
+#include <alphagomoku/search/ZobristHashing.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/misc.hpp>
 

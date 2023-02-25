@@ -9,9 +9,9 @@
 #define ALPHAGOMOKU_EVALUATION_EVALUATIONGAME_HPP_
 
 #include <alphagomoku/game/Move.hpp>
+#include <alphagomoku/game/Game.hpp>
 #include <alphagomoku/search/monte_carlo/Search.hpp>
 #include <alphagomoku/search/monte_carlo/Tree.hpp>
-#include <alphagomoku/selfplay/Game.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/OpeningGenerator.hpp>
 #include <alphagomoku/utils/matrix.hpp>
@@ -19,6 +19,7 @@
 namespace ag
 {
 	class NNEvaluator;
+	class EvaluatorThread;
 } /* namespace ag */
 
 namespace ag
@@ -49,7 +50,6 @@ namespace ag
 			NNEvaluator& getNNEvaluator() noexcept;
 			void scheduleSingleTask(SearchTask &task);
 			Move getMove() const noexcept;
-			SearchData getSearchData() const;
 	};
 
 	class EvaluationGame
@@ -62,13 +62,12 @@ namespace ag
 				GAMEPLAY_SELECT_SOLVE_EVALUATE,
 				GAMEPLAY_EXPAND_AND_BACKUP
 			};
-			GameBuffer &game_buffer;
+			EvaluatorThread &manager_thread;
 			Game game;
 			OpeningGenerator opening_generator;
 
 			GameState state = GAME_NOT_STARTED;
 			bool use_opening = false;
-			bool save_data = false;
 
 			std::vector<Move> opening;
 			bool has_stored_opening = false;
@@ -76,7 +75,7 @@ namespace ag
 			std::unique_ptr<Player> first_player;
 			std::unique_ptr<Player> second_player;
 		public:
-			EvaluationGame(GameConfig gameConfig, GameBuffer &gameBuffer, bool useOpening, bool saveData);
+			EvaluationGame(GameConfig gameConfig, EvaluatorThread &manager, bool useOpening);
 			void clear();
 			void setFirstPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
 			void setSecondPlayer(const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);

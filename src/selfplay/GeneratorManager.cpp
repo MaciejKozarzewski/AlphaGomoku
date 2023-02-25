@@ -33,7 +33,7 @@ namespace ag
 	{
 		nn_evaluator.useSymmetries(selfplayOptions.use_symmetries);
 		for (size_t i = 0; i < generators.size(); i++)
-			generators[i] = std::make_unique<GameGenerator>(gameOptions, selfplayOptions, manager.getGameBuffer(), nn_evaluator);
+			generators[i] = std::make_unique<GameGenerator>(gameOptions, selfplayOptions, manager, nn_evaluator);
 	}
 	void GeneratorThread::start()
 	{
@@ -141,7 +141,8 @@ namespace ag
 	}
 
 	GeneratorManager::GeneratorManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions) :
-			generators(selfplayOptions.device_config.size())
+			generators(selfplayOptions.device_config.size()),
+			game_buffer(gameOptions)
 	{
 		for (size_t i = 0; i < generators.size(); i++)
 			generators[i] = std::make_unique<GeneratorThread>(*this, gameOptions, selfplayOptions, i);
@@ -151,11 +152,16 @@ namespace ag
 	{
 		working_directory = path;
 	}
-	const GameBuffer& GeneratorManager::getGameBuffer() const noexcept
+	void GeneratorManager::addToBuffer(const GameDataStorage &gameData)
+	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
+		game_buffer.addGameData(gameData);
+	}
+	const GameDataBuffer& GeneratorManager::getGameBuffer() const noexcept
 	{
 		return game_buffer;
 	}
-	GameBuffer& GeneratorManager::getGameBuffer() noexcept
+	GameDataBuffer& GeneratorManager::getGameBuffer() noexcept
 	{
 		return game_buffer;
 	}
@@ -165,6 +171,7 @@ namespace ag
 	}
 	bool GeneratorManager::hasEnoughGames() const noexcept
 	{
+		std::lock_guard<std::mutex> lock(buffer_mutex);
 		return game_buffer.size() >= games_to_generate;
 	}
 	void GeneratorManager::resetGames()

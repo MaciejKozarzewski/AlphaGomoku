@@ -12,7 +12,7 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/search/monte_carlo/Node.hpp>
-#include <alphagomoku/selfplay/NNInputFeatures.hpp>
+#include <alphagomoku/networks/NNInputFeatures.hpp>
 
 #include <cassert>
 #include <string>
