@@ -97,7 +97,7 @@ namespace ag
 
 			void printStats();
 		private:
-			void save_state();
+			void save_state(bool saveBuffer);
 			void load_state();
 	};
 

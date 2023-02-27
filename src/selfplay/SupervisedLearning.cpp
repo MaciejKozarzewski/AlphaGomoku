@@ -61,7 +61,7 @@ namespace
 	{
 		assert(model.getBatchSize() >= static_cast<int>(inputs.size()));
 		for (size_t i = 0; i < inputs.size(); i++)
-			model.packInputData(i, inputs.at(i).board, inputs.at(i).sign_to_move);
+			model.packInputData(i, inputs[i].board, inputs[i].sign_to_move);
 	}
 	void push_target_data_to_model(std::vector<TrainingDataPack> &targets, AGNetwork &model)
 	{
@@ -74,6 +74,7 @@ namespace
 			model.packTargetData(i, targets[i].policy_target, targets[i].action_values_target, targets[i].value_target);
 		}
 	}
+
 }
 
 namespace ag
@@ -108,7 +109,7 @@ namespace ag
 		const int rows = model.getInputShape().dim(1);
 		const int cols = model.getInputShape().dim(2);
 
-		Sampler sampler(buffer);
+		Sampler sampler(buffer, batch_size);
 
 		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
 
@@ -145,7 +146,7 @@ namespace ag
 		const int rows = model.getInputShape().dim(1);
 		const int cols = model.getInputShape().dim(2);
 
-		Sampler sampler(buffer);
+		Sampler sampler(buffer, batch_size);
 
 		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
 

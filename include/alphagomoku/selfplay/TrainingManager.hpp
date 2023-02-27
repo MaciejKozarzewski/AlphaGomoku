@@ -25,12 +25,8 @@ namespace ag
 			std::string working_dir;
 			std::string path_to_data;
 
-			GeneratorManager generator_manager;
-			EvaluationManager evaluator_manager;
 			std::future<void> evaluation_future;
 			std::mutex rating_mutex;
-			SupervisedLearning supervised_learning_manager;
-
 		public:
 			TrainingManager(std::string workingDirectory, std::string pathToData = std::string());
 
@@ -43,8 +39,7 @@ namespace ag
 			void initModel();
 			void generateGames();
 
-			void train();
-			void validate();
+			void train_and_validate();
 			void evaluate();
 			void splitBuffer(GameDataBuffer &buffer, int training_games, int validation_games);
 			void loadBuffer(GameDataBuffer &result, const std::string &path);

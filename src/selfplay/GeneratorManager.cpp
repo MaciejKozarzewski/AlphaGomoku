@@ -85,7 +85,7 @@ namespace ag
 		NodeCacheStats result;
 		for (size_t i = 0; i < generators.size(); i++)
 			result += generators[i]->getCacheStats();
-//		result /= static_cast<int>(generators.size());
+		result /= static_cast<int>(generators.size());
 		return result;
 	}
 	SearchStats GeneratorThread::getSearchStats() const noexcept
@@ -205,7 +205,7 @@ namespace ag
 				for (size_t i = 0; i < generators.size(); i++)
 					generators[i]->stop();
 				std::cout << "Generators stopped" << std::endl;
-				save_state();
+				save_state(true);
 				return;
 			}
 
@@ -217,6 +217,7 @@ namespace ag
 		}
 		if (counter < 60)
 			printStats();
+		save_state(false);
 	}
 	void GeneratorManager::printStats()
 	{
@@ -242,7 +243,7 @@ namespace ag
 	/*
 	 * private
 	 */
-	void GeneratorManager::save_state()
+	void GeneratorManager::save_state(bool saveBuffer)
 	{
 		if (working_directory.empty())
 			return;
@@ -251,8 +252,11 @@ namespace ag
 		if (not pathExists(path))
 			createDirectory(path);
 
-		std::cout << "Saving buffer" << std::endl;
-		game_buffer.save(path + "buffer.bin");
+		if (saveBuffer)
+		{
+			std::cout << "Saving buffer" << std::endl;
+			game_buffer.save(path + "buffer.bin");
+		}
 
 		std::cout << "Saving games" << std::endl;
 		for (size_t i = 0; i < generators.size(); i++)
