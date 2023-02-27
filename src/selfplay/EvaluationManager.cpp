@@ -46,7 +46,6 @@ namespace ag
 	}
 	const std::vector<Game>& EvaluatorThread::getGameBuffer() noexcept
 	{
-		assert(isFinished());
 		return game_buffer;
 	}
 	void EvaluatorThread::generate(int numberOfGames)

@@ -8,22 +8,18 @@
 #ifndef ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 #define ALPHAGOMOKU_PLAYER_SEARCHENGINE_HPP_
 
+#include <alphagomoku/player/SearchThread.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/search/monte_carlo/Tree.hpp>
+#include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 
-#include <minml/utils/json.hpp>
-
-#include <iostream>
 #include <future>
 
 namespace ag
 {
-	class SearchThread;
 	class EdgeSelector;
 	class EdgeGenerator;
 	class EngineSettings;
-	class NNEvaluator;
-	class NNEvaluatorStats;
 	class SearchSummary;
 }
 
