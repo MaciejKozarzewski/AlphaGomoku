@@ -20,13 +20,13 @@ namespace ag
 	SearchDataStorage::SearchDataStorage(const SerializedObject &binary_data, size_t &offset)
 	{
 		base_policy_prior = binary_data.load<float>(offset);
-		offset += sizeof(base_policy_prior);
+		offset += sizeof(float);
 
 		base_score = binary_data.load<Score>(offset);
-		offset += sizeof(base_score);
+		offset += sizeof(Score);
 
 		move_number = binary_data.load<uint16_t>(offset);
-		offset += sizeof(move_number);
+		offset += sizeof(uint16_t);
 
 		unserializeVector(mcts_storage, binary_data, offset);
 		unserializeVector(score_storage, binary_data, offset);
@@ -144,10 +144,9 @@ namespace ag
 			win_rate += q.win_rate * visits;
 			draw_rate += q.draw_rate * visits;
 		}
-		pack.minimax_value = (sum_visits > 0) ? Value(win_rate / sum_visits, draw_rate / sum_visits) : Value();
 
 		// now loop over stored scores and put them at appropriate places
-		Score minimax_score = Score::min_value();
+		Score minimax_score = base_score;
 		for (size_t i = 0; i < score_storage.size(); i++)
 		{
 			const int row = score_storage[i].location.row;
@@ -159,8 +158,13 @@ namespace ag
 			minimax_score = std::max(minimax_score, s);
 		}
 		pack.minimax_score = minimax_score;
-		if (minimax_score.isProven())
+		if (sum_visits == 0)
+		{
+			assert(minimax_score.isProven());
 			pack.minimax_value = minimax_score.convertToValue();
+		}
+		else
+			pack.minimax_value = Value(win_rate / sum_visits, draw_rate / sum_visits);
 	}
 	void SearchDataStorage::serialize(SerializedObject &binary_data) const
 	{
@@ -181,6 +185,7 @@ namespace ag
 		std::cout << "base score = " << base_score.toFormattedString() << '\n';
 		for (size_t i = 0; i < score_storage.size(); i++)
 			std::cout << sfill(i, 3, false) << "  " << score_storage[i].location.text() << " " << score_storage[i].score.toFormattedString() << '\n';
+		std::cout << '\n';
 	}
 
 } /* namespace ag */
