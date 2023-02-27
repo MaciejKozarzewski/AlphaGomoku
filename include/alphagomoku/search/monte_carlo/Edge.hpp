@@ -110,6 +110,7 @@ namespace ag
 			}
 			void setValue(Value value) noexcept
 			{
+				assert(value.isValid());
 				this->value = value;
 			}
 			void updateValue(Value eval) noexcept
@@ -117,6 +118,7 @@ namespace ag
 				visits++;
 				const float tmp = 1.0f / static_cast<float>(visits);
 				value += (eval - value) * tmp;
+				value.clipToBounds();
 				assert(value.isValid());
 			}
 			void setMove(Move m) noexcept

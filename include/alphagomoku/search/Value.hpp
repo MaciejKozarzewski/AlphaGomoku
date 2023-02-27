@@ -94,6 +94,11 @@ namespace ag
 				return (-0.001f <= win_rate and win_rate <= 1.001f) and (-0.001f <= draw_rate and draw_rate <= 1.001f)
 						and (-0.001f <= loss_rate() and loss_rate() <= 1.001f);
 			}
+			void clipToBounds() noexcept
+			{
+				win_rate = std::max(0.0f, std::min(1.0f, win_rate));
+				draw_rate = std::max(0.0f, std::min(1.0f, draw_rate));
+			}
 
 			static Value win() noexcept
 			{
