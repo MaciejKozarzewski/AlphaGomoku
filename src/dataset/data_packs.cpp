@@ -52,13 +52,14 @@ namespace ag
 	void SearchDataPack::print() const
 	{
 		std::cout << "Played move: " << played_move.toString() << '\n';
+		std::cout << "Game outcome: " << toString(game_outcome) << '\n';
 		std::cout << "Minimax value: " << minimax_value.toString() << '\n';
 		std::cout << "Minimax score: " << minimax_score.toString() << '\n';
-		std::cout << "Board:\n" << Board::toString(board, true) << '\n';
-		std::cout << "Policy prior:\n" << Board::toString(board, policy_prior, true) << '\n';
-		std::cout << "Visit count:\n" << Board::toString(board, visit_count, true) << '\n';
-		std::cout << "Action values:\n" << Board::toString(board, action_values, true) << '\n';
-		std::cout << "Action scores:\n" << Board::toString(board, action_scores, true) << '\n';
+//		std::cout << "Board:\n" << Board::toString(board, true) << '\n';
+//		std::cout << "Policy prior:\n" << Board::toString(board, policy_prior, true) << '\n';
+//		std::cout << "Visit count:\n" << Board::toString(board, visit_count, true) << '\n';
+//		std::cout << "Action values:\n" << Board::toString(board, action_values, true) << '\n';
+//		std::cout << "Action scores:\n" << Board::toString(board, action_scores, true) << '\n';
 	}
 
 	TrainingDataPack::TrainingDataPack(int rows, int cols) :

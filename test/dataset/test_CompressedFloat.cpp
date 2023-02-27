@@ -4,7 +4,8 @@
  *  Created on: Feb 24, 2023
  *      Author: Maciej Kozarzewski
  */
-#include <alphagomoku/training/dataset/CompressedFloat.hpp>
+
+#include <alphagomoku/dataset/CompressedFloat.hpp>
 
 #include <gtest/gtest.h>
 
