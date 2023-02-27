@@ -12,6 +12,7 @@
 #include <alphagomoku/utils/misc.hpp>
 
 #include <iostream>
+#include <map>
 
 namespace
 {
@@ -36,49 +37,109 @@ namespace
 
 namespace ag
 {
-	Sampler::Sampler(const GameDataBuffer &buffer) :
+	Sampler::Sampler(const GameDataBuffer &buffer, int batchSize) :
 			buffer(buffer),
 			search_data_pack(buffer.getConfig().rows, buffer.getConfig().cols),
-			sampling_stats(buffer.getConfig().rows * buffer.getConfig().cols, 0)
+			game_ordering(permutation(buffer.size())),
+			batch_size(batchSize)
 	{
-		reset();
 	}
 	void Sampler::get(TrainingDataPack &result)
 	{
 		result.clear();
-		const int game_index = sample_order.at(sample_counter);
-		const int sample_index = pick_move_number(buffer.getGameData(game_index));
+		const int game_index = game_ordering.at(counter);
+		const int sample_index = randInt(buffer.getGameData(game_index).numberOfSamples());
 
 		buffer.getGameData(game_index).getSample(search_data_pack, sample_index);
-		prepare_training_data(result, search_data_pack);
 
-		sample_counter++;
-		if (sample_counter >= buffer.size())
-			reset();
+//		const SamplePosition pos = sample_ordering.at(counter);
+//		SamplePosition pos;
+//		pos.game_index = randInt(buffer.size());
+//		pos.sample_index = randInt(buffer.getGameData(pos.game_index).numberOfSamples());
+//		buffer.getGameData(pos.game_index).getSample(search_data_pack, pos.sample_index);
+
+		prepare_training_data_old(result, search_data_pack);
+
+		counter++;
+		if (counter >= game_ordering.size())
+		{
+			std::random_shuffle(game_ordering.begin(), game_ordering.end());
+			counter = 0;
+		}
 	}
 	/*
 	 * private
 	 */
 	void Sampler::reset()
 	{
-		sample_order = permutation(buffer.size());
-		sample_counter = 0;
+		std::random_shuffle(game_ordering.begin(), game_ordering.end());
+		counter = 0;
 	}
-	int Sampler::pick_move_number(const GameDataStorage &game)
+	std::vector<Sampler::SamplePosition> Sampler::shuffle_dataset(size_t batch_size)
 	{
-		int result = 0;
-		float min_value = std::numeric_limits<float>::max();
-		for (int i = 0; i < game.numberOfSamples(); i++)
+		const double start = getTime();
+		std::vector<std::vector<SamplePosition>> games;
+		games.reserve(buffer.size());
+		for (int i = 0; i < buffer.size(); i++)
 		{
-			const int move_number = game[i].getMoveNumber();
-			const float val = sampling_stats.at(move_number) + randFloat();
-			if (val < min_value)
+			std::vector<SamplePosition> tmp(buffer.getGameData(i).numberOfSamples());
+			for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+				tmp[j] = SamplePosition(i, j);
+			std::random_shuffle(tmp.begin(), tmp.end());
+			games.push_back(tmp);
+		}
+		std::random_shuffle(games.begin(), games.end());
+
+		std::cout << "collected samples in " << (getTime() - start) << "s\n";
+
+		std::vector<SamplePosition> result;
+		result.reserve(buffer.numberOfSamples());
+		while (games.size() > 0)
+		{
+//			std::random_shuffle(games.begin(), games.end());
+			size_t i = 0;
+			while (i < games.size())
 			{
-				result = i;
-				min_value = val;
+//				std::map<int, int> tmp;
+//
+//				size_t j = 0;
+//				while ((j < batch_size) and i < games.size())
+//				{
+//				}
+
+				result.push_back(games[i].back());
+				games[i].pop_back();
+
+				if (games[i].size() == 0)
+					games.erase(games.begin() + i);
+				else
+					i++;
+			}
+//			std::cout << "iteration finished " << games.size() << "/" << buffer.size() << " : " << result.size() << "/" << buffer.numberOfSamples()
+//					<< '\n';
+		}
+		std::cout << "shuffled samples in " << (getTime() - start) << "s\n";
+
+		size_t bad_batches = 0;
+		for (size_t i = 0; i < result.size(); i += batch_size)
+		{
+			std::map<int, int> tmp;
+			for (size_t j = 0; j < std::min(batch_size, result.size() - i); j++)
+			{
+				const SamplePosition pos = result.at(i + j);
+				const auto iter = tmp.find(pos.game_index);
+				if (iter == tmp.end())
+					tmp.insert( { pos.game_index, pos.sample_index });
+				else
+				{
+					bad_batches++;
+					break;
+				}
+//				std::cout << index << " found duplicate games " << pos.game_index << "," << pos.sample_index << " and " << iter->first << ","
+//						<< iter->second << '\n';
 			}
 		}
-		sampling_stats[game[result].getMoveNumber()]++;
+		std::cout << bad_batches << " bad batches\n";
 		return result;
 	}
 	void Sampler::prepare_training_data(TrainingDataPack &result, const SearchDataPack &sample)

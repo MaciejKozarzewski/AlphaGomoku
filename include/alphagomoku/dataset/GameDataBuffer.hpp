@@ -47,6 +47,7 @@ namespace ag
 			const GameConfig& getConfig() const noexcept;
 			void clear() noexcept;
 			int size() const noexcept;
+			int numberOfSamples() const noexcept;
 			void append(const GameDataBuffer &other);
 			void addGameData(const GameDataStorage &game);
 			const GameDataStorage& getGameData(int index) const;

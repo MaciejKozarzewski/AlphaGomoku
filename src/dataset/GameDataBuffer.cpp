@@ -61,6 +61,13 @@ namespace ag
 	{
 		return buffer_data.size();
 	}
+	int GameDataBuffer::numberOfSamples() const noexcept
+	{
+		int result = 0;
+		for (size_t i = 0; i < buffer_data.size(); i++)
+			result += buffer_data[i].numberOfSamples();
+		return result;
+	}
 	void GameDataBuffer::append(const GameDataBuffer &other)
 	{
 		this->buffer_data.insert(this->buffer_data.end(), other.buffer_data.begin(), other.buffer_data.end());
