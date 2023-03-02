@@ -59,9 +59,9 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
 	add_subdirectory("test")
 endif()
 
-#add_executable(ag_player "player_launcher/launcher.cpp")
-#set_target_properties(ag_player PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-#target_link_libraries(ag_player PUBLIC AlphaGomoku)
+add_executable(ag_player "player_launcher/launcher.cpp")
+set_target_properties(ag_player PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_link_libraries(ag_player PUBLIC AlphaGomoku)
 
 add_executable(ag_training "training_launcher/launcher.cpp")
 set_target_properties(ag_training PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

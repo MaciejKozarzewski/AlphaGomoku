@@ -61,6 +61,7 @@ namespace ag
 		assert(rows() == calc.getConfig().rows);
 		assert(cols() == calc.getConfig().cols);
 		assert(calc.getSignToMove() != Sign::NONE);
+
 		/*
 		 * Input features are:
 		 *  Bits	N	Description

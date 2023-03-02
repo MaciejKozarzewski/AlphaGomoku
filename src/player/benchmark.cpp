@@ -33,12 +33,12 @@ namespace
 	{
 		const GameConfig cfg(GameRules::STANDARD, 15, 15);
 		std::vector<std::thread> threads(config.search_threads);
-		std::vector<AGNetwork> networks(config.search_threads);
+		std::vector<std::unique_ptr<AGNetwork>> networks(config.search_threads);
 		for (size_t i = 0; i < networks.size(); i++)
 		{
-			networks[i].loadFromFile(path);
-			networks[i].setBatchSize(batch_sizes().back());
-			networks[i].moveTo(config.device);
+			networks[i] = loadAGNetwork(path);
+			networks[i]->setBatchSize(batch_sizes().back());
+			networks[i]->moveTo(config.device);
 		}
 
 		int total_samples = 0;
@@ -49,12 +49,12 @@ namespace
 			ml::Device::cpu().setNumberOfThreads(config.omp_threads);
 			try
 			{
-				networks[index].forward(1);
+				networks[index]->forward(1);
 				const double start = getTime();
 				int processed_samples = 0;
 				while (getTime() - start < max_time)
 				{
-					networks[index].forward(batch_size);
+					networks[index]->forward(batch_size);
 					processed_samples += batch_size;
 				}
 				const double stop = getTime();

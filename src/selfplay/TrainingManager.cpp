@@ -148,12 +148,13 @@ namespace ag
 	}
 	void TrainingManager::initModel()
 	{
-		AGNetwork model(config.game_config, config.training_config);
-		model.saveToFile(working_dir + "/checkpoint/network_0.bin");
+		std::unique_ptr<AGNetwork> model = createAGNetwork(config.training_config.network_arch);
+		model->init(config.game_config, config.training_config);
+		model->saveToFile(working_dir + "/checkpoint/network_0.bin");
 		std::cout << "Saved training model\n";
-		model.optimize();
+		model->optimize();
 		std::cout << "Optimized model\n";
-		model.saveToFile(working_dir + "/checkpoint/network_0_opt.bin");
+		model->saveToFile(working_dir + "/checkpoint/network_0_opt.bin");
 		std::cout << "Saved optimized model\n";
 	}
 	void TrainingManager::generateGames()
@@ -191,24 +192,25 @@ namespace ag
 		loadBuffer(train_buffer, path_to_data + "/train_buffer/");
 		std::cout << train_buffer.getStats().toString() << '\n';
 
-		AGNetwork model(config.game_config, working_dir + "/checkpoint/network_" + std::to_string(epoch) + ".bin");
-		model.setBatchSize(config.training_config.device_config.batch_size);
-		model.moveTo(config.training_config.device_config.device);
+		std::unique_ptr<AGNetwork> model = loadAGNetwork(working_dir + "/checkpoint/network_" + std::to_string(epoch) + ".bin");
+
+		model->setBatchSize(config.training_config.device_config.batch_size);
+		model->moveTo(config.training_config.device_config.device);
 
 		const double learning_rate = config.training_config.learning_rate.getValue(epoch);
 		std::cout << "Using learning rate " << learning_rate << '\n';
-		model.changeLearningRate(learning_rate);
+		model->changeLearningRate(learning_rate);
 
-		sl_manager.train(model, train_buffer, config.training_config.steps_per_iteration);
+		sl_manager.train(*model, train_buffer, config.training_config.steps_per_iteration);
 
 		// save model
-		model.saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
+		model->saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
 		std::cout << "Training finished\n";
 
 		// run validation
 		GameDataBuffer validation_buffer;
 		loadBuffer(validation_buffer, path_to_data + "/valid_buffer/");
-		sl_manager.validate(model, validation_buffer);
+		sl_manager.validate(*model, validation_buffer);
 		std::cout << "Validation finished\n";
 
 		// save metadata and training history
@@ -217,9 +219,9 @@ namespace ag
 		metadata["last_checkpoint"] = get_last_checkpoint() + 1;
 
 		// optimize model
-		model.moveTo(ml::Device::cpu());
-		model.optimize();
-		model.saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + "_opt.bin");
+		model->moveTo(ml::Device::cpu());
+		model->optimize();
+		model->saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + "_opt.bin");
 		std::cout << "Optimized model\n";
 	}
 	void TrainingManager::evaluate()

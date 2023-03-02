@@ -12,21 +12,16 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 
+#include <alphagomoku/networks/networks.hpp>
+
 #include <minml/graph/graph_optimizers.hpp>
 #include <minml/core/Device.hpp>
 #include <minml/core/Context.hpp>
-#include <minml/layers/Conv2D.hpp>
-#include <minml/layers/Dense.hpp>
-#include <minml/layers/Add.hpp>
-#include <minml/layers/GlobalBroadcastHW.hpp>
-#include <minml/layers/BatchNormalization.hpp>
-#include <minml/layers/Softmax.hpp>
-#include <minml/layers/Parameter.hpp>
-#include <minml/training/Optimizer.hpp>
-#include <minml/training/Regularizer.hpp>
 #include <minml/core/Shape.hpp>
 #include <minml/core/Tensor.hpp>
 #include <minml/core/math.hpp>
+#include <minml/utils/json.hpp>
+#include <minml/utils/serialization.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -64,26 +59,23 @@ namespace
 		assert(input_shape.rank() == 4);
 		return ml::Shape( { input_shape[0], input_shape[1], input_shape[2], 1 });
 	}
+
+	ag::float3 to_float3(const ag::Value &value) noexcept
+	{
+		return ag::float3 { value.win_rate, value.draw_rate, value.loss_rate() };
+	}
+	ag::Value from_float3(const ag::float3 &f) noexcept
+	{
+		return ag::Value(f.x, f.y);
+	}
 }
 
 namespace ag
 {
-	AGNetwork::AGNetwork(const GameConfig &gameOptions) :
-			game_config(gameOptions)
-	{
-	}
-	AGNetwork::AGNetwork(const GameConfig &gameOptions, const std::string &path) :
-			game_config(gameOptions)
-	{
-		loadFromFile(path);
-	}
-	AGNetwork::AGNetwork(const GameConfig &gameOptions, const TrainingConfig &trainingOptions) :
-			game_config(gameOptions)
-	{
-		create_network(trainingOptions);
-		reallocate_tensors();
-	}
 
+	AGNetwork::AGNetwork() noexcept
+	{
+	}
 	std::vector<float> AGNetwork::getAccuracy(int batchSize, int top_k) const
 	{
 		std::vector<float> result(1 + top_k);
@@ -91,8 +83,8 @@ namespace ag
 		matrix<float> answer(game_config.rows, game_config.cols);
 		for (int b = 0; b < batchSize; b++)
 		{
-			std::memcpy(output.data(), get_pointer(*policy_on_cpu, { b, 0, 0, 0 }), output.sizeInBytes());
-			std::memcpy(answer.data(), get_pointer(*policy_target_on_cpu, { b, 0, 0, 0 }), output.sizeInBytes());
+			std::memcpy(output.data(), get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { b, 0, 0, 0 }), output.sizeInBytes());
+			std::memcpy(answer.data(), get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { b, 0, 0, 0 }), output.sizeInBytes());
 
 			Move correct = pickMove(answer);
 			for (int l = 0; l < top_k; l++)
@@ -110,8 +102,8 @@ namespace ag
 
 	void AGNetwork::packInputData(int index, const matrix<Sign> &board, Sign signToMove)
 	{
-		getPatternCalculator().setBoard(board, signToMove);
-		input_features.encode(getPatternCalculator());
+		get_pattern_calculator().setBoard(board, signToMove);
+		input_features.encode(get_pattern_calculator());
 		packInputData(index, input_features);
 	}
 	void AGNetwork::packInputData(int index, const NNInputFeatures &features)
@@ -124,35 +116,39 @@ namespace ag
 	{
 		assert(index >= 0 && index < getBatchSize());
 
-		std::memcpy(get_pointer(*policy_target_on_cpu, { index }), policy.data(), policy.sizeInBytes());
+		std::memcpy(get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { index }), policy.data(), policy.sizeInBytes());
 
-		float tmp[3] = { value.win_rate, value.draw_rate, value.loss_rate() };
-		std::memcpy(get_pointer(*value_target_on_cpu, { index }), tmp, sizeof(tmp));
+		const float3 tmp = to_float3(value);
+		std::memcpy(get_pointer(targets_on_cpu.at(VALUE_OUTPUT_INDEX), { index }), &tmp, sizeof(tmp));
 
-		workspace.resize(3 * game_config.rows * game_config.cols);
-		for (int i = 0; i < actionValues.size(); i++)
+		if (targets_on_cpu.size() == 3)
 		{
-			workspace[3 * i + 0] = actionValues[i].win_rate;
-			workspace[3 * i + 1] = actionValues[i].draw_rate;
-			workspace[3 * i + 2] = actionValues[i].loss_rate();
+			workspace.resize(game_config.rows * game_config.cols);
+			for (int i = 0; i < actionValues.size(); i++)
+				workspace[i] = to_float3(actionValues[i]);
+			std::memcpy(get_pointer(targets_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX), { index }), workspace.data(), sizeof(float3) * workspace.size());
 		}
-		std::memcpy(get_pointer(*action_values_target_on_cpu, { index }), workspace.data(), sizeof(float) * workspace.size());
 	}
 	void AGNetwork::unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const
 	{
 		assert(index >= 0 && index < getBatchSize());
 
-		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(*policy_on_cpu, { index }), policy_on_cpu->dtype(),
-				policy.size());
-		float tmp[3];
-		ml::convertType(context_on_cpu, &tmp, ml::DataType::FLOAT32, get_pointer(*value_on_cpu, { index }), value_on_cpu->dtype(), 3);
-		value = Value(tmp[0], tmp[1]);
+		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { index }),
+				outputs_on_cpu.at(POLICY_OUTPUT_INDEX).dtype(), policy.size());
 
-		workspace.resize(3 * game_config.rows * game_config.cols);
-		ml::convertType(context_on_cpu, workspace.data(), ml::DataType::FLOAT32, get_pointer(*action_values_on_cpu, { index }),
-				action_values_on_cpu->dtype(), workspace.size());
-		for (int i = 0; i < actionValues.size(); i++)
-			actionValues[i] = Value(workspace[3 * i], workspace[3 * i + 1]);
+		float3 tmp;
+		ml::convertType(context_on_cpu, &tmp, ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(VALUE_OUTPUT_INDEX), { index }),
+				outputs_on_cpu.at(VALUE_OUTPUT_INDEX).dtype(), 3);
+		value = from_float3(tmp);
+
+		if (outputs_on_cpu.size() == 3)
+		{
+			workspace.resize(game_config.rows * game_config.cols);
+			ml::convertType(context_on_cpu, workspace.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX), {
+					index }), outputs_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX).dtype(), 3 * workspace.size());
+			for (int i = 0; i < actionValues.size(); i++)
+				actionValues[i] = from_float3(workspace[i]);
+		}
 	}
 
 	void AGNetwork::asyncForwardLaunch(int batch_size)
@@ -161,9 +157,9 @@ namespace ag
 
 		graph.forward(batch_size);
 
-		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
-		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
-		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
+		assert(outputs_on_cpu.size() == (size_t )graph.numberOfOutputs());
+		for (int i = 0; i < graph.numberOfOutputs(); i++)
+			outputs_on_cpu.at(i).copyFrom(graph.context(), graph.getOutput(i));
 	}
 	void AGNetwork::asyncForwardJoin()
 	{
@@ -174,17 +170,17 @@ namespace ag
 	{
 		pack_input_to_graph(batch_size);
 		graph.forward(batch_size);
-		policy_on_cpu->copyFrom(graph.context(), graph.getOutput(0));
-		value_on_cpu->copyFrom(graph.context(), graph.getOutput(1));
-		action_values_on_cpu->copyFrom(graph.context(), graph.getOutput(2));
+		assert(outputs_on_cpu.size() == (size_t )graph.numberOfOutputs());
+		for (int i = 0; i < graph.numberOfOutputs(); i++)
+			outputs_on_cpu.at(i).copyFrom(graph.context(), graph.getOutput(i));
 		graph.context().synchronize();
 	}
 	void AGNetwork::backward(int batch_size)
 	{
 		assert(graph.isTrainable());
-		graph.getTarget(0).copyFrom(graph.context(), *policy_target_on_cpu);
-		graph.getTarget(1).copyFrom(graph.context(), *value_target_on_cpu);
-		graph.getTarget(2).copyFrom(graph.context(), *action_values_target_on_cpu);
+		assert(outputs_on_cpu.size() == (size_t )graph.numberOfOutputs());
+		for (int i = 0; i < graph.numberOfOutputs(); i++)
+			graph.getTarget(i).copyFrom(graph.context(), targets_on_cpu.at(i));
 
 		graph.backward(batch_size);
 		graph.learn();
@@ -193,9 +189,9 @@ namespace ag
 	std::vector<float> AGNetwork::getLoss(int batch_size)
 	{
 		assert(graph.isTrainable());
-		graph.getTarget(0).copyFrom(graph.context(), *policy_target_on_cpu);
-		graph.getTarget(1).copyFrom(graph.context(), *value_target_on_cpu);
-		graph.getTarget(2).copyFrom(graph.context(), *action_values_target_on_cpu);
+		assert(outputs_on_cpu.size() == (size_t )graph.numberOfOutputs());
+		for (int i = 0; i < graph.numberOfOutputs(); i++)
+			graph.getTarget(i).copyFrom(graph.context(), targets_on_cpu.at(i));
 		return graph.getLoss(batch_size);
 	}
 
@@ -226,21 +222,37 @@ namespace ag
 			reallocate_tensors();
 		}
 	}
+	void AGNetwork::init(const GameConfig &gameOptions, const TrainingConfig &trainingOptions)
+	{
+		game_config = gameOptions;
+		create_network(trainingOptions);
+		reallocate_tensors();
+	}
 	void AGNetwork::saveToFile(const std::string &path) const
 	{
 		graph.context().synchronize();
 		SerializedObject so;
-		Json json = graph.save(so);
+		Json json;
+		json["architecture"] = name();
+		json["config"] = game_config.toJson();
+		json["model"] = graph.save(so);
 		FileSaver fs(path);
 		fs.save(json, so, 2);
 	}
 	void AGNetwork::loadFromFile(const std::string &path)
 	{
-		graph.context().synchronize();
 		FileLoader fl(path);
-		graph.load(fl.getJson(), fl.getBinaryData());
-		game_config.rows = graph.getInputShape()[1];
-		game_config.cols = graph.getInputShape()[2];
+		loadFrom(fl.getJson(), fl.getBinaryData());
+	}
+	void AGNetwork::loadFrom(const Json &json, const SerializedObject &so)
+	{
+		graph.context().synchronize();
+		if (json["architecture"].getString() != name())
+			throw std::runtime_error(
+					"AGNetwork::loadFromFile() : saved model has architecture '" + json["architecture"].getString()
+							+ "' and cannot be loaded into model '" + name() + "'");
+		game_config = GameConfig(json["config"]);
+		graph.load(json["model"], so);
 	}
 	void AGNetwork::unloadGraph()
 	{
@@ -277,12 +289,8 @@ namespace ag
 			shape[0] = batchSize;
 			graph.setInputShape(shape);
 			input_on_cpu = nullptr;
-			policy_on_cpu = nullptr;
-			value_on_cpu = nullptr;
-			action_values_on_cpu = nullptr;
-			policy_target_on_cpu = nullptr;
-			value_target_on_cpu = nullptr;
-			action_values_target_on_cpu = nullptr;
+			outputs_on_cpu.clear();
+			targets_on_cpu.clear();
 		}
 	}
 	/*
@@ -300,7 +308,7 @@ namespace ag
 			ml::unpackInput(graph.context(), graph.getInput(), *input_on_device);
 		}
 	}
-	PatternCalculator& AGNetwork::getPatternCalculator()
+	PatternCalculator& AGNetwork::get_pattern_calculator()
 	{
 		if (pattern_calculator == nullptr)
 		{
@@ -308,77 +316,6 @@ namespace ag
 			input_features = NNInputFeatures(game_config.rows, game_config.cols);
 		}
 		return *pattern_calculator;
-	}
-	void AGNetwork::create_network(const TrainingConfig &trainingOptions)
-	{
-		int batch_size = trainingOptions.device_config.batch_size;
-		int blocks = trainingOptions.blocks;
-		int filters = trainingOptions.filters;
-
-		auto x = graph.addInput( { batch_size, game_config.rows, game_config.cols, 32 });
-		x = graph.add(ml::Conv2D(filters, 5, "linear").useBias(false), x);
-		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
-//		x = graph.add(ml::GlobalBroadcastHW(), x);
-
-		for (int i = 0; i < blocks; i++)
-		{
-//			auto y = graph.add(ml::Conv2D(filters / 2, 1, "linear").useBias(false), x);
-//			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
-//
-//			y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), y);
-//			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
-//
-//			y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), y);
-//			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
-//
-//			y = graph.add(ml::Conv2D(filters, 1, "linear").useBias(false), y);
-//			y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
-
-			auto y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
-			y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
-
-			y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), y);
-			y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
-
-			x = graph.add(ml::Add("relu"), { x, y });
-//			if ((i + 1) % 5 == 0)
-//				x = graph.add(ml::GlobalBroadcastHW(), x);
-		}
-
-		// policy head
-		auto p = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
-		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
-
-		p = graph.add(ml::Conv2D(1, 1, "linear"), p);
-		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
-		graph.addOutput(p);
-
-		// value head
-		auto v = graph.add(ml::Conv2D(4, 1, "linear").useBias(false), x);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-
-		v = graph.add(ml::Dense(std::min(256, 2 * filters), "linear").useBias(false), v);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-		v = graph.add(ml::Dense(3, "linear"), v);
-		v = graph.add(ml::Softmax( { 1 }), v);
-		graph.addOutput(v);
-
-		// action values head
-		auto q = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
-		q = graph.add(ml::BatchNormalization("tanh").useGamma(false), q);
-
-		q = graph.add(ml::Conv2D(3, 1, "linear"), q);
-		q = graph.add(ml::Softmax( { 3 }), q);
-		graph.addOutput(q, 0.1f);
-
-		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-		{
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
-			graph.getNode(graph.numberOfNodes() - 2).getLayer().setRegularizer(ml::Regularizer(0.1f * trainingOptions.l2_regularization));
-		}
-		graph.moveTo(trainingOptions.device_config.device);
 	}
 	void AGNetwork::reallocate_tensors()
 	{
@@ -389,31 +326,51 @@ namespace ag
 		if (not graph.device().isCPU())
 			input_on_device = std::make_unique<ml::Tensor>(encoding_shape, ml::DataType::INT32, graph.device());
 
-		policy_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(0), dtype, ml::Device::cpu());
-		value_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(1), dtype, ml::Device::cpu());
-		action_values_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(2), dtype, ml::Device::cpu());
+		outputs_on_cpu.clear();
+		for (int i = 0; i < graph.numberOfOutputs(); i++)
+			outputs_on_cpu.push_back(ml::Tensor(graph.getOutputShape(i), dtype, ml::Device::cpu()));
 
 		if (graph.isTrainable())
 		{
-			policy_target_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(0), ml::DataType::FLOAT32, ml::Device::cpu());
-			value_target_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(1), ml::DataType::FLOAT32, ml::Device::cpu());
-			action_values_target_on_cpu = std::make_unique<ml::Tensor>(graph.getOutputShape(2), ml::DataType::FLOAT32, ml::Device::cpu());
+			targets_on_cpu.clear();
+			for (int i = 0; i < graph.numberOfOutputs(); i++)
+				targets_on_cpu.push_back(ml::Tensor(graph.getOutputShape(i), dtype, ml::Device::cpu()));
 		}
 
 		if (graph.device().isCUDA() and not input_on_cpu->isPageLocked())
 		{
 			input_on_cpu->pageLock();
-			policy_on_cpu->pageLock();
-			value_on_cpu->pageLock();
-			action_values_on_cpu->pageLock();
+			for (size_t i = 0; i < outputs_on_cpu.size(); i++)
+				outputs_on_cpu.at(i).pageLock();
 
 			if (graph.isTrainable())
 			{
-				policy_target_on_cpu->pageLock();
-				value_target_on_cpu->pageLock();
-				action_values_target_on_cpu->pageLock();
+				for (size_t i = 0; i < outputs_on_cpu.size(); i++)
+					targets_on_cpu.at(i).pageLock();
 			}
 		}
 	}
-}
+
+	std::unique_ptr<AGNetwork> createAGNetwork(const std::string &architecture)
+	{
+		static const ResnetPV resnet_pv;
+		static const ResnetPVQ resnet_pvq;
+
+		if (architecture == resnet_pv.name())
+			return std::make_unique<ResnetPV>();
+		if (architecture == resnet_pvq.name())
+			return std::make_unique<ResnetPVQ>();
+
+		throw std::runtime_error("createAGNetwork() : unknown architecture '" + architecture + "'");
+	}
+	std::unique_ptr<AGNetwork> loadAGNetwork(const std::string &path)
+	{
+		FileLoader fl(path);
+		std::unique_ptr<AGNetwork> result = createAGNetwork(fl.getJson()["architecture"]);
+
+		result->loadFrom(fl.getJson(), fl.getBinaryData());
+		return result;
+	}
+
+} /* namespace ag */
 
