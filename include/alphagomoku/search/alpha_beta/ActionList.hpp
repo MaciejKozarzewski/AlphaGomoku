@@ -23,11 +23,13 @@ namespace ag
 	{
 			Move move;
 			Score score;
+			bool is_final = false;
 			Action() noexcept = default;
-			void init(Move m, Score s) noexcept
+			void init(Move m, Score s, bool isf) noexcept
 			{
 				move = m;
 				score = s;
+				is_final = isf;
 			}
 			friend bool operator<(const Action &lhs, const Action &rhs) noexcept
 			{
@@ -48,6 +50,7 @@ namespace ag
 			}
 		public:
 			Score baseline_score; /* score of actions that have not been added to the list (for example moves other than defensive) */
+			Move hash_move;
 			bool has_initiative = false;
 			bool must_defend = false;
 			ActionList(const ActionList &prev) noexcept :
@@ -71,6 +74,7 @@ namespace ag
 			void clear() noexcept
 			{
 				baseline_score = Score();
+				hash_move = Move();
 				has_initiative = false;
 				must_defend = false;
 				m_size = 0;
@@ -114,9 +118,9 @@ namespace ag
 				return std::any_of(begin(), end(), [m](const Action &action)
 				{	return action.move.location() == m;});
 			}
-			void add(Move move, Score score = Score()) noexcept
+			void add(Move move, Score score, int depth) noexcept
 			{
-				m_children[m_size++].init(move, score);
+				m_children[m_size++].init(move, score, depth);
 			}
 			void removeAction(size_t index) noexcept
 			{
@@ -154,7 +158,7 @@ namespace ag
 				std::cout << "baseline score = " << baseline_score.toString() << '\n';
 				for (int i = 0; i < size(); i++)
 					std::cout << i << " : " << m_children[i].move.toString() << " : " << m_children[i].move.text() << " : " << m_children[i].score
-							<< '\n';
+							<< " : " << m_children[i].is_final << '\n';
 				std::cout << '\n';
 			}
 	};

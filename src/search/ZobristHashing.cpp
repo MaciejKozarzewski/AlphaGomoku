@@ -44,13 +44,13 @@ namespace ag
 	{
 		return m_keys.size() * sizeof(HashKey128);
 	}
-	HashKey64 FastZobristHashing::getHash(const matrix<Sign> &board) const noexcept
+	HashKey128 FastZobristHashing::getHash(const matrix<Sign> &board) const noexcept
 	{
 		assert(board.rows() == m_rows);
 		assert(board.cols() == m_columns);
 		assert(static_cast<int>(m_keys.size()) == 2 * board.size());
 
-		HashKey64 result;
+		HashKey128 result;
 		for (int i = 0; i < board.size(); i++)
 			switch (board[i])
 			{

@@ -22,6 +22,13 @@ namespace
 		const int size = cfg.rows * cfg.cols;
 		return size * (size - 1) / 2;
 	}
+	bool is_score_valid(Score score, int searchedDepth) noexcept
+	{
+		if (score.isProven())
+			return searchedDepth >= score.getDistance();
+		else
+			return true;
+	}
 	Value convertScoreToValue(Score score) noexcept
 	{
 		switch (score.getProvenValue())
@@ -69,10 +76,8 @@ namespace ag
 						+ '\n';
 			result += "solved    " + std::to_string(hits) + " / " + std::to_string(setup.getTotalCount()) + " ("
 					+ std::to_string(100.0 * hits / setup.getTotalCount()) + "%)\n";
-			result += "shared cache hits " + std::to_string(shared_cache_hits) + " / " + std::to_string(shared_cache_calls) + " ("
-					+ std::to_string(100.0 * shared_cache_hits / (1.0e-6 + shared_cache_calls)) + "%)\n";
-			result += "local cache hits " + std::to_string(local_cache_hits) + " / " + std::to_string(local_cache_calls) + " ("
-					+ std::to_string(100.0 * local_cache_hits / (1.0e-6 + local_cache_calls)) + "%)\n";
+			result += "shared cache hits " + std::to_string(cache_hits) + " / " + std::to_string(cache_calls) + " ("
+					+ std::to_string(100.0 * cache_hits / (1.0e-6 + cache_calls)) + "%), collisions " + std::to_string(cache_colissions) + "\n";
 		}
 		return result;
 	}
@@ -121,7 +126,6 @@ namespace ag
 	 */
 	ThreatSpaceSearch::ThreatSpaceSearch(GameConfig gameConfig, int maxPositions) :
 			action_stack(get_max_nodes(gameConfig)),
-			number_of_moves_for_draw(gameConfig.rows * gameConfig.cols),
 			max_positions(maxPositions),
 			game_config(gameConfig),
 			pattern_calculator(gameConfig),
@@ -151,67 +155,80 @@ namespace ag
 		position_counter = 0;
 
 		ActionList actions = action_stack.getRoot();
-		Score score;
+		Result result(Score(), false);
 		switch (mode)
 		{
 			case TssMode::BASIC:
 			{
 //				TimerGuard tg(stats.move_generation);
-				score = threat_generator.generate(actions, GeneratorMode::BASIC);
+				const Score score = threat_generator.generate(actions, GeneratorMode::BASIC);
+				result = Result(score, true);
 				break;
 			}
 			case TssMode::STATIC:
 			{
 //				TimerGuard tg(stats.move_generation);
-				score = threat_generator.generate(actions, GeneratorMode::STATIC);
+				const Score score = threat_generator.generate(actions, GeneratorMode::STATIC);
+				result = Result(score, true);
 				break;
 			}
 			case TssMode::RECURSIVE:
 			default:
 			{
-//				if (shared_table == nullptr)
-//					throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
+				if (shared_table == nullptr)
+					throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
 
 //				stats.evaluate.startTimer();
 //				evaluator.refresh(pattern_calculator); // set up NNUE state
 //				stats.evaluate.stopTimer();
 
 				hash_key = shared_table->getHashFunction().getHash(task.getBoard()); // set up hash key
-				const int max_depth = std::min(127, game_config.rows * game_config.cols - pattern_calculator.getCurrentDepth());
+				const int max_depth = std::min(127, game_config.draw_after - pattern_calculator.getCurrentDepth());
 				for (int depth = 1; depth <= max_depth; depth += 4)
 				{ // iterative deepening loop
 //					double t0 = getTime();
-					score = recursive_solve(depth, Score::min_value(), Score::max_value(), actions, true);
-//					std::cout << "depth " << depth << ", nodes " << position_counter << ", score " << score << ", time " << (getTime() - t0)
-//							<< "s\n";
-					if (score.isProven())
-						break; // there is no point in further search if we have found some proven score
-					if (position_counter >= max_positions)
-						break; // the limit of nodes was exceeded
-					if (actions.isEmpty())
-						break; // apparently there are no threats to make
+					result = recursive_solve(depth, Score::min_value(), Score::max_value(), actions, true);
+
+//					std::cout << "max depth=" << depth << ", nodes=" << position_counter << ", score=" << result.score << ", time="
+//							<< (getTime() - t0) << "s, is final=" << result.is_final << "\n";
+//					actions.print();
+
+					if ((position_counter >= max_positions) or result.is_final)
+						break;
 				}
 				break;
 			}
 		}
+
 		task.getActionScores().fill(actions.baseline_score);
 		for (auto iter = actions.begin(); iter < actions.end(); iter++)
 		{
 			const Move m(iter->move);
-			task.getActionScores().at(m.row, m.col) = iter->score;
-			if (iter->score.isProven())
-				task.getActionValues().at(m.row, m.col) = convertScoreToValue(iter->score);
+			if (iter->is_final)
+			{
+				task.getActionScores().at(m.row, m.col) = iter->score;
+				if (iter->score.isProven())
+					task.getActionValues().at(m.row, m.col) = convertScoreToValue(iter->score);
+			}
+			else
+				task.getActionScores().at(m.row, m.col) = Score();
 			if (actions.must_defend)
 				task.addDefensiveMove(m);
 		}
-		task.setScore(score);
+		if (result.is_final)
+		{
+			task.setScore(result.score);
+			if (result.score.isProven())
+				task.setValue(convertScoreToValue(result.score));
+		}
+		else
+			task.setScore(Score());
 		task.markAsProcessedBySolver();
-		if (score.isProven())
-			task.setValue(convertScoreToValue(score));
 
-//		if (score.isWin())
+//		if (result.score.getEval() ==  Score::min_value())
+//		if (task.getScore().getEval() == Score::min_value())
 //		{
-//			std::cout << score.toString() << " at " << position_counter << '\n';
+//			std::cout << result.score.toString() << " at " << position_counter << '\n';
 //			std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
 //			pattern_calculator.print();
 //			pattern_calculator.printAllThreats();
@@ -222,7 +239,7 @@ namespace ag
 //		}
 
 		stats.total_positions += position_counter;
-		stats.hits += static_cast<int>(score.isProven());
+		stats.hits += static_cast<int>(result.score.isProven() and result.is_final);
 	}
 	void ThreatSpaceSearch::tune(float speed)
 	{
@@ -306,109 +323,115 @@ namespace ag
 	/*
 	 * private
 	 */
-	Score ThreatSpaceSearch::recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot)
+	ThreatSpaceSearch::Result ThreatSpaceSearch::recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot)
 	{
 		assert(Score::min_value() <= alpha);
 		assert(alpha < beta);
 		assert(beta <= Score::max_value());
 
-		actions.clear();
+		if (not isRoot)
+			actions.clear();
 
 		Move hash_move;
 		{ // lookup to the shared hash table
-			TimerGuard tg(stats.hashtable);
+//			TimerGuard tg(stats.hashtable);
 			const SharedTableData tt_entry = shared_table->seek(hash_key);
 			const Bound tt_bound = tt_entry.bound();
 
-			stats.shared_cache_calls++;
-			stats.shared_cache_hits += (tt_bound != Bound::NONE);
+			stats.cache_calls++;
+			if (tt_bound != Bound::NONE and tt_entry.move() != Move() and not is_move_legal(tt_entry.move()))
+				stats.cache_colissions++;
 
-			if (tt_bound != Bound::NONE)
+			if (tt_bound != Bound::NONE and is_move_legal(tt_entry.move()))
 			{ // there is some information stored in this entry
+				stats.cache_hits++;
+
 				hash_move = tt_entry.move();
-				if (is_move_legal(hash_move) and not isRoot)
+				if (not isRoot)
 				{ // we must not terminate search at root with just one best action on hash table hit, as the other modules require full list of actions
 					const Score tt_score = tt_entry.score();
 					if (tt_entry.depth() >= depthRemaining
 							and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
 									or (tt_bound == Bound::UPPER and tt_score <= alpha)))
-						return tt_score;
+						return Result(tt_score, true); // to be 100% correct, TT hit should return a score that is not final as it can be a collision.
 				}
 			}
 		}
 
+		if (actions.isEmpty() or not isRoot)
 		{ // threat generator is combined with static solver
-			TimerGuard tg(stats.move_generation);
+//			TimerGuard tg(stats.move_generation);
 			const Score static_score = threat_generator.generate(actions, GeneratorMode::VCF);
 			if (static_score.isProven())
-				return static_score;
-			actions.moveCloserToFront(hash_move, 0);
+				return Result(static_score, true);
 		}
 
 		{ // evaluation
-			TimerGuard tg(stats.evaluate);
+//			TimerGuard tg(stats.evaluate);
 			if (depthRemaining <= 0) // if it is a leaf, evaluate the position
-				return evaluate();
+				return Result(evaluate(), false);
 		}
 
 		const Score original_alpha = alpha;
-		Score best_score = Score::min_value(); // setup initial value of the score
+		Result result(Score::min_value(), true);
+		int visited_actions = 0;
+
+		actions.moveCloserToFront(hash_move, 0);
 		for (int i = 0; i < actions.size(); i++)
-		{
-			position_counter++;
-			if (position_counter > max_positions)
-				depthRemaining = 1; // a hack to make each node look like a leaf, so the search will complete correctly but will exit as soon as possible
+			if (not actions[i].is_final)
+			{
+				position_counter++;
+				if (position_counter > max_positions)
+					return Result(evaluate(), false);
 
-			const Move move = actions[i].move;
-			Score action_score;
+				visited_actions++;
+				const Move move = actions[i].move;
 
-			shared_table->getHashFunction().updateHash(hash_key, move);
-			shared_table->prefetch(hash_key);
+				shared_table->getHashFunction().updateHash(hash_key, move);
+				shared_table->prefetch(hash_key);
+				pattern_calculator.addMove(move);
 
-			ActionList next_ply_actions(actions, actions[i]);
-			pattern_calculator.addMove(move);
+				ActionList next_ply_actions(actions, actions[i]);
+				const Result tmp = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions, false);
 
-			action_score = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions, false);
-			pattern_calculator.undoMove(move);
+				pattern_calculator.undoMove(move);
+				shared_table->getHashFunction().updateHash(hash_key, move);
 
-			shared_table->getHashFunction().updateHash(hash_key, move);
+				actions[i].score = tmp.score; // required for recovering of the search results
+				actions[i].score.increaseDistance();
+				actions[i].is_final = tmp.is_final; // required for recovering of the search results
 
-//			stats.evaluate.startTimer();
-//			evaluator.update(pattern_calculator); // updating in reverse direction (undoing moves) does not cost anything but is required to correctly set current depth
-//			stats.evaluate.stopTimer();
+				result.score = std::max(result.score, actions[i].score);
+				result.is_final &= actions[i].is_final;
 
-			action_score.increaseDistance();
-			actions[i].score = action_score; // required for recovering of the search results
-
-			best_score = std::max(best_score, action_score);
-			alpha = std::max(alpha, action_score);
-			if (action_score >= beta)
-				break;
-		}
+				alpha = std::max(alpha, actions[i].score);
+				if (actions[i].score >= beta or (actions[i].score.isWin() and actions[i].is_final))
+					break;
+			}
 		// if either
 		//  - no actions were generated, or
 		//  - all actions are losing but we don't have to defend
 		// we need to override the score with something, for example with static evaluation
-		if (actions.isEmpty() or (best_score.isLoss() and not actions.must_defend))
-			best_score = evaluate();
+		if (visited_actions == 0 or (result.score.isLoss() and not actions.must_defend))
+			result.score = evaluate();
 
 		{ // insert new data to the hash table
-			TimerGuard tg(stats.hashtable);
+//			TimerGuard tg(stats.hashtable);
 			Bound bound = Bound::NONE;
-			if (best_score <= original_alpha)
+			if (result.score <= original_alpha)
 				bound = Bound::UPPER;
 			else
 			{
-				if (best_score >= beta)
+				if (result.score >= beta)
 					bound = Bound::LOWER;
 				else
 					bound = Bound::EXACT;
 			}
-			SharedTableData entry(actions.must_defend, actions.has_initiative, bound, depthRemaining, best_score, actions.getBestMove());
+			SharedTableData entry(actions.must_defend, actions.has_initiative, bound, depthRemaining, result.score, actions.getBestMove());
 			shared_table->insert(hash_key, entry);
 		}
 
-		return best_score;
+		return result;
 	}
 	bool ThreatSpaceSearch::is_move_legal(Move m) const noexcept
 	{

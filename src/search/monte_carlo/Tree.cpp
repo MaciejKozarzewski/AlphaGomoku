@@ -101,10 +101,12 @@ namespace
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
 
-		Score result = (node->mustDefend() or node->isFullyExpanded()) ? Score::min_value() : Score::min_eval();
+		Score result = Score::min_value();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			result = std::max(result, edge->getScore());
-		node->setScore(result);
+
+		if ((node->mustDefend() or node->isFullyExpanded()) or not result.isLoss())
+			node->setScore(result);
 	}
 }
 

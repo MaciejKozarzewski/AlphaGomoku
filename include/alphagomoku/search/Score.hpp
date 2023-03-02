@@ -102,7 +102,7 @@ namespace ag
 						return getEval();
 					default:
 					case ProvenValue::UNKNOWN:
-						return 4000;
+						return 0;
 					case ProvenValue::WIN:
 						return -getEval();
 				}

@@ -135,6 +135,11 @@ namespace ag
 			const int count = add_own_half_open_fours();
 			if (count > 0)
 				actions.has_initiative = true;
+
+			const LocationList &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
+			for (auto iter = own_fork_3x3.begin(); iter < own_fork_3x3.end(); iter++)
+				if (not is_forbidden(get_own_sign(), *iter))
+					add_move<EXCLUDE_DUPLICATE>(*iter);
 		}
 		this->actions = nullptr;
 		return result.score;
@@ -143,16 +148,17 @@ namespace ag
 	 * private
 	 */
 	template<ThreatGenerator::AddMode Mode>
-	void ThreatGenerator::add_move(Location m, Score s) noexcept
+	void ThreatGenerator::add_move(Location loc, Score s) noexcept
 	{
-		if (moves.at(m.row, m.col) == true)
+		if (moves.at(loc.row, loc.col) == true)
 		{
 			if (Mode == OVERRIDE_DUPLICATE)
 			{
 				for (auto iter = actions->begin(); iter < actions->end(); iter++)
-					if (iter->move.location() == m)
+					if (iter->move.location() == loc)
 					{
 						iter->score = s;
+						iter->is_final = s.isProven();
 						return;
 					}
 				assert(false); // the move must be contained in the action list
@@ -160,8 +166,8 @@ namespace ag
 		}
 		else
 		{
-			actions->add(Move(get_own_sign(), m.row, m.col), s);
-			moves.at(m.row, m.col) = true;
+			actions->add(Move(get_own_sign(), loc), s, s.isProven());
+			moves.at(loc.row, loc.col) = true;
 		}
 	}
 	template<ThreatGenerator::AddMode Mode>

@@ -70,7 +70,7 @@ namespace ag
 			Score generate(ActionList &actions, GeneratorMode mode);
 		private:
 			template<AddMode Mode>
-			void add_move(Location location, Score s = Score()) noexcept;
+			void add_move(Location loc, Score s = Score()) noexcept;
 			template<AddMode Mode>
 			void add_moves(const LocationList &locations, Score s = Score()) noexcept;
 			template<AddMode Mode, typename T>

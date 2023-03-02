@@ -37,10 +37,9 @@ namespace ag
 			TimedStat evaluate;
 			int64_t hits = 0;
 			int64_t total_positions = 0;
-			int64_t shared_cache_hits = 0;
-			int64_t shared_cache_calls = 0;
-			int64_t local_cache_hits = 0;
-			int64_t local_cache_calls = 0;
+			int64_t cache_hits = 0;
+			int64_t cache_calls = 0;
+			int64_t cache_colissions = 0;
 
 			TSSStats();
 			std::string toString() const;
@@ -69,9 +68,22 @@ namespace ag
 	class ThreatSpaceSearch
 	{
 		private:
+			struct Result
+			{
+					Score score;
+					bool is_final = true;
+					Result(Score s, bool isf) noexcept :
+							score(s),
+							is_final(isf)
+					{
+					}
+					friend Result operator-(const Result &a) noexcept
+					{
+						return Result(-a.score, a.is_final);
+					}
+			};
 			ActionStack action_stack;
 
-			int number_of_moves_for_draw; // after that number of moves, a draw will be concluded
 			int max_positions; // maximum number of positions that will be searched
 			TssMode search_mode = TssMode::BASIC;
 
@@ -82,7 +94,7 @@ namespace ag
 			ThreatGenerator threat_generator;
 
 			std::shared_ptr<SharedHashTable> shared_table;
-			HashKey64 hash_key;
+			HashKey128 hash_key;
 
 			size_t step_counter = 0;
 			int tuning_step = 2;
@@ -107,7 +119,7 @@ namespace ag
 					std::cout << "SharedHashTable load factor = " << shared_table->loadFactor(true) << '\n';
 			}
 		private:
-			Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
+			Result recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
 
 			bool is_move_legal(Move m) const noexcept;
 			Score evaluate();
