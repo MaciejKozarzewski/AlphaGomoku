@@ -57,7 +57,7 @@ namespace ag
 
 			std::vector<TaskData> waiting_queue;
 			std::vector<TaskData> in_progress_queue;
-			AGNetwork network;
+			std::unique_ptr<AGNetwork> network;
 
 			NNEvaluatorStats stats;
 			bool use_symmetries = false;
@@ -84,6 +84,8 @@ namespace ag
 			void asyncEvaluateGraphLaunch();
 			SpeedSummary asyncEvaluateGraphJoin();
 		private:
+			AGNetwork& get_network();
+			const AGNetwork& get_network() const;
 			void pack_to_network();
 			void unpack_from_network();
 	};
