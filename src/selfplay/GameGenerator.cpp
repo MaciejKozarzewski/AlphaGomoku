@@ -8,11 +8,13 @@
 #include <alphagomoku/selfplay/GameGenerator.hpp>
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/dataset/data_packs.hpp>
-
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/utils/misc.hpp>
+
+#include <minml/utils/json.hpp>
+#include <minml/utils/serialization.hpp>
 
 namespace ag
 {
@@ -132,6 +134,8 @@ namespace ag
 	{
 		state = static_cast<GameState>(json["state"].getInt());
 		game = Game(json, binary_data);
+		size_t offset = json["offset"].getLong();
+		game_data_storage = GameDataStorage(binary_data, offset);
 		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE or state == GAMEPLAY_EXPAND_AND_BACKUP)
 		{
 			prepare_search();
@@ -143,7 +147,7 @@ namespace ag
 	 */
 	void GameGenerator::make_move()
 	{
-		const GameConfig game_config = game.getConfig();
+//		const GameConfig game_config = game.getConfig();
 		const Node root_node = tree.getInfo( { });
 //		std::cout << "after search\n";
 //		std::cout << tree.getMemory() / 1024 << "kB\n";

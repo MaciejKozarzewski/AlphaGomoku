@@ -109,6 +109,7 @@ namespace ag
 
 	struct TrainingConfig
 	{
+			std::string network_arch = "ResnetPV";
 			bool augment_training_data = true;
 			DeviceConfig device_config;
 			int steps_per_iteration = 1000;
