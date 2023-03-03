@@ -9,9 +9,10 @@
 #include <alphagomoku/dataset/GameDataBuffer.hpp>
 #include <alphagomoku/dataset/GameDataStorage.hpp>
 #include <alphagomoku/dataset/SearchDataStorage.hpp>
+#include <alphagomoku/dataset/Sampler.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/rules.hpp>
-#include <alphagomoku/networks/AGNetwork.hpp>
+#include <alphagomoku/networks/networks.hpp>
 #include <alphagomoku/patterns/DefensiveMoveTable.hpp>
 #include <alphagomoku/patterns/ThreatTable.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
@@ -34,6 +35,7 @@
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
+#include <alphagomoku/utils/SpinLock.hpp>
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/version.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
@@ -65,6 +67,9 @@
 #include "minml/core/Device.hpp"
 #include "minml/utils/json.hpp"
 #include "minml/utils/serialization.hpp"
+#include "minml/layers/Dense.hpp"
+#include "minml/layers/BatchNormalization.hpp"
+#include <minml/graph/graph_optimizers.hpp>
 
 #include <cstddef>
 #include <algorithm>
@@ -851,7 +856,8 @@ void run_training()
 	training_config.device_config.batch_size = 1024;
 	training_config.l2_regularization = 1.0e-5f;
 
-	AGNetwork network(game_config, training_config);
+	ResnetPV network;
+	network.init(game_config, training_config);
 //	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3_5x64.bin");
 	network.moveTo(ml::Device::cuda(1));
 //	network.moveTo(ml::Device::cpu());
@@ -1320,61 +1326,63 @@ void test_pattern_calculator()
 
 void test_proven_positions(int pos)
 {
-////	GameConfig game_config(GameRules::FREESTYLE, 20);
-//	GameConfig game_config(GameRules::STANDARD, 15);
-////	GameConfig game_config(GameRules::RENJU, 15);
-////	GameConfig game_config(GameRules::CARO5, 15);
-////	GameConfig game_config(GameRules::CARO6, 20);
-//
-//	PatternTable::get(game_config.rules);
-//	ThreatTable::get(game_config.rules);
-//	DefensiveMoveTable::get(game_config.rules);
-//
-//	GameBuffer buffer;
+//	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
+//	GameConfig game_config(GameRules::RENJU, 15);
+//	GameConfig game_config(GameRules::CARO5, 15);
+//	GameConfig game_config(GameRules::CARO6, 20);
+
+	PatternTable::get(game_config.rules);
+	ThreatTable::get(game_config.rules);
+	DefensiveMoveTable::get(game_config.rules);
+
+	GameDataBuffer buffer;
 //#ifdef NDEBUG
-//	for (int i = 20; i <= 24; i++)
+	for (int i = 0; i <= 24; i++)
 //#else
 //	for (int i = 24; i <= 24; i++)
 //#endif
-//		buffer.load("/home/maciek/alphagomoku/new_runs_2023/buffer_" + std::to_string(i) + ".bin");
-////		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
-//	std::cout << buffer.getStats().toString() << '\n';
-//
-//	ThreatSpaceSearch ts_search(game_config, pos);
-//	std::shared_ptr<SharedHashTable> sht = std::make_shared<SharedHashTable>(game_config.rows, game_config.cols, 1 << 23);
-//	ts_search.setSharedTable(sht);
-//
-//	SearchTask task(game_config);
-//	matrix<Sign> board(game_config.rows, game_config.cols);
-//	int total_samples = 0;
-//	int solved_count = 0;
-//
-//	for (int i = 0; i < buffer.size(); i++)
-////	int i = 9;
-//	{
-//		if (i % (buffer.size() / 10) == 0)
-//			std::cout << i << " / " << buffer.size() << " " << solved_count << "/" << total_samples << '\n';
-//
-//		buffer.getFromBuffer(i).getSample(0).getBoard(board);
-//		total_samples += buffer.getFromBuffer(i).getNumberOfSamples();
-//		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
-////		int j = 0;
-//		{
-////			std::cout << i << " " << j << '\n';
-//			const SearchData &sample = buffer.getFromBuffer(i).getSample(j);
-//			sample.getBoard(board);
-//			const Sign sign_to_move = sample.getMove().sign;
-//
-//			task.set(board, sign_to_move);
-//			sht->increaseGeneration();
-//			ts_search.solve(task, TssMode::RECURSIVE, pos);
-//			solved_count += task.getScore().isProven();
-//		}
-//	}
-//
-//	std::cout << "TSS\n";
-//	std::cout << "solved " << solved_count << " samples (" << 100.0f * solved_count / total_samples << "%)\n";
-//	ts_search.print_stats();
+	{
+		buffer.load("/home/maciek/alphagomoku/tests_2023/base_q_head/train_buffer/buffer_" + std::to_string(i) + ".bin");
+		buffer.load("/home/maciek/alphagomoku/tests_2023/base_q_head/valid_buffer/buffer_" + std::to_string(i) + ".bin");
+	}
+	std::cout << buffer.getStats().toString() << '\n';
+
+	ThreatSpaceSearch ts_search(game_config, pos);
+	std::shared_ptr<SharedHashTable> sht = std::make_shared<SharedHashTable>(game_config.rows, game_config.cols, 1 << 25);
+	ts_search.setSharedTable(sht);
+
+	SearchDataPack pack(game_config.rows, game_config.cols);
+	SearchTask task(game_config);
+	matrix<Sign> board(game_config.rows, game_config.cols);
+	int total_samples = 0;
+	int solved_count = 0;
+
+	for (int i = 0; i < buffer.size(); i++)
+//	int i = 4001;
+	{
+		if (i % (buffer.size() / 10) == 0)
+			std::cout << i << " / " << buffer.size() << " " << solved_count << "/" << total_samples << '\n';
+
+		total_samples += buffer.getGameData(i).numberOfSamples();
+		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+//		int j = 15;
+		{
+//			std::cout << i << " " << j << '\n';
+			buffer.getGameData(i).getSample(pack, j);
+//			pack.print();
+
+			task.set(pack.board, pack.played_move.sign);
+			sht->increaseGeneration();
+			ts_search.solve(task, TssMode::RECURSIVE, pos);
+			solved_count += task.getScore().isProven();
+		}
+
+	}
+
+	std::cout << "TSS\n";
+	std::cout << "solved " << solved_count << " samples (" << 100.0f * solved_count / total_samples << "%)\n";
+	ts_search.print_stats();
 }
 
 void test_solver(int pos)
@@ -1493,7 +1501,7 @@ void test_search()
 	search_config.max_batch_size = 32;
 	search_config.exploration_constant = 1.25f;
 	search_config.max_children = 32;
-	search_config.solver_level = 0;
+	search_config.solver_level = 2;
 	search_config.solver_max_positions = 200;
 
 	DeviceConfig device_config;
@@ -1505,9 +1513,9 @@ void test_search()
 //	device_config.device = ml::Device::cpu();
 //#endif
 	NNEvaluator nn_evaluator(device_config);
-	nn_evaluator.useSymmetries(true);
+	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/network_test2_6x64s_opt.bin");
-	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/test_6x64s_2/checkpoint/network_33_opt.bin");
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/tests_2023/base_q_head/checkpoint/network_15_opt.bin");
 
 	Sign sign_to_move;
 	matrix<Sign> board(15, 15);
@@ -2277,26 +2285,26 @@ void test_search()
 //								/*    a b c d e f g h i j k l m n o        */); // Oh2 or Of2 is a win
 //// @formatter:on
 //	sign_to_move = Sign::CIRCLE;
-//
-////// @formatter:off
-////	board = Board::fromString(	" O _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
-////								" X O _ _ X _ _ _ _ _ _ _ _ _ _\n"
-////								" X X _ _ _ _ O _ _ _ X _ _ _ _\n"
-////								" X O _ _ O X O _ O O _ _ _ _ _\n"
-////								" X O _ O X X X X O _ _ _ _ _ _\n"
-////								" O X X O X O O O _ X _ _ _ _ _\n"
-////								" _ X O X O X X X O O _ O _ _ _\n"
-////								" _ _ O X O O X O X _ _ _ _ _ _\n"
-////								" _ _ _ O X X O X _ _ _ O _ _ _\n"
-////								" _ _ _ _ O X O X O _ X X _ _ _\n"
-////								" _ _ _ _ _ X X X O _ _ O _ _ _\n"
-////								" _ _ _ _ O _ _ O X _ _ _ _ _ _\n"
-////								" _ _ _ _ _ O _ _ _ X X _ _ _ _\n"
-////								" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
-////								" _ _ _ _ _ _ _ _ _ _ _ O _ _ _\n"); // Ok3 is w win
-////// @formatter:on
-////	sign_to_move = Sign::CROSS;
-//
+
+//// @formatter:off
+//	board = Board::fromString(	" O _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
+//								" X O _ _ X _ _ _ _ _ _ _ _ _ _\n"
+//								" X X _ _ _ _ O _ _ _ X _ _ _ _\n"
+//								" X O _ _ O X O _ O O _ _ _ _ _\n"
+//								" X O _ O X X X X O _ _ _ _ _ _\n"
+//								" O X X O X O O O _ X _ _ _ _ _\n"
+//								" _ X O X O X X X O O _ O _ _ _\n"
+//								" _ _ O X O O X O X _ _ _ _ _ _\n"
+//								" _ _ _ O X X O X _ _ _ O _ _ _\n"
+//								" _ _ _ _ O X O X O _ X X _ _ _\n"
+//								" _ _ _ _ _ X X X O _ _ O _ _ _\n"
+//								" _ _ _ _ O _ _ O X _ _ _ _ _ _\n"
+//								" _ _ _ _ _ O _ _ _ X X _ _ _ _\n"
+//								" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
+//								" _ _ _ _ _ _ _ _ _ _ _ O _ _ _\n"); // Ok3 is w win
+//// @formatter:on
+//	sign_to_move = Sign::CIRCLE;
+
 //// @formatter:off
 //	board = Board::fromString(	/*    a b c d e f g h i j k l m n o        */
 //									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
@@ -2306,7 +2314,7 @@ void test_search()
 //									" _ _ _ O _ X _ O _ _ _ O _ _ _\n"
 //									" _ _ _ X O _ X X X O X _ _ _ _\n"
 //									" _ _ _ O X O O O O X X _ _ _ _\n"
-//									" _ _ _ _ _ X O X X _ _ _ _ _ _\n"
+//									" _ _ _ _ _ X O X X _ X _ _ _ _\n"
 //									" _ _ _ _ _ X O X _ _ _ _ _ _ _\n"
 //									" _ _ _ _ _ _ O _ _ _ X _ _ _ _\n"
 //									" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
@@ -2360,26 +2368,26 @@ void test_search()
 //// @formatter:on
 //	sign_to_move = Sign::CIRCLE;
 //
-////// @formatter:off
-////	board = Board::fromString(	/*    a b c d e f g h i j k l m n o        */
-////									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////									" _ _ X _ _ _ ! _ _ _ _ _ _ _ _\n"
-////									" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
-////									" _ _ _ X O _ X _ _ _ _ _ _ _ _\n"
-////									" _ _ _ O X O O O _ _ _ _ _ _ _\n"
-////									" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"
-////									" _ _ _ _ _ X O X _ _ _ _ _ _ _\n"
-////									" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
-////									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////								/*    a b c d e f g h i j k l m n o          */); // position is a win for circle
-////// @formatter:on
-////	sign_to_move = Sign::CIRCLE;
+//// @formatter:off
+//	board = Board::fromString(	/*    a b c d e f g h i j k l m n o        */
+//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//									" _ _ X _ _ _ ! _ _ _ _ _ _ _ _\n"
+//									" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
+//									" _ _ _ X O _ X _ _ _ _ _ _ _ _\n"
+//									" _ _ _ O X O O O _ _ _ _ _ _ _\n"
+//									" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"
+//									" _ _ _ _ _ X O X _ _ _ _ _ _ _\n"
+//									" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
+//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//								/*    a b c d e f g h i j k l m n o          */); // position is a win for circle
+//// @formatter:on
+//	sign_to_move = Sign::CIRCLE;
 //
 //// @formatter:off
 //	board = Board::fromString(
@@ -2403,25 +2411,25 @@ void test_search()
 //// @formatter:on
 //	sign_to_move = Sign::CROSS;
 //
-//// @formatter:off
-//	board = Board::fromString(
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ X O _ _ O X _ _ _ _ _ _\n"
-//			" _ _ _ O _ O X O X _ _ _ _ _ _\n"
-//			" _ _ _ _ X X O _ X _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ X O _ _ _ _ _ _\n"
-//			" _ _ _ _ X O O X _ _ X _ _ _ _\n"
-//			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
+// @formatter:off
+	board = Board::fromString(
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ X O _ _ O X _ _ _ _ _ _\n"
+			" _ _ _ O _ O X O X _ _ _ _ _ _\n"
+			" _ _ _ _ X X O _ X _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ X O _ _ _ _ _ _\n"
+			" _ _ _ _ X O O X _ _ X _ _ _ _\n"
+			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+// @formatter:on
+	sign_to_move = Sign::CROSS;
 
 //// @formatter:off
 //	board = Board::fromString(
@@ -2443,27 +2451,27 @@ void test_search()
 //// @formatter:on
 //	sign_to_move = Sign::CIRCLE;
 
-// @formatter:off
-	board = Board::fromString(
-			/*         a b c d e f g h i j k l m n o        */
-			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-			/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-			/*  6 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-			/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-			/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-			/*  9 */ " X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-			/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-			/* 11 */ " _ O X O X X O _ _ _ _ _ _ _ _\n" /* 11 */
-			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-			/*         a b c d e f g h i j k l m n o        */);
-// @formatter:on
-	sign_to_move = Sign::CIRCLE;
+//// @formatter:off
+//	board = Board::fromString(
+//			/*         a b c d e f g h i j k l m n o        */
+//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
+//			/*  4 */ " _ _ _ _ _ _ _ X O _ _ _ _ _ _\n" /*  4 */
+//			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
+//			/*  6 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
+//			/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
+//			/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
+//			/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
+//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
+//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+//			/*         a b c d e f g h i j k l m n o        */);
+//// @formatter:on
+//	sign_to_move = Sign::CROSS;
 
 //	board = Board::fromString(""
 //			/*         a b c d e f g h i j k l m n o        */
@@ -2511,14 +2519,14 @@ void test_search()
 	tree.setEdgeGenerator(BaseGenerator(search_config.max_children, true));
 
 	int next_step = 0;
-	for (int j = 0; j <= 400; j++)
+	for (int j = 0; j <= 100000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ..." << std::endl;
 			next_step += 10000;
 		}
-		search.select(tree, 400);
+		search.select(tree, 100000);
 		search.solve();
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
@@ -2530,8 +2538,8 @@ void test_search()
 
 //		std::cout << "\n\n\n";
 //		tree.printSubtree(10, true, 5);
-//		if (tree.isRootProven())
-//		break;
+		if (tree.isRootProven())
+			break;
 	}
 	search.cleanup(tree);
 
@@ -2541,6 +2549,7 @@ void test_search()
 	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
 	std::cout << tree.getNodeCacheStats().toString() << '\n';
 	std::cout << nn_evaluator.getStats().toString() << '\n';
+	search.getSolver().print_stats();
 
 	Node info = tree.getInfo( { });
 	info.sortEdges();
@@ -2779,9 +2788,9 @@ void test_evaluate()
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
 	cfg.simulations = 1000;
-	manager.setFirstPlayer(cfg, path + "base_2k/checkpoint/network_29_opt.bin", "base_2k_29");
+	manager.setFirstPlayer(cfg, path + "base_with_solver/checkpoint/network_15_opt.bin", "base_with_solver_15");
 
-	manager.setSecondPlayer(cfg, path + "base_new_target/checkpoint/network_21_opt.bin", "base_new_target_21");
+	manager.setSecondPlayer(cfg, path + "base_q_head/checkpoint/network_15_opt.bin", "base_q_head_15");
 
 	const double start = getTime();
 	manager.generate(1000);
@@ -2789,9 +2798,257 @@ void test_evaluate()
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file(path + "rating.pgn", std::ios::out | std::ios::app);
+	std::ofstream file(path + "q2_rating.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
+}
+
+class Embedding
+{
+		std::array<int, 17> indices;
+
+		int clamp(int max, int value) const
+		{
+			return std::min(max, value);
+		}
+	public:
+		void set(const PatternCalculator &calc)
+		{
+			indices[0] = 0 + static_cast<int>(calc.getSignToMove() == Sign::CROSS);
+
+			auto own = calc.getThreatHistogram(calc.getSignToMove());
+			indices[1] = 2 + clamp(7, (1 + own.get(ThreatType::OPEN_3).size()) / 2);
+			indices[2] = 10 + clamp(3, own.get(ThreatType::FORK_3x3).size());
+			indices[3] = 14 + clamp(7, (1 + own.get(ThreatType::HALF_OPEN_4).size()) / 2);
+			indices[4] = 22 + clamp(3, own.get(ThreatType::FORK_4x3).size());
+			indices[5] = 26 + clamp(3, own.get(ThreatType::FORK_4x4).size());
+			indices[6] = 30 + clamp(3, own.get(ThreatType::OPEN_4).size());
+			indices[7] = 34 + clamp(3, own.get(ThreatType::FIVE).size());
+			indices[8] = 38 + clamp(3, own.get(ThreatType::OVERLINE).size());
+
+			auto opp = calc.getThreatHistogram(invertSign(calc.getSignToMove()));
+			indices[9] = 42 + clamp(7, (1 + opp.get(ThreatType::OPEN_3).size()) / 2);
+			indices[10] = 50 + clamp(3, opp.get(ThreatType::FORK_3x3).size());
+			indices[11] = 54 + clamp(7, (1 + opp.get(ThreatType::HALF_OPEN_4).size()) / 2);
+			indices[12] = 62 + clamp(3, opp.get(ThreatType::FORK_4x3).size());
+			indices[13] = 66 + clamp(3, opp.get(ThreatType::FORK_4x4).size());
+			indices[14] = 70 + clamp(3, opp.get(ThreatType::OPEN_4).size());
+			indices[15] = 74 + clamp(3, opp.get(ThreatType::FIVE).size());
+			indices[16] = 78 + clamp(3, opp.get(ThreatType::OVERLINE).size());
+		}
+		constexpr int size() const noexcept
+		{
+			return indices.size();
+		}
+		int operator[](int index) const
+		{
+			return indices[index];
+		}
+};
+
+std::string convert(float f)
+{
+	if (f == 0.0f)
+		return "0.0f";
+	else
+		return std::to_string(f) + 'f';
+}
+
+void train_simple_evaluator()
+{
+	ml::Device::setNumberOfThreads(1);
+	GameDataBuffer buffer;
+	for (int i = 0; i <= 24; i++)
+		buffer.load("/home/maciek/alphagomoku/tests_2023/base_q_head/train_buffer/buffer_" + std::to_string(i) + ".bin");
+	std::cout << buffer.getStats().toString() << '\n';
+
+	SearchDataPack pack(15, 15);
+
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	const int batch_size = 256;
+	ml::Graph model;
+	auto x = model.addInput( { batch_size, 82 });
+	x = model.add(ml::Dense(8, "linear"), x);
+	x = model.add(ml::BatchNormalization("relu"), x);
+	x = model.add(ml::Dense(1, "sigmoid"), x);
+	model.addOutput(x);
+
+	model.init();
+	model.setOptimizer(ml::Optimizer());
+	model.setRegularizer(ml::Regularizer(4.0e-5f));
+	model.setLearningRate(1.0e-3f);
+	model.moveTo(ml::Device::cpu());
+
+	PatternCalculator calc(game_config);
+
+//	std::vector<size_t> corners(10, 0);
+//	std::vector<size_t> sides(10, 0);
+//	std::vector<size_t> center(10, 0);
+//
+//	const int corner_size = 3;
+//	for (int i = 0; i < buffer.size(); i++)
+//		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+//		{
+//			buffer.getGameData(i).getSample(pack, j);
+//			calc.setBoard(pack.board, pack.played_move.sign);
+//
+//			for (int row = 0; row < game_config.rows; row++)
+//				for (int col = 0; col < game_config.cols; col++)
+//				{
+//					const int dist_h = std::min(row, game_config.rows - 1 - row);
+//					const int dist_w = std::min(col, game_config.cols - 1 - col);
+//
+//					const int cross = (int) calc.getThreatAt(Sign::CROSS, row, col);
+//					const int circle = (int) calc.getThreatAt(Sign::CIRCLE, row, col);
+//
+//					if (dist_h < corner_size and dist_w < corner_size)
+//					{
+//						corners[cross]++;
+//						corners[circle]++;
+//					}
+//					else
+//					{
+//						if (dist_h < corner_size or dist_w < corner_size)
+//						{
+//							sides[cross]++;
+//							sides[circle]++;
+//						}
+//						else
+//						{
+//							center[cross]++;
+//							center[circle]++;
+//						}
+//					}
+//				}
+//		}
+//	const double scale = 0.5 / buffer.numberOfSamples();
+//	for (int i = 0; i < 10; i++)
+//		std::cout << toString((ThreatType) i) << "  :  " << corners[i] * 0.25 * scale << "  " << sides[i] * 0.25 * scale << "  " << center[i] * scale
+//				<< '\n';
+//	return;
+
+	Embedding embedding;
+
+	for (int e = 0; e < 50; e++)
+	{
+		if (e == 20)
+			model.setLearningRate(1.0e-4f);
+		if (e == 40)
+			model.setLearningRate(1.0e-5f);
+
+		float loss = 0.0f;
+		int count = 0;
+		for (int step = 0; step < 1000; step++)
+		{
+			model.getInput(0).zeroall(model.context());
+			int b = 0;
+			while (b < batch_size)
+			{
+				const int i = randInt(buffer.size());
+				const int j = randInt(buffer.getGameData(i).numberOfSamples());
+
+				buffer.getGameData(i).getSample(pack, j);
+				if (pack.minimax_score.isWin() or pack.minimax_score.isLoss())
+				{
+					const Sign own_sign = pack.played_move.sign;
+					const Sign opp_sign = invertSign(own_sign);
+
+					calc.setBoard(pack.board, pack.played_move.sign);
+					embedding.set(calc);
+
+					for (int i = 0; i < embedding.size(); i++)
+						model.getInput(0).set(1.0f, { b, embedding[i] });
+
+//					for (int k = 0; k < 8; k++)
+//					{
+//						const int tmp = calc.getThreatHistogram(own_sign).get(static_cast<ThreatType>(2 + k)).size();
+//						model.getInput(0).set(1.0f, { b, k * 8 + std::min(7, tmp) });
+//					}
+//					for (int k = 0; k < 8; k++)
+//					{
+//						const int tmp = calc.getThreatHistogram(opp_sign).get(static_cast<ThreatType>(2 + k)).size();
+//						model.getInput(0).set(1.0f, { b, 64 + k * 8 + std::min(7, tmp) });
+//					}
+
+//					for (int k = 0; k < 8; k++)
+//					{
+//						const float value = calc.getThreatHistogram(own_sign).get(static_cast<ThreatType>(2 + k)).size();
+//						model.getInput(0).set(value, { b, k });
+//					}
+//					for (int k = 0; k < 8; k++)
+//					{
+//						const float value = calc.getThreatHistogram(opp_sign).get(static_cast<ThreatType>(2 + k)).size();
+//						model.getInput(0).set(value, { b, 8 + k });
+//					}
+
+//					model.getTarget(0).set(convertOutcome(pack.game_outcome, pack.played_move.sign).getExpectation(), { b, 0 });
+
+					if (pack.minimax_score.isWin())
+						model.getTarget(0).set(1.0f, { b, 0 });
+					else
+						model.getTarget(0).set(0.0f, { b, 0 });
+
+					b++;
+				}
+			}
+			model.forward(batch_size);
+			model.backward(batch_size);
+			model.learn();
+			loss += model.getLoss(batch_size).at(0);
+			count++;
+		}
+		std::cout << "epoch " << e << ", loss " << loss / count << '\n';
+	}
+
+	model.makeNonTrainable();
+	ml::FoldBatchNorm().optimize(model);
+
+	int layer_id = 0;
+	for (int n = 0; n < model.numberOfNodes(); n++)
+		if (model.getNode(n).getLayer().name() == "Dense")
+		{
+			ml::Tensor weights = model.getNode(n).getLayer().getWeights().getParam();
+			ml::Tensor bias = model.getNode(n).getLayer().getBias().getParam();
+
+			std::cout << "// layer " << layer_id << '\n';
+			std::cout << "// first row is a bias" << '\n';
+			std::cout << "//@formatter:off" << '\n';
+			std::cout << "static const std::vector<float, AlignedAllocator<float, 64>> weights_" << layer_id << " = {" << '\n';
+			for (int i = 0; i < weights.dim(0); i++)
+				std::cout << convert(bias.get( { i })) << ", ";
+			std::cout << '\n';
+			for (int i = 0; i < weights.dim(1); i++)
+			{
+				for (int j = 0; j < weights.dim(0); j++)
+					std::cout << convert(weights.get( { j, i })) << ", ";
+				std::cout << '\n';
+			}
+			std::cout << "};" << '\n';
+			std::cout << "//@formatter:on" << '\n' << '\n';
+
+			layer_id++;
+		}
+
+//	ml::Tensor weights = model.getNode(1).getLayer().getWeights().getParam();
+//	ml::Tensor bias = model.getNode(1).getLayer().getBias().getParam();
+//
+//	std::cout << "first layer\n";
+//	for (int i = 0; i < weights.dim(0); i++)
+//	{
+//		std::cout << bias.get( { i }) << "   ";
+//		for (int j = 0; j < weights.dim(1); j++)
+//			std::cout << weights.get( { i, j }) << ' ';
+//		std::cout << '\n';
+//	}
+//
+//	std::cout << "second layer\n";
+//	weights = model.getNode(2).getLayer().getWeights().getParam();
+//	bias = model.getNode(2).getLayer().getBias().getParam();
+//	std::cout << bias.get( { 0 }) << "   ";
+//	for (int j = 0; j < weights.dim(1); j++)
+//		std::cout << weights.get( { 0, j }) << ' ';
+//	std::cout << '\n';
 }
 
 int main(int argc, char *argv[])
@@ -2804,9 +3061,11 @@ int main(int argc, char *argv[])
 
 //	test_search();
 //	test_evaluate();
+	test_proven_positions(1000);
+//	train_simple_evaluator();
 
-//	TrainingManager tm("/home/maciek/alphagomoku/tests_2023/test/");
-//	for (int i = 0; i < 29; i++)
+//	TrainingManager tm("/home/maciek/alphagomoku/tests_2023/base_q_head/");
+//	for (int i = 0; i < 10; i++)
 //		tm.runIterationRL();
 
 	return 0;
@@ -2831,15 +3090,15 @@ int main(int argc, char *argv[])
 		TrainingConfig cfg;
 		cfg.blocks = 10;
 		cfg.filters = 128;
-		AGNetwork network; //(game_config, cfg);
+		std::unique_ptr<AGNetwork> network; //(game_config, cfg);
 //		network.optimize();
 //		network.convertToHalfFloats();
-		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/network_overfit_opt.bin");
+		network->loadFromFile("/home/maciek/alphagomoku/tests_2023/base_q_head/checkpoint/network_42_opt.bin");
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/test_6x64s_2/checkpoint/network_33_opt.bin");
 //		network.optimize();
-		network.convertToHalfFloats();
-		network.setBatchSize(1024);
-		network.moveTo(ml::Device::cuda(0));
+		network->convertToHalfFloats();
+		network->setBatchSize(16);
+		network->moveTo(ml::Device::cuda(0));
 
 		matrix<Sign> board(15, 15);
 //		board = Board::fromString(""
@@ -2928,37 +3187,8 @@ int main(int argc, char *argv[])
 		float loss = 0.0f;
 		int counter = 0;
 
-//		for (int g = 0; g < buffer.size(); g++)
-		for (int g = 0; g < 512; g++)
-		{
-			for (int i = 0; i < buffer.getGameData(g).numberOfSamples(); i++)
-			{
-				buffer.getGameData(g).getSample(pack, i);
-				network.packInputData(i, pack.board, pack.played_move.sign);
-			}
-
-			network.forward(buffer.getGameData(g).numberOfSamples());
-
-			for (int i = 0; i < buffer.getGameData(g).numberOfSamples(); i++)
-			{
-				buffer.getGameData(g).getSample(pack, i);
-				network.unpackOutput(i, policy, action_values, value);
-
-				const Value t = convertOutcome(pack.game_outcome, pack.played_move.sign);
-				loss += cross_entropy(value.win_rate, t.win_rate);
-				loss += cross_entropy(value.draw_rate, t.draw_rate);
-				loss += cross_entropy(value.loss_rate(), t.loss_rate());
-				counter++;
-			}
-//			if ((g + 1) % 10 == 0)
-//				std::cout << "avg loss = " << loss / counter << " (" << counter << " samples)\n";
-		}
-		std::cout << "ext loss = " << loss / counter << " (" << counter << " samples)\n";
-
-		return 0;
-
-		network.packInputData(0, pack.board, pack.played_move.sign);
-		network.forward(1);
+		network->packInputData(0, pack.board, pack.played_move.sign);
+		network->forward(1);
 //		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 //		const double start = getTime();
@@ -2976,7 +3206,7 @@ int main(int argc, char *argv[])
 //		std::cout << "n/s = " << network.getBatchSize() * repeats / time << '\n';
 //		return 0;
 
-		network.unpackOutput(0, policy, action_values, value);
+		network->unpackOutput(0, policy, action_values, value);
 		std::cout << "\n\n--------------------------------------------------------------\n\n";
 		std::cout << "Value = " << value.toString() << '\n'; //<< " (" << value_target.toString() << ")\n";
 		//		std::cout << Board::toString(board, policy, true) << '\n';
@@ -3024,37 +3254,37 @@ int main(int argc, char *argv[])
 //	GameBuffer buffer("/home/maciek/alphagomoku/standard_test_2/valid_buffer/buffer_19.bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
-	AGNetwork network(GameConfig(GameRules::STANDARD, 15, 15));
-//	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
-	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3_10x128.bin");
-	network.optimize();
-//	network.convertToHalfFloats();
-
-//	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/network_int8.bin");
-////	return 0;
-////	network.optimize();
-	network.setBatchSize(10);
-	network.moveTo(ml::Device::cuda(0));
+//	AGNetwork network(GameConfig(GameRules::STANDARD, 15, 15));
+////	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/checkpoint/network_20_opt.bin");
+//	network.loadFromFile("/home/maciek/alphagomoku/minml_test/minml3_10x128.bin");
+//	network.optimize();
+////	network.convertToHalfFloats();
 //
-	matrix<Sign> board(15, 15);
-	board = Board::fromString(""
-			" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ O O _ X _ X _ _ _ _ _\n"
-			" _ _ O X O O O O X _ _ _ _ _ _\n"
-			" _ _ _ X _ O _ O X X _ _ _ _ _\n"
-			" _ _ _ _ X X _ _ _ X _ _ _ _ _\n"
-			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-//	board.at(7, 7) = Sign::CIRCLE;
-	const Sign sign_to_move = Sign::CIRCLE;
+////	network.loadFromFile("/home/maciek/alphagomoku/standard_test_2/network_int8.bin");
+//////	return 0;
+//////	network.optimize();
+//	network.setBatchSize(10);
+//	network.moveTo(ml::Device::cuda(0));
+////
+//	matrix<Sign> board(15, 15);
+//	board = Board::fromString(""
+//			" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ X X O _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ O O _ X _ X _ _ _ _ _\n"
+//			" _ _ O X O O O O X _ _ _ _ _ _\n"
+//			" _ _ _ X _ O _ O X X _ _ _ _ _\n"
+//			" _ _ _ _ X X _ _ _ X _ _ _ _ _\n"
+//			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+////	board.at(7, 7) = Sign::CIRCLE;
+//	const Sign sign_to_move = Sign::CIRCLE;
 
 //	for (int i = 0; i < 1; i++)
 //	{

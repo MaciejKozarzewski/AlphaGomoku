@@ -444,13 +444,13 @@ namespace ag
 		const int worst_threat = static_cast<int>(ThreatType::OPEN_3);
 		const int best_threat = static_cast<int>(ThreatType::FIVE);
 
-		static const std::array<int, 10> own_threat_values = { 0, 0, 1, 5, 10, 50, 100, 100, 1000, 0 };
-		static const std::array<int, 10> opp_threat_values = { 0, 0, 0, 0, 1, 5, 10, 10, 100, 0 };
-		int result = 0;
+		static const std::array<int, 10> own_values = { 0, 0, 19, 49, 76, 170, 33, 159, 252, 0 };
+		static const std::array<int, 10> opp_values = { 0, 0, -1, -50, -45, -135, -14, -154, -496, 0 };
+		int result = 12;
 		for (int i = worst_threat; i <= best_threat; i++)
 		{
-			result += own_threat_values[i] * pattern_calculator.getThreatHistogram(own_sign).get(static_cast<ThreatType>(i)).size();
-			result -= opp_threat_values[i] * pattern_calculator.getThreatHistogram(opponent_sign).get(static_cast<ThreatType>(i)).size();
+			result += own_values[i] * pattern_calculator.getThreatHistogram(own_sign).get(static_cast<ThreatType>(i)).size();
+			result += opp_values[i] * pattern_calculator.getThreatHistogram(opponent_sign).get(static_cast<ThreatType>(i)).size();
 		}
 		return std::max(-4000, std::min(4000, result));
 	}
