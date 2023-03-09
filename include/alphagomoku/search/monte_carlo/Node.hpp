@@ -24,8 +24,7 @@ namespace ag
 	{
 			static constexpr uint16_t is_owning = 0x0001u;
 			static constexpr uint16_t is_root = 0x0002u;
-			static constexpr uint16_t must_defend = 0x0004u;
-			static constexpr uint16_t is_fully_expanded = 0x0008u;
+			static constexpr uint16_t is_fully_expanded = 0x0004u;
 
 			Edge *edges = nullptr;
 			Value value;
@@ -35,32 +34,32 @@ namespace ag
 			int16_t depth = 0;
 			int16_t virtual_loss = 0;
 			Sign sign_to_move = Sign::NONE;
-			uint16_t flags = 0; // from least significant bit: is_owning, is_root, must_defend, is_fully_expanded
+			uint16_t flags = 0; // from least significant bit: is_owning, is_root, is_fully_expanded
 
-			void set_flag(uint16_t f) noexcept
+			template<uint16_t F>
+			void set_flag(bool value) noexcept
 			{
-				flags |= f;
+				flags = value ? (flags | F) : (flags & (~F));
 			}
-			void clear_flag(uint16_t f) noexcept
+			template<uint16_t F>
+			bool get_flag() const noexcept
 			{
-				flags &= (~f);
-			}
-			bool get_flag(uint16_t f) const noexcept
-			{
-				return (flags & f) != 0;
+				return (flags & F) != 0;
 			}
 		public:
 			Node() noexcept = default;
 			Node(const Node &other) noexcept :
+					edges(nullptr),
 					value(other.value),
 					visits(other.visits),
 					score(other.score),
+					number_of_edges(0),
 					depth(other.depth),
 					virtual_loss(other.virtual_loss),
 					sign_to_move(other.sign_to_move),
 					flags(other.flags)
 			{
-				clear_flag(is_owning);
+				set_flag<is_owning>(false);
 			}
 			Node(Node &&other) noexcept :
 					edges(other.edges),
@@ -75,7 +74,7 @@ namespace ag
 			{
 				other.edges = nullptr;
 				other.number_of_edges = 0;
-				clear_flag(is_owning);
+				other.set_flag<is_owning>(false);
 			}
 			Node& operator=(const Node &other) noexcept
 			{
@@ -88,7 +87,7 @@ namespace ag
 				virtual_loss = other.virtual_loss;
 				sign_to_move = other.sign_to_move;
 				flags = other.flags;
-				clear_flag(is_owning);
+				set_flag<is_owning>(false);
 				return *this;
 			}
 			Node& operator=(Node &&other) noexcept
@@ -118,25 +117,21 @@ namespace ag
 				depth = 0;
 				virtual_loss = 0;
 				sign_to_move = Sign::NONE;
-				clear_flag(is_root);
-				clear_flag(must_defend);
+				set_flag<is_root>(false);
+				set_flag<is_fully_expanded>(false);
 			}
 
 			bool isOwning() const noexcept
 			{
-				return get_flag(is_owning);
+				return get_flag<is_owning>();
 			}
 			bool isRoot() const noexcept
 			{
-				return get_flag(is_root);
-			}
-			bool mustDefend() const noexcept
-			{
-				return get_flag(must_defend);
+				return get_flag<is_root>();
 			}
 			bool isFullyExpanded() const noexcept
 			{
-				return get_flag(is_fully_expanded);
+				return get_flag<is_fully_expanded>();
 			}
 			bool isLeaf() const noexcept
 			{
@@ -219,15 +214,11 @@ namespace ag
 
 			void markAsRoot() noexcept
 			{
-				set_flag(is_root);
-			}
-			void markAsDefensive() noexcept
-			{
-				set_flag(must_defend);
+				set_flag<is_root>(true);
 			}
 			void markAsFullyExpanded() noexcept
 			{
-				set_flag(is_fully_expanded);
+				set_flag<is_fully_expanded>(true);
 			}
 			void createEdges(int number) noexcept
 			{
@@ -236,7 +227,7 @@ namespace ag
 					delete[] edges;
 				edges = new Edge[number];
 				number_of_edges = static_cast<int16_t>(number);
-				set_flag(is_owning);
+				set_flag<is_owning>(true);
 			}
 			void setEdges(Edge *ptr, int number) noexcept
 			{
@@ -245,7 +236,7 @@ namespace ag
 					delete[] edges;
 				edges = ptr;
 				number_of_edges = static_cast<int16_t>(number);
-				clear_flag(is_owning);
+				set_flag<is_owning>(false);
 			}
 			void freeEdges() noexcept
 			{
@@ -253,7 +244,7 @@ namespace ag
 					delete[] edges;
 				number_of_edges = 0;
 				edges = nullptr;
-				clear_flag(is_owning);
+				set_flag<is_owning>(false);
 			}
 			void setValue(Value value) noexcept
 			{
@@ -266,7 +257,6 @@ namespace ag
 				const float tmp = 1.0f / static_cast<float>(visits);
 				value += (eval - value) * tmp;
 				value.clipToBounds();
-				assert(value.isValid());
 			}
 			void setScore(Score s) noexcept
 			{

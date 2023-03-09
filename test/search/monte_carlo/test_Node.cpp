@@ -18,7 +18,6 @@ namespace ag
 
 		EXPECT_FALSE(node.isOwning());
 		EXPECT_FALSE(node.isRoot());
-		EXPECT_FALSE(node.mustDefend());
 		EXPECT_FALSE(node.isFullyExpanded());
 		EXPECT_TRUE(node.isLeaf());
 

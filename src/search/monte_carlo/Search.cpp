@@ -120,10 +120,11 @@ namespace ag
 	{
 		solver.setSharedTable(tree.getSharedHashTable());
 
-		int number_of_trials = 10 * get_buffer().maxSize();
+		int number_of_trials = 2 * get_buffer().maxSize();
 
 		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
 		{
+			stats.nb_batch_size++;
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_buffer().getNext();
 
@@ -164,7 +165,6 @@ namespace ag
 			if (number_of_trials <= 0)
 				break;
 		}
-		stats.nb_batch_size += get_buffer().storedElements();
 	}
 	void Search::solve()
 	{
@@ -179,8 +179,10 @@ namespace ag
 		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
 			TimerGuard timer(stats.schedule);
-			if (not get_buffer().get(i).getScore().isProven())
-			{ // schedule only those tasks that haven't already been solved by the solver
+			const bool is_root = get_buffer().get(i).visitedPathLength() == 0;
+			const bool is_proven = get_buffer().get(i).getScore().isProven();
+			if (is_root or not is_proven)
+			{ // schedule only those tasks that haven't already been solved by the solver or if it is a root node
 				stats.nb_network_evaluations++;
 				evaluator.addToQueue(get_buffer().get(i));
 			}

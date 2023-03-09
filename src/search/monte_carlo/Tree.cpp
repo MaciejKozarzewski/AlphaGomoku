@@ -105,7 +105,7 @@ namespace
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			result = std::max(result, edge->getScore());
 
-		if ((node->mustDefend() or node->isFullyExpanded()) or not result.isLoss())
+		if (node->isFullyExpanded() or not result.isLoss())
 			node->setScore(result);
 	}
 }
@@ -261,9 +261,8 @@ namespace ag
 			for (int i = 0; i < number_of_edges; i++)
 				node_to_add->getEdge(i) = task.getEdges()[i];
 			node_to_add->updateValue(task.getValue()); // 'updateValue' is called because it increases visit count from 0 to 1 ('setValue' doesn't do that)
-			if (task.mustDefend())
-				node_to_add->markAsDefensive();
-			if ((node_to_add->numberOfEdges() + node_to_add->getDepth()) == task.getBoard().size())
+
+			if (task.mustDefend() or (node_to_add->numberOfEdges() + node_to_add->getDepth()) == task.getBoard().size())
 				node_to_add->markAsFullyExpanded();
 			update_score(node_to_add);
 
