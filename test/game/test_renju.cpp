@@ -38,10 +38,10 @@ namespace ag
 // @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
-		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
 
 		EXPECT_FALSE(isForbidden(board, Move("Xa5")));
-		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CROSS_WIN);
 	}
 	TEST(TestRenju, Overline)
 	{
@@ -67,10 +67,10 @@ namespace ag
 // @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
-		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
 
 		EXPECT_TRUE(isForbidden(board, Move("Xa5")));
-		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CIRCLE_WIN);
+		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CIRCLE_WIN);
 	}
 	TEST(TestRenju, WinInsideOverline)
 	{
@@ -96,10 +96,10 @@ namespace ag
 // @formatter:on
 
 		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
-		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
 
 		EXPECT_FALSE(isForbidden(board, Move("Xa5")));
-		EXPECT_EQ(getOutcome_v2(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CROSS_WIN);
 	}
 	TEST(TestRenju, FourAndFour)
 	{

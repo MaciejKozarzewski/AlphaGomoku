@@ -36,21 +36,21 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xa5")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xd3")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xa5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xd3")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xa11")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xf11")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xe9")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xa11")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xf11")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xe9")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xg0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xl5")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xi6")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xg0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xl5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xi6")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xl7")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xg12")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xo10")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xl7")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xg12")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xo10")), GameOutcome::CROSS_WIN);
 	}
 	TEST(TestStandard, Overline)
 	{
@@ -75,8 +75,8 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xa5")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xa5")), GameOutcome::UNKNOWN);
 	}
 	TEST(TestStandard, WinInsideOverline)
 	{
@@ -101,8 +101,8 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::STANDARD, board, Move("Xa5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::STANDARD, board, Move("Xa5")), GameOutcome::CROSS_WIN);
 	}
 //	TEST(TestStandard, Placeholder)
 //	{

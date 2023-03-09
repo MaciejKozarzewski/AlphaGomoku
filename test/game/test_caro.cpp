@@ -36,21 +36,21 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xa5")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xd3")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xa5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xd3")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xa11")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xf11")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xe9")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xa11")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xf11")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xe9")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xg0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xl5")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xi6")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xg0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xl5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xi6")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xl7")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xg12")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xo10")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xl7")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xg12")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xo10")), GameOutcome::CROSS_WIN);
 	}
 	TEST(TestCaro5, Overline)
 	{
@@ -75,8 +75,8 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xa5")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xa5")), GameOutcome::UNKNOWN);
 	}
 	TEST(TestCaro5, Blocked)
 	{
@@ -101,9 +101,9 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xa4")), GameOutcome::UNKNOWN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xh5")), GameOutcome::UNKNOWN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO5, board, Move("Xo8")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xa4")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xh5")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xo8")), GameOutcome::UNKNOWN);
 	}
 
 	TEST(TestCaro6, WinIn1)
@@ -129,21 +129,21 @@ namespace ag
 						/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xa5")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xd3")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xa5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xd3")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xa11")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xf11")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xe9")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xa11")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xf11")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xe9")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xg0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xl5")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xi6")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xg0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xl5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xi6")), GameOutcome::CROSS_WIN);
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xl7")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xg12")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xo10")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xl7")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xg12")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xo10")), GameOutcome::CROSS_WIN);
 	}
 	TEST(TestCaro6, Overline)
 	{
@@ -168,8 +168,8 @@ namespace ag
 						/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xa5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xa0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xa5")), GameOutcome::CROSS_WIN);
 	}
 	TEST(TestCaro6, Blocked)
 	{
@@ -194,9 +194,9 @@ namespace ag
 						/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xa4")), GameOutcome::UNKNOWN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xh5")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome_v2(GameRules::CARO6, board, Move("Xo8")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xa4")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xh5")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO6, board, Move("Xo8")), GameOutcome::CROSS_WIN);
 	}
 
 //	TEST(TestCaro, Placeholder)
