@@ -158,6 +158,7 @@ namespace ag
 		Result result(Score(), false);
 		switch (mode)
 		{
+			default:
 			case TssMode::BASIC:
 			{
 //				TimerGuard tg(stats.move_generation);
@@ -173,7 +174,6 @@ namespace ag
 				break;
 			}
 			case TssMode::RECURSIVE:
-			default:
 			{
 				if (shared_table == nullptr)
 					throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
@@ -183,7 +183,7 @@ namespace ag
 //				stats.evaluate.stopTimer();
 
 				hash_key = shared_table->getHashFunction().getHash(task.getBoard()); // set up hash key
-				const int max_depth = std::min(127, game_config.draw_after - pattern_calculator.getCurrentDepth());
+				const int max_depth = std::max(1, std::min(127, game_config.draw_after - pattern_calculator.getCurrentDepth()));
 				for (int depth = 1; depth <= max_depth; depth += 4)
 				{ // iterative deepening loop
 //					double t0 = getTime();
@@ -228,13 +228,13 @@ namespace ag
 //		if (result.score.getEval() ==  Score::min_value())
 //		if (task.getScore().getEval() == Score::min_value())
 //		{
-//			std::cout << result.score.toString() << " at " << position_counter << '\n';
-//			std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
-//			pattern_calculator.print();
-//			pattern_calculator.printAllThreats();
-//			actions.print();
-//			std::cout << task.toString();
-//			std::cout << "\n---------------------------------------------\n";
+//		std::cout << result.score.toString() << " at " << position_counter << '\n';
+//		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
+//		pattern_calculator.print();
+//		pattern_calculator.printAllThreats();
+//		actions.print();
+//		std::cout << task.toString();
+//		std::cout << "\n---------------------------------------------\n";
 //			exit(-1);
 //		}
 

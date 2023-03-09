@@ -191,9 +191,9 @@ namespace ag
 			Logger::write("Tree is proven");
 			return true;
 		}
-		if (tree.hasSingleMove())
+		if (tree.hasSingleNonLosingMove())
 		{
-			Logger::write("There is single move");
+			Logger::write("There is single non-losing move");
 			return true;
 		}
 		return false;

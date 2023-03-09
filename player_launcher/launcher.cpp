@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 	ag::ProgramManager player_manager;
 	try
 	{
-		bool can_continue = player_manager.processArguments(argc, argv);
+		const bool can_continue = player_manager.processArguments(argc, argv);
 		if (can_continue)
 		{
 			player_manager.run();

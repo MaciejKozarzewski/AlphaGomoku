@@ -27,7 +27,6 @@ namespace
 		result += std::to_string((flags & 1u) != 0);
 		result += std::to_string((flags & 2u) != 0);
 		result += std::to_string((flags & 4u) != 0);
-		result += std::to_string((flags & 8u) != 0);
 		return result;
 	}
 }

@@ -128,6 +128,13 @@ namespace ag
 //							+ std::to_string(settings.getTimeLeft() / sum) + "s");
 //			last_time = getTime();
 //		}
+		double result = std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
+		if (result >= settings.getTimeLeft() or result >= settings.getTimeForTurn())
+		{
+			Logger::write(
+					"evaluation = " + eval.toString() + ", time left = " + std::to_string(settings.getTimeLeft()) + ", moves left = "
+							+ std::to_string(moves_left) + ", fraction = " + std::to_string(fraction) + ", sum = " + std::to_string(sum));
+		}
 
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
 	}

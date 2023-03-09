@@ -48,6 +48,7 @@ namespace ag
 
 			std::vector<std::unique_ptr<SearchThread>> search_threads;
 			Tree tree;
+			mutable Score best_score = Score::min_value();
 
 		public:
 			SearchEngine(const EngineSettings &settings);

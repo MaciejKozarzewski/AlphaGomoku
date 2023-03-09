@@ -101,13 +101,19 @@ namespace ag
 
 		matrix<Sign> board(game_config.rows, game_config.cols);
 
+		float most_balanced = 1.0f;
+		std::vector<Move> best;
 		for (auto iter = workspace.begin(); iter < workspace.end(); iter++)
 		{
 			if (iter->is_scheduled_to_nn)
 			{
 				assert(iter->task.wasProcessedByNetwork());
-				if (std::fabs(iter->task.getValue().getExpectation() - 0.5f) < 0.1f)
-					completed_openings.push_back(iter->moves);
+				const float balance = std::fabs(iter->task.getValue().getExpectation() - 0.5f);
+				if (balance < most_balanced)
+				{
+					most_balanced = balance;
+					best = iter->moves;
+				}
 				iter->reset();
 			}
 
@@ -129,39 +135,9 @@ namespace ag
 					}
 				}
 			}
-
-//			if (iter->is_scheduled_to_nn and iter->task.wasProcessedByNetwork())
-//			{
-//				generate_opening_map(iter->task.getBoard(), iter->task.getPolicy(), 1.0f);
-//
-//				const Move move(iter->task.getSignToMove(), get_move(iter->task));
-//				iter->moves.push_back(move);
-//				iter->is_scheduled_to_nn = false;
-//			}
-//
-//			if (not iter->is_scheduled_to_nn)
-//			{ // this opening was not scheduled for evaluation
-//				if (static_cast<int>(iter->moves.size()) == iter->desired_length)
-//				{ // the opening is completed
-//					completed_openings.push_back(iter->moves);
-//					iter->reset();
-//					iter->desired_length = randInt(average_length) + randInt(average_length);
-//				}
-//				else
-//				{
-//					fill_board_with_moves(board, iter->moves);
-//					iter->task.set(board, get_sign_to_move(iter->moves));
-//					solver.solve(iter->task, TssMode::RECURSIVE, 1000);
-//					if (iter->task.getScore().isProven())
-//						iter->reset(); // opening cannot have a proved score
-//					else
-//					{
-//						evaluator.addToQueue(iter->task);
-//						iter->is_scheduled_to_nn = true;
-//					}
-//				}
-//			}
 		}
+		if (most_balanced != 1.0f)
+			completed_openings.push_back(best);
 
 		return OpeningGenerator::OK;
 	}
