@@ -14,6 +14,7 @@
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
 #include <alphagomoku/utils/AlignedAllocator.hpp>
+#include <alphagomoku/utils/SpinLock.hpp>
 
 #include <array>
 #include <vector>
@@ -49,11 +50,11 @@ namespace ag
 					SharedTableData(false, false, Bound::NONE, 0, Score(), Move())
 			{
 			}
-			SharedTableData(uint64_t data) :
+			SharedTableData(uint64_t data) noexcept :
 					m_data(data)
 			{
 			}
-			SharedTableData(bool mustDefend, bool hasInitiative, Bound bound, int depth, Score score, Move bestMove) :
+			SharedTableData(bool mustDefend, bool hasInitiative, Bound bound, int depth, Score score, Move bestMove) noexcept :
 					m_data(0)
 			{
 				m_data |= static_cast<uint64_t>(mustDefend); // 1 bit
@@ -108,18 +109,18 @@ namespace ag
 			{
 					static constexpr HashKey64 mask = 0xFFFF000000000000ull;
 
-					HashKey64 m_key = 0u;
+					HashKey64 m_key;
 					SharedTableData m_value;
 				public:
 					Entry() noexcept = default;
 					Entry(const HashKey128 &key, SharedTableData value) noexcept :
-							m_key(key.getHigh() ^ value),
+							m_key(key.getHigh()),
 							m_value(value)
 					{
 					}
 					HashKey64 getKey() const noexcept
 					{
-						return m_key ^ m_value;
+						return m_key;
 					}
 					SharedTableData getValue() const noexcept
 					{
@@ -127,21 +128,25 @@ namespace ag
 					}
 					bool key_matches(const HashKey128 &key) const noexcept
 					{
-						return getKey() == key.getHigh() and getValue().key() == (key.getLow() & mask);
+						return (getKey() == key.getHigh()) & (getValue().key() == (key.getLow() & mask));
 					}
 			};
 
-			using bucket_type = std::array<Entry, 4>;
+			using Bucket = std::array<Entry, 4>;
 
-			std::vector<bucket_type, AlignedAllocator<bucket_type, sizeof(bucket_type)>> m_hashtable;
+			std::vector<Bucket, AlignedAllocator<Bucket, sizeof(Bucket)>> m_hashtable;
+			mutable std::vector<SpinLock, AlignedAllocator<SpinLock, sizeof(SpinLock)>> m_locks;
 			FastZobristHashing m_hash_function;
-			HashKey64 m_mask;
+			HashKey64 m_bucket_mask;
+			HashKey64 m_lock_mask;
 			int m_base_generation = 0;
 		public:
 			SharedHashTable(int rows, int columns, size_t initialSize = 1024) :
 					m_hashtable(roundToPowerOf2(initialSize) / 4),
+					m_locks(64),
 					m_hash_function(rows, columns),
-					m_mask(m_hashtable.size() - 1)
+					m_bucket_mask(m_hashtable.size() - 1),
+					m_lock_mask(m_locks.size() - 1)
 			{
 				clear();
 			}
@@ -151,7 +156,7 @@ namespace ag
 			}
 			int64_t getMemory() const noexcept
 			{
-				return sizeof(bucket_type) * m_hashtable.size() + m_hash_function.getMemory();
+				return sizeof(Bucket) * m_hashtable.size() + m_hash_function.getMemory();
 			}
 			const FastZobristHashing& getHashFunction() const noexcept
 			{
@@ -159,7 +164,7 @@ namespace ag
 			}
 			void clear() noexcept
 			{
-				std::fill(m_hashtable.begin(), m_hashtable.end(), bucket_type());
+				std::fill(m_hashtable.begin(), m_hashtable.end(), Bucket());
 			}
 			void increaseGeneration() noexcept
 			{
@@ -167,46 +172,41 @@ namespace ag
 			}
 			SharedTableData seek(const HashKey128 &hash) const noexcept
 			{
-				const bucket_type &bucket = m_hashtable[hash.getLow() & m_mask];
+				SpinLockGuard guard(get_lock(hash));
+
+				const Bucket &bucket = m_hashtable[get_index_of(hash)];
 				for (size_t i = 0; i < bucket.size(); i++)
-				{
-					const Entry entry = bucket[i]; // copy entry to stack to prevent surprises from read/write race
-					if (entry.key_matches(hash))
-						return entry.getValue();
-				}
+					if (bucket[i].key_matches(hash))
+						return bucket[i].getValue();
 				return SharedTableData();
 			}
 			void insert(const HashKey128 &hash, SharedTableData value) noexcept
 			{
+				SpinLockGuard guard(get_lock(hash));
+
 				value.set_generation_and_key(m_base_generation, hash.getLow());
 				const Entry new_entry(hash, value);
 
-				bucket_type &bucket = m_hashtable[hash.getLow() & m_mask];
+				Bucket &bucket = m_hashtable[get_index_of(hash)];
 				// first check if this position is already stored in the bucket
 				if (value.score().isProven() or value.bound() == Bound::EXACT) // but only if the new score is proven or exact
 					for (size_t i = 0; i < bucket.size(); i++)
-					{
-						const Entry entry = bucket[i]; // copy entry to stack to prevent surprises from read/write race
-						if (entry.key_matches(hash))
+						if (bucket[i].key_matches(hash))
 						{
 							bucket[i] = new_entry;
 							return;
 						}
-					}
 
 				// now find the least valuable entry to replace
 				Entry *found = &bucket[0]; // first entry is the 'always replace' one
 				for (size_t i = 1; i < bucket.size(); i++)
-				{ // loop over entries that are replaced based on depth
-					const Entry entry = bucket[i]; // copy entry to stack to prevent surprises from read/write race
-					if (get_value_of(entry) < get_value_of(*found))
+					if (get_value_of(bucket[i]) < get_value_of(*found))
 						found = &bucket[i];
-				}
 				*found = new_entry;
 			}
 			void prefetch(const HashKey128 &hash) const noexcept
 			{
-				prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + (hash.getLow() & m_mask));
+				prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + get_index_of(hash));
 			}
 			double loadFactor(bool approximate = false) const noexcept
 			{
@@ -214,13 +214,21 @@ namespace ag
 				uint64_t result = 0;
 				for (size_t i = 0; i < size; i++)
 				{
-					const bucket_type &bucket = m_hashtable[i];
+					const Bucket &bucket = m_hashtable[i];
 					for (size_t j = 0; j < bucket.size(); j++)
 						result += (bucket[j].getValue().bound() != Bound::NONE);
 				}
 				return static_cast<double>(result) / (size * getBucketSize());
 			}
 		private:
+			SpinLock& get_lock(const HashKey128 &hash) const noexcept
+			{
+				return m_locks[hash.getLow() & m_lock_mask];
+			}
+			size_t get_index_of(const HashKey128 &hash) const noexcept
+			{
+				return hash.getLow() & m_bucket_mask;
+			}
 			int get_value_of(const Entry &entry) const noexcept
 			{
 				return entry.getValue().depth() - (m_base_generation - entry.getValue().generation());
