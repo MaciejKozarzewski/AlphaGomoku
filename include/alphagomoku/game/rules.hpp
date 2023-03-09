@@ -41,7 +41,7 @@ namespace ag
 	 * The move may or may not be already placed on board.
 	 * If numberOfMovesForDraw is negative it means that we play until board is full.
 	 */
-	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove, int numberOfMovesForDraw = -1);
+	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, Move lastMove, int numberOfMovesForDraw = -1);
 	bool isForbidden(const matrix<Sign> &board, Move move);
 
 } /* namespace ag */

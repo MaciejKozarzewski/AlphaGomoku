@@ -22,20 +22,20 @@ namespace
 {
 	uint32_t get_random_int32()
 	{
-#ifdef NDEBUG
-		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
-#else
+//#ifdef NDEBUG
+//		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
+//#else
 		thread_local std::mt19937 generator(0);
-#endif
+//#endif
 		return generator();
 	}
 	uint64_t get_random_int64()
 	{
-#ifdef NDEBUG
-		thread_local std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
-#else
+//#ifdef NDEBUG
+//		thread_local std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
+//#else
 		thread_local std::mt19937_64 generator(0);
-#endif
+//#endif
 		return generator();
 	}
 
@@ -309,7 +309,7 @@ namespace ag
 			}
 			if (result.empty())
 				return result;
-			if (getOutcome_v2(config.rules, board, result.back()) == GameOutcome::UNKNOWN)
+			if (getOutcome(config.rules, board, result.back()) == GameOutcome::UNKNOWN)
 				return result;
 		}
 	}

@@ -107,7 +107,7 @@ namespace ag
 		throw std::logic_error("unknown outcome '" + str + "'");
 	}
 
-	GameOutcome getOutcome_v2(GameRules rules, const matrix<Sign> &board, Move lastMove, int numberOfMovesForDraw)
+	GameOutcome getOutcome(GameRules rules, const matrix<Sign> &board, Move lastMove, int numberOfMovesForDraw)
 	{
 		if (not board.isInside(lastMove.row, lastMove.col))
 			return GameOutcome::UNKNOWN;

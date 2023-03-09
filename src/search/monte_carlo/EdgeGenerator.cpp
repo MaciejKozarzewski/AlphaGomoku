@@ -74,7 +74,7 @@ namespace
 		{
 			for (int row = 0; row < task.getBoard().rows(); row++)
 				for (int col = 0; col < task.getBoard().cols(); col++)
-					if (task.getBoard().at(row, col) == Sign::NONE)
+					if (task.getBoard().at(row, col) == Sign::NONE)// and task.getPolicy().at(row, col) >= 1.0e-4f)
 						task.addEdge(Move(row, col, task.getSignToMove()));
 		}
 	}
@@ -98,7 +98,7 @@ namespace
 			const Move move = edge->getMove();
 
 			Board::putMove(task.getBoard(), move);
-			const GameOutcome outcome = getOutcome_v2(task.getGameConfig().rules, task.getBoard(), move, task.getGameConfig().draw_after);
+			const GameOutcome outcome = getOutcome(task.getGameConfig().rules, task.getBoard(), move, task.getGameConfig().draw_after);
 			Board::undoMove(task.getBoard(), move);
 
 			switch (convertProvenValue(outcome, task.getSignToMove()))

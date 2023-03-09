@@ -108,7 +108,7 @@ namespace ag
 
 	bool Game::isOver() const
 	{
-		return ag::getOutcome_v2(game_config.rules, current_board, getLastMove(), game_config.draw_after) != GameOutcome::UNKNOWN;
+		return this->getOutcome() != GameOutcome::UNKNOWN;
 	}
 	bool Game::isDraw() const
 	{
@@ -116,7 +116,7 @@ namespace ag
 	}
 	GameOutcome Game::getOutcome() const noexcept
 	{
-		return ag::getOutcome_v2(game_config.rules, current_board, getLastMove(), game_config.draw_after);
+		return ag::getOutcome(game_config.rules, current_board, getLastMove(), game_config.draw_after);
 	}
 	void Game::setPlayers(const std::string &crossPlayerName, const std::string &circlePlayerName)
 	{
