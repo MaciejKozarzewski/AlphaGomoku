@@ -132,7 +132,7 @@ namespace ag
 		listener.pushLine("START 15");
 
 		protocol.processInput(listener);
-		EXPECT_EQ(input_queue.length(), 3);
+		EXPECT_EQ(input_queue.length(), 4);
 		EXPECT_EQ(output_queue.length(), 1);
 
 		Message msg = input_queue.pop();
@@ -145,6 +145,10 @@ namespace ag
 		msg = input_queue.pop();
 		EXPECT_EQ(msg.getOption().name, "columns");
 		EXPECT_EQ(msg.getOption().value, "15");
+
+		msg = input_queue.pop();
+		EXPECT_EQ(msg.getOption().name, "draw_after");
+		EXPECT_EQ(msg.getOption().value, "225");
 
 		msg = output_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::PLAIN_STRING);

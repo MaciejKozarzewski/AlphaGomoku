@@ -324,6 +324,8 @@ namespace ag
 		input_queue.push(Message(MessageType::START_PROGRAM));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
 		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(1) }));
+		const int size = square(std::stoi(tmp.at(1)));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "draw_after", std::to_string(size) }));
 
 		if (std::stoi(tmp.at(1)) == 15 or std::stoi(tmp.at(1)) == 20)
 		{
@@ -351,6 +353,8 @@ namespace ag
 			columns = std::stoi(tmp.at(0));
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(0) }));
+			const int size = std::stoi(tmp.at(1)) * std::stoi(tmp.at(0));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "draw_after", std::to_string(size) }));
 			input_queue.push(Message(MessageType::START_PROGRAM));
 		}
 		else
