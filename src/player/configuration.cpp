@@ -25,17 +25,11 @@ namespace
 		result["always_ponder"] = false;
 		result["swap2_openings_file"] = "swap2_openings.json";
 
-		result["conv_networks"]["freestyle"] = "freestyle_conv_10x128.bin";
-		result["conv_networks"]["standard"] = "standard_conv_10x128.bin";
-		result["conv_networks"]["renju"] = "renju_conv_10x128.bin";
-		result["conv_networks"]["caro5"] = "caro5_conv_10x128.bin";
-		result["conv_networks"]["caro6"] = "caro6_conv_10x128.bin";
-
-		result["nnue_networks"]["freestyle"] = "freestyle_nnue_32x8x1.bin";
-		result["nnue_networks"]["standard"] = "standard_nnue_32x8x1.bin";
-		result["nnue_networks"]["renju"] = "renju_nnue_32x8x1.bin";
-		result["nnue_networks"]["caro5"] = "caro5_nnue_32x8x1.bin";
-		result["nnue_networks"]["caro6"] = "caro6_nnue_32x8x1.bin";
+		result["networks"]["freestyle"] = "freestyle_10x128.bin";
+		result["networks"]["standard"] = "standard_10x128.bin";
+		result["networks"]["renju"] = "renju_10x128.bin";
+		result["networks"]["caro5"] = "caro5_10x128.bin";
+		result["networks"]["caro6"] = "caro6_10x128.bin";
 
 		result["use_symmetries"] = true;
 		result["search_threads"] = 1;
@@ -118,6 +112,9 @@ namespace ag
 		int search_threads = 0;
 		int max_batch_size = 0;
 		std::vector<DeviceConfig> device_configs;
+
+		TreeConfig tree_config;
+		SearchConfig search_config;
 		if (num_cuda_devices > 0)
 		{
 			for (int i = 0; i < num_cuda_devices; i++)
@@ -134,10 +131,11 @@ namespace ag
 					max_batch_size = std::max(max_batch_size, tmp.batch_size);
 				}
 			}
-			result["search_options"]["vcf_solver_max_positions"] = 200;
-			result["tree_options"]["initial_cache_size"] = 65536;
-			result["tree_options"]["edge_bucket_size"] = 1000000;
-			result["tree_options"]["node_bucket_size"] = 100000;
+			search_config.solver_max_positions = 200;
+			tree_config.initial_node_cache_size = 65536;
+			tree_config.edge_bucket_size = 1000000;
+			tree_config.node_bucket_size = 100000;
+			tree_config.solver_hash_table_size = 1048576;
 		}
 		else
 		{
@@ -150,10 +148,12 @@ namespace ag
 				device_configs.push_back(tmp);
 
 			max_batch_size = tmp.batch_size;
-			result["search_options"]["vcf_solver_max_positions"] = 1600;
-			result["tree_options"]["initial_cache_size"] = 8192;
-			result["tree_options"]["edge_bucket_size"] = 100000;
-			result["tree_options"]["node_bucket_size"] = 10000;
+			search_config.solver_max_positions = 1600;
+
+			tree_config.initial_node_cache_size = 8192;
+			tree_config.edge_bucket_size = 100000;
+			tree_config.node_bucket_size = 10000;
+			tree_config.solver_hash_table_size = 65536;
 		}
 
 		result["search_threads"] = search_threads;
@@ -161,10 +161,12 @@ namespace ag
 		for (size_t i = 0; i < device_configs.size(); i++)
 			result["devices"][i] = device_configs[i].toJson();
 
-		result["search_options"]["max_batch_size"] = max_batch_size;
-		result["search_options"]["expansion_prior_treshold"] = 1.0e-4f;
-		result["search_options"]["max_children"] = 30;
-		result["search_options"]["vcf_solver_level"] = 4;
+		search_config.max_batch_size = max_batch_size;
+		search_config.max_children = 32;
+		search_config.solver_level = 2;
+
+		result["tree_options"] = tree_config.toJson();
+		result["search_options"] = search_config.toJson();
 
 		return result;
 	}

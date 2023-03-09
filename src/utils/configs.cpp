@@ -57,13 +57,13 @@ namespace ag
 			initial_node_cache_size(get_value<int>(cfg, "initial_node_cache_size", Defaults::initial_node_cache_size)),
 			edge_bucket_size(get_value<int>(cfg, "edge_bucket_size", Defaults::edge_bucket_size)),
 			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size)),
-			solver_hash_table_size(get_value<int>(cfg, "tss_hash_table_size", Defaults::solver_hash_table_size))
+			solver_hash_table_size(get_value<int>(cfg, "solver_hash_table_size", Defaults::solver_hash_table_size))
 	{
 	}
 	Json TreeConfig::toJson() const
 	{
 		return Json( { { "initial_node_cache_size", initial_node_cache_size }, { "edge_bucket_size", edge_bucket_size }, { "node_bucket_size",
-				node_bucket_size }, { "tss_hash_table_size", solver_hash_table_size } });
+				node_bucket_size }, { "solver_hash_table_size", solver_hash_table_size } });
 	}
 
 	SearchConfig::SearchConfig(const Json &cfg) :

@@ -35,7 +35,7 @@ namespace ag
 		{
 			evaluators.push_back(std::make_unique<NNEvaluator>(settings.getDeviceConfigs().at(i)));
 			evaluators.back()->useSymmetries(settings.isUsingSymmetries());
-			evaluators.back()->loadGraph(settings.getPathToConvNetwork());
+			evaluators.back()->loadGraph(settings.getPathToNetwork());
 			free_evaluators.push_back(i);
 		}
 	}
@@ -156,6 +156,14 @@ namespace ag
 			action_acores.at(m.row, m.col) = root_node.getEdge(i).getScore();
 		}
 		normalize(policy);
+
+		const Score sc = root_node.getScore();
+		if (best_score.isWin() and sc.isLoss())
+		{
+			Logger::write("Score turned from " + best_score.toString() + " into " + sc.toString());
+			exit(-1);
+		}
+		best_score = std::max(best_score, sc);
 
 		Logger::write(root_node.toString());
 		root_node.sortEdges();

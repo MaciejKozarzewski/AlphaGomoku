@@ -62,19 +62,11 @@ namespace ag
 		for (int i = 0; i < device_configuration.size(); i++)
 			device_configs.push_back(DeviceConfig(device_configuration[i]));
 
-		path_to_conv_networks.insert( { GameRules::FREESTYLE, config["conv_networks"]["freestyle"].getString() });
-		path_to_conv_networks.insert( { GameRules::STANDARD, config["conv_networks"]["standard"].getString() });
-		path_to_conv_networks.insert( { GameRules::RENJU, config["conv_networks"]["renju"].getString() });
-		path_to_conv_networks.insert( { GameRules::CARO5, config["conv_networks"]["caro5"].getString() });
-		path_to_conv_networks.insert( { GameRules::CARO6, config["conv_networks"]["caro6"].getString() });
-
-		path_to_nnue_networks.insert( { GameRules::FREESTYLE, config["nnue_networks"]["freestyle"].getString() });
-		path_to_nnue_networks.insert( { GameRules::STANDARD, config["nnue_networks"]["standard"].getString() });
-		path_to_nnue_networks.insert( { GameRules::RENJU, config["nnue_networks"]["renju"].getString() });
-		path_to_nnue_networks.insert( { GameRules::CARO5, config["nnue_networks"]["caro5"].getString() });
-		path_to_nnue_networks.insert( { GameRules::CARO6, config["nnue_networks"]["caro6"].getString() });
-
-//		nnue::NNUEWeights::setPaths(path_to_nnue_networks);
+		path_to_networks.insert( { GameRules::FREESTYLE, config["networks"]["freestyle"].getString() });
+		path_to_networks.insert( { GameRules::STANDARD, config["networks"]["standard"].getString() });
+		path_to_networks.insert( { GameRules::RENJU, config["networks"]["renju"].getString() });
+		path_to_networks.insert( { GameRules::CARO5, config["networks"]["caro5"].getString() });
+		path_to_networks.insert( { GameRules::CARO6, config["networks"]["caro6"].getString() });
 	}
 	SetOptionOutcome EngineSettings::setOption(const Option &option) noexcept
 	{
@@ -98,6 +90,12 @@ namespace ag
 				const GameRules tmp = game_config.rules;
 				game_config.rules = rulesFromString(option.value);
 				return (tmp == game_config.rules) ? SetOptionOutcome::SUCCESS : SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE;
+			}
+			if (option.name == "draw_after")
+			{
+				const int tmp = game_config.draw_after;
+				game_config.draw_after = std::stoi(option.value);
+				return (tmp == game_config.draw_after) ? SetOptionOutcome::SUCCESS : SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE;
 			}
 			if (option.name == "time_for_match")
 			{
@@ -205,13 +203,9 @@ namespace ag
 		return SetOptionOutcome::FAILURE;
 	}
 
-	std::string EngineSettings::getPathToConvNetwork() const
+	std::string EngineSettings::getPathToNetwork() const
 	{
-		return path_to_conv_networks.find(game_config.rules)->second;
-	}
-	std::string EngineSettings::getPathToNnueNetwork() const
-	{
-		return path_to_nnue_networks.find(game_config.rules)->second;
+		return path_to_networks.find(game_config.rules)->second;
 	}
 	const std::vector<std::vector<Move>>& EngineSettings::getSwap2Openings() const
 	{

@@ -78,7 +78,7 @@ namespace ag
 			benchmark();
 			return false;
 		}
-		bool success = load_config(argument_parser.getLaunchPath() + name_of_config_file);
+		const bool success = load_config(argument_parser.getLaunchPath() + name_of_config_file);
 		if (success)
 			setup_paths_in_config();
 		return success;
@@ -296,12 +296,9 @@ namespace ag
 		config["swap2_openings_file"] = launch_path + config["swap2_openings_file"].getString();
 		launch_path += "networks" + path_separator;
 
-		const std::array<std::string, 5> tmp = { "freestyle", "standard", "renju", "caro5", "caro6" };
+		static const std::array<std::string, 5> tmp = { "freestyle", "standard", "renju", "caro5", "caro6" };
 		for (auto iter = tmp.begin(); iter < tmp.end(); iter++)
-		{
-			config["conv_networks"][*iter] = launch_path + config["conv_networks"][*iter].getString();
-			config["nnue_networks"][*iter] = launch_path + config["nnue_networks"][*iter].getString();
-		}
+			config["networks"][*iter] = launch_path + config["networks"][*iter].getString();
 	}
 
 	void ProgramManager::setup_protocol()
@@ -375,7 +372,7 @@ namespace ag
 		}
 		else
 		{
-			GameConfig cfg = engine_settings->getGameConfig();
+			const GameConfig cfg = engine_settings->getGameConfig();
 			Message msg(MessageType::ERROR,
 					toString(cfg.rules) + " rule is not supported on " + std::to_string(cfg.rows) + "x" + std::to_string(cfg.cols) + " board");
 			output_queue.push(msg);
@@ -388,7 +385,7 @@ namespace ag
 		else
 			sign_to_move = invertSign(listOfMoves.back().sign);
 
-		GameConfig cfg = engine_settings->getGameConfig();
+		const GameConfig cfg = engine_settings->getGameConfig();
 		board = matrix<Sign>(cfg.rows, cfg.cols);
 		for (size_t i = 0; i < listOfMoves.size(); i++)
 			Board::putMove(board, listOfMoves[i]);
@@ -397,7 +394,7 @@ namespace ag
 	{
 		if (type.empty())
 			return; // using the same controller as previously
-		std::vector<std::string> tmp = split(type, ' ');
+		const std::vector<std::string> tmp = split(type, ' ');
 		assert(tmp.size() >= 1);
 		assert(engine_settings != nullptr);
 		assert(search_engine != nullptr);
@@ -417,7 +414,7 @@ namespace ag
 	}
 	bool ProgramManager::is_game_config_correct() const
 	{
-		GameConfig cfg = engine_settings->getGameConfig();
+		const GameConfig cfg = engine_settings->getGameConfig();
 		switch (cfg.rules)
 		{
 			case GameRules::FREESTYLE:

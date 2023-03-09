@@ -39,8 +39,7 @@ namespace ag
 			static constexpr int max_int_value = std::numeric_limits<int>::max();
 
 			mutable std::mutex mutex;
-			std::map<GameRules, std::string> path_to_conv_networks;
-			std::map<GameRules, std::string> path_to_nnue_networks;
+			std::map<GameRules, std::string> path_to_networks;
 			std::vector<std::vector<Move>> swap2_openings;
 
 			GameConfig game_config;
@@ -70,8 +69,7 @@ namespace ag
 
 			SetOptionOutcome setOption(const Option &option) noexcept;
 
-			std::string getPathToConvNetwork() const;
-			std::string getPathToNnueNetwork() const;
+			std::string getPathToNetwork() const;
 			const std::vector<std::vector<Move>>& getSwap2Openings() const;
 			const GameConfig& getGameConfig() const noexcept;
 			const TreeConfig& getTreeConfig() const noexcept;
