@@ -91,6 +91,10 @@ namespace ag
 			{
 				return legal_moves_mask;
 			}
+			const matrix<Sign>& getBoard() const noexcept
+			{
+				return internal_board;
+			}
 			Sign getSignToMove() const noexcept
 			{
 				return sign_to_move;
