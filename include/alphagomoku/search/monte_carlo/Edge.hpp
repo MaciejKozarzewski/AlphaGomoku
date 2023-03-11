@@ -161,7 +161,7 @@ namespace ag
 			}
 			bool operator()(const Edge &lhs, const Edge &rhs) const noexcept
 			{
-				if (lhs.isProven() or rhs.isProven())
+				if ((lhs.isProven() or rhs.isProven()) and lhs.getScore() != rhs.getScore())
 					return lhs.getScore() > rhs.getScore();
 				else
 					return op(lhs) > op(rhs);
