@@ -19,6 +19,17 @@ namespace
 		int tmp = static_cast<int>(1000 * x);
 		return std::to_string(tmp / 10) + '.' + std::to_string(tmp % 10);
 	}
+	std::string trim(const std::string &str)
+	{
+		size_t start = 0, stop = str.length();
+		for (; start < str.length(); start++)
+			if (str[start] != ' ')
+				break;
+		for (; stop > 0; stop--)
+			if (str[stop - 1] != ' ')
+				break;
+		return str.substr(start, stop - start);
+	}
 }
 
 namespace ag
@@ -106,16 +117,12 @@ namespace ag
 		switch (summary.node.getScore().getProvenValue())
 		{
 			case ProvenValue::UNKNOWN:
-				result += " ev " + format_percents(summary.node.getWinRate() + 0.5f * summary.node.getDrawRate());
+				result += " ev " + format_percents(summary.node.getExpectation());
 				break;
 			case ProvenValue::LOSS:
-				result += " ev L";
-				break;
 			case ProvenValue::DRAW:
-				result += " ev D";
-				break;
 			case ProvenValue::WIN:
-				result += " ev W";
+				result += " ev " + trim(summary.node.getScore().toFormattedString());
 				break;
 		}
 		result += " winrate " + format_percents(summary.node.getWinRate());
