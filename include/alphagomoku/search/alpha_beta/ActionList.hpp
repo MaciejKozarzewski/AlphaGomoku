@@ -118,9 +118,9 @@ namespace ag
 				return std::any_of(begin(), end(), [m](const Action &action)
 				{	return action.move.location() == m;});
 			}
-			void add(Move move, Score score, int depth) noexcept
+			void add(Move move, Score score, bool isFinal) noexcept
 			{
-				m_children[m_size++].init(move, score, depth);
+				m_children[m_size++].init(move, score, isFinal);
 			}
 			void removeAction(size_t index) noexcept
 			{
