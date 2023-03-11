@@ -25,7 +25,7 @@ namespace
 	}
 	BaseGenerator get_base_generator(const EngineSettings &settings)
 	{
-		return BaseGenerator(settings.getSearchConfig().max_children, true);
+		return BaseGenerator(settings.getSearchConfig().max_children, false);
 	}
 }
 

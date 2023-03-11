@@ -105,8 +105,10 @@ namespace
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
 			result = std::max(result, edge->getScore());
 
-		if (node->isFullyExpanded() or not result.isLoss())
-			node->setScore(result);
+		// technically not correct because if the node was not fully expanded we cannot conclude that it is a loss
+		// we use approximation here that if N best actions lead to a loss, then this node is *most likely* losing as well
+//		if (node->isFullyExpanded() or not result.isLoss())
+		node->setScore(result);
 	}
 }
 

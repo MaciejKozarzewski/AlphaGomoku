@@ -55,6 +55,10 @@ namespace
 
 		MaxPolicyPrior op;
 		std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), EdgeComparator<MaxPolicyPrior>(op));
+//		auto iter = edges.begin();
+//		for(size_t i=0;i<max_edges;i++)
+//			if(iter->getPolicyPrior() > )
+
 		edges.erase(edges.begin() + max_edges, edges.end());
 	}
 
@@ -74,7 +78,7 @@ namespace
 		{
 			for (int row = 0; row < task.getBoard().rows(); row++)
 				for (int col = 0; col < task.getBoard().cols(); col++)
-					if (task.getBoard().at(row, col) == Sign::NONE)// and task.getPolicy().at(row, col) >= 1.0e-4f)
+					if (task.getBoard().at(row, col) == Sign::NONE)
 						task.addEdge(Move(row, col, task.getSignToMove()));
 		}
 	}
@@ -177,14 +181,7 @@ namespace ag
 	{
 		assert(task.isReady());
 
-		if (task.mustDefend() and task.getRelativeDepth() > 0)
-		{
-			assert(task.wasProcessedBySolver());
-			for (size_t i = 0; i < task.getDefensiveMoves().size(); i++)
-				task.addEdge(task.getDefensiveMoves()[i]);
-			initialize_edges(task);
-		}
-		else
+		if ((fully_expand_root and task.getRelativeDepth() == 0) or not task.mustDefend())
 		{
 			const int num = (task.getRelativeDepth() == 0 and fully_expand_root) ? std::numeric_limits<int>::max() : max_edges;
 			const bool early_prune = (task.getRelativeDepth() != 0);
@@ -194,6 +191,13 @@ namespace ag
 			if (not task.wasProcessedBySolver())
 				check_terminal_conditions(task);
 			prune_weak_moves(task.getEdges(), num);
+		}
+		else
+		{
+			assert(task.wasProcessedBySolver());
+			for (size_t i = 0; i < task.getDefensiveMoves().size(); i++)
+				task.addEdge(task.getDefensiveMoves()[i]);
+			initialize_edges(task);
 		}
 		renormalize_policy(task.getEdges());
 

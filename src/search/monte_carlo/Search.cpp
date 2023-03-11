@@ -33,7 +33,6 @@ namespace ag
 		result += "nb_proven_states       = " + std::to_string(nb_proven_states) + '\n';
 		result += "nb_network_evaluations = " + std::to_string(nb_network_evaluations) + '\n';
 		result += "nb_node_count          = " + std::to_string(nb_node_count) + '\n';
-		result += "avg batch size         = " + std::to_string((double) nb_batch_size / select.getTotalCount()) + '\n';
 		result += select.toString() + '\n';
 		result += solve.toString() + '\n';
 		result += schedule.toString() + '\n';
@@ -57,7 +56,6 @@ namespace ag
 		this->nb_proven_states += other.nb_proven_states;
 		this->nb_network_evaluations += other.nb_network_evaluations;
 		this->nb_node_count += other.nb_node_count;
-		this->nb_batch_size += other.nb_batch_size;
 		return *this;
 	}
 	SearchStats& SearchStats::operator/=(int i) noexcept
@@ -75,7 +73,6 @@ namespace ag
 		this->nb_proven_states /= i;
 		this->nb_network_evaluations /= i;
 		this->nb_node_count /= i;
-		this->nb_batch_size /= i;
 		return *this;
 	}
 	double SearchStats::getTotalTime() const noexcept
@@ -124,7 +121,6 @@ namespace ag
 
 		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
 		{
-			stats.nb_batch_size++;
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_buffer().getNext();
 
@@ -150,7 +146,7 @@ namespace ag
 			{ // this was added to allow the search to correctly continue even if the tree is proven and we re-visit already proven edges
 				assert(current_task.visitedPathLength() > 0);
 				Score s = -current_task.getLastEdge()->getScore();
-				s.decreaseDistance(); // we get score from an edge, so we pretend it comes from a node one ply deeper
+				s.decreaseDistance(); // we get score from an edge, but we pretend it comes from a node one ply deeper
 				current_task.setScore(s);
 				current_task.setValue(s.convertToValue());
 				current_task.markAsProcessedBySolver();
@@ -159,8 +155,8 @@ namespace ag
 				get_buffer().removeLast();
 			}
 
-			// in theory we can keep hitting information leaks of proven states forever
-			// this is why we exit the loop after certain number of search tasks
+//			// in theory we can keep hitting information leaks of proven states forever
+//			// this is why we exit the loop after certain number of search tasks
 			number_of_trials--;
 			if (number_of_trials <= 0)
 				break;
