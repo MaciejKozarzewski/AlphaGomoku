@@ -72,6 +72,7 @@ namespace ag
 					static constexpr int max_batch_size = 1;
 					static constexpr float exploration_constant = 1.25f;
 					static constexpr int max_children = std::numeric_limits<int>::max();
+					static constexpr float policy_expansion_threshold = 0.0f;
 					static constexpr int solver_level = 0;
 					static constexpr int solver_max_positions = 100;
 					static constexpr int style_factor = 2;
@@ -80,6 +81,7 @@ namespace ag
 			int max_batch_size = Defaults::max_batch_size;
 			float exploration_constant = Defaults::exploration_constant;
 			int max_children = Defaults::max_children;
+			float policy_expansion_threshold = Defaults::policy_expansion_threshold;
 			int solver_level = Defaults::solver_level; /**< 0 - only terminal moves, 1 - static evaluation, 2 - recursive search */
 			int solver_max_positions = Defaults::solver_max_positions;
 			int style_factor = Defaults::style_factor; /**< 0 - win + draw, 2 - win + 0.5 * draw, 4 - win */

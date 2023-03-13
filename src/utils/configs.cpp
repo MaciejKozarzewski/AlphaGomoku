@@ -70,6 +70,7 @@ namespace ag
 			max_batch_size(get_value<int>(cfg, "max_batch_size", Defaults::max_batch_size)),
 			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
 			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
+			policy_expansion_threshold(get_value<float>(cfg, "policy_expansion_threshold", Defaults::policy_expansion_threshold)),
 			solver_level(get_value<int>(cfg, "solver_level", Defaults::solver_level)),
 			solver_max_positions(get_value(cfg, "solver_max_positions", Defaults::solver_max_positions)),
 			style_factor(get_value<int>(cfg, "style_factor", Defaults::style_factor))
@@ -78,7 +79,8 @@ namespace ag
 	Json SearchConfig::toJson() const
 	{
 		return Json( { { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "max_children", max_children }, {
-				"solver_level", solver_level }, { "solver_max_positions", solver_max_positions }, { "style_factor", style_factor } });
+				"policy_expansion_threshold", policy_expansion_threshold }, { "solver_level", solver_level }, { "solver_max_positions",
+				solver_max_positions }, { "style_factor", style_factor } });
 	}
 
 	DeviceConfig::DeviceConfig(const Json &cfg) :

@@ -49,7 +49,7 @@ namespace ag
 		tree.setBoard(board, signToMove);
 
 		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children, true));
+		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children, search.getConfig().policy_expansion_threshold));
 	}
 	void Player::selectSolveEvaluate()
 	{

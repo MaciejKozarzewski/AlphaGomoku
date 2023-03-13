@@ -177,7 +177,7 @@ namespace ag
 		search.cleanup(tree);
 		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
 		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children, false));
+		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children, search.getConfig().policy_expansion_threshold));
 	}
 
 } /* namespace ag */

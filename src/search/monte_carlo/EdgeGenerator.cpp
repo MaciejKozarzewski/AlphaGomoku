@@ -55,11 +55,45 @@ namespace
 
 		MaxPolicyPrior op;
 		std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), EdgeComparator<MaxPolicyPrior>(op));
-//		auto iter = edges.begin();
-//		for(size_t i=0;i<max_edges;i++)
-//			if(iter->getPolicyPrior() > )
-
 		edges.erase(edges.begin() + max_edges, edges.end());
+	}
+	void prune_weak_moves(SearchTask &task, size_t max_edges, float expansionThreshold) noexcept
+	{
+		std::vector<Edge> &edges = task.getEdges();
+
+		size_t idx = 0;
+		if (task.getScore().isProven())
+		{
+			// at first find best score
+			Score best_score = Score::loss();
+			for (auto iter = edges.begin(); iter < edges.end(); iter++)
+				best_score = std::max(best_score, iter->getScore());
+
+			// then move all best edges to the front of the list
+			for (size_t i = 0; i < edges.size(); i++)
+				if (edges[i].getScore() == best_score)
+				{
+					std::swap(edges[i], edges[idx]);
+					idx++;
+				}
+		}
+		else
+		{
+			if (edges.size() <= max_edges or task.mustDefend())
+				return;
+
+			MaxPolicyPrior op;
+			std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), EdgeComparator<MaxPolicyPrior>(op));
+
+			float sum_policy = 0.0f;
+			for (size_t i = 0; i < max_edges; i++)
+				sum_policy += edges[i].getPolicyPrior();
+			expansionThreshold *= sum_policy; // scale the expansion threshold accordingly to the sum of remaining policy to avoid pruning all moves if the policy is low everywhere
+			for (size_t i = 0; i < max_edges; i++)
+				if (edges[i].getPolicyPrior() >= expansionThreshold)
+					idx++;
+		}
+		edges.erase(edges.begin() + idx, edges.end());
 	}
 
 	void create_legal_edges(SearchTask &task, bool prune) noexcept
@@ -96,7 +130,7 @@ namespace
 	{
 		bool has_win_edge = false;
 		bool has_draw_edge = false;
-		size_t num_losing_edges = 0;
+		int num_losing_edges = 0;
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 		{
 			const Move move = edge->getMove();
@@ -138,7 +172,7 @@ namespace
 			task.setValue(Value::draw());
 			return;
 		}
-		if (num_losing_edges == task.getEdges().size())
+		if (num_losing_edges == Board::numberOfMoves(task.getBoard()))
 		{
 			task.setScore(Score::loss_in(1));
 			task.setValue(Value::loss());
@@ -168,43 +202,49 @@ namespace
 
 namespace ag
 {
-	BaseGenerator::BaseGenerator(int maxEdges, bool fullyExpandRoot) :
+	BaseGenerator::BaseGenerator(int maxEdges, float expansionThreshold) :
 			max_edges(maxEdges),
-			fully_expand_root(fullyExpandRoot)
+			expansion_threshold(expansionThreshold)
 	{
 	}
 	std::unique_ptr<EdgeGenerator> BaseGenerator::clone() const
 	{
-		return std::make_unique<BaseGenerator>(max_edges, fully_expand_root);
+		return std::make_unique<BaseGenerator>(max_edges, expansion_threshold);
 	}
 	void BaseGenerator::generate(SearchTask &task) const
 	{
 		assert(task.isReady());
 
-		if ((fully_expand_root and task.getRelativeDepth() == 0) or not task.mustDefend())
-		{
-			const int num = (task.getRelativeDepth() == 0 and fully_expand_root) ? std::numeric_limits<int>::max() : max_edges;
-			const bool early_prune = (task.getRelativeDepth() != 0);
-
-			create_legal_edges(task, early_prune);
-			initialize_edges(task);
-			if (not task.wasProcessedBySolver())
-				check_terminal_conditions(task);
-			prune_weak_moves(task.getEdges(), num);
-		}
-		else
+		if (task.mustDefend())
 		{
 			assert(task.wasProcessedBySolver());
 			for (size_t i = 0; i < task.getDefensiveMoves().size(); i++)
 				task.addEdge(task.getDefensiveMoves()[i]);
-			initialize_edges(task);
 		}
+		else
+		{
+			for (int row = 0; row < task.getBoard().rows(); row++)
+				for (int col = 0; col < task.getBoard().cols(); col++)
+					if (task.getBoard().at(row, col) == Sign::NONE)
+						task.addEdge(Move(row, col, task.getSignToMove()));
+		}
+		initialize_edges(task);
+		if (not task.wasProcessedBySolver())
+			check_terminal_conditions(task);
+		prune_weak_moves(task, max_edges, expansion_threshold);
 		renormalize_policy(task.getEdges());
 
 		if (task.getEdges().size() == 0) // TODO remove this later
 		{
 			std::cout << "---no-moves-generated---\n";
 			std::cout << task.toString() << '\n';
+			for (int i = 0; i < 15; i++)
+			{
+				for (int j = 0; j < 15; j++)
+					std::cout << task.getPolicy().at(i, j) << ' ';
+				std::cout << '\n';
+			}
+			std::cout << Board::toString(matrix<Sign>(15, 15), task.getPolicy());
 			exit(-1);
 		}
 

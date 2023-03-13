@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_DATASET_GAMEDATASTORAGE_HPP_
 
 #include <alphagomoku/dataset/SearchDataStorage.hpp>
+#include <alphagomoku/dataset/SearchDataStorage_v2.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/rules.hpp>
 
@@ -26,13 +27,13 @@ namespace ag
 	class GameDataStorage
 	{
 		private:
-			std::vector<SearchDataStorage> search_data;
+			std::vector<SearchDataStorage_v2> search_data_v2;
 			std::vector<Move> played_moves;
 			GameOutcome game_outcome = GameOutcome::UNKNOWN;
 			int rows = 0;
 			int columns = 0;
+			int version = 1;
 		public:
-			static constexpr int version = 0;
 
 			GameDataStorage() noexcept = default;
 			GameDataStorage(int rows, int cols) noexcept;
@@ -43,7 +44,7 @@ namespace ag
 			int numberOfMoves() const noexcept;
 			int numberOfSamples() const noexcept;
 
-			const SearchDataStorage& operator[](int index) const;
+			const SearchDataStorage_v2& operator[](int index) const;
 
 			void getSample(SearchDataPack &result, int index) const;
 			Move getMove(int index) const;

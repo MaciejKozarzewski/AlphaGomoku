@@ -39,9 +39,9 @@ namespace ag
 	{
 		private:
 			int max_edges;
-			bool fully_expand_root;
+			float expansion_threshold;
 		public:
-			BaseGenerator(int maxEdges, bool fullyExpandRoot);
+			BaseGenerator(int maxEdges, float expansionThreshold);
 			std::unique_ptr<EdgeGenerator> clone() const;
 			void generate(SearchTask &task) const;
 	};

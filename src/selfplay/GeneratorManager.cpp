@@ -292,7 +292,6 @@ namespace ag
 			{
 				generators[i]->loadGames(tmp);
 				std::cout << "Loaded " << tmp << std::endl;
-				removeFile(tmp);
 			}
 		}
 	}
