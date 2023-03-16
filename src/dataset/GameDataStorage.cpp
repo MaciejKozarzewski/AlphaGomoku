@@ -24,18 +24,12 @@ namespace ag
 	}
 	GameDataStorage::GameDataStorage(const SerializedObject &binary_data, size_t &offset)
 	{
-		version = binary_data.load<int>(offset);
-		offset += sizeof(version);
-
-		if (version != 0 and version != 1)
-			throw std::logic_error("GameDataStorage() : loaded unsupported version " + std::to_string(version));
-
 		const uint32_t number_of_states = binary_data.load<uint32_t>(offset);
 		offset += sizeof(number_of_states);
 
-		search_data_v2.resize(number_of_states);
+		search_data.resize(number_of_states);
 		for (size_t i = 0; i < number_of_states; i++)
-			search_data_v2[i] = SearchDataStorage_v2(binary_data, offset);
+			search_data[i] = SearchDataStorage(binary_data, offset);
 
 		unserializeVector(played_moves, binary_data, offset);
 
@@ -50,7 +44,7 @@ namespace ag
 
 	void GameDataStorage::clear()
 	{
-		search_data_v2.clear();
+		search_data.clear();
 		played_moves.clear();
 		game_outcome = GameOutcome::UNKNOWN;
 	}
@@ -61,18 +55,18 @@ namespace ag
 	}
 	int GameDataStorage::numberOfSamples() const noexcept
 	{
-		return search_data_v2.size();
+		return search_data.size();
 	}
-	const SearchDataStorage_v2& GameDataStorage::operator[](int index) const
+	const SearchDataStorage& GameDataStorage::operator[](int index) const
 	{
-		return search_data_v2.at(index);
+		return search_data.at(index);
 	}
 
 	void GameDataStorage::getSample(SearchDataPack &result, int index) const
 	{
 		result.clear();
-		const int move_number = search_data_v2.at(index).getMoveNumber();
-		search_data_v2.at(index).storeTo(result);
+		const int move_number = search_data.at(index).getMoveNumber();
+		search_data.at(index).storeTo(result);
 		for (int i = 0; i < move_number; i++)
 			Board::putMove(result.board, played_moves.at(i));
 		result.played_move = played_moves.at(move_number);
@@ -89,8 +83,8 @@ namespace ag
 
 	void GameDataStorage::addSample(const SearchDataPack &sample)
 	{
-		search_data_v2.push_back(SearchDataStorage_v2());
-		search_data_v2.back().loadFrom(sample);
+		search_data.push_back(SearchDataStorage());
+		search_data.back().loadFrom(sample);
 	}
 	void GameDataStorage::addMove(Move move)
 	{
@@ -111,10 +105,9 @@ namespace ag
 
 	void GameDataStorage::serialize(SerializedObject &binary_data) const
 	{
-		binary_data.save<int>(version);
-		binary_data.save<uint32_t>(static_cast<uint32_t>(search_data_v2.size()));
-		for (size_t i = 0; i < search_data_v2.size(); i++)
-			search_data_v2[i].serialize(binary_data);
+		binary_data.save<uint32_t>(static_cast<uint32_t>(search_data.size()));
+		for (size_t i = 0; i < search_data.size(); i++)
+			search_data[i].serialize(binary_data);
 		serializeVector(played_moves, binary_data);
 		binary_data.save<int>(static_cast<int>(game_outcome));
 		binary_data.save<int>(rows);

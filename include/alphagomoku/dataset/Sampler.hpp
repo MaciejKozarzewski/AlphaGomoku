@@ -34,7 +34,6 @@ namespace ag
 			void get(TrainingDataPack &result);
 		private:
 			void prepare_training_data(TrainingDataPack &result, const SearchDataPack &sample);
-			void prepare_training_data_old(TrainingDataPack &result, const SearchDataPack &sample);
 	};
 
 } /* namespace ag */
