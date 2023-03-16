@@ -11,29 +11,6 @@
 #include <alphagomoku/dataset/SearchDataStorage.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
-#include <iostream>
-
-namespace
-{
-	using namespace ag;
-
-	float get_expectation(Score score, Value value) noexcept
-	{
-		switch (score.getProvenValue())
-		{
-			case ProvenValue::LOSS:
-				return Value::loss().getExpectation();
-			case ProvenValue::DRAW:
-				return Value::draw().getExpectation();
-			default:
-			case ProvenValue::UNKNOWN:
-				return value.getExpectation();
-			case ProvenValue::WIN:
-				return Value::win().getExpectation();
-		}
-	}
-}
-
 namespace ag
 {
 	Sampler::Sampler(const GameDataBuffer &buffer, int batchSize) :

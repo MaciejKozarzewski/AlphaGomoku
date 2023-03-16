@@ -12,7 +12,6 @@
 
 #include <minml/utils/serialization.hpp>
 
-#include <map>
 #include <iostream>
 
 namespace ag

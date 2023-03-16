@@ -13,7 +13,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <x86intrin.h>
 #include <cassert>
 
 namespace
