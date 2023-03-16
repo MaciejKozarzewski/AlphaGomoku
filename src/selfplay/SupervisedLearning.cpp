@@ -30,14 +30,14 @@ namespace
 	{
 		const int r = randInt(available_symmetries(pack.board));
 		ag::augment(pack.board, r);
+		ag::augment(pack.visit_count, r);
 		ag::augment(pack.policy_target, r);
 		ag::augment(pack.action_values_target, r);
 	}
 
 	void mask_out_target_data_pack(const TrainingDataPack &output, TrainingDataPack &target)
 	{
-		assert(equalSize(output.board, target.board));
-		assert(equalSize(output.policy_target, target.policy_target));
+		assert(equalSize(output.visit_count, target.visit_count));
 		assert(equalSize(output.action_values_target, target.action_values_target));
 
 		for (int i = 0; i < output.action_values_target.size(); i++)
