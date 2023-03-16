@@ -10,70 +10,6 @@
 #include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
-namespace
-{
-	using namespace ag;
-	void fill_board_with_moves(matrix<Sign> &board, const std::vector<Move> &moves)
-	{
-		board.clear();
-		for (size_t i = 0; i < moves.size(); i++)
-			Board::putMove(board, moves[i]);
-	}
-	Sign get_sign_to_move(const std::vector<Move> &moves) noexcept
-	{
-		if (moves.size() == 0)
-			return Sign::CROSS;
-		else
-			return invertSign(moves.back().sign);
-	}
-	Move get_move(SearchTask &task)
-	{
-		if (task.wasProcessedBySolver())
-		{ // mask out provably losing moves
-			for (int i = 0; i < task.getPolicy().size(); i++)
-				if (task.getActionScores()[i].isLoss())
-					task.getPolicy()[i] = 0.0f;
-		}
-		return randomizeMove(task.getPolicy());
-	}
-	void generate_opening_map(const matrix<Sign> &board, matrix<float> &dist, float noiseWeight)
-	{
-		assert(equalSize(board, dist));
-		for (int i = 0; i < board.size(); i++)
-			dist[i] *= (1.0f - noiseWeight);
-		if (Board::isEmpty(board))
-		{
-			for (int i = 0; i < board.rows(); i++)
-				for (int j = 0; j < board.cols(); j++)
-				{
-					const float d = std::hypot(0.5 + i - 0.5 * board.rows(), 0.5 + j - 0.5 * board.cols()) - 1;
-					dist.at(i, j) += noiseWeight * pow(1.5f, -d);
-				}
-			return;
-		}
-
-		for (int i = 0; i < board.size(); i++)
-			if (board.data()[i] != Sign::NONE)
-				dist[i] = 0.0f;
-			else
-				dist[i] = std::max(dist[i], 1.0e-3f);
-
-		const float tmp = 2.0f + randFloat();
-		for (int k = 0; k < board.rows(); k++)
-			for (int l = 0; l < board.cols(); l++)
-				if (board.at(k, l) != Sign::NONE)
-				{
-					for (int i = 0; i < board.rows(); i++)
-						for (int j = 0; j < board.cols(); j++)
-							if (board.at(i, j) == Sign::NONE)
-							{
-								const float d = std::hypot(i - k, j - l) - 1;
-								dist.at(i, j) += noiseWeight * pow(tmp, -d);
-							}
-				}
-	}
-}
-
 namespace ag
 {
 
@@ -101,19 +37,20 @@ namespace ag
 
 		matrix<Sign> board(game_config.rows, game_config.cols);
 
-		float most_balanced = 1.0f;
-		std::vector<Move> best;
 		for (auto iter = workspace.begin(); iter < workspace.end(); iter++)
 		{
 			if (iter->is_scheduled_to_nn)
 			{
 				assert(iter->task.wasProcessedByNetwork());
 				const float balance = std::fabs(iter->task.getValue().getExpectation() - 0.5f);
-				if (balance < most_balanced)
+//				std::cout << "evaluation = " << iter->task.getValue().toString() << " balance = " << balance << '\n';
+				if (balance < (0.05f + 0.01f * trials))
 				{
-					most_balanced = balance;
-					best = iter->moves;
+					completed_openings.push_back(iter->moves);
+					trials = 0;
 				}
+				else
+					trials++;
 				iter->reset();
 			}
 
@@ -122,7 +59,7 @@ namespace ag
 				for (int i = 0; i < 100; i++)
 				{
 					iter->moves = prepareOpening(game_config, 1);
-					fill_board_with_moves(board, iter->moves);
+					Board::fromListOfMoves(board, iter->moves);
 					const Sign sign_to_move = (iter->moves.size() == 0) ? Sign::CROSS : invertSign(iter->moves.back().sign);
 					iter->task.set(board, sign_to_move);
 
@@ -136,8 +73,6 @@ namespace ag
 				}
 			}
 		}
-		if (most_balanced != 1.0f)
-			completed_openings.push_back(best);
 
 		return OpeningGenerator::OK;
 	}
