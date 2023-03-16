@@ -355,11 +355,14 @@ namespace ag
 	{
 		static const ResnetPV resnet_pv;
 		static const ResnetPVQ resnet_pvq;
+		static const ResnetPVQraw resnet_pvq_raw;
 
 		if (architecture == resnet_pv.name())
 			return std::make_unique<ResnetPV>();
 		if (architecture == resnet_pvq.name())
 			return std::make_unique<ResnetPVQ>();
+		if (architecture == resnet_pvq_raw.name())
+			return std::make_unique<ResnetPVQraw>();
 
 		throw std::runtime_error("createAGNetwork() : unknown architecture '" + architecture + "'");
 	}

@@ -90,5 +90,43 @@ namespace ag
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
+	ResnetPVQraw::ResnetPVQraw() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string ResnetPVQraw::name() const
+	{
+		return "ResnetPVQraw";
+	}
+	void ResnetPVQraw::create_network(const TrainingConfig &trainingOptions)
+	{
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 8 });
+		const int blocks = trainingOptions.blocks;
+		const int filters = trainingOptions.filters;
+
+		auto x = createInputBlock(graph, input_shape, filters);
+
+		for (int i = 0; i < blocks; i++)
+			x = createResidualBlock(graph, x, filters);
+
+		auto p = createPolicyHead(graph, x, filters);
+		graph.addOutput(p);
+
+		auto v = createValueHead(graph, x, filters);
+		graph.addOutput(v);
+
+		auto q = createActionValuesHead(graph, x, filters);
+		graph.addOutput(q, 0.2f);
+
+		graph.init();
+		graph.setOptimizer(ml::Optimizer());
+		if (trainingOptions.l2_regularization != 0.0)
+		{
+			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+			graph.getNode(graph.numberOfNodes() - 2).getLayer().setRegularizer(ml::Regularizer(0.1f * trainingOptions.l2_regularization)); // action values head
+		}
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
 } /* namespace ag */
 

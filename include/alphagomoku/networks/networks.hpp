@@ -31,6 +31,15 @@ namespace ag
 			void create_network(const TrainingConfig &trainingOptions);
 	};
 
+	class ResnetPVQraw: public AGNetwork
+	{
+		public:
+			ResnetPVQraw() noexcept;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_NETWORKS_NETWORKS_HPP_ */
