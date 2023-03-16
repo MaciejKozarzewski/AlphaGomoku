@@ -33,7 +33,7 @@ namespace ag
 
 		if (state == ControllerState::CHECK_BOARD)
 		{
-			const int stones_on_board = Board::numberOfMoves(search_engine.getBoard());
+			const int stones_on_board = search_engine.getTree().getMoveNumber();
 			switch (stones_on_board)
 			{
 				case 0:

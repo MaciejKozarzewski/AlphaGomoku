@@ -150,6 +150,12 @@ namespace ag
 			Board::putMove(result, moves[i]);
 		return result;
 	}
+	void Board::fromListOfMoves(matrix<Sign> &result, const std::vector<Move> &moves)
+	{
+		result.clear();
+		for (size_t i = 0; i < moves.size(); i++)
+			Board::putMove(result, moves[i]);
+	}
 	std::vector<Move> Board::extractMoves(const std::string &str)
 	{
 		const board_size size = get_board_size_from_string(str);

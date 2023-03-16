@@ -26,7 +26,7 @@ namespace ag
 
 		if (state == ControllerState::CHECK_BOARD)
 		{
-			switch (Board::numberOfMoves(search_engine.getBoard()))
+			switch (search_engine.getTree().getMoveNumber())
 			{
 				case 0:
 					Logger::write("Placing first 3 stones");
@@ -85,7 +85,7 @@ namespace ag
 							log_balancing_move("First", first_balancing_move);
 
 							// update board and set up the search with new board
-							matrix<Sign> board = search_engine.getBoard();
+							matrix<Sign> board = search_engine.getTree().getBoard();
 							Board::putMove(board, first_balancing_move);
 							search_engine.setPosition(board, invertSign(first_balancing_move.sign));
 

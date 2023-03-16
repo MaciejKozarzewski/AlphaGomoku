@@ -25,7 +25,7 @@ namespace ag
 
 		if (state == ControllerState::CHECK_BOARD)
 		{
-			switch (Board::numberOfMoves(search_engine.getBoard()))
+			switch (search_engine.getTree().getMoveNumber())
 			{
 				case 0:
 					state = ControllerState::PUT_FIRST_3_STONES;

@@ -61,8 +61,7 @@ namespace ag
 			bool isSearchFinished() const noexcept;
 			bool isRootEvaluated() const noexcept;
 
-			const matrix<Sign>& getBoard() const noexcept;
-			Sign getSignToMove() const noexcept;
+			const Tree& getTree() const noexcept;
 			void logSearchInfo() const;
 			SearchSummary getSummary(const std::vector<Move> &listOfMoves, bool getPV) const;
 		private:

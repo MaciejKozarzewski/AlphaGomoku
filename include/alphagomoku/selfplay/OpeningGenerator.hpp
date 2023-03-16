@@ -46,6 +46,7 @@ namespace ag
 
 			std::vector<OpeningUnderConstruction> workspace;
 			int average_length;
+			int trials = 0;
 		public:
 			enum Status
 			{

@@ -114,10 +114,13 @@ namespace ag
 	}
 	void SearchEngine::stopSearch()
 	{
+		Logger::write("stopping threads");
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->stop();
+		Logger::write("joining threads");
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->join();
+		Logger::write("stopSearch() completed");
 	}
 	bool SearchEngine::isSearchFinished() const noexcept
 	{
@@ -130,13 +133,9 @@ namespace ag
 	{
 		return tree.getNodeCount() > 0;
 	}
-	const matrix<Sign>& SearchEngine::getBoard() const noexcept
+	const Tree& SearchEngine::getTree() const noexcept
 	{
-		return tree.getBoard();
-	}
-	Sign SearchEngine::getSignToMove() const noexcept
-	{
-		return tree.getSignToMove();
+		return tree;
 	}
 	void SearchEngine::logSearchInfo() const
 	{
@@ -144,7 +143,7 @@ namespace ag
 			return;
 
 		TreeLock lock(tree);
-		matrix<Sign> board = getBoard();
+		matrix<Sign> board = tree.getBoard();
 		matrix<float> policy(board.rows(), board.cols());
 		matrix<Score> action_acores(board.rows(), board.cols());
 
@@ -238,6 +237,7 @@ namespace ag
 			Edge *edge = selector.select(&node);
 			Move m = edge->getMove();
 			principal_variation.push_back(m);
+			Logger::write(node.toString());
 			Logger::write(m.toString() + " : " + edge->toString());
 		}
 

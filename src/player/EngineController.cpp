@@ -124,32 +124,32 @@ namespace ag
 	void EngineController::start_balancing_search(int balancingMoves)
 	{
 		time_manager.startTimer();
-		const int depth = Board::numberOfMoves(search_engine.getBoard());
-		search_engine.setEdgeSelector(BalancedSelector(depth + balancingMoves, get_base_selector(engine_settings)));
-		search_engine.setEdgeGenerator(BalancedGenerator(depth + balancingMoves, get_base_generator(engine_settings)));
+		const int move_number = search_engine.getTree().getMoveNumber();
+		search_engine.setEdgeSelector(BalancedSelector(move_number + balancingMoves, get_base_selector(engine_settings)));
+		search_engine.setEdgeGenerator(BalancedGenerator(move_number + balancingMoves, get_base_generator(engine_settings)));
 		search_engine.startSearch();
 	}
 	void EngineController::start_center_only_search(int centralSquareSize)
 	{
 		time_manager.startTimer();
-		const int depth = Board::numberOfMoves(search_engine.getBoard());
-		search_engine.setEdgeSelector(BalancedSelector(depth + 1, get_base_selector(engine_settings)));
+		const int move_number = search_engine.getTree().getMoveNumber();
+		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, get_base_selector(engine_settings)));
 		search_engine.setEdgeGenerator(CenterOnlyGenerator(centralSquareSize, get_base_generator(engine_settings)));
 		search_engine.startSearch();
 	}
 	void EngineController::start_center_excluding_search(int centralSquareSize)
 	{
 		time_manager.startTimer();
-		const int depth = Board::numberOfMoves(search_engine.getBoard());
-		search_engine.setEdgeSelector(BalancedSelector(depth + 1, get_base_selector(engine_settings)));
+		const int move_number = search_engine.getTree().getMoveNumber();
+		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, get_base_selector(engine_settings)));
 		search_engine.setEdgeGenerator(CenterExcludingGenerator(centralSquareSize, get_base_generator(engine_settings)));
 		search_engine.startSearch();
 	}
 	void EngineController::start_symmetric_excluding_search()
 	{
 		time_manager.startTimer();
-		const int depth = Board::numberOfMoves(search_engine.getBoard());
-		search_engine.setEdgeSelector(BalancedSelector(depth + 1, get_base_selector(engine_settings)));
+		const int move_number = search_engine.getTree().getMoveNumber();
+		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, get_base_selector(engine_settings)));
 		search_engine.setEdgeGenerator(SymmetricalExcludingGenerator(get_base_generator(engine_settings)));
 		search_engine.startSearch();
 	}

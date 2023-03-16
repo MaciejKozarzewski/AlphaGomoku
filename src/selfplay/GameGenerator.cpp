@@ -101,7 +101,7 @@ namespace ag
 			search.expand(tree);
 			search.backup(tree);
 
-			if (tree.getSimulationCount() > selfplay_config.simulations or tree.isRootProven())
+			if (tree.getSimulationCount() > selfplay_config.simulations)
 			{
 				make_move();
 				if (game.isOver())
@@ -176,8 +176,9 @@ namespace ag
 	{
 		search.cleanup(tree);
 		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
-		tree.setEdgeSelector(NoisyPUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children, search.getConfig().policy_expansion_threshold));
+
+		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
+		tree.setEdgeGenerator(NoisyGenerator(search.getConfig().max_children, search.getConfig().policy_expansion_threshold));
 	}
 
 } /* namespace ag */

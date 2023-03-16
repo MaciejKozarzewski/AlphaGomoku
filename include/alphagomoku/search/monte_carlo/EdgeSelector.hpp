@@ -8,6 +8,8 @@
 #ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGESELECTOR_HPP_
 #define ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGESELECTOR_HPP_
 
+#include <alphagomoku/utils/matrix.hpp>
+
 #include <memory>
 #include <vector>
 #include <random>
@@ -51,6 +53,16 @@ namespace ag
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
 	};
+	class PUCTSelector_parent: public EdgeSelector
+	{
+		private:
+			const float exploration_constant; /**< controls the level of exploration */
+			const float style_factor; /**< used to determine what to optimize during search */
+		public:
+			PUCTSelector_parent(float exploration, float styleFactor = 0.5f);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
 
 	/**
 	 * @brief UCT edge selector that optimizes P(win) + styleFactor * P(draw).
@@ -62,24 +74,6 @@ namespace ag
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
 			UCTSelector(float exploration, float styleFactor = 0.5f);
-			std::unique_ptr<EdgeSelector> clone() const;
-			Edge* select(const Node *node) noexcept;
-	};
-
-	/**
-	 * @brief PUCT edge selector that optimizes P(win) + styleFactor * P(draw) but add some noise at root.
-	 */
-	class NoisyPUCTSelector: public EdgeSelector
-	{
-		private:
-			std::default_random_engine generator;
-			std::extreme_value_distribution<float> noise;
-			std::vector<float> noisy_policy;
-			const float exploration_constant; /**< controls the level of exploration */
-			const float style_factor; /**< used to determine what to optimize during search */
-			bool is_initialized = false;
-		public:
-			NoisyPUCTSelector(float exploration, float styleFactor = 0.5f);
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
 	};

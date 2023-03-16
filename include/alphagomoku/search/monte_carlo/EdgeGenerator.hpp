@@ -46,6 +46,17 @@ namespace ag
 			void generate(SearchTask &task) const;
 	};
 
+	class NoisyGenerator: public EdgeGenerator
+	{
+		private:
+			int max_edges;
+			float expansion_threshold;
+		public:
+			NoisyGenerator(int maxEdges, float expansionThreshold);
+			std::unique_ptr<EdgeGenerator> clone() const;
+			void generate(SearchTask &task) const;
+	};
+
 	/**
 	 * \brief Generator that adds all edges.
 	 */

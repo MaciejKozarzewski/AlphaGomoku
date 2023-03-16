@@ -31,6 +31,7 @@ namespace ag
 			 */
 			static matrix<Sign> fromString(const std::string &str);
 			static matrix<Sign> fromListOfMoves(int rows, int cols, const std::vector<Move> &moves);
+			static void fromListOfMoves(matrix<Sign> &result, const std::vector<Move> &moves);
 			static std::vector<Move> extractMoves(const std::string &str);
 			static bool isValid(const matrix<Sign> &board, Sign signToMove) noexcept;
 			static bool isEmpty(const matrix<Sign> &board) noexcept;

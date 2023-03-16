@@ -119,7 +119,7 @@ namespace ag
 
 		int number_of_trials = 2 * get_buffer().maxSize();
 
-		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations and not tree.isRootProven())
+		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations)// and not tree.isRootProven())
 		{
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_buffer().getNext();

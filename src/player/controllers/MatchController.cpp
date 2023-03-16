@@ -12,6 +12,8 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 
+#include <alphagomoku/utils/Logger.hpp>
+
 namespace ag
 {
 	MatchController::MatchController(const EngineSettings &settings, TimeManager &manager, SearchEngine &engine) :
@@ -32,8 +34,17 @@ namespace ag
 
 		if (state == ControllerState::SEARCH)
 		{
-			const SearchSummary summary = search_engine.getSummary( { }, false);
-			const double time_for_turn = time_manager.getTimeForTurn(engine_settings, summary.node.getDepth(), summary.node.getValue());
+			const int move_number = search_engine.getTree().getMoveNumber();
+			const float evaluation = search_engine.getTree().getEvaluation();
+			const double time_for_turn = time_manager.getTimeForTurn(engine_settings, move_number, evaluation);
+			static double last_time = getTime();
+			if (getTime() - last_time > 0.1)
+			{
+				Logger::write(
+						std::to_string(time_manager.getElapsedTime()) + " < " + std::to_string(time_for_turn) + " or "
+								+ std::to_string(search_engine.isSearchFinished()) + " and " + std::to_string(search_engine.isRootEvaluated()));
+				last_time = getTime();
+			}
 			if (is_search_completed(time_for_turn))
 			{
 				stop_search();
@@ -54,7 +65,7 @@ namespace ag
 
 			if (engine_settings.isUsingAutoPondering() and not engine_settings.isInAnalysisMode())
 			{
-				matrix<Sign> board = search_engine.getBoard();
+				matrix<Sign> board = search_engine.getTree().getBoard();
 				Board::putMove(board, best_move);
 				search_engine.setPosition(board, invertSign(best_move.sign));
 

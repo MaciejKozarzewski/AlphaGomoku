@@ -48,6 +48,10 @@ namespace ag
 		search.cleanup(tree);
 		tree.setBoard(board, signToMove);
 
+//		if (startsWith(getName(), "sqrt"))
+//			tree.setEdgeSelector(PUCTSelector_parent(search.getConfig().exploration_constant, 0.5f));
+//		else
+//			tree.setEdgeSelector(PUCTSelector_cbrt(search.getConfig().exploration_constant, 0.5f));
 		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
 		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children, search.getConfig().policy_expansion_threshold));
 	}
@@ -67,7 +71,7 @@ namespace ag
 	}
 	bool Player::isSearchOver()
 	{
-		if (tree.getSimulationCount() >= simulations or tree.isRootProven())
+		if (tree.getSimulationCount() >= simulations)
 		{
 			search.cleanup(tree);
 			nn_evals = 0;

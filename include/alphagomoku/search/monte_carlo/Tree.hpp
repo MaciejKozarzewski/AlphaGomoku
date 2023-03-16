@@ -58,7 +58,8 @@ namespace ag
 			std::unique_ptr<EdgeSelector> edge_selector;
 			std::unique_ptr<EdgeGenerator> edge_generator;
 			matrix<Sign> base_board;
-			int base_depth = 0;
+			std::atomic<int> move_number { 0 };
+			std::atomic<float> evaluation { 0.0f };
 			int max_depth = 0;
 			Sign sign_to_move = Sign::NONE;
 
@@ -72,6 +73,8 @@ namespace ag
 			void setEdgeSelector(const EdgeSelector &selector);
 			void setEdgeGenerator(const EdgeGenerator &generator);
 
+			int getMoveNumber() const noexcept;
+			float getEvaluation() const noexcept;
 			int getNodeCount() const noexcept;
 			int getSimulationCount() const noexcept;
 			int getMaximumDepth() const noexcept;

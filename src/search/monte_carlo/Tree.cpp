@@ -146,7 +146,8 @@ namespace ag
 		}
 
 		base_board = newBoard;
-		base_depth = Board::numberOfMoves(newBoard);
+		move_number = Board::numberOfMoves(newBoard);
+		evaluation = 0.0f;
 		sign_to_move = signToMove;
 
 		if (forceRemoveRootNode and node_cache.seek(newBoard, signToMove) != nullptr)
@@ -165,6 +166,14 @@ namespace ag
 		edge_generator = generator.clone();
 	}
 
+	int Tree::getMoveNumber() const noexcept
+	{
+		return move_number;
+	}
+	float Tree::getEvaluation() const noexcept
+	{
+		return evaluation;
+	}
 	int Tree::getNodeCount() const noexcept
 	{
 		return node_cache.storedNodes();
@@ -315,6 +324,7 @@ namespace ag
 			update_score(pair.edge);
 			update_score(pair.node);
 		}
+		evaluation = root_node->getExpectation();
 	}
 	void Tree::correctInformationLeak(const SearchTask &task)
 	{
