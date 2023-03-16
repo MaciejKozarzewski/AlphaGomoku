@@ -48,15 +48,6 @@ namespace
 			}
 	};
 
-	void prune_weak_moves(std::vector<Edge> &edges, size_t max_edges) noexcept
-	{
-		if (edges.size() <= max_edges)
-			return;
-
-		MaxPolicyPrior op;
-		std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), EdgeComparator<MaxPolicyPrior>(op));
-		edges.erase(edges.begin() + max_edges, edges.end());
-	}
 	void prune_weak_moves(SearchTask &task, size_t max_edges, float expansionThreshold) noexcept
 	{
 		std::vector<Edge> &edges = task.getEdges();
@@ -96,26 +87,6 @@ namespace
 		edges.erase(edges.begin() + idx, edges.end());
 	}
 
-	void create_legal_edges(SearchTask &task, bool prune) noexcept
-	{
-		if (task.getScore().isWin() and prune)
-		{ // optimization to not add unnecessary edges if there is a win
-			for (int row = 0; row < task.getBoard().rows(); row++)
-				for (int col = 0; col < task.getBoard().cols(); col++)
-					if (task.getActionScores().at(row, col).isWin())
-					{
-						assert(task.getBoard().at(row, col) == Sign::NONE);
-						task.addEdge(Move(row, col, task.getSignToMove()));
-					}
-		}
-		else
-		{
-			for (int row = 0; row < task.getBoard().rows(); row++)
-				for (int col = 0; col < task.getBoard().cols(); col++)
-					if (task.getBoard().at(row, col) == Sign::NONE)
-						task.addEdge(Move(row, col, task.getSignToMove()));
-		}
-	}
 	void initialize_edges(SearchTask &task) noexcept
 	{
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
@@ -251,6 +222,26 @@ namespace ag
 		assert(task.getEdges().size() > 0);
 	}
 
+	NoisyGenerator::NoisyGenerator(int maxEdges, float expansionThreshold) :
+			max_edges(maxEdges),
+			expansion_threshold(expansionThreshold)
+	{
+	}
+	std::unique_ptr<EdgeGenerator> NoisyGenerator::clone() const
+	{
+		return std::make_unique<NoisyGenerator>(max_edges, expansion_threshold);
+	}
+	void NoisyGenerator::generate(SearchTask &task) const
+	{
+		assert(task.isReady());
+
+		if (task.getRelativeDepth() == 0)
+//			addNoise(task.getBoard(), task.getPolicy(), 0.25f);
+			addDirichletNoise(task.getBoard(), task.getPolicy(), 0.25f);
+//			addGumbelNoise(task.getBoard(), task.getPolicy(), 0.5f);
+		BaseGenerator(max_edges, expansion_threshold).generate(task);
+	}
+
 	BalancedGenerator::BalancedGenerator(int balanceDepth, const EdgeGenerator &baseGenerator) :
 			balance_depth(balanceDepth),
 			base_generator(baseGenerator.clone())
@@ -264,7 +255,7 @@ namespace ag
 	{
 		assert(task.isReady());
 		if (task.getAbsoluteDepth() < balance_depth)
-			BaseGenerator(std::numeric_limits<int>::max(), true).generate(task);
+			BaseGenerator(std::numeric_limits<int>::max(), 0.0f).generate(task);
 		else
 			base_generator->generate(task);
 	}

@@ -22,20 +22,20 @@ namespace
 {
 	uint32_t get_random_int32()
 	{
-//#ifdef NDEBUG
-//		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
-//#else
+#ifdef NDEBUG
+		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
+#else
 		thread_local std::mt19937 generator(0);
-//#endif
+#endif
 		return generator();
 	}
 	uint64_t get_random_int64()
 	{
-//#ifdef NDEBUG
-//		thread_local std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
-//#else
+#ifdef NDEBUG
+		thread_local std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
+#else
 		thread_local std::mt19937_64 generator(0);
-//#endif
+#endif
 		return generator();
 	}
 
@@ -141,8 +141,7 @@ namespace ag
 	}
 	void addNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight)
 	{
-		assert(board.rows() == policy.rows());
-		assert(board.cols() == policy.cols());
+		assert(equalSize(board, policy));
 		if (noiseWeight == 0.0f)
 			return;
 
@@ -163,27 +162,52 @@ namespace ag
 				k++;
 			}
 	}
-	matrix<float> getNoiseMatrix(const matrix<Sign> &board)
+	void addDirichletNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight)
 	{
-		std::vector<float> noise;
-		noise.reserve(board.size());
-		float sum = 0.0f;
-		for (int i = 0; i < board.size(); i++)
-			if (board[i] == Sign::NONE)
-			{
-				noise.push_back(pow(randFloat(), 4) * (1.0f - sum));
-				sum += noise.back();
-			}
-		std::random_shuffle(noise.begin(), noise.end());
+		assert(equalSize(board, policy));
+		if (noiseWeight == 0.0f)
+			return;
 
-		matrix<float> result(board.rows(), board.cols());
-		for (int i = 0, k = 0; i < board.size(); i++)
-			if (board[i] == Sign::NONE)
-			{
-				result[i] = noise[k];
-				k++;
-			}
-		return result;
+		std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
+		std::gamma_distribution<double> noise(0.05);
+
+		matrix<float> noise_matrix(policy.rows(), policy.cols());
+		float sum = 0.0f;
+		for (int i = 0; i < policy.size(); i++)
+		{
+			noise_matrix[i] = noise(generator);
+			sum += noise_matrix[i];
+		}
+		for (int i = 0; i < board.size(); i++)
+			policy[i] = (1.0f - noiseWeight) * policy[i] + noiseWeight * noise_matrix[i] / sum;
+	}
+	void addGumbelNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight)
+	{
+		assert(equalSize(board, policy));
+		if (noiseWeight == 0.0f)
+			return;
+
+		float max_value = std::numeric_limits<float>::lowest();
+		for (int i = 0; i < policy.size(); i++)
+		{
+			const float gumbel_noise = -safe_log(-safe_log(randFloat()));
+			policy[i] = safe_log(policy[i]) + noiseWeight * gumbel_noise;
+			max_value = std::max(max_value, policy[i]);
+		}
+
+		float sum = 0.0f;
+		for (int i = 0; i < policy.size(); i++)
+		{
+			policy[i] = std::exp(policy[i] - max_value);
+			if (policy[i] < 1.0e-9f)
+				policy[i] = 0.0f;
+			sum += policy[i];
+		}
+
+		assert(sum > 0.0f);
+		sum = 1.0f / sum;
+		for (int i = 0; i < policy.size(); i++)
+			policy[i] *= sum;
 	}
 
 	void scaleArray(matrix<float> &array, float scale)
