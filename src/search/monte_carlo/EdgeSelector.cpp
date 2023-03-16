@@ -48,37 +48,35 @@ namespace
 	};
 	struct PUCT
 	{
-			const float parent_sqrt_visit;
+			const float parent_cbrt_visit;
 			const float style_factor;
 			PUCT(const Node &parent, float explorationConstant, float styleFactor) noexcept :
-					parent_sqrt_visit(explorationConstant * sqrtf(parent.getVisits())),
+					parent_cbrt_visit(explorationConstant * cbrtf(parent.getVisits())),
 					style_factor(styleFactor)
 			{
 			}
 			float operator()(const Edge &edge) const noexcept
 			{
 				const float Q = edge.getExpectation(style_factor);
-				const float U = edge.getPolicyPrior() * parent_sqrt_visit / (1.0f + edge.getVisits());
+				const float U = edge.getPolicyPrior() * parent_cbrt_visit / (1.0f + edge.getVisits());
 				return Q * getVirtualLoss(edge) + U;
 			}
 	};
-	struct NoisyPUCT
+	struct PUCT_parent
 	{
-			const float parent_sqrt_visit;
+			const float parent_cbrt_visit;
+			const float parent_q;
 			const float style_factor;
-			const std::vector<float> &noisy_policy;
-			const Edge *first;
-			NoisyPUCT(const Node &parent, float explorationConstant, float styleFactor, const std::vector<float> &noisyPolicy) noexcept :
-					parent_sqrt_visit(explorationConstant * sqrtf(parent.getVisits())),
-					style_factor(styleFactor),
-					noisy_policy(noisyPolicy),
-					first(parent.begin())
+			PUCT_parent(const Node &parent, float explorationConstant, float styleFactor) noexcept :
+					parent_cbrt_visit(explorationConstant * cbrtf(parent.getVisits())),
+					parent_q(parent.getExpectation(styleFactor)),
+					style_factor(styleFactor)
 			{
 			}
 			float operator()(const Edge &edge) const noexcept
 			{
-				const float Q = edge.getExpectation(style_factor);
-				const float U = noisy_policy[std::distance(first, &edge)] * parent_sqrt_visit / (1.0f + edge.getVisits());
+				const float Q = (edge.getVisits() > 0) ? edge.getExpectation(style_factor) : parent_q;
+				const float U = edge.getPolicyPrior() * parent_cbrt_visit / (1.0f + edge.getVisits());
 				return Q * getVirtualLoss(edge) + U;
 			}
 	};
@@ -263,6 +261,30 @@ namespace ag
 		return best_edge;
 	}
 
+	PUCTSelector_parent::PUCTSelector_parent(float exploration, float styleFactor) :
+			exploration_constant(exploration),
+			style_factor(styleFactor)
+	{
+	}
+	std::unique_ptr<EdgeSelector> PUCTSelector_parent::clone() const
+	{
+		return std::make_unique<PUCTSelector_parent>(exploration_constant, style_factor);
+	}
+	Edge* PUCTSelector_parent::select(const Node *node) noexcept
+	{
+		assert(node != nullptr);
+		assert(node->isLeaf() == false);
+
+		const PUCT_parent op(*node, exploration_constant, style_factor);
+		const EdgeComparator<PUCT_parent> greater_than(op);
+
+		Edge *best_edge = node->begin();
+		for (Edge *edge = node->begin(); edge < node->end(); edge++)
+			if (greater_than(*edge, *best_edge))
+				best_edge = edge;
+		return best_edge;
+	}
+
 	UCTSelector::UCTSelector(float exploration, float styleFactor) :
 			exploration_constant(exploration),
 			style_factor(styleFactor)
@@ -284,47 +306,6 @@ namespace ag
 			if (greater_than(*edge, *best_edge))
 				best_edge = edge;
 		return best_edge;
-	}
-
-	NoisyPUCTSelector::NoisyPUCTSelector(float exploration, float styleFactor) :
-			generator(std::chrono::system_clock::now().time_since_epoch().count()),
-			exploration_constant(exploration),
-			style_factor(styleFactor)
-	{
-	}
-	std::unique_ptr<EdgeSelector> NoisyPUCTSelector::clone() const
-	{
-		return std::make_unique<NoisyPUCTSelector>(exploration_constant, style_factor);
-	}
-	Edge* NoisyPUCTSelector::select(const Node *node) noexcept
-	{
-		assert(node != nullptr);
-		assert(node->isLeaf() == false);
-		if (node->isRoot())
-		{
-			if (not is_initialized)
-			{ // reset noise
-				float max_policy_value = std::numeric_limits<float>::lowest();
-				for (Edge *iter = node->begin(); iter < node->end(); iter++)
-					max_policy_value = std::max(max_policy_value, iter->getPolicyPrior());
-				noisy_policy.clear();
-				for (Edge *iter = node->begin(); iter < node->end(); iter++)
-					noisy_policy.push_back(safe_log(iter->getPolicyPrior()) + noise(generator));
-				softmax(noisy_policy);
-				is_initialized = true;
-			}
-
-			const NoisyPUCT op(*node, exploration_constant, style_factor, noisy_policy);
-			const EdgeComparator<NoisyPUCT> greater_than(op);
-
-			Edge *best_edge = node->begin();
-			for (Edge *edge = node->begin(); edge < node->end(); edge++)
-				if (greater_than(*edge, *best_edge))
-					best_edge = edge;
-			return best_edge;
-		}
-		else
-			return PUCTSelector(exploration_constant, style_factor).select(node);
 	}
 
 	BalancedSelector::BalancedSelector(int balanceDepth, const EdgeSelector &baseSelector) :
