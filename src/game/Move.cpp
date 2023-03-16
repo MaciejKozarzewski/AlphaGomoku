@@ -25,7 +25,7 @@ namespace
 			case 'O':
 				return Sign::CIRCLE;
 			default:
-				throw std::invalid_argument("expected 'X' or 'O'");
+				throw std::invalid_argument("expected 'X', 'O' or '_'");
 		}
 	}
 	int extract_row(const std::string &text)
