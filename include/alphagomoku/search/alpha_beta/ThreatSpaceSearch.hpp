@@ -10,6 +10,7 @@
 
 #include <alphagomoku/search/alpha_beta/ActionList.hpp>
 #include <alphagomoku/search/alpha_beta/SharedHashTable.hpp>
+#include <alphagomoku/search/alpha_beta/LocalHashTable.hpp>
 #include <alphagomoku/search/alpha_beta/ThreatGenerator.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/utils/configs.hpp>
@@ -93,7 +94,8 @@ namespace ag
 			PatternCalculator pattern_calculator;
 			ThreatGenerator threat_generator;
 
-			std::shared_ptr<SharedHashTable> shared_table;
+			SharedHashTable shared_table;
+			LocalHashTable local_table;
 			HashKey128 hash_key;
 
 			size_t step_counter = 0;
@@ -102,10 +104,9 @@ namespace ag
 			Measurement upper_measurement;
 			TSSStats stats;
 		public:
-			ThreatSpaceSearch(GameConfig gameConfig, int maxPositions = 100);
+			ThreatSpaceSearch(const GameConfig &gameConfig, const TSSConfig &tssConfig);
 
 			int64_t getMemory() const noexcept;
-			void setSharedTable(std::shared_ptr<SharedHashTable> table) noexcept;
 			void solve(SearchTask &task, TssMode mode, int maxPositions);
 			void tune(float speed);
 
@@ -115,11 +116,12 @@ namespace ag
 			{
 				pattern_calculator.print_stats();
 				std::cout << stats.toString() << '\n';
-				if (shared_table != nullptr)
-					std::cout << "SharedHashTable load factor = " << shared_table->loadFactor(true) << '\n';
+				std::cout << "SharedHashTable load factor = " << shared_table.loadFactor(true) << '\n';
+				std::cout << "LocalHashTable load factor = " << local_table.loadFactor(true) << '\n';
 			}
 		private:
 			Result recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
+			Result recursive_solve_v2(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
 
 			bool is_move_legal(Move m) const noexcept;
 			Score evaluate();
