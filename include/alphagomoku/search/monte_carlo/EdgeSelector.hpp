@@ -128,43 +128,6 @@ namespace ag
 			Edge* select(const Node *node) noexcept;
 	};
 
-	/**
-	 * @brief Sequential Halving selector that optimizes P(win) + styleFactor * P(draw).
-	 */
-	class SequentialHalvingSelector: public EdgeSelector
-	{
-		private:
-			struct Data
-			{
-					Edge *edge = nullptr;
-					float noise = 0.0f;
-					float logit = 0.0f;
-			};
-			std::default_random_engine generator;
-			std::extreme_value_distribution<float> noise;
-
-			std::vector<Data> action_list;
-			std::vector<float> workspace;
-
-			const int max_edges;
-			const int max_simulations;
-			const float C_visit;
-			const float C_scale;
-
-			int simulations_left = 0;
-			int expected_visit_count = 0;
-			bool is_initialized = false;
-		public:
-			SequentialHalvingSelector(int maxEdges, int maxSimulations, float cVisit = 50.0f, float cScale = 1.0f);
-			std::unique_ptr<EdgeSelector> clone() const;
-			Edge* select(const Node *node) noexcept;
-		private:
-			void initialize(const Node *node);
-			Edge* select_at_root(const Node *node) noexcept;
-			Edge* select_below_root(const Node *node) noexcept;
-			void sort_workspace(int topN) noexcept;
-	};
-
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGESELECTOR_HPP_ */

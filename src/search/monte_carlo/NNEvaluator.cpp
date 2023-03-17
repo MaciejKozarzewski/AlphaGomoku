@@ -13,7 +13,6 @@
 #include <alphagomoku/utils/configs.hpp>
 
 #include <chrono>
-#include <thread>
 
 namespace
 {

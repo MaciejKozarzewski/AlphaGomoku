@@ -11,6 +11,8 @@
 #include <alphagomoku/dataset/SearchDataStorage.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <iostream>
+
 namespace ag
 {
 	Sampler::Sampler(const GameDataBuffer &buffer, int batchSize) :

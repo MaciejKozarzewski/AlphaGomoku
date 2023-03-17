@@ -80,6 +80,7 @@ namespace ag
 	}
 	void TrainingDataPack::print() const
 	{
+		std::cout << "Sign to move: " << toString(sign_to_move) << '\n';
 		std::cout << "Value target: " << value_target.toString() << '\n';
 		std::cout << "Board:\n" << Board::toString(board, true) << '\n';
 		std::cout << "Visit count:\n" << Board::toString(board, visit_count, true) << '\n';

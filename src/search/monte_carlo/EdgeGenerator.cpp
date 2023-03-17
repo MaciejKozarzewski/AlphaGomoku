@@ -236,8 +236,8 @@ namespace ag
 		assert(task.isReady());
 
 		if (task.getRelativeDepth() == 0)
-//			addNoise(task.getBoard(), task.getPolicy(), 0.25f);
-			addDirichletNoise(task.getBoard(), task.getPolicy(), 0.25f);
+			addNoise(task.getBoard(), task.getPolicy(), 0.25f);
+//			addDirichletNoise(task.getBoard(), task.getPolicy(), 0.25f);
 //			addGumbelNoise(task.getBoard(), task.getPolicy(), 0.5f);
 		BaseGenerator(max_edges, expansion_threshold).generate(task);
 	}
