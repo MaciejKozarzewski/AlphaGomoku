@@ -144,10 +144,6 @@ namespace ag
 	{
 		return ag::text(sign) + location().text();
 	}
-	Move Move::fromText(const std::string &txt, Sign sign)
-	{
-		assert(txt[0] >= 'a' && txt[0] <= 'z');
-		return Move(ag::text(sign) + txt);
-	}
-}
+
+} /* namespace ag */
 

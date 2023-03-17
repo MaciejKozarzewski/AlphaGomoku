@@ -96,7 +96,7 @@ namespace ag
 			}
 			Move move() const noexcept
 			{
-				return Move::move_from_short((m_data >> 32ull) & 65535ull);
+				return Move(static_cast<uint16_t>(m_data >> 32ull) & 65535ull);
 			}
 			HashKey64 key() const noexcept
 			{
@@ -134,7 +134,8 @@ namespace ag
 
 			using Bucket = std::array<Entry, 4>;
 
-			std::vector<Bucket, AlignedAllocator<Bucket, sizeof(Bucket)>> m_hashtable;
+//			std::vector<Bucket, AlignedAllocator<Bucket, sizeof(Bucket)>> m_hashtable;
+			std::vector<Bucket> m_hashtable;
 			mutable std::vector<SpinLock, AlignedAllocator<SpinLock, sizeof(SpinLock)>> m_locks;
 			FastZobristHashing m_hash_function;
 			HashKey64 m_bucket_mask;

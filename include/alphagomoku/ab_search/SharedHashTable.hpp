@@ -79,7 +79,7 @@ namespace ag
 				}
 				Move getMove() const noexcept
 				{
-					return Move::move_from_short((m_data >> 32ull) & 65535ull);
+					return Move((m_data >> 32ull) & 65535ull);
 				}
 				int getNodeCount() const noexcept
 				{
