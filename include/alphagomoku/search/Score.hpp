@@ -115,6 +115,10 @@ namespace ag
 			{
 				return static_cast<ProvenValue>(m_data >> 13u);
 			}
+			bool isUnproven() const noexcept
+			{
+				return getProvenValue() == ProvenValue::UNKNOWN;
+			}
 			bool isProven() const noexcept
 			{
 				return getProvenValue() != ProvenValue::UNKNOWN;
