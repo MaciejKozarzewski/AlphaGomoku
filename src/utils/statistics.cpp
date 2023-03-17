@@ -5,9 +5,6 @@
  *      Author: Maciej Kozarzewski
  */
 
-#ifndef UTILS_STATISTICS_CPP_
-#define UTILS_STATISTICS_CPP_
-
 #include <alphagomoku/utils/statistics.hpp>
 
 namespace ag
@@ -46,5 +43,3 @@ namespace ag
 	}
 
 } /* namespace ag */
-
-#endif /* UTILS_STATISTICS_CPP_ */
