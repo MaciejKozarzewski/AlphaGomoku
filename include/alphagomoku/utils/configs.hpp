@@ -51,16 +51,53 @@ namespace ag
 					static constexpr int initial_node_cache_size = 65536;
 					static constexpr int edge_bucket_size = 100000;
 					static constexpr int node_bucket_size = 10000;
-					static constexpr int solver_hash_table_size = 1048576;
 			};
 		public:
 			int initial_node_cache_size = Defaults::initial_node_cache_size;
 			int edge_bucket_size = Defaults::edge_bucket_size;
 			int node_bucket_size = Defaults::node_bucket_size;
-			int solver_hash_table_size = Defaults::solver_hash_table_size;
 
 			TreeConfig() = default;
 			TreeConfig(const Json &cfg);
+			Json toJson() const;
+	};
+	struct MCTSConfig
+	{
+		private:
+			struct Defaults
+			{
+					static constexpr float exploration_constant = 1.25f;
+					static constexpr int max_children = std::numeric_limits<int>::max();
+					static constexpr float policy_expansion_threshold = 0.0f;
+					static constexpr int style_factor = 2;
+			};
+		public:
+			float exploration_constant = Defaults::exploration_constant;
+			int max_children = Defaults::max_children;
+			float policy_expansion_threshold = Defaults::policy_expansion_threshold;
+			int style_factor = Defaults::style_factor; /**< 0 - win + draw, 2 - win + 0.5 * draw, 4 - win */
+
+			MCTSConfig() = default;
+			MCTSConfig(const Json &cfg);
+			Json toJson() const;
+	};
+
+	struct TSSConfig
+	{
+		private:
+			struct Defaults
+			{
+					static constexpr int mode = 0;
+					static constexpr int max_positions = 100;
+					static constexpr int hash_table_size = 1048576;
+			};
+		public:
+			int mode = Defaults::mode; /**< 0 - only terminal moves, 1 - static evaluation, 2 - recursive search */
+			int max_positions = Defaults::max_positions;
+			int hash_table_size = Defaults::hash_table_size;
+
+			TSSConfig() = default;
+			TSSConfig(const Json &cfg);
 			Json toJson() const;
 	};
 
@@ -70,21 +107,12 @@ namespace ag
 			struct Defaults
 			{
 					static constexpr int max_batch_size = 1;
-					static constexpr float exploration_constant = 1.25f;
-					static constexpr int max_children = std::numeric_limits<int>::max();
-					static constexpr float policy_expansion_threshold = 0.0f;
-					static constexpr int solver_level = 0;
-					static constexpr int solver_max_positions = 100;
-					static constexpr int style_factor = 2;
 			};
 		public:
 			int max_batch_size = Defaults::max_batch_size;
-			float exploration_constant = Defaults::exploration_constant;
-			int max_children = Defaults::max_children;
-			float policy_expansion_threshold = Defaults::policy_expansion_threshold;
-			int solver_level = Defaults::solver_level; /**< 0 - only terminal moves, 1 - static evaluation, 2 - recursive search */
-			int solver_max_positions = Defaults::solver_max_positions;
-			int style_factor = Defaults::style_factor; /**< 0 - win + draw, 2 - win + 0.5 * draw, 4 - win */
+			TreeConfig tree_config;
+			MCTSConfig mcts_config;
+			TSSConfig tss_config;
 
 			SearchConfig() = default;
 			SearchConfig(const Json &cfg);

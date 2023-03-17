@@ -112,20 +112,17 @@ namespace
 
 namespace ag
 {
-	Tree::Tree(TreeConfig treeOptions) :
-			tree_config(treeOptions)
+	Tree::Tree(const TreeConfig &treeConfig) :
+			tree_config(treeConfig)
 	{
 	}
 	int64_t Tree::getMemory() const noexcept
 	{
-		int64_t result = (shared_hash_table == nullptr) ? 0 : shared_hash_table->getMemory();
-		return result + node_cache.getMemory();
+		return node_cache.getMemory();
 	}
 	void Tree::clear()
 	{
 		node_cache.clear();
-		if (shared_hash_table != nullptr)
-			shared_hash_table->clear();
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove, bool forceRemoveRootNode)
 	{
@@ -133,15 +130,11 @@ namespace ag
 		{
 			const GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
 			node_cache = NodeCache(game_config, tree_config);
-			shared_hash_table = std::make_shared<SharedHashTable>(newBoard.rows(), newBoard.cols(), tree_config.solver_hash_table_size);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
 		else
-		{
-			shared_hash_table->increaseGeneration();
 			node_cache.cleanup(newBoard, signToMove);
-		}
 
 		base_board = newBoard;
 		move_number = Board::numberOfMoves(newBoard);
@@ -245,7 +238,7 @@ namespace ag
 			if (has_information_leak(edge))
 				return SelectOutcome::INFORMATION_LEAK;
 		}
-		max_depth = std::max(max_depth, task.visitedPathLength());
+		max_depth = std::max((int) max_depth, task.visitedPathLength());
 		if (task.visitedPathLength() > 0 and task.getLastEdge()->isProven())
 			return SelectOutcome::REACHED_PROVEN_STATE;
 		else
@@ -363,10 +356,6 @@ namespace ag
 		print_node(root_node, max_print_depth, sort, top_n, 0);
 	}
 
-	std::shared_ptr<SharedHashTable> Tree::getSharedHashTable() noexcept
-	{
-		return shared_hash_table;
-	}
 	const matrix<Sign>& Tree::getBoard() const noexcept
 	{
 		return base_board;

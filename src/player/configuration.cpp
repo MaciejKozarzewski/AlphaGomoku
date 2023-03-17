@@ -34,8 +34,7 @@ namespace
 		result["use_symmetries"] = true;
 		result["search_threads"] = 1;
 		result["devices"][0] = ag::DeviceConfig().toJson();
-		result["search_options"] = ag::SearchConfig().toJson();
-		result["tree_options"] = ag::TreeConfig().toJson();
+		result["search_config"] = ag::SearchConfig().toJson();
 		return result;
 	}
 	struct HardwareConfiguration
@@ -113,7 +112,6 @@ namespace ag
 		int max_batch_size = 0;
 		std::vector<DeviceConfig> device_configs;
 
-		TreeConfig tree_config;
 		SearchConfig search_config;
 		if (num_cuda_devices > 0)
 		{
@@ -131,11 +129,12 @@ namespace ag
 					max_batch_size = std::max(max_batch_size, tmp.batch_size);
 				}
 			}
-			search_config.solver_max_positions = 200;
-			tree_config.initial_node_cache_size = 65536;
-			tree_config.edge_bucket_size = 1000000;
-			tree_config.node_bucket_size = 100000;
-			tree_config.solver_hash_table_size = 1048576;
+			search_config.tss_config.max_positions = 200;
+			search_config.tss_config.hash_table_size = 1048576;
+
+			search_config.tree_config.initial_node_cache_size = 65536;
+			search_config.tree_config.edge_bucket_size = 1000000;
+			search_config.tree_config.node_bucket_size = 100000;
 		}
 		else
 		{
@@ -148,12 +147,13 @@ namespace ag
 				device_configs.push_back(tmp);
 
 			max_batch_size = tmp.batch_size;
-			search_config.solver_max_positions = 1600;
 
-			tree_config.initial_node_cache_size = 8192;
-			tree_config.edge_bucket_size = 100000;
-			tree_config.node_bucket_size = 10000;
-			tree_config.solver_hash_table_size = 65536;
+			search_config.tss_config.max_positions = 1600;
+			search_config.tss_config.hash_table_size = 1048576;
+
+			search_config.tree_config.initial_node_cache_size = 8192;
+			search_config.tree_config.edge_bucket_size = 100000;
+			search_config.tree_config.node_bucket_size = 10000;
 		}
 
 		result["search_threads"] = search_threads;
@@ -162,10 +162,9 @@ namespace ag
 			result["devices"][i] = device_configs[i].toJson();
 
 		search_config.max_batch_size = max_batch_size;
-		search_config.max_children = 32;
-		search_config.solver_level = 2;
+		search_config.mcts_config.max_children = 32;
+		search_config.tss_config.mode = 2;
 
-		result["tree_options"] = tree_config.toJson();
 		result["search_options"] = search_config.toJson();
 
 		return result;

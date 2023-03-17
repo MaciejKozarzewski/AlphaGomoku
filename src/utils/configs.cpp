@@ -56,31 +56,54 @@ namespace ag
 	TreeConfig::TreeConfig(const Json &cfg) :
 			initial_node_cache_size(get_value<int>(cfg, "initial_node_cache_size", Defaults::initial_node_cache_size)),
 			edge_bucket_size(get_value<int>(cfg, "edge_bucket_size", Defaults::edge_bucket_size)),
-			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size)),
-			solver_hash_table_size(get_value<int>(cfg, "solver_hash_table_size", Defaults::solver_hash_table_size))
+			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size))
 	{
 	}
 	Json TreeConfig::toJson() const
 	{
 		return Json( { { "initial_node_cache_size", initial_node_cache_size }, { "edge_bucket_size", edge_bucket_size }, { "node_bucket_size",
-				node_bucket_size }, { "solver_hash_table_size", solver_hash_table_size } });
+				node_bucket_size } });
+	}
+
+	MCTSConfig::MCTSConfig(const Json &cfg) :
+			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
+			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
+			policy_expansion_threshold(get_value<float>(cfg, "policy_expansion_threshold", Defaults::policy_expansion_threshold)),
+			style_factor(get_value<int>(cfg, "style_factor", Defaults::style_factor))
+	{
+	}
+	Json MCTSConfig::toJson() const
+	{
+		return Json( { { "exploration_constant", exploration_constant }, { "max_children", max_children }, { "policy_expansion_threshold",
+				policy_expansion_threshold }, { "style_factor", style_factor } });
+	}
+
+	TSSConfig::TSSConfig(const Json &cfg) :
+			mode(get_value<int>(cfg, "mode", Defaults::mode)),
+			max_positions(get_value(cfg, "max_positions", Defaults::max_positions)),
+			hash_table_size(get_value<int>(cfg, "hash_table_size", Defaults::hash_table_size))
+	{
+	}
+	Json TSSConfig::toJson() const
+	{
+		return Json( { { "mode", mode }, { "max_positions", max_positions }, { "hash_table_size", hash_table_size } });
 	}
 
 	SearchConfig::SearchConfig(const Json &cfg) :
 			max_batch_size(get_value<int>(cfg, "max_batch_size", Defaults::max_batch_size)),
-			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
-			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
-			policy_expansion_threshold(get_value<float>(cfg, "policy_expansion_threshold", Defaults::policy_expansion_threshold)),
-			solver_level(get_value<int>(cfg, "solver_level", Defaults::solver_level)),
-			solver_max_positions(get_value(cfg, "solver_max_positions", Defaults::solver_max_positions)),
-			style_factor(get_value<int>(cfg, "style_factor", Defaults::style_factor))
+			tree_config(cfg["tree_config"]),
+			mcts_config(cfg["mcts_config"]),
+			tss_config(cfg["tss_config"])
 	{
 	}
 	Json SearchConfig::toJson() const
 	{
-		return Json( { { "max_batch_size", max_batch_size }, { "exploration_constant", exploration_constant }, { "max_children", max_children }, {
-				"policy_expansion_threshold", policy_expansion_threshold }, { "solver_level", solver_level }, { "solver_max_positions",
-				solver_max_positions }, { "style_factor", style_factor } });
+		Json result;
+		result["max_batch_size"] = max_batch_size;
+		result["tree_config"] = tree_config.toJson();
+		result["mcts_config"] = mcts_config.toJson();
+		result["tss_config"] = tss_config.toJson();
+		return result;
 	}
 
 	DeviceConfig::DeviceConfig(const Json &cfg) :

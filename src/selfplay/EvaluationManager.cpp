@@ -85,7 +85,7 @@ namespace ag
 	void EvaluatorThread::run()
 	{
 		game_buffer.clear();
-		while (is_running.load() and game_buffer.size() < games_to_play)
+		while (is_running.load() and game_buffer.size() < (size_t) games_to_play)
 		{
 			first_nn_evaluator.asyncEvaluateGraphJoin();
 			for (size_t i = 0; i < evaluators.size(); i++)

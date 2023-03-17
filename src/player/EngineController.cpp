@@ -21,11 +21,11 @@ namespace
 	using namespace ag;
 	PUCTSelector get_base_selector(const EngineSettings &settings)
 	{
-		return PUCTSelector(settings.getSearchConfig().exploration_constant, settings.getStyleFactor());
+		return PUCTSelector(settings.getSearchConfig().mcts_config.exploration_constant, settings.getStyleFactor());
 	}
 	BaseGenerator get_base_generator(const EngineSettings &settings)
 	{
-		return BaseGenerator(settings.getSearchConfig().max_children, false);
+		return BaseGenerator(settings.getSearchConfig().mcts_config.max_children, false);
 	}
 }
 

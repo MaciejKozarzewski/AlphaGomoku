@@ -124,12 +124,14 @@ namespace ag
 	/*
 	 * ThreatSpaceSearch
 	 */
-	ThreatSpaceSearch::ThreatSpaceSearch(GameConfig gameConfig, int maxPositions) :
+	ThreatSpaceSearch::ThreatSpaceSearch(const GameConfig &gameConfig, const TSSConfig &tssConfig) :
 			action_stack(get_max_nodes(gameConfig)),
-			max_positions(maxPositions),
+			max_positions(tssConfig.max_positions),
 			game_config(gameConfig),
 			pattern_calculator(gameConfig),
 			threat_generator(gameConfig, pattern_calculator),
+			shared_table(gameConfig.rows, gameConfig.cols, tssConfig.hash_table_size),
+			local_table(gameConfig.rows, gameConfig.cols, tssConfig.hash_table_size),
 			lower_measurement(max_positions),
 			upper_measurement(tuning_step * max_positions)
 	{
@@ -137,10 +139,6 @@ namespace ag
 	int64_t ThreatSpaceSearch::getMemory() const noexcept
 	{
 		return action_stack.size() * sizeof(Action);
-	}
-	void ThreatSpaceSearch::setSharedTable(std::shared_ptr<SharedHashTable> table) noexcept
-	{
-		shared_table = table;
 	}
 	void ThreatSpaceSearch::solve(SearchTask &task, TssMode mode, int maxPositions)
 	{
@@ -175,19 +173,13 @@ namespace ag
 			}
 			case TssMode::RECURSIVE:
 			{
-				if (shared_table == nullptr)
-					throw std::logic_error("ThreatSpaceSearch::solve() : Pointer to the shared hash table has not been initialized");
-
-//				stats.evaluate.startTimer();
-//				evaluator.refresh(pattern_calculator); // set up NNUE state
-//				stats.evaluate.stopTimer();
-
-				hash_key = shared_table->getHashFunction().getHash(task.getBoard()); // set up hash key
+//				hash_key = shared_table.getHashFunction().getHash(task.getBoard()); // set up hash key
+				hash_key = local_table.getHashFunction().getHash(task.getBoard()); // set up hash key
 				const int max_depth = std::max(1, std::min(127, game_config.draw_after - pattern_calculator.getCurrentDepth()));
 				for (int depth = 1; depth <= max_depth; depth += 4)
 				{ // iterative deepening loop
 //					double t0 = getTime();
-					result = recursive_solve(depth, Score::min_value(), Score::max_value(), actions, true);
+					result = recursive_solve_v2(depth, Score::min_value(), Score::max_value(), actions, true);
 
 //					std::cout << "max depth=" << depth << ", nodes=" << position_counter << ", score=" << result.score << ", time="
 //							<< (getTime() - t0) << "s, is final=" << result.is_final << "\n";
@@ -200,29 +192,18 @@ namespace ag
 			}
 		}
 
-		task.getActionScores().fill(actions.baseline_score);
 		for (auto iter = actions.begin(); iter < actions.end(); iter++)
 		{
 			const Move m(iter->move);
-			if (iter->is_final)
-			{
-				task.getActionScores().at(m.row, m.col) = iter->score;
-				if (iter->score.isProven())
-					task.getActionValues().at(m.row, m.col) = convertScoreToValue(iter->score);
-			}
-			else
-				task.getActionScores().at(m.row, m.col) = Score();
+			task.getActionScores().at(m.row, m.col) = iter->is_final ? iter->score : Score();
+			if (iter->is_final and iter->score.isProven())
+				task.getActionValues().at(m.row, m.col) = convertScoreToValue(iter->score);
 			if (actions.must_defend)
 				task.addDefensiveMove(m);
 		}
-		if (result.is_final)
-		{
-			task.setScore(result.score);
-			if (result.score.isProven())
-				task.setValue(convertScoreToValue(result.score));
-		}
-		else
-			task.setScore(Score());
+		task.setScore(result.is_final ? result.score : Score());
+		if (result.is_final and result.score.isProven())
+			task.setValue(convertScoreToValue(result.score));
 		task.markAsProcessedBySolver();
 
 //		if (result.score.getEval() ==  Score::min_value())
@@ -325,9 +306,9 @@ namespace ag
 	 */
 	ThreatSpaceSearch::Result ThreatSpaceSearch::recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot)
 	{
-		assert(Score::min_value() <= alpha);
-		assert(alpha < beta);
-		assert(beta <= Score::max_value());
+//		assert(Score::min_value() <= alpha);
+//		assert(alpha < beta);
+//		assert(beta <= Score::max_value());
 
 		if (not isRoot)
 			actions.clear();
@@ -335,7 +316,7 @@ namespace ag
 		Move hash_move;
 		{ // lookup to the shared hash table
 //			TimerGuard tg(stats.hashtable);
-			const SharedTableData tt_entry = shared_table->seek(hash_key);
+			const SharedTableData tt_entry = shared_table.seek(hash_key);
 			const Bound tt_bound = tt_entry.bound();
 
 			stats.cache_calls++;
@@ -351,9 +332,12 @@ namespace ag
 				{ // we must not terminate search at root with just one best action on hash table hit, as the other modules require full list of actions
 					const Score tt_score = tt_entry.score();
 					if (tt_entry.depth() >= depthRemaining
-							and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
-									or (tt_bound == Bound::UPPER and tt_score <= alpha)))
-						return Result(tt_score, true); // to be 100% correct, TT hit should return a score that is not final as it can be a collision.
+							and ((tt_bound == Bound::LOWER and tt_score >= beta) or (tt_bound == Bound::UPPER and tt_score <= alpha)))
+						return Result(tt_score, false); // to be 100% correct, TT hit shou
+//					if (tt_entry.depth() >= depthRemaining
+//							and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
+//									or (tt_bound == Bound::UPPER and tt_score <= alpha)))
+//						return Result(tt_score, true); // to be 100% correct, TT hit should return a score that is not final as it can be a collision.
 				}
 			}
 		}
@@ -387,15 +371,15 @@ namespace ag
 				visited_actions++;
 				const Move move = actions[i].move;
 
-				shared_table->getHashFunction().updateHash(hash_key, move);
-				shared_table->prefetch(hash_key);
+				shared_table.getHashFunction().updateHash(hash_key, move);
+				shared_table.prefetch(hash_key);
 				pattern_calculator.addMove(move);
 
 				ActionList next_ply_actions(actions, actions[i]);
 				const Result tmp = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions, false);
 
 				pattern_calculator.undoMove(move);
-				shared_table->getHashFunction().updateHash(hash_key, move);
+				shared_table.getHashFunction().updateHash(hash_key, move);
 
 				actions[i].score = tmp.score; // required for recovering of the search results
 				actions[i].score.increaseDistance();
@@ -406,6 +390,7 @@ namespace ag
 
 				alpha = std::max(alpha, actions[i].score);
 				if (actions[i].score >= beta or (actions[i].score.isWin() and actions[i].is_final))
+//				if (actions[i].score.isWin() and actions[i].is_final)
 					break;
 			}
 		// if either
@@ -428,8 +413,75 @@ namespace ag
 					bound = Bound::EXACT;
 			}
 			SharedTableData entry(actions.must_defend, actions.has_initiative, bound, depthRemaining, result.score, actions.getBestMove());
-			shared_table->insert(hash_key, entry);
+			shared_table.insert(hash_key, entry);
 		}
+
+		return result;
+	}
+	ThreatSpaceSearch::Result ThreatSpaceSearch::recursive_solve_v2(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot)
+	{
+		assert(Score::min_value() <= alpha);
+		assert(alpha < beta);
+		assert(beta <= Score::max_value());
+
+		if (actions.isEmpty() or not isRoot)
+		{ // at root this should be called only once
+			const Score static_score = threat_generator.generate(actions, GeneratorMode::VCF);
+			if (static_score.isProven())
+				return Result(static_score, true);
+		}
+
+		if (depthRemaining <= 0) // if it is a leaf, evaluate the position
+			return Result(evaluate(), false);
+
+		Result result(Score::min_value(), true);
+		int visited_actions = 0;
+
+		const Move hash_move = local_table.seek(hash_key);
+		stats.cache_calls++;
+		stats.cache_colissions += (hash_move != Move() and not is_move_legal(hash_move));
+		stats.cache_hits += (hash_move != Move());
+
+		actions.moveCloserToFront(hash_move, 0);
+		for (int i = 0; i < actions.size(); i++)
+			if (not actions[i].is_final)
+			{
+				position_counter++;
+				if (position_counter > max_positions)
+					return Result(evaluate(), false);
+
+				visited_actions++;
+				const Move move = actions[i].move;
+
+				local_table.getHashFunction().updateHash(hash_key, move);
+				local_table.prefetch(hash_key);
+				pattern_calculator.addMove(move);
+
+				ActionList next_ply_actions(actions, actions[i]);
+				const Result tmp = -recursive_solve_v2(depthRemaining - 1, -beta, -alpha, next_ply_actions, false);
+
+				pattern_calculator.undoMove(move);
+				local_table.getHashFunction().updateHash(hash_key, move);
+
+				actions[i].score = tmp.score; // required for recovering of the search results
+				actions[i].score.increaseDistance();
+				actions[i].is_final = tmp.is_final; // required for recovering of the search results
+
+				result.score = std::max(result.score, actions[i].score);
+				result.is_final &= actions[i].is_final;
+
+				alpha = std::max(alpha, actions[i].score);
+				if (actions[i].score >= beta or (actions[i].score.isWin() and actions[i].is_final))
+					break;
+			}
+		// if either
+		//  - no actions were generated, or
+		//  - all actions are losing but we don't have to defend
+		// we need to override the score with something, for example with static evaluation
+		if (visited_actions == 0 or (result.score.isLoss() and not actions.must_defend))
+			result.score = evaluate();
+
+		local_table.insert(hash_key, actions.getBestMove());
 
 		return result;
 	}

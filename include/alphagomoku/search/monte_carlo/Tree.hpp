@@ -13,12 +13,12 @@
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/search/ZobristHashing.hpp>
-#include <alphagomoku/search/alpha_beta/SharedHashTable.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <cinttypes>
 #include <memory>
+#include <atomic>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -52,7 +52,6 @@ namespace ag
 			mutable std::mutex tree_mutex;
 
 			NodeCache node_cache;
-			std::shared_ptr<SharedHashTable> shared_hash_table;
 			Node *root_node = nullptr; // non-owning
 
 			std::unique_ptr<EdgeSelector> edge_selector;
@@ -60,12 +59,12 @@ namespace ag
 			matrix<Sign> base_board;
 			std::atomic<int> move_number { 0 };
 			std::atomic<float> evaluation { 0.0f };
-			int max_depth = 0;
+			std::atomic<int> max_depth { 0 };
 			Sign sign_to_move = Sign::NONE;
 
 			TreeConfig tree_config;
 		public:
-			Tree(TreeConfig treeOptions);
+			Tree(const TreeConfig &treeConfig);
 			int64_t getMemory() const noexcept;
 
 			void clear();
@@ -91,7 +90,6 @@ namespace ag
 			void cancelVirtualLoss(const SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 
-			std::shared_ptr<SharedHashTable> getSharedHashTable() noexcept;
 			const matrix<Sign>& getBoard() const noexcept;
 			Sign getSignToMove() const noexcept;
 

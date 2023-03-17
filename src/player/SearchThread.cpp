@@ -202,7 +202,7 @@ namespace ag
 		}
 		if (tree.hasSingleMove())
 		{
-			Logger::write("There is single move");
+			Logger::write("There is a single move");
 			return true;
 		}
 		return false;

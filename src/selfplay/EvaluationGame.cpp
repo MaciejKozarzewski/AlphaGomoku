@@ -25,10 +25,6 @@ namespace ag
 			name(name),
 			simulations(options.simulations)
 	{
-		// TODO temporary hack to initialize shared hash table in the TSS
-		setBoard(matrix<Sign>(gameOptions.rows, gameOptions.cols), Sign::CROSS);
-		search.setBatchSize(0);
-		search.select(tree);
 		search.setBatchSize(options.search_config.max_batch_size);
 	}
 	void Player::setSign(Sign s) noexcept
@@ -48,12 +44,9 @@ namespace ag
 		search.cleanup(tree);
 		tree.setBoard(board, signToMove);
 
-//		if (startsWith(getName(), "sqrt"))
-//			tree.setEdgeSelector(PUCTSelector_parent(search.getConfig().exploration_constant, 0.5f));
-//		else
-//			tree.setEdgeSelector(PUCTSelector_cbrt(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(BaseGenerator(search.getConfig().max_children, search.getConfig().policy_expansion_threshold));
+		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
+		tree.setEdgeSelector(PUCTSelector(mcts_config.exploration_constant, 0.5f));
+		tree.setEdgeGenerator(BaseGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
 	}
 	void Player::selectSolveEvaluate()
 	{

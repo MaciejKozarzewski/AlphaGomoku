@@ -81,10 +81,10 @@ namespace ag
 				+ backup.getTotalTime();
 	}
 
-	Search::Search(GameConfig gameOptions, SearchConfig searchOptions) :
+	Search::Search(const GameConfig &gameOptions, const SearchConfig &searchOptions) :
 			tasks_list_buffer_0(gameOptions, searchOptions.max_batch_size),
 			tasks_list_buffer_1(gameOptions, searchOptions.max_batch_size),
-			solver(gameOptions, searchOptions.solver_max_positions),
+			solver(gameOptions, searchOptions.tss_config),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{
@@ -115,11 +115,9 @@ namespace ag
 
 	void Search::select(Tree &tree, int maxSimulations)
 	{
-		solver.setSharedTable(tree.getSharedHashTable());
-
 		int number_of_trials = 2 * get_buffer().maxSize();
 
-		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations)// and not tree.isRootProven())
+		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations) // and not tree.isRootProven())
 		{
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_buffer().getNext();
@@ -167,7 +165,7 @@ namespace ag
 		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
 			TimerGuard timer(stats.solve);
-			solver.solve(get_buffer().get(i), static_cast<TssMode>(search_config.solver_level), search_config.solver_max_positions);
+			solver.solve(get_buffer().get(i), static_cast<TssMode>(search_config.tss_config.mode), search_config.tss_config.max_positions);
 		}
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)

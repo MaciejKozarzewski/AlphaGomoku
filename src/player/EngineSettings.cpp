@@ -165,7 +165,7 @@ namespace ag
 			}
 			if (option.name == "style")
 			{
-				search_config.style_factor = std::stoi(option.value);
+				search_config.mcts_config.style_factor = std::stoi(option.value);
 				return SetOptionOutcome::SUCCESS;
 			}
 
@@ -279,7 +279,7 @@ namespace ag
 	float EngineSettings::getStyleFactor() const noexcept
 	{
 		std::lock_guard lock(mutex);
-		return 0.25f * static_cast<int>(search_config.style_factor);
+		return 0.25f * search_config.mcts_config.style_factor;
 	}
 	bool EngineSettings::isInAnalysisMode() const noexcept
 	{

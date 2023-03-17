@@ -74,7 +74,7 @@ namespace ag
 			int current_task_buffer = 0;
 		public:
 			static constexpr int maximum_number_of_simulations = 16777216;
-			Search(GameConfig gameOptions, SearchConfig searchOptions);
+			Search(const GameConfig &gameOptions, const SearchConfig &searchOptions);
 
 			int64_t getMemory() const noexcept;
 			const SearchConfig& getConfig() const noexcept;

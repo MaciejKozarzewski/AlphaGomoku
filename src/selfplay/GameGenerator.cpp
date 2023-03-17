@@ -28,10 +28,6 @@ namespace ag
 			search(gameOptions, selfplayOptions.search_config),
 			selfplay_config(selfplayOptions)
 	{
-		// TODO temporary hack to initialize shared hash table in the TSS
-		tree.setBoard(game.getBoard(), game.getSignToMove(), true);
-		search.setBatchSize(0);
-		search.select(tree);
 		search.setBatchSize(selfplayOptions.search_config.max_batch_size);
 	}
 	void GameGenerator::clearStats()
@@ -177,8 +173,9 @@ namespace ag
 		search.cleanup(tree);
 		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
 
-		tree.setEdgeSelector(PUCTSelector(search.getConfig().exploration_constant, 0.5f));
-		tree.setEdgeGenerator(NoisyGenerator(search.getConfig().max_children, search.getConfig().policy_expansion_threshold));
+		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
+		tree.setEdgeSelector(PUCTSelector(mcts_config.exploration_constant, 0.5f));
+		tree.setEdgeGenerator(NoisyGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
 	}
 
 } /* namespace ag */
