@@ -57,17 +57,19 @@ namespace
 //		std::cout << "Action values target\n" << Board::toString(matrix<Sign>(15, 15), target.action_values);
 //		std::cout << "\n------------------------------------------------------------------------\n";
 	}
-	void push_input_data_to_model(std::vector<TrainingDataPack> &inputs, AGNetwork &model)
+	void push_input_data_to_model(int batchSize, std::vector<TrainingDataPack> &inputs, AGNetwork &model)
 	{
 		assert(model.getBatchSize() >= static_cast<int>(inputs.size()));
-		for (size_t i = 0; i < inputs.size(); i++)
+		assert(batchSize <= static_cast<int>(inputs.size()));
+		for (int i = 0; i < batchSize; i++)
 			model.packInputData(i, inputs[i].board, inputs[i].sign_to_move);
 	}
-	void push_target_data_to_model(std::vector<TrainingDataPack> &targets, AGNetwork &model)
+	void push_target_data_to_model(int batchSize, std::vector<TrainingDataPack> &targets, AGNetwork &model)
 	{
 		assert(model.getBatchSize() >= static_cast<int>(targets.size()));
+		assert(batchSize <= static_cast<int>(targets.size()));
 		TrainingDataPack output_data_pack(model.getInputShape()[1], model.getInputShape()[2]);
-		for (size_t i = 0; i < targets.size(); i++)
+		for (int i = 0; i < batchSize; i++)
 		{
 			model.unpackOutput(i, output_data_pack.policy_target, output_data_pack.action_values_target, output_data_pack.value_target);
 			mask_out_target_data_pack(output_data_pack, targets[i]);
@@ -125,10 +127,10 @@ namespace ag
 					augment_data_pack(data_packs.at(b));
 			}
 
-			push_input_data_to_model(data_packs, model);
+			push_input_data_to_model(batch_size, data_packs, model);
 			model.forward(batch_size);
 
-			push_target_data_to_model(data_packs, model);
+			push_target_data_to_model(batch_size, data_packs, model);
 			model.backward(batch_size);
 
 			std::vector<float> loss = model.getLoss(batch_size);
@@ -161,10 +163,10 @@ namespace ag
 				this_batch++;
 			}
 
-			push_input_data_to_model(data_packs, model);
+			push_input_data_to_model(this_batch, data_packs, model);
 			model.forward(this_batch);
 
-			push_target_data_to_model(data_packs, model);
+			push_target_data_to_model(this_batch, data_packs, model);
 
 			std::vector<float> loss = model.getLoss(this_batch);
 			auto accuracy = model.getAccuracy(this_batch);
