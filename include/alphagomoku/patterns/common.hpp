@@ -42,7 +42,7 @@ namespace ag
 			case ANTIDIAGONAL:
 				return Location(origin.row + distance, origin.col - distance);
 			default:
-				return Location();
+				return Location(origin.row, origin.col);
 		}
 	}
 

@@ -151,10 +151,10 @@ namespace ag
 					const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(raw_patterns[dir]);
 					bool is_really_an_open3 = false;
 					for (int i = -5; i <= 5; i++)
-						if (i != 0)
+						if (i != 0 and promotion_moves[5 + i])
 						{
 							const Location loc = shiftInDirection(dir, i, move);
-							if (promotion_moves[5 + i] == true and tmp_board.at(loc.row, loc.col) == Sign::NONE) // promotion move will never be outside board
+							if (tmp_board.at(loc.row, loc.col) == Sign::NONE) // promotion move will never be outside board
 								if (RawPatternCalculator::isStraightFourAt(tmp_board, Move(loc, Sign::CROSS), dir)
 										and not isForbidden(tmp_board, Move(loc, Sign::CROSS)))
 								{

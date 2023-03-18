@@ -200,24 +200,25 @@ namespace ag
 				const BitMask1D<uint16_t> promotion_moves = getOpenThreePromotionMoves(getNormalPatternAt(row, col, dir));
 				Board::putMove(internal_board, Move(row, col, Sign::CROSS));
 				for (int i = -padding; i <= padding; i++)
-				{
-					const Location loc = shiftInDirection(dir, i, Location(row, col));
-					if (promotion_moves[padding + i] == true and signAt(loc.row, loc.col) == Sign::NONE
-							and RawPatternCalculator::isStraightFourAt(internal_board, Move(Sign::CROSS, loc), dir))
-					{ // minor optimization as 'isStraightFourAt' works without adding new move to the pattern calculator
-						Board::undoMove(internal_board, Move(row, col, Sign::CROSS));
-						addMove(Move(row, col, Sign::CROSS));
-						const bool is_forbidden = isForbidden(sign, loc.row, loc.col);
-						undoMove(Move(row, col, Sign::CROSS));
-						Board::putMove(internal_board, Move(row, col, Sign::CROSS));
+					if (promotion_moves[padding + i])
+					{
+						const Location loc = shiftInDirection(dir, i, Location(row, col));
+						if (signAt(loc.row, loc.col) == Sign::NONE
+								and RawPatternCalculator::isStraightFourAt(internal_board, Move(Sign::CROSS, loc), dir))
+						{ // minor optimization as 'isStraightFourAt' works without adding new move to the pattern calculator
+							Board::undoMove(internal_board, Move(row, col, Sign::CROSS));
+							addMove(Move(row, col, Sign::CROSS));
+							const bool is_forbidden = isForbidden(sign, loc.row, loc.col);
+							undoMove(Move(row, col, Sign::CROSS));
+							Board::putMove(internal_board, Move(row, col, Sign::CROSS));
 
-						if (not is_forbidden)
-						{
-							open3_count++;
-							break;
+							if (not is_forbidden)
+							{
+								open3_count++;
+								break;
+							}
 						}
 					}
-				}
 				Board::undoMove(internal_board, Move(row, col, Sign::CROSS));
 			}
 		return open3_count >= 2;
