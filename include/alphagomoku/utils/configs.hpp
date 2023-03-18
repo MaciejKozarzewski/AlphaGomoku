@@ -164,7 +164,6 @@ namespace ag
 			int simulations = 100;
 			std::vector<DeviceConfig> device_config = { DeviceConfig() };
 			SearchConfig search_config;
-			TreeConfig tree_config;
 
 			SelfplayConfig() = default;
 			SelfplayConfig(const Json &options);

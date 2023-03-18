@@ -170,8 +170,7 @@ namespace ag
 			games_per_thread(get_value<int>(options, "games_per_thread")),
 			simulations(get_value<int>(options, "simulations")),
 			device_config(),
-			search_config(options["search_config"]),
-			tree_config(options["tree_config"])
+			search_config(options["search_config"])
 	{
 		for (int i = 0; i < options["device_config"].size(); i++)
 			device_config.push_back(DeviceConfig(options["device_config"][i]));
@@ -187,7 +186,6 @@ namespace ag
 		for (size_t i = 0; i < device_config.size(); i++)
 			result["device_config"][i] = device_config[i].toJson();
 		result["search_config"] = search_config.toJson();
-		result["tree_config"] = tree_config.toJson();
 		return result;
 	}
 

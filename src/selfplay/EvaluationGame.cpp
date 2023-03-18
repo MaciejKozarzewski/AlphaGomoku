@@ -20,7 +20,7 @@ namespace ag
 	Player::Player(const GameConfig &gameOptions, const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name) :
 			nn_evaluator(evaluator),
 			game_config(gameOptions),
-			tree(options.tree_config),
+			tree(options.search_config.tree_config),
 			search(gameOptions, options.search_config),
 			name(name),
 			simulations(options.simulations)

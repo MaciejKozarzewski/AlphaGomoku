@@ -24,7 +24,7 @@ namespace ag
 			nn_evaluator(evaluator),
 			opening_generator(gameOptions, 8),
 			game(gameOptions),
-			tree(selfplayOptions.tree_config),
+			tree(selfplayOptions.search_config.tree_config),
 			search(gameOptions, selfplayOptions.search_config),
 			selfplay_config(selfplayOptions)
 	{
