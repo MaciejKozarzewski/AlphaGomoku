@@ -165,7 +165,7 @@ namespace ag
 		search_config.mcts_config.max_children = 32;
 		search_config.tss_config.mode = 2;
 
-		result["search_options"] = search_config.toJson();
+		result["search_config"] = search_config.toJson();
 
 		return result;
 	}

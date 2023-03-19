@@ -82,7 +82,7 @@ namespace ag
 	SearchEngine::SearchEngine(const EngineSettings &settings) :
 			settings(settings),
 			nn_evaluators(settings),
-			tree(settings.getTreeConfig())
+			tree(settings.getSearchConfig().tree_config)
 	{
 	}
 	void SearchEngine::setPosition(const matrix<Sign> &board, Sign signToMove)
@@ -114,13 +114,10 @@ namespace ag
 	}
 	void SearchEngine::stopSearch()
 	{
-		Logger::write("stopping threads");
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->stop();
-		Logger::write("joining threads");
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->join();
-		Logger::write("stopSearch() completed");
 	}
 	bool SearchEngine::isSearchFinished() const noexcept
 	{
@@ -237,7 +234,7 @@ namespace ag
 			Edge *edge = selector.select(&node);
 			Move m = edge->getMove();
 			principal_variation.push_back(m);
-			Logger::write(node.toString());
+//			Logger::write(node.toString());
 			Logger::write(m.toString() + " : " + edge->toString());
 		}
 

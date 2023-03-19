@@ -53,8 +53,7 @@ namespace ag
 	EngineSettings::EngineSettings(const Json &config) :
 			swap2_openings(load_opening_book(config["swap2_openings_file"].getString())),
 			game_config(GameRules::FREESTYLE, 0, 0),
-			tree_config(config["tree_options"]),
-			search_config(config["search_options"]),
+			search_config(config["search_config"]),
 			thread_num(config["search_threads"].getInt()),
 			auto_pondering(config["always_ponder"].getBool())
 	{
@@ -213,17 +212,10 @@ namespace ag
 	}
 	const GameConfig& EngineSettings::getGameConfig() const noexcept
 	{
-		std::lock_guard lock(mutex);
 		return game_config;
-	}
-	const TreeConfig& EngineSettings::getTreeConfig() const noexcept
-	{
-		std::lock_guard lock(mutex);
-		return tree_config;
 	}
 	const SearchConfig& EngineSettings::getSearchConfig() const noexcept
 	{
-		std::lock_guard lock(mutex);
 		return search_config;
 	}
 	double EngineSettings::getTimeForMatch() const noexcept
@@ -301,5 +293,6 @@ namespace ag
 	{
 		return device_configs;
 	}
+
 } /* namespace ag */
 

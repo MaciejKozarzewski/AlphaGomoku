@@ -43,7 +43,6 @@ namespace ag
 			std::vector<std::vector<Move>> swap2_openings;
 
 			GameConfig game_config;
-			TreeConfig tree_config;
 			SearchConfig search_config;
 
 			double time_for_match = max_double_value; /**< [seconds] */
@@ -72,7 +71,6 @@ namespace ag
 			std::string getPathToNetwork() const;
 			const std::vector<std::vector<Move>>& getSwap2Openings() const;
 			const GameConfig& getGameConfig() const noexcept;
-			const TreeConfig& getTreeConfig() const noexcept;
 			const SearchConfig& getSearchConfig() const noexcept;
 
 			double getTimeForMatch() const noexcept;
