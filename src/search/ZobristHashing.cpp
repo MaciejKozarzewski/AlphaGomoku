@@ -42,15 +42,15 @@ namespace ag
 	}
 	int64_t FastZobristHashing::getMemory() const noexcept
 	{
-		return m_keys.size() * sizeof(HashKey128);
+		return sizeof(HashKey64) * m_keys.size();
 	}
-	HashKey128 FastZobristHashing::getHash(const matrix<Sign> &board) const noexcept
+	HashKey64 FastZobristHashing::getHash(const matrix<Sign> &board) const noexcept
 	{
 		assert(board.rows() == m_rows);
 		assert(board.cols() == m_columns);
 		assert(static_cast<int>(m_keys.size()) == 2 * board.size());
 
-		HashKey128 result;
+		HashKey64 result;
 		for (int i = 0; i < board.size(); i++)
 			switch (board[i])
 			{

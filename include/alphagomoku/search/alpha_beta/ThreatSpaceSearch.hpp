@@ -9,7 +9,6 @@
 #define ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATSPACESEARCH_HPP_
 
 #include <alphagomoku/search/alpha_beta/ActionList.hpp>
-#include <alphagomoku/search/alpha_beta/SharedHashTable.hpp>
 #include <alphagomoku/search/alpha_beta/LocalHashTable.hpp>
 #include <alphagomoku/search/alpha_beta/ThreatGenerator.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
@@ -88,15 +87,14 @@ namespace ag
 			int max_positions; // maximum number of positions that will be searched
 			TssMode search_mode = TssMode::BASIC;
 
-			double position_counter = 0.0;
+			int position_counter = 0;
 
 			GameConfig game_config;
 			PatternCalculator pattern_calculator;
 			ThreatGenerator threat_generator;
 
-			SharedHashTable shared_table;
 			LocalHashTable local_table;
-			HashKey128 hash_key;
+			HashKey64 hash_key;
 
 			size_t step_counter = 0;
 			int tuning_step = 2;
@@ -116,12 +114,10 @@ namespace ag
 			{
 				pattern_calculator.print_stats();
 				std::cout << stats.toString() << '\n';
-				std::cout << "SharedHashTable load factor = " << shared_table.loadFactor(true) << '\n';
 				std::cout << "LocalHashTable load factor = " << local_table.loadFactor(true) << '\n';
 			}
 		private:
 			Result recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
-			Result recursive_solve_v2(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
 
 			bool is_move_legal(Move m) const noexcept;
 			Score evaluate();

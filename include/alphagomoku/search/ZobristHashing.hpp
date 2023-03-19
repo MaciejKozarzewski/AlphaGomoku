@@ -110,15 +110,15 @@ namespace ag
 	class FastZobristHashing
 	{
 		private:
-			std::vector<HashKey128> m_keys;
+			std::vector<HashKey64> m_keys;
 			int m_rows = 0;
 			int m_columns = 0;
 		public:
 			FastZobristHashing() noexcept = default;
 			FastZobristHashing(int boardHeight, int boardWidth);
 			int64_t getMemory() const noexcept;
-			HashKey128 getHash(const matrix<Sign> &board) const noexcept;
-			void updateHash(HashKey128 &hash, Move move) const noexcept
+			HashKey64 getHash(const matrix<Sign> &board) const noexcept;
+			void updateHash(HashKey64 &hash, Move move) const noexcept
 			{
 				assert(move.sign == Sign::CROSS || move.sign == Sign::CIRCLE);
 				hash ^= m_keys[2 * (move.row * m_columns + move.col) + static_cast<int>(move.sign) - 1];

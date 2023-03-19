@@ -10,21 +10,19 @@
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/ZobristHashing.hpp>
-#include <alphagomoku/search/Score.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
 
-#include <array>
 #include <vector>
-#include <cassert>
 
 namespace ag
 {
 	class LocalHashTable
 	{
-			static const uint16_t null_move = Move(0).toShort();
+			static const uint16_t null_move = Move().toShort();
 
 			std::vector<uint16_t> m_hashtable;
+
 			FastZobristHashing m_hash_function;
 			HashKey64 m_mask;
 		public:
@@ -46,15 +44,15 @@ namespace ag
 			{
 				std::fill(m_hashtable.begin(), m_hashtable.end(), null_move);
 			}
-			Move seek(HashKey128 hash) const noexcept
+			Move seek(HashKey64 hash) const noexcept
 			{
 				return Move(m_hashtable[get_index_of(hash)]);
 			}
-			void insert(HashKey128 hash, Move move) noexcept
+			void insert(HashKey64 hash, Move move, int depth) noexcept
 			{
 				m_hashtable[get_index_of(hash)] = move.toShort();
 			}
-			void prefetch(HashKey128 hash) const noexcept
+			void prefetch(HashKey64 hash) const noexcept
 			{
 				prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + get_index_of(hash));
 			}
@@ -67,9 +65,9 @@ namespace ag
 				return static_cast<double>(result) / size;
 			}
 		private:
-			size_t get_index_of(HashKey128 hash) const noexcept
+			uint64_t get_index_of(HashKey64 hash) const noexcept
 			{
-				return hash.getLow() & m_mask;
+				return static_cast<uint64_t>(hash & m_mask);
 			}
 	};
 
