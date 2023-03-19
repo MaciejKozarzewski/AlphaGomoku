@@ -37,14 +37,6 @@ namespace ag
 			const int move_number = search_engine.getTree().getMoveNumber();
 			const float evaluation = search_engine.getTree().getEvaluation();
 			const double time_for_turn = time_manager.getTimeForTurn(engine_settings, move_number, evaluation);
-			static double last_time = getTime();
-			if (getTime() - last_time > 0.1)
-			{
-				Logger::write(
-						std::to_string(time_manager.getElapsedTime()) + " < " + std::to_string(time_for_turn) + " or "
-								+ std::to_string(search_engine.isSearchFinished()) + " and " + std::to_string(search_engine.isRootEvaluated()));
-				last_time = getTime();
-			}
 			if (is_search_completed(time_for_turn))
 			{
 				stop_search();

@@ -119,23 +119,6 @@ namespace ag
 		const double fraction = 1.0 - 0.08 * std::pow(2.0, -moveNumber / 50.0);
 		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
-		static double last_time = getTime();
-		if (getTime() - last_time > 1.0)
-		{
-			Logger::write(
-					"TimeManager::getTimeForTurn(" + std::to_string(moveNumber) + ", " + std::to_string(eval) + ") = " + std::to_string(moves_left) + " ("
-							+ std::to_string(sum) + "), elapsed time = " + std::to_string(used_time + getTime() - start_time) + "/"
-							+ std::to_string(settings.getTimeLeft() / sum) + "s");
-			last_time = getTime();
-		}
-		double result = std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
-		if (result >= settings.getTimeLeft() or result >= settings.getTimeForTurn())
-		{
-			Logger::write(
-					"evaluation = " + std::to_string(eval) + ", time left = " + std::to_string(settings.getTimeLeft()) + ", moves left = "
-							+ std::to_string(moves_left) + ", fraction = " + std::to_string(fraction) + ", sum = " + std::to_string(sum));
-		}
-
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
 	}
 	double TimeManager::getTimeForOpening(const EngineSettings &settings)
