@@ -149,6 +149,11 @@ namespace ag
 	}
 	void PatternCalculator::print(Move lastMove) const
 	{
+		if (lastMove == Move())
+		{
+			std::cout << Board::toString(internal_board, true);
+			return;
+		}
 		for (int i = 0; i < internal_board.rows(); i++)
 		{
 			for (int j = 0; j < internal_board.cols(); j++)
