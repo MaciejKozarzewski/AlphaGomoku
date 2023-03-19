@@ -57,13 +57,13 @@ namespace ag
 // @formatter:off
 		matrix<Sign> board = Board::fromString(
 					/*        a b c d e f g h i j k l m n o          */
-					/*  0 */" ! _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-					/*  1 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-					/*  2 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-					/*  3 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-					/*  4 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-					/*  5 */" ! _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-					/*  6 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
+					/*  0 */" _ ! _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+					/*  1 */" _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+					/*  3 */" _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
+					/*  4 */" _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
+					/*  5 */" _ ! _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
+					/*  6 */" _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
 					/*  7 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
 					/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
 					/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
@@ -75,10 +75,37 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xa0")), GameOutcome::CROSS_WIN);
-		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xa5")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xb0")), GameOutcome::CROSS_WIN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xb5")), GameOutcome::UNKNOWN);
 	}
-	TEST(TestCaro5, Blocked)
+	TEST(TestCaro5, BlockedFive)
+	{
+// @formatter:off
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i j k l m n o          */
+					/*  0 */" _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+					/*  1 */" _ X _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ X _ _ _ _ _ _ _ _ O _ _ _ _\n" /*  2 */
+					/*  3 */" _ X _ _ _ _ _ _ _ X _ _ _ _ _\n" /*  3 */
+					/*  4 */" _ ! _ _ _ _ _ _ X _ _ _ _ _ _\n" /*  4 */
+					/*  5 */" _ X _ _ _ _ _ ! _ _ _ _ _ _ _\n" /*  5 */
+					/*  6 */" _ O _ _ _ _ X _ _ _ _ _ _ _ _\n" /*  6 */
+					/*  7 */" _ _ _ _ _ X _ _ _ _ _ _ _ X _\n" /*  7 */
+					/*  8 */" _ _ _ _ O _ _ _ _ _ _ _ _ ! _\n" /*  8 */
+					/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ X _\n" /*  9 */
+					/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ X _\n" /* 10 */
+					/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ X _\n" /* 11 */
+					/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ O _\n" /* 12 */
+					/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+					/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+					/*        a b c d e f g h i j k l m n o          */);
+// @formatter:on
+
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xb4")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xh5")), GameOutcome::UNKNOWN);
+		EXPECT_EQ(getOutcome(GameRules::CARO5, board, Move("Xn8")), GameOutcome::CROSS_WIN);
+	}
+	TEST(TestCaro5, BlockedOverline)
 	{
 // @formatter:off
 		matrix<Sign> board = Board::fromString(
