@@ -135,11 +135,6 @@ namespace ag
 			const int count = add_own_half_open_fours();
 			if (count > 0)
 				actions.has_initiative = true;
-
-			const LocationList &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
-			for (auto iter = own_fork_3x3.begin(); iter < own_fork_3x3.end(); iter++)
-				if (not is_forbidden(get_own_sign(), *iter))
-					add_move<EXCLUDE_DUPLICATE>(*iter);
 		}
 		this->actions = nullptr;
 		return result.score;

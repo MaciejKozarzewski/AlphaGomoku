@@ -29,8 +29,7 @@ namespace ag
 	{
 		BASIC,
 		STATIC,
-		VCF,
-		VCT
+		VCF
 	};
 
 	class ThreatGenerator
