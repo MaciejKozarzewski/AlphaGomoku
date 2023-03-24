@@ -12,6 +12,7 @@ extern/libml/*
 extern/minml/*
 /contrib/mingw64/*
 *.pyc
+*.bin
 gmon.out
 test_file.*
 scripts/tmp_script.bat
