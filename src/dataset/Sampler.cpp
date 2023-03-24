@@ -50,24 +50,57 @@ namespace ag
 
 		for (int i = 0; i < sample.board.size(); i++)
 		{
-			result.policy_target[i] = sample.visit_count[i];
+//			result.policy_target[i] = sample.visit_count[i];
 			switch (sample.action_scores[i].getProvenValue())
 			{
 				case ProvenValue::UNKNOWN:
 					result.action_values_target[i] = sample.action_values[i];
+					result.policy_target[i] = sample.visit_count[i];
 					break;
 				case ProvenValue::LOSS:
 					result.action_values_target[i] = Value::loss();
+					result.policy_target[i] = 1.0e-6f;
 					break;
 				case ProvenValue::DRAW:
 					result.action_values_target[i] = Value::draw();
+					result.policy_target[i] = sample.visit_count[i];
 					break;
 				case ProvenValue::WIN:
 					result.action_values_target[i] = Value::win();
+					result.policy_target[i] = 1.0e6f;
 					break;
 			}
 		}
 		normalize(result.policy_target);
+	}
+	void Sampler::prepare_training_data_v2(TrainingDataPack &result, const SearchDataPack &sample)
+	{
+		result.board = sample.board;
+		result.visit_count = sample.visit_count;
+		result.value_target = convertOutcome(sample.game_outcome, sample.played_move.sign);
+		result.sign_to_move = sample.played_move.sign;
+
+		constexpr float scale = 10.0f;
+
+		float max_value = std::numeric_limits<float>::lowest();
+		for (int i = 0; i < sample.board.size(); i++)
+			if (sample.visit_count[i] > 0)
+			{
+				result.policy_target[i] = scale * sample.action_values[i].getExpectation() + safe_log(sample.policy_prior[i]);
+				max_value = std::max(max_value, result.policy_target[i]);
+			}
+
+		float sum_policy = 0.0f;
+		for (int i = 0; i < sample.board.size(); i++)
+			if (sample.visit_count[i] > 0)
+			{
+				result.policy_target[i] = std::exp(result.policy_target[i] - max_value);
+				sum_policy += result.policy_target[i];
+			}
+
+		for (int i = 0; i < sample.board.size(); i++)
+			if (sample.visit_count[i] > 0)
+				result.policy_target[i] /= sum_policy;
 	}
 
 } /* namespace ag */

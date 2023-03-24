@@ -68,10 +68,10 @@ namespace ag
 		 *  0		1	legal move
 		 *  1		1	own stone
 		 *  2		1	opponent stone
-		 *  3 		1	forbidden move
+		 *  3 		1	ones (constant channel)
 		 *  4 		1	black (cross) to move
 		 *  5 		1	white (white) to move
-		 *  6 		1	ones (constant channel)
+		 *  6 		1	forbidden move
 		 *  7 		1	zeros (constant channel)
 		 *
 		 *   8-11	4	own open 3 (presence of a feature in each direction)
@@ -91,9 +91,9 @@ namespace ag
 		const Sign own_sign = calc.getSignToMove();
 
 		const uint32_t table[4] = { 1u, (own_sign == Sign::CROSS) ? 2u : 4u, (own_sign == Sign::CROSS) ? 4u : 2u, 0u };
-		const uint32_t forbidden = 1u << 3u;
+		const uint32_t ones = 1u << 3u;
 		const uint32_t color_to_move = (own_sign == Sign::CROSS) ? (1u << 4u) : (1u << 5u);
-		const uint32_t ones = 1u << 6u;
+		const uint32_t forbidden = 1u << 6u;
 
 		for (int row = 0; row < rows(); row++)
 			for (int col = 0; col < cols(); col++)

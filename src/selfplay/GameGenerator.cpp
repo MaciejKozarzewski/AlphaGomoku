@@ -172,9 +172,10 @@ namespace ag
 	{
 		search.cleanup(tree);
 		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
+		search.setBoard(game.getBoard(), game.getSignToMove());
 
 		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
-		tree.setEdgeSelector(PUCTSelector(mcts_config.exploration_constant, 0.5f));
+		tree.setEdgeSelector(PUCTSelector_parent(mcts_config.exploration_constant, 0.5f)); // FIXME
 		tree.setEdgeGenerator(NoisyGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
 	}
 

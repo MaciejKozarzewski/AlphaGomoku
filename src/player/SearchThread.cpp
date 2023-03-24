@@ -37,6 +37,11 @@ namespace ag
 		stop();
 		join();
 	}
+	void SearchThread::setPosition(const matrix<Sign> &board, Sign signToMove)
+	{
+		assert(!isRunning());
+		search.setBoard(board, signToMove);
+	}
 	void SearchThread::start()
 	{
 		if (isRunning())

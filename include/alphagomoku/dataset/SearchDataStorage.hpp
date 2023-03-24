@@ -29,6 +29,7 @@ namespace ag
 			{
 					Location location;
 					uint16_t visit_count;
+					CompressedFloat policy_prior;
 					Score score;
 					CompressedFloat win_rate;
 					CompressedFloat draw_rate;

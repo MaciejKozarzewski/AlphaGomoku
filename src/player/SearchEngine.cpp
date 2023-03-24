@@ -90,6 +90,8 @@ namespace ag
 		assert(isSearchFinished());
 		TreeLock lock(tree);
 		tree.setBoard(board, signToMove, true);
+		for (size_t i = 0; i < search_threads.size(); i++)
+			search_threads[i]->setPosition(board, signToMove);
 	}
 	void SearchEngine::setEdgeSelector(const EdgeSelector &selector)
 	{
@@ -181,34 +183,23 @@ namespace ag
 			{
 				if (board.at(i, j) == Sign::NONE)
 				{
-					switch (action_acores.at(i, j).getProvenValue())
+					if (action_acores.at(i, j).isProven())
+						result += action_acores.at(i, j).toFormattedString();
+					else
 					{
-						case ProvenValue::LOSS:
-							result += " >L<";
-							break;
-						case ProvenValue::DRAW:
-							result += " >D<";
-							break;
-						case ProvenValue::UNKNOWN:
+						const int t = (int) (1000 * policy.at(i, j));
+						if (t == 0)
+							result += "  _ ";
+						else
 						{
-							int t = (int) (1000 * policy.at(i, j));
-							if (t == 0)
-								result += "  _ ";
-							else
-							{
-								if (t < 1000)
-									result += ' ';
-								if (t < 100)
-									result += ' ';
-								if (t < 10)
-									result += ' ';
-								result += std::to_string(t);
-							}
-							break;
+							if (t < 1000)
+								result += ' ';
+							if (t < 100)
+								result += ' ';
+							if (t < 10)
+								result += ' ';
+							result += std::to_string(t);
 						}
-						case ProvenValue::WIN:
-							result += " >W<";
-							break;
 					}
 				}
 				else
@@ -234,7 +225,6 @@ namespace ag
 			Edge *edge = selector.select(&node);
 			Move m = edge->getMove();
 			principal_variation.push_back(m);
-//			Logger::write(node.toString());
 			Logger::write(m.toString() + " : " + edge->toString());
 		}
 

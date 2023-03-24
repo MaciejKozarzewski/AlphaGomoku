@@ -112,7 +112,10 @@ namespace ag
 	{
 		return stats;
 	}
-
+	void Search::setBoard(const matrix<Sign> &board, Sign signToMove)
+	{
+		solver.increaseGeneration();
+	}
 	void Search::select(Tree &tree, int maxSimulations)
 	{
 		int number_of_trials = 2 * get_buffer().maxSize();

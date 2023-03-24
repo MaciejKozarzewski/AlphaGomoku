@@ -19,13 +19,13 @@
 namespace
 {
 	using namespace ag;
-	PUCTSelector get_base_selector(const EngineSettings &settings)
+	PUCTSelector_parent get_base_selector(const EngineSettings &settings)
 	{
-		return PUCTSelector(settings.getSearchConfig().mcts_config.exploration_constant, settings.getStyleFactor());
+		return PUCTSelector_parent(settings.getSearchConfig().mcts_config.exploration_constant, settings.getStyleFactor()); // FIXME
 	}
 	BaseGenerator get_base_generator(const EngineSettings &settings)
 	{
-		return BaseGenerator(settings.getSearchConfig().mcts_config.max_children, false);
+		return BaseGenerator(settings.getSearchConfig().mcts_config.max_children, settings.getSearchConfig().mcts_config.policy_expansion_threshold);
 	}
 }
 

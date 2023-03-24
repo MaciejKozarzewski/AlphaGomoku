@@ -40,6 +40,43 @@ namespace ag
 			void create_network(const TrainingConfig &trainingOptions);
 	};
 
+	class ResnetOld: public AGNetwork
+	{
+		public:
+			ResnetOld() noexcept;
+			std::string name() const;
+			ml::Graph& getGraph();
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
+	class ResnetPVraw_v0: public AGNetwork
+	{
+		public:
+			ResnetPVraw_v0() noexcept;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
+	class ResnetPVraw_v1: public AGNetwork
+	{
+		public:
+			ResnetPVraw_v1() noexcept;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
+	class ResnetPVraw_v2: public AGNetwork
+	{
+		public:
+			ResnetPVraw_v2() noexcept;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_NETWORKS_NETWORKS_HPP_ */

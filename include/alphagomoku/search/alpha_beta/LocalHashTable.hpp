@@ -44,15 +44,15 @@ namespace ag
 			{
 				std::fill(m_hashtable.begin(), m_hashtable.end(), null_move);
 			}
-			Move seek(HashKey64 hash) const noexcept
+			Move seek(HashKey128 hash) const noexcept
 			{
 				return Move(m_hashtable[get_index_of(hash)]);
 			}
-			void insert(HashKey64 hash, Move move, int depth) noexcept
+			void insert(HashKey128 hash, Move move) noexcept
 			{
 				m_hashtable[get_index_of(hash)] = move.toShort();
 			}
-			void prefetch(HashKey64 hash) const noexcept
+			void prefetch(HashKey128 hash) const noexcept
 			{
 				prefetchMemory<PrefetchMode::READ, 1>(m_hashtable.data() + get_index_of(hash));
 			}
@@ -65,9 +65,9 @@ namespace ag
 				return static_cast<double>(result) / size;
 			}
 		private:
-			uint64_t get_index_of(HashKey64 hash) const noexcept
+			uint64_t get_index_of(HashKey128 hash) const noexcept
 			{
-				return static_cast<uint64_t>(hash & m_mask);
+				return static_cast<uint64_t>(hash.getLow() & m_mask);
 			}
 	};
 

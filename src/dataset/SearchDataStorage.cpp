@@ -55,6 +55,7 @@ namespace ag
 					assert(entries_count < storage.size());
 					storage[entries_count].location = Location(row, col);
 					storage[entries_count].visit_count = visits;
+					storage[entries_count].policy_prior = pack.policy_prior.at(row, col);
 					storage[entries_count].score = score;
 					storage[entries_count].win_rate = value.win_rate;
 					storage[entries_count].draw_rate = value.draw_rate;
@@ -77,6 +78,7 @@ namespace ag
 			pack.action_values.at(row, col) = q;
 			const Score s = storage[i].score;
 			pack.action_scores.at(row, col) = s;
+			pack.policy_prior.at(row, col) = storage[i].policy_prior;
 
 			sum_visits += visits;
 			win_rate += q.win_rate * visits;
@@ -103,7 +105,8 @@ namespace ag
 		std::cout << "move number = " << move_number << '\n';
 		for (size_t i = 0; i < storage.size(); i++)
 			std::cout << sfill(i, 3, false) << "  " << storage[i].location.text() << "  " << sfill(storage[i].visit_count, 3, false) << "  S="
-					<< storage[i].score.toFormattedString() << "  Q=" << (float) storage[i].win_rate << ", " << (float) storage[i].draw_rate << '\n';
+					<< storage[i].score.toFormattedString() << "  P=" << (float) storage[i].policy_prior << "  Q=" << (float) storage[i].win_rate
+					<< ", " << (float) storage[i].draw_rate << '\n';
 		std::cout << "minimax score = " << minimax_score.toFormattedString() << '\n';
 		std::cout << '\n';
 	}

@@ -82,6 +82,7 @@ namespace ag
 			void clearStats() noexcept;
 			SearchStats getStats() const noexcept;
 
+			void setBoard(const matrix<Sign> &board, Sign signToMove);
 			void select(Tree &tree, int maxSimulations = maximum_number_of_simulations);
 			void solve();
 			void scheduleToNN(NNEvaluator &evaluator);
