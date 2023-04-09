@@ -43,7 +43,6 @@ namespace ag
 			{
 				assert(iter->task.wasProcessedByNetwork());
 				const float balance = std::fabs(iter->task.getValue().getExpectation() - 0.5f);
-//				std::cout << "evaluation = " << iter->task.getValue().toString() << " balance = " << balance << '\n';
 				if (balance < (0.05f + 0.01f * trials))
 				{
 					completed_openings.push_back(iter->moves);

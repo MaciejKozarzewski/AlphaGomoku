@@ -134,7 +134,7 @@ namespace ag
 				tree.cancelVirtualLoss(current_task);
 				get_buffer().removeLast();
 				stats.nb_duplicate_nodes++;
-				break; // in theory the search can be continued but some neural network evaluations would be wasted
+				break; // the search can be continued but some neural network evaluations would be wasted
 			}
 			if (out == SelectOutcome::INFORMATION_LEAK)
 			{
@@ -179,7 +179,7 @@ namespace ag
 			const bool is_root = get_buffer().get(i).visitedPathLength() == 0;
 			const bool is_proven = get_buffer().get(i).getScore().isProven();
 			if (is_root or not is_proven)
-			{ // schedule only those tasks that haven't already been solved by the solver or if it is a root node
+			{ // schedule only those tasks that haven't already been solved by the solver or if it's a root node
 				stats.nb_network_evaluations++;
 				evaluator.addToQueue(get_buffer().get(i));
 			}

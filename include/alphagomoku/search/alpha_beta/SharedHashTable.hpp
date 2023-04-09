@@ -60,7 +60,7 @@ namespace ag
 			{
 				assert(0 <= depth && depth < 256);
 				m_data |= static_cast<uint64_t>(bound); // 2 bits
-				// omitting 4 bits for generation (it is set by the hashtable, not by the user)
+				// omitting 6 bits for generation (it is set by the hashtable, not by the user)
 				m_data |= static_cast<uint64_t>(depth) << 8ull; // 8 bits
 				m_data |= static_cast<uint64_t>(Score::to_short(score)) << 16ull; // 16 bits
 				m_data |= static_cast<uint64_t>(bestMove.toShort()) << 32ull; // 16 bits
@@ -164,7 +164,7 @@ namespace ag
 			}
 			SharedTableData seek(const HashKey128 &hash) const noexcept
 			{
-				SpinLockGuard guard(get_lock(hash));
+//				SpinLockGuard guard(get_lock(hash));
 
 				const Bucket &bucket = m_hashtable[get_index_of(hash)];
 				for (size_t i = 0; i < bucket.size(); i++)
@@ -174,7 +174,7 @@ namespace ag
 			}
 			void insert(const HashKey128 &hash, SharedTableData value) noexcept
 			{
-				SpinLockGuard guard(get_lock(hash));
+//				SpinLockGuard guard(get_lock(hash));
 
 				value.set_generation_and_key(m_base_generation, hash.getLow());
 				const Entry new_entry(hash, value);

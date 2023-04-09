@@ -73,7 +73,7 @@ namespace
 			if (edges.size() <= max_edges or task.mustDefend())
 				return;
 
-			MaxPolicyPrior op;
+			const MaxPolicyPrior op;
 			std::partial_sort(edges.begin(), edges.begin() + max_edges, edges.end(), EdgeComparator<MaxPolicyPrior>(op));
 
 			float sum_policy = 0.0f;
@@ -238,7 +238,7 @@ namespace ag
 		if (task.getRelativeDepth() == 0)
 			addNoise(task.getBoard(), task.getPolicy(), 0.25f);
 //			addDirichletNoise(task.getBoard(), task.getPolicy(), 0.25f);
-//			addGumbelNoise(task.getBoard(), task.getPolicy(), 0.5f);
+//			addGumbelNoise(task.getBoard(), task.getPolicy(), 1.0f);
 		BaseGenerator(max_edges, expansion_threshold).generate(task);
 	}
 

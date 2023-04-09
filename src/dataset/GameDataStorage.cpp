@@ -8,7 +8,6 @@
 #include <alphagomoku/dataset/GameDataStorage.hpp>
 #include <alphagomoku/dataset/SearchDataStorage.hpp>
 #include <alphagomoku/dataset/data_packs.hpp>
-#include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/file_util.hpp>
