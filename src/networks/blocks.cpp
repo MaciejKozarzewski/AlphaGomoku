@@ -34,7 +34,18 @@ namespace ag
 		x = graph.add(ml::Add("relu"), { x, y });
 		return x;
 	}
-	ml::GraphNodeID createBottleneckBlock(ml::Graph &graph, ml::GraphNodeID x, int filters)
+	ml::GraphNodeID createBottleneckBlock_v1(ml::Graph &graph, ml::GraphNodeID x, int filters)
+	{
+		auto y = graph.add(ml::Conv2D(filters / 2, 3, "linear").useBias(false), x);
+		y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);
+
+		y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), y);
+		y = graph.add(ml::BatchNormalization("linear").useGamma(false), y);
+
+		x = graph.add(ml::Add("relu"), { x, y });
+		return x;
+	}
+	ml::GraphNodeID createBottleneckBlock_v2(ml::Graph &graph, ml::GraphNodeID x, int filters)
 	{
 		auto y = graph.add(ml::Conv2D(filters / 2, 1, "linear").useBias(false), x);
 		y = graph.add(ml::BatchNormalization("relu").useGamma(false), y);

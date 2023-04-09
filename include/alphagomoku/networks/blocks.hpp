@@ -16,7 +16,8 @@ namespace ag
 	ml::GraphNodeID createInputBlock(ml::Graph &graph, const ml::Shape &shape, int filters);
 
 	ml::GraphNodeID createResidualBlock(ml::Graph &graph, ml::GraphNodeID x, int filters);
-	ml::GraphNodeID createBottleneckBlock(ml::Graph &graph, ml::GraphNodeID x, int filters);
+	ml::GraphNodeID createBottleneckBlock_v1(ml::Graph &graph, ml::GraphNodeID x, int filters);
+	ml::GraphNodeID createBottleneckBlock_v2(ml::Graph &graph, ml::GraphNodeID x, int filters);
 
 	ml::GraphNodeID createPolicyHead(ml::Graph &graph, ml::GraphNodeID x, int filters);
 	ml::GraphNodeID createValueHead(ml::Graph &graph, ml::GraphNodeID x, int filters);
