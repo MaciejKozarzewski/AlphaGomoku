@@ -153,6 +153,7 @@ namespace ag
 			ThreatSpaceSearch(const GameConfig &gameConfig, const TSSConfig &tssConfig);
 
 			void increaseGeneration();
+			void clear();
 			int64_t getMemory() const noexcept;
 			void solve(SearchTask &task, TssMode mode, int maxPositions);
 			void tune(float speed);

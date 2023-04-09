@@ -50,24 +50,20 @@ namespace ag
 
 		for (int i = 0; i < sample.board.size(); i++)
 		{
-//			result.policy_target[i] = sample.visit_count[i];
+			result.policy_target[i] = sample.visit_count[i];
 			switch (sample.action_scores[i].getProvenValue())
 			{
 				case ProvenValue::UNKNOWN:
 					result.action_values_target[i] = sample.action_values[i];
-					result.policy_target[i] = sample.visit_count[i];
 					break;
 				case ProvenValue::LOSS:
 					result.action_values_target[i] = Value::loss();
-					result.policy_target[i] = 1.0e-6f;
 					break;
 				case ProvenValue::DRAW:
 					result.action_values_target[i] = Value::draw();
-					result.policy_target[i] = sample.visit_count[i];
 					break;
 				case ProvenValue::WIN:
 					result.action_values_target[i] = Value::win();
-					result.policy_target[i] = 1.0e6f;
 					break;
 			}
 		}
@@ -80,13 +76,13 @@ namespace ag
 		result.value_target = convertOutcome(sample.game_outcome, sample.played_move.sign);
 		result.sign_to_move = sample.played_move.sign;
 
-		constexpr float scale = 10.0f;
+		constexpr float scale = 50.0f;
 
 		float max_value = std::numeric_limits<float>::lowest();
 		for (int i = 0; i < sample.board.size(); i++)
 			if (sample.visit_count[i] > 0)
 			{
-				result.policy_target[i] = scale * sample.action_values[i].getExpectation() + safe_log(sample.policy_prior[i]);
+				result.policy_target[i] = scale * sample.action_values[i].getExpectation();// + safe_log(sample.policy_prior[i]);
 				max_value = std::max(max_value, result.policy_target[i]);
 			}
 
@@ -101,6 +97,23 @@ namespace ag
 		for (int i = 0; i < sample.board.size(); i++)
 			if (sample.visit_count[i] > 0)
 				result.policy_target[i] /= sum_policy;
+
+		for (int i = 0; i < sample.action_scores.size(); i++)
+			switch (sample.action_scores[i].getProvenValue())
+			{
+				case ProvenValue::UNKNOWN:
+					result.action_values_target[i] = sample.action_values[i];
+					break;
+				case ProvenValue::LOSS:
+					result.action_values_target[i] = Value::loss();
+					break;
+				case ProvenValue::DRAW:
+					result.action_values_target[i] = Value::draw();
+					break;
+				case ProvenValue::WIN:
+					result.action_values_target[i] = Value::win();
+					break;
+			}
 	}
 
 } /* namespace ag */

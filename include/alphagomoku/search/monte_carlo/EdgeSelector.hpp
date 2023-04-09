@@ -70,10 +70,9 @@ namespace ag
 	class UCTSelector: public EdgeSelector
 	{
 		private:
-			const float exploration_constant; /**< controls the level of exploration */
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
-			UCTSelector(float exploration, float styleFactor = 0.5f);
+			UCTSelector(float styleFactor = 0.5f);
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
 	};

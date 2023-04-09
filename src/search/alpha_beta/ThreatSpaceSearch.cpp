@@ -552,6 +552,10 @@ namespace ag
 	{
 		return action_stack.size() * sizeof(Action);
 	}
+	void ThreatSpaceSearch::clear()
+	{
+		shared_table.clear();
+	}
 	void ThreatSpaceSearch::increaseGeneration()
 	{
 		shared_table.increaseGeneration();

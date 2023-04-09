@@ -98,8 +98,9 @@ namespace ag
 		Edge *edge = selector.select(&root_node);
 
 //		std::cout << "Player : " << getName() << '\n';
-//		std::cout << Board::toString(tree.getBoard()) << '\n';
+//		std::cout << Board::toString(tree.getBoard(), true) << '\n';
 //		std::cout << root_node.toString() << '\n';
+//		root_node.sortEdges();
 //		for (int i = 0; i < root_node.numberOfEdges(); i++)
 //			std::cout << "    " << root_node.getEdge(i).toString() << '\n';
 
@@ -185,6 +186,8 @@ namespace ag
 	{
 		if (state == GAME_NOT_STARTED)
 		{
+			first_player->getSolver().clear();
+			second_player->getSolver().clear();
 			state = PREPARE_OPENING;
 		}
 

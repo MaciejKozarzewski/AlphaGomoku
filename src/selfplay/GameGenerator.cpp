@@ -54,6 +54,7 @@ namespace ag
 			game.beginGame();
 			game_data_storage.clear();
 			tree.clear();
+			search.getSolver().clear();
 			if (selfplay_config.use_opening)
 				state = PREPARE_OPENING;
 			else
@@ -175,7 +176,7 @@ namespace ag
 		search.setBoard(game.getBoard(), game.getSignToMove());
 
 		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
-		tree.setEdgeSelector(PUCTSelector_parent(mcts_config.exploration_constant, 0.5f)); // FIXME
+		tree.setEdgeSelector(PUCTSelector(mcts_config.exploration_constant, 0.5f));
 		tree.setEdgeGenerator(NoisyGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
 	}
 

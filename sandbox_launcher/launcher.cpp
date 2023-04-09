@@ -70,6 +70,7 @@
 #include "minml/layers/Dense.hpp"
 #include "minml/layers/BatchNormalization.hpp"
 #include <minml/graph/graph_optimizers.hpp>
+#include <minml/utils/testing_util.hpp>
 
 #include <cstddef>
 #include <algorithm>
@@ -653,42 +654,42 @@ float cross_entropy(float output, float target) noexcept
 void run_training()
 {
 	ml::Device::setNumberOfThreads(1);
-	GameDataBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/test_old/train_buffer/buffer_0.bin");
-	buffer.load("/home/maciek/alphagomoku/new_runs_2023/test_old/valid_buffer/buffer_0.bin");
+	GameDataBuffer buffer("/home/maciek/alphagomoku/new_runs/standard_old/train_buffer/buffer_0.bin");
+//	GameDataBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/test_old/train_buffer/buffer_0.bin");
+//	buffer.load("/home/maciek/alphagomoku/new_runs_2023/test_old/valid_buffer/buffer_0.bin");
 	std::cout << buffer.getStats().toString() << '\n';
-
-	SearchDataPack pack(15, 15);
-	buffer.getGameData(0).getSample(pack, 0);
-
-//	std::cout << "\n\n----------------------------------------------\n\n";
-//	pack.print();
-//	return;
 
 	GameConfig game_config(GameRules::STANDARD, 15);
 	TrainingConfig training_config;
-	training_config.network_arch = "ResnetPVraw_v1";
+	training_config.network_arch = "BottleneckPVQ";
 	training_config.augment_training_data = true;
-	training_config.blocks = 6;
-	training_config.filters = 64;
+	training_config.blocks = 10;
+	training_config.filters = 128;
 	training_config.device_config.batch_size = 256;
-	training_config.l2_regularization = 1.0e-5f;
+	training_config.l2_regularization = 1.0e-4f;
 
 	std::unique_ptr<AGNetwork> network = createAGNetwork(training_config.network_arch);
 	network->init(game_config, training_config);
-	network->moveTo(ml::Device::cuda(0));
+	network->moveTo(ml::Device::cuda(1));
+	network->changeLearningRate(1.0e-3f);
 
 	SupervisedLearning sl(training_config);
 
+	const std::string path = "/home/maciek/alphagomoku/new_runs/supervised/BottleneckPVQ_v2_10x128_bn/";
 	for (int e = 0; e < 100; e++)
 	{
-		if (e == 30)
-			network->changeLearningRate(1.0e-4f);
 		if (e == 60)
+			network->changeLearningRate(1.0e-4f);
+		if (e == 80)
 			network->changeLearningRate(1.0e-5f);
 		sl.clearStats();
 		sl.train(*network, buffer, 1000);
-		sl.saveTrainingHistory("/home/maciek/alphagomoku/new_runs_2023/test_old/ResnetPVraw_v1/");
-		network->saveToFile("/home/maciek/alphagomoku/new_runs_2023/test_old/ResnetPVraw_v1/checkpoint/network_" + std::to_string(e) + ".bin");
+		sl.saveTrainingHistory(path);
+		network->saveToFile(path + "/network_" + std::to_string(e) + ".bin");
+
+		std::unique_ptr<AGNetwork> tmp = loadAGNetwork(path + "/network_" + std::to_string(e) + ".bin");
+		tmp->optimize();
+		tmp->saveToFile(path + "/network_" + std::to_string(e) + "_opt.bin");
 	}
 }
 
@@ -1203,16 +1204,17 @@ void test_search()
 	device_config.batch_size = 8;
 	device_config.omp_threads = 1;
 //#ifdef NDEBUG
-	device_config.device = ml::Device::cpu();
+	device_config.device = ml::Device::cuda(0);
 //#else
 //	device_config.device = ml::Device::cpu();
 //#endif
 	NNEvaluator nn_evaluator(device_config);
 	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku550/networks/network_57_opt.bin");
-	nn_evaluator.loadGraph("./old_6x64s.bin");
+//	nn_evaluator.loadGraph("./old_6x64s.bin");
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/supervised/sampler_v2/network_99_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/tl/checkpoint/network_99_opt.bin");
-//	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/net_6x64s/checkpoint/network_67_opt.bin");
+//	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/test_6x64s/checkpoint/network_70_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/tests_2023/base_q_head/checkpoint/network_15_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/cpp_workspace/AlphaGomoku/Release/networks/network_44_opt.bin");
 
@@ -2270,21 +2272,39 @@ void test_search()
 //	sign_to_move = Sign::CROSS;
 
 // @formatter:off
+//	board = Board::fromString(
+//    /*         a b c d e f g h i j k l m n o          */
+//	/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+//	/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n" /*  1 */
+//	/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+//	/*  3 */ " _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n" /*  3 */
+//	/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
+//	/*  5 */ " _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n" /*  5 */
+//	/*  6 */ " _ _ _ _ _ X X _ _ _ _ _ _ _ _\n" /*  6 */
+//	/*  7 */ " _ _ _ O _ _ _ X _ _ _ _ _ _ _\n" /*  7 */
+//	/*  8 */ " _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
+//	/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
+//	/* 10 */ " _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /* 10 */
+//	/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+//	/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+//	/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+//	/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+//    /*         a b c d e f g h i j k l m n o          */);
 	board = Board::fromString(
     /*         a b c d e f g h i j k l m n o          */
 	/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-	/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n" /*  1 */
+	/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
 	/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-	/*  3 */ " _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n" /*  3 */
+	/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
 	/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-	/*  5 */ " _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n" /*  5 */
-	/*  6 */ " _ _ _ _ _ X X _ _ _ _ _ _ _ _\n" /*  6 */
-	/*  7 */ " _ _ _ O _ _ _ X _ _ _ _ _ _ _\n" /*  7 */
-	/*  8 */ " _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
+	/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
+	/*  6 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
+	/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
+	/*  8 */ " _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n" /*  8 */
 	/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-	/* 10 */ " _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /* 10 */
-	/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-	/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+	/* 10 */ " _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n" /* 10 */
+	/* 11 */ " _ _ _ _ X O _ _ _ _ _ _ _ _ _\n" /* 11 */
+	/* 12 */ " _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n" /* 12 */
 	/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 	/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
     /*         a b c d e f g h i j k l m n o          */);
@@ -2306,18 +2326,18 @@ void test_search()
 
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
-	tree.setEdgeSelector(PUCTSelector(1.25f));
+	tree.setEdgeSelector(PUCTSelector_parent(1.25f));
 	tree.setEdgeGenerator(BaseGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold));
 
 	int next_step = 0;
-	for (int j = 0; j <= 1; j++)
+	for (int j = 0; j <= 10000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ..." << std::endl;
-			next_step += 100000;
+			next_step += 1000;
 		}
-		search.select(tree, 1);
+		search.select(tree, 10000);
 		search.solve();
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
@@ -2330,7 +2350,7 @@ void test_search()
 //		std::cout << "\n\n\n";
 //		tree.printSubtree(10, true, 5);
 //		if (tree.isRootProven())
-		break;
+//			break;
 	}
 	search.cleanup(tree);
 
@@ -2573,12 +2593,42 @@ void test_nnue()
 
 void test_evaluate()
 {
-	const std::string path = "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/";
+//	std::vector<int> sims = { 1, 10, 25, 50, 100, 200, 400, 800 };
+//	for (size_t i1 = 0; i1 < sims.size() - 1; i1++)
+//		for (size_t i2 = i1 + 1; i2 < sims.size(); i2++)
+//		{
+//			const std::string path = "/home/maciek/alphagomoku/new_runs/supervised/";
+//			MasterLearningConfig config(FileLoader(path + "config.json").getJson());
+//			EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
+//
+//			SelfplayConfig cfg(config.evaluation_config.selfplay_options);
+//			cfg.search_config.tss_config.mode = 1;
+//			cfg.simulations = sims.at(i1);
+//			manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/supervised/ResnetPVQ/network_99_opt.bin",
+//					"sim" + std::to_string(cfg.simulations));
+//			cfg.simulations = sims.at(i2);
+//			manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/supervised/ResnetPVQ/network_99_opt.bin",
+//					"sim" + std::to_string(cfg.simulations));
+//
+//			std::cout << sims.at(i1) << " vs " << sims.at(i2) << '\n';
+//			const double start = getTime();
+//			manager.generate(1000);
+//			const double stop = getTime();
+//			std::cout << "generated in " << (stop - start) << '\n';
+//
+//			const std::string to_save = manager.getPGN();
+//			std::ofstream file("/home/maciek/alphagomoku/new_runs/compare_s1.pgn", std::ios::out | std::ios::app);
+//			file.write(to_save.data(), to_save.size());
+//			file.close();
+//		}
+//	return;
+
+	const std::string path = "/home/maciek/alphagomoku/new_runs/test_6x64/";
 	MasterLearningConfig config(FileLoader(path + "config.json").getJson());
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-	cfg.simulations = 400;
+//	cfg.simulations = 400;
 //	manager.setFirstPlayer(cfg, path + "test_gumbel_6x64/checkpoint/network_50_opt.bin", "test_gumbel_50");
 //	manager.setFirstPlayer(cfg, path + "resnetpvq/checkpoint/network_50_opt.bin", "resnetpvq_50");
 //	manager.setSecondPlayer(cfg, path + "no_features/checkpoint/network_50_opt.bin", "no_features_50");
@@ -2592,14 +2642,31 @@ void test_evaluate()
 //	cfg.search_config.tss_config.mode = 1;
 //	manager.setSecondPlayer(cfg, path + "test_s_pvq/checkpoint/network_47_opt.bin", "test_s_pvq_47");
 
+//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/libml/scale20_withprior/network_99_opt.bin", "scale20_withprior");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/libml/scale5_withprior/network_99_opt.bin", "scale5_withprior");
+
+//	manager.setFirstPlayer(cfg, "./old_10x128s.bin", "old_10x128s");
+//	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "old_6x64s");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/supervised/BottleneckPVQ_10x128_bn/network_99_opt.bin", "pvq");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/standard_15x15/checkpoint/network_20_opt.bin", "AG_020");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/solver2_6x64s/checkpoint/network_15_opt.bin", "AG_015");
 	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "old_6x64s");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/test_6x64/checkpoint/network_40_opt.bin", "AG_040");
+
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/libml/minml_pvq_1024/network_99_opt.bin", "minml_pvq_1024_fp32");
+
 //	manager.setFirstPlayer(cfg, path + "ResnetOld/checkpoint/network_99_opt.bin", "resnet_old_99");
 //	manager.setFirstPlayer(cfg, path + "ResnetPVraw_v1/checkpoint/network_99_opt.bin", "resnet_pv1_99");
 //	manager.setSecondPlayer(cfg, path + "ResnetPVraw_v0/checkpoint/network_99_opt.bin", "resnet_pv0_99");
 //	manager.setFirstPlayer(cfg, path + "ResnetPVraw_v1/checkpoint/network_99_opt.bin", "resnet_pv1_99");
 //	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_15x15s/checkpoint/network_102_opt.bin", "old_102");
 //	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/tl/checkpoint/network_99_opt.bin", "transfer0_99");
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/resnet_old/checkpoint/network_99_opt.bin", "new_bn_99");
+
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/corrected/checkpoint/network_99_opt.bin", "corrected_99");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/ResnetOld_bn/checkpoint/network_99_opt.bin", "bn_99_opt_fp16");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/ResnetOld_bn1024/checkpoint/network_39_opt.bin", "bn1024_39");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/ResnetOld_Q/checkpoint/network_99_opt.bin", "value_99");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/ResnetOld_Q2/checkpoint/network_99_opt.bin", "value2_99");
 
 //	manager.setFirstPlayer(cfg, path + "pvq1_new/checkpoint/network_64_opt.bin", "old");
 //	manager.setSecondPlayer(cfg, path + "pvq1_new/checkpoint/network_64_opt.bin", "qhead");
@@ -2609,12 +2676,16 @@ void test_evaluate()
 //	manager.setSecondPlayer(cfg, path + "test_gumbel_6x64/checkpoint/network_54_opt.bin", "gumbel025_54");
 
 	const double start = getTime();
-	manager.generate(4000);
+	manager.generate(1000);
 	const double stop = getTime();
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file(path + "old_transfer.pgn", std::ios::out | std::ios::app);
+//	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/libml/compare_fp.pgn", std::ios::out | std::ios::app);
+//	std::ofstream file("/home/maciek/alphagomoku/new_runs_2023/standard_15x15/compare2.pgn", std::ios::out | std::ios::app);
+//	std::ofstream file("/home/maciek/alphagomoku/new_runs/compare_s02.pgn", std::ios::out | std::ios::app);
+//	std::ofstream file("/home/maciek/alphagomoku/new_runs/supervised/bottleneck.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs/test_6x64/compare.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -2995,9 +3066,11 @@ void test_proven_search(int mcts_nodes, int tss_nodes, bool fast)
 
 void convert_old_network()
 {
-	FileLoader fl("/home/maciek/Desktop/AlphaGomoku550/networks/freestyle_6x64.bin");
+//	FileLoader fl("/home/maciek/Desktop/AlphaGomoku550/networks/freestyle_6x64.bin");
+//	FileLoader fl("/home/maciek/alphagomoku/standard_15x15/checkpoint/network_90_opt.bin");
+	FileLoader fl("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/libml/checkpoint/network_99_opt.bin");
 
-	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
 	TrainingConfig training_config;
 	training_config.blocks = 6;
 	training_config.filters = 64;
@@ -3030,6 +3103,7 @@ void convert_old_network()
 	ml::Layer &layer_p2 = model.getGraph().getNode(new_layer_id).getLayer(); // second Conv2D layer
 	assert(layer_p2.name() == "Conv2D");
 	assert(old_layers[old_layer_id]["name"].getString() == "Conv2D");
+	assert(old_layers[old_layer_id + 1]["name"].getString() == "Flatten");
 	layer_p2.getWeights().getParam().unserialize(old_layers[old_layer_id]["weights"]["param"], fl.getBinaryData());
 	old_layer_id += 1 + 1; // this layer + Flatten
 	new_layer_id++;
@@ -3037,12 +3111,13 @@ void convert_old_network()
 	ml::Layer &layer_p3 = model.getGraph().getNode(new_layer_id).getLayer(); // final Dense layer
 	assert(layer_p3.name() == "Dense");
 	assert(old_layers[old_layer_id]["name"].getString() == "Affine");
-	ml::Tensor &affine_weights = layer_p3.getWeights().getParam();
-	affine_weights.zeroall(model.getGraph().context());
-	for (int i = 0; i < game_config.rows * game_config.cols; i++)
-		affine_weights.set(1.0f, { i, i }); // creating artificial diagonal unit matrix so only bias will be used
+	assert(old_layers[old_layer_id + 1]["name"].getString() == "Softmax");
+//	ml::Tensor &affine_weights = layer_p3.getWeights().getParam();
+//	affine_weights.zeroall(model.getGraph().context());
+//	for (int i = 0; i < game_config.rows * game_config.cols; i++)
+//		affine_weights.set(1.0f, { i, i }); // creating artificial diagonal unit matrix so only bias will be used
 	layer_p3.getBias().getParam().unserialize(old_layers[old_layer_id]["bias"]["param"], fl.getBinaryData());
-	old_layer_id++;
+	old_layer_id += 1 + 1;
 	new_layer_id += 1 + 1; // this layer + Softmax
 
 	// value head
@@ -3067,23 +3142,23 @@ void convert_old_network()
 	assert(old_layers[old_layer_id]["name"].getString() == "Dense");
 	layer_v3.getWeights().getParam().unserialize(old_layers[old_layer_id]["weights"]["param"], fl.getBinaryData());
 	layer_v3.getBias().getParam().unserialize(old_layers[old_layer_id]["bias"]["param"], fl.getBinaryData());
-	for (int i = 0; i < layer_v3.getWeights().shape().lastDim(); i++)
-	{ // swap win and loss outputs as they were inverted in previous version
-		const float tmp0 = layer_v3.getWeights().getParam().get( { 0, i });
-		const float tmp2 = layer_v3.getWeights().getParam().get( { 2, i });
-		layer_v3.getWeights().getParam().set(tmp2, { 0, i });
-		layer_v3.getWeights().getParam().set(tmp0, { 2, i });
-	}
-	// same for biases
-	const float tmp0 = layer_v3.getBias().getParam().get( { 0 });
-	const float tmp2 = layer_v3.getBias().getParam().get( { 2 });
-	layer_v3.getBias().getParam().set(tmp2, { 0 });
-	layer_v3.getBias().getParam().set(tmp0, { 2 });
+//	for (int i = 0; i < layer_v3.getWeights().shape().lastDim(); i++)
+//	{ // swap win and loss outputs as they were inverted in previous version
+//		const float tmp0 = layer_v3.getWeights().getParam().get( { 0, i });
+//		const float tmp2 = layer_v3.getWeights().getParam().get( { 2, i });
+//		layer_v3.getWeights().getParam().set(tmp2, { 0, i });
+//		layer_v3.getWeights().getParam().set(tmp0, { 2, i });
+//	}
+//	// same for biases
+//	const float tmp0 = layer_v3.getBias().getParam().get( { 0 });
+//	const float tmp2 = layer_v3.getBias().getParam().get( { 2 });
+//	layer_v3.getBias().getParam().set(tmp2, { 0 });
+//	layer_v3.getBias().getParam().set(tmp0, { 2 });
 
 	old_layer_id++;
 	new_layer_id++;
 
-	model.saveToFile("./old_6x64f.bin");
+	model.saveToFile("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/libml/libml_99_opt.bin");
 }
 
 void convert_old_buffer(const std::string &src, const std::string &dst)
@@ -3214,14 +3289,15 @@ void transfer_learning()
 	training_config.device_config.batch_size = batch_size;
 	training_config.l2_regularization = 1.0e-4f;
 
-	std::unique_ptr<AGNetwork> teacher = loadAGNetwork("./old_6x64s.bin");
-//	std::unique_ptr<AGNetwork> teacher = loadAGNetwork("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/tl/checkpoint/network_99_opt.bin");
+	std::unique_ptr<AGNetwork> teacher = loadAGNetwork("./old_10x128s.bin");
+//	std::unique_ptr<AGNetwork> teacher = loadAGNetwork(
+//			"/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/corrected/checkpoint/network_99_opt.bin");
 	teacher->setBatchSize(batch_size);
-	teacher->moveTo(ml::Device::cuda(1));
+	teacher->moveTo(ml::Device::cuda(0));
 
 	std::unique_ptr<AGNetwork> network = createAGNetwork(training_config.network_arch);
 	network->init(game_config, training_config);
-	network->moveTo(ml::Device::cuda(1));
+	network->moveTo(ml::Device::cuda(0));
 	network->changeLearningRate(1.0e-3f);
 
 	Sampler sampler(buffer, batch_size);
@@ -3230,13 +3306,13 @@ void transfer_learning()
 	for (size_t i = 0; i < batch_size; i++)
 		training_batch.push_back(TrainingDataPack(15, 15));
 
-	const std::string path = "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/resnet_old_bn/checkpoint/";
-	for (int e = 0; e < 100; e++)
+	const std::string path = "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/corrected_full/checkpoint/";
+	for (int e = 0; e < 160; e++)
 	{
 		std::vector<float> loss(2, 0.0f);
-		if (e == 60)
-			network->changeLearningRate(1.0e-4f);
 		if (e == 80)
+			network->changeLearningRate(1.0e-4f);
+		if (e == 120)
 			network->changeLearningRate(1.0e-5f);
 		for (int i = 0; i < 1000; i++)
 		{
@@ -3274,13 +3350,93 @@ void transfer_learning()
 	}
 }
 
+#include <minml/layers/Conv2D.hpp>
+#include <minml/layers/Dense.hpp>
+#include <minml/layers/Add.hpp>
+#include <minml/layers/BatchNormalization.hpp>
+#include <minml/layers/Softmax.hpp>
+
+void compare_models()
+{
+	const ml::Shape input_shape( { 32, 15, 15, 4 });
+	const int blocks = 6;
+	const int filters = 64;
+
+	ml::Graph graph;
+	auto x = graph.addInput(input_shape);
+
+	x = graph.add(ml::Conv2D(filters, 5, "linear").useBias(false), x);
+	x = graph.add(ml::BatchNormalization("relu").useGamma(true), x);
+
+	for (int i = 0; i < blocks; i++)
+	{
+		auto y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
+		y = graph.add(ml::BatchNormalization("relu").useGamma(true), y);
+
+		y = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), y);
+		y = graph.add(ml::BatchNormalization("linear").useGamma(true), y);
+
+		x = graph.add(ml::Add("relu"), { x, y });
+	}
+
+	// policy head
+	auto p = graph.add(ml::Conv2D(filters, 3, "linear").useBias(false), x);
+	p = graph.add(ml::BatchNormalization("relu").useGamma(true), p);
+
+	p = graph.add(ml::Conv2D(1, 1, "linear").useBias(false), p);
+	p = graph.add(ml::Dense(15 * 15, "linear").useWeights(false), p);
+	p = graph.add(ml::Softmax( { 1 }), p);
+	graph.addOutput(p);
+
+	// value head
+	auto v = graph.add(ml::Conv2D(2, 1, "linear").useBias(false), x);
+	v = graph.add(ml::BatchNormalization("relu").useGamma(true), v);
+
+	v = graph.add(ml::Dense(std::min(256, 2 * filters), "linear").useBias(false), v);
+	v = graph.add(ml::BatchNormalization("relu").useGamma(true), v);
+	v = graph.add(ml::Dense(3, "linear"), v);
+	v = graph.add(ml::Softmax( { 1 }), v);
+	graph.addOutput(v);
+
+	graph.init();
+	graph.setOptimizer(ml::Optimizer());
+	graph.setRegularizer(ml::Regularizer(1.0e-4f));
+	graph.moveTo(ml::Device::cpu());
+//	graph.moveTo(ml::Device::cuda(0));
+
+	for (int i = 0; i < 1; i++)
+	{
+		std::cout << "step " << i << " -----------------------------------------\n";
+		ml::testing::initForTest(graph.getInput(), 0.1 * i);
+		graph.forward(input_shape[0]);
+		graph.context().synchronize();
+		std::cout << '\n';
+		graph.backward(input_shape[0]);
+		graph.context().synchronize();
+		graph.learn();
+		graph.context().synchronize();
+	}
+	std::cout << "inference-----------------------------------------\n";
+	graph.makeNonTrainable();
+	ml::testing::initForTest(graph.getInput(), 0);
+	graph.forward(input_shape[0]);
+}
+
 int main(int argc, char *argv[])
 {
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
-//	{
-////		GameDataBuffer buffer("/home/maciek/alphagomoku/loss6_positions.bin");
+	{
+//		GameDataBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/transfer/saved_state/buffer.bin");
+//		std::cout << buffer.getStats().toString() << '\n';
+//
+//		SearchDataPack pack(15, 15);
+//		for (int i = 0; i < 10; i++)
+//		{
+//			buffer.getGameData(10000).getSample(pack, i);
+//			pack.print();
+//		}
 //
 //		GameConfig cfg(GameRules::CARO5, 15);
 //		TSSConfig tss_cfg;
@@ -3324,7 +3480,7 @@ int main(int argc, char *argv[])
 //			task.set(pack.board, pack.played_move.sign);
 //			tss.solve(task, TssMode::RECURSIVE, 1000);
 //		}
-//	}
+	}
 
 //	for (int i = 0; i < 15; i++)
 //	{
@@ -3362,18 +3518,19 @@ int main(int argc, char *argv[])
 //		convert_old_buffer("/home/maciek/alphagomoku/" + path, "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/" + path);
 //	}
 //	train_simple_evaluator();
-//	return 0;
+	return 0;
 
 //	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/transfer/");
 //	for (int i = 0; i < 1; i++)
 //		tm.runIterationRL();
 
-//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/old_15x15s/", "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/standard_15x15/");
+//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/sampler_v2/", "/home/maciek/alphagomoku/new_runs_2023/corrected_15x15s/");
+//	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/history1/", "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/standard_15x15/");
 //	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/pvq_old_data_15x15s/", "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/standard_15x15/");
-//	for (int i = 0; i <= 20; i++)
+//	for (int i = 0; i <= 50; i++)
 //		tm.runIterationSL();
 
-	return 0;
+//	return 0;
 
 	{
 //		GameDataBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/test_6x64s_2/train_buffer/buffer_34.bin");
@@ -3393,17 +3550,19 @@ int main(int argc, char *argv[])
 
 		GameConfig game_config(GameRules::STANDARD, 15, 15);
 		TrainingConfig cfg;
-		cfg.blocks = 10;
-		cfg.filters = 128;
+		cfg.blocks = 6;
+		cfg.filters = 64;
 		ResnetPVQ network;
+		network.init(game_config, cfg);
 //		network.init(game_config, cfg);
 //		network.optimize();
-		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/standard_15x15/checkpoint/network_18_opt.bin");
-//		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/test_6x64s_2/checkpoint/network_33_opt.bin");
+		network.loadFromFile("/home/maciek/alphagomoku/new_runs/test_cudnn/checkpoint/network_28.bin");
 //		network.optimize();
+//		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/test_6x64s_2/checkpoint/network_33_opt.bin");
+		network.optimize();
 		network.setBatchSize(256);
 		network.moveTo(ml::Device::cuda(0));
-		network.convertToHalfFloats();
+//		network.convertToHalfFloats();
 
 		matrix<Sign> board(15, 15);
 //		board = Board::fromString(""
@@ -3491,29 +3650,29 @@ int main(int argc, char *argv[])
 
 //		network.packInputData(0, pack.board, pack.played_move.sign);
 		network.packInputData(0, board, sign_to_move);
-		network.forward(1);
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-//
-//		const double start = getTime();
-//		int repeats = 0;
-//		for (; repeats < 10000; repeats++)
-//		{
-//			network.forward(network.getBatchSize());
-//			if ((getTime() - start) > 10.0)
-//				break;
-//		}
-//		const double stop = getTime();
-//		const double time = stop - start;
-//
-//		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
-//		std::cout << "n/s = " << network.getBatchSize() * repeats / time << '\n';
+		network.packInputData(1, board, sign_to_move);
+//		network.forward(1);
+//		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		network.forward(2);
 //		return 0;
 
+		const double start = getTime();
+		int repeats = 0;
+		for (; repeats < -10000; repeats++)
+		{
+			network.forward(network.getBatchSize());
+			if ((getTime() - start) > 10.0)
+				break;
+		}
+		const double stop = getTime();
+		const double time = stop - start;
+
+		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
+		std::cout << "n/s = " << network.getBatchSize() * repeats / time << '\n';
+//		return 0;
 		network.unpackOutput(0, policy, action_values, value);
 		std::cout << "\n\n--------------------------------------------------------------\n\n";
 		std::cout << "Value = " << value.toString() << '\n'; //<< " (" << value_target.toString() << ")\n";
-		//		std::cout << Board::toString(board, policy, true) << '\n';
-		//		std::cout << Board::toString(board, action_values, true) << '\n';
 		std::cout << Board::toString(board, policy, true) << '\n';
 		std::cout << Board::toString(board, action_values, true) << '\n';
 

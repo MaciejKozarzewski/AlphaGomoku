@@ -26,28 +26,27 @@ namespace
 	struct UCT
 	{
 			const float parent_log_visit;
-			const float exploration_constant;
+			const float parent_q;
 			const float style_factor;
-			UCT(int parentVisits, float explorationConstant, float styleFactor) noexcept :
-					parent_log_visit(logf(parentVisits)),
-					exploration_constant(explorationConstant),
+			UCT(const Node *parent, float styleFactor) noexcept :
+					parent_log_visit(logf(parent->getVisits())),
+					parent_q(parent->getExpectation(styleFactor)),
 					style_factor(styleFactor)
 			{
 			}
 			float operator()(const Edge &edge) const noexcept
 			{
 				const float Q = edge.getExpectation(style_factor) * getVirtualLoss(edge);
-				const float U = exploration_constant * sqrtf(parent_log_visit / (1.0f + edge.getVisits()));
 				const float P = edge.getPolicyPrior() / (1.0f + edge.getVisits());
-				return Q + U + P;
+				return Q + P;
 			}
 	};
 	struct PUCT
 	{
 			const float parent_cbrt_visit;
 			const float style_factor;
-			PUCT(const Node &parent, float explorationConstant, float styleFactor) noexcept :
-					parent_cbrt_visit(explorationConstant * sqrtf(parent.getVisits())),
+			PUCT(const Node *parent, float explorationConstant, float styleFactor) noexcept :
+					parent_cbrt_visit(explorationConstant * sqrtf(parent->getVisits())),
 					style_factor(styleFactor)
 			{
 			}
@@ -63,9 +62,9 @@ namespace
 			const float parent_sqrt_visit;
 			const float parent_q;
 			const float style_factor;
-			PUCT_parent(const Node &parent, float explorationConstant, float styleFactor) noexcept :
-					parent_sqrt_visit(explorationConstant * sqrtf(parent.getVisits())),
-					parent_q(parent.getExpectation(styleFactor)),
+			PUCT_parent(const Node *parent, float explorationConstant, float styleFactor) noexcept :
+					parent_sqrt_visit(explorationConstant * sqrtf(parent->getVisits())),
+					parent_q(parent->getExpectation(styleFactor)),
 					style_factor(styleFactor)
 			{
 			}
@@ -85,7 +84,7 @@ namespace
 			}
 			float operator()(const Edge &edge) const noexcept
 			{
-				switch (edge.getScore().getProvenValue())
+				switch (edge.getProvenValue())
 				{
 					case ProvenValue::LOSS:
 						return -100.0f + 0.1f * edge.getScore().getDistance();
@@ -99,12 +98,19 @@ namespace
 				}
 			}
 	};
+	struct MaxVisit
+	{
+			float operator()(const Edge &edge) const noexcept
+			{
+				return edge.getVisits();
+			}
+	};
 	struct BestEdge
 	{
 			const int parent_visits;
 			const float style_factor;
-			BestEdge(int parentVisits, float styleFactor) noexcept :
-					parent_visits(parentVisits),
+			BestEdge(const Node *parent, float styleFactor) noexcept :
+					parent_visits(parent->getVisits()),
 					style_factor(styleFactor)
 			{
 			}
@@ -132,6 +138,26 @@ namespace
 			}
 	};
 
+	template<class Op>
+	Edge* find_best_edge(const Node *node, Op op) noexcept
+	{
+		assert(node != nullptr);
+		assert(node->isLeaf() == false);
+
+		Edge *best_edge = nullptr;
+		float best_value = std::numeric_limits<float>::lowest();
+		for (Edge *edge = node->begin(); edge < node->end(); edge++)
+		{
+			const float value = op(*edge);
+			if (value > best_value)
+			{
+				best_value = value;
+				best_edge = edge;
+			}
+		}
+		assert(best_edge != nullptr);
+		return best_edge;
+	}
 }
 
 namespace ag
@@ -147,17 +173,8 @@ namespace ag
 	}
 	Edge* PUCTSelector::select(const Node *node) noexcept
 	{
-		assert(node != nullptr);
-		assert(node->isLeaf() == false);
-
-		const PUCT op(*node, exploration_constant, style_factor);
-		const EdgeComparator<PUCT> greater_than(op);
-
-		Edge *best_edge = node->begin();
-		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			if (greater_than(*edge, *best_edge))
-				best_edge = edge;
-		return best_edge;
+		const PUCT op(node, exploration_constant, style_factor);
+		return find_best_edge(node, op);
 	}
 
 	PUCTSelector_parent::PUCTSelector_parent(float exploration, float styleFactor) :
@@ -171,40 +188,22 @@ namespace ag
 	}
 	Edge* PUCTSelector_parent::select(const Node *node) noexcept
 	{
-		assert(node != nullptr);
-		assert(node->isLeaf() == false);
-
-		const PUCT_parent op(*node, exploration_constant, style_factor);
-		const EdgeComparator<PUCT_parent> greater_than(op);
-
-		Edge *best_edge = node->begin();
-		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			if (greater_than(*edge, *best_edge))
-				best_edge = edge;
-		return best_edge;
+		const PUCT_parent op(node, exploration_constant, style_factor);
+		return find_best_edge(node, op);
 	}
 
-	UCTSelector::UCTSelector(float exploration, float styleFactor) :
-			exploration_constant(exploration),
+	UCTSelector::UCTSelector(float styleFactor) :
 			style_factor(styleFactor)
 	{
 	}
 	std::unique_ptr<EdgeSelector> UCTSelector::clone() const
 	{
-		return std::make_unique<UCTSelector>(exploration_constant, style_factor);
+		return std::make_unique<UCTSelector>(style_factor);
 	}
 	Edge* UCTSelector::select(const Node *node) noexcept
 	{
-		assert(node != nullptr);
-		assert(node->isLeaf() == false);
-		const UCT op(node->getVisits(), exploration_constant, style_factor);
-		const EdgeComparator<UCT> greater_than(op);
-
-		Edge *best_edge = node->begin();
-		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			if (greater_than(*edge, *best_edge))
-				best_edge = edge;
-		return best_edge;
+		const UCT op(node, style_factor);
+		return find_best_edge(node, op);
 	}
 
 	BalancedSelector::BalancedSelector(int balanceDepth, const EdgeSelector &baseSelector) :
@@ -218,19 +217,8 @@ namespace ag
 	}
 	Edge* BalancedSelector::select(const Node *node) noexcept
 	{
-		assert(node != nullptr);
-		assert(node->isLeaf() == false);
 		if (node->getDepth() < balance_depth)
-		{
-			const MaxBalance op;
-			const EdgeComparator<MaxBalance> greater_than(op);
-
-			Edge *best_edge = node->begin();
-			for (Edge *edge = node->begin(); edge < node->end(); edge++)
-				if (greater_than(*edge, *best_edge))
-					best_edge = edge;
-			return best_edge;
-		}
+			return find_best_edge(node, MaxBalance());
 		else
 			return base_selector->select(node);
 	}
@@ -245,16 +233,8 @@ namespace ag
 	}
 	Edge* MaxValueSelector::select(const Node *node) noexcept
 	{
-		assert(node != nullptr);
-		assert(node->isLeaf() == false);
 		const MaxValue op(style_factor);
-		const EdgeComparator<MaxValue> greater_than(op);
-
-		Edge *best_edge = node->begin();
-		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-			if (greater_than(*edge, *best_edge))
-				best_edge = edge;
-		return best_edge;
+		return find_best_edge(node, op);
 	}
 
 	std::unique_ptr<EdgeSelector> MaxVisitSelector::clone() const
@@ -263,20 +243,7 @@ namespace ag
 	}
 	Edge* MaxVisitSelector::select(const Node *node) noexcept
 	{
-		assert(node != nullptr);
-		assert(node->isLeaf() == false);
-		Edge *selected = nullptr;
-		int max_visits = std::numeric_limits<int>::lowest();
-		for (Edge *edge = node->begin(); edge < node->end(); edge++)
-		{
-			if (edge->getVisits() > max_visits)
-			{
-				selected = edge;
-				max_visits = edge->getVisits();
-			}
-		}
-		assert(selected != nullptr); // there should always be some best edge
-		return selected;
+		return find_best_edge(node, MaxVisit());
 	}
 
 	BestEdgeSelector::BestEdgeSelector(float styleFactor) :
@@ -291,7 +258,7 @@ namespace ag
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		const BestEdge op(node->getVisits(), style_factor);
+		const BestEdge op(node, style_factor);
 		const EdgeComparator<BestEdge> greater_than(op);
 
 		Edge *best_edge = node->begin();
