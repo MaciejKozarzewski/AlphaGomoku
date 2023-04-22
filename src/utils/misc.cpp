@@ -338,6 +338,13 @@ namespace ag
 		}
 	}
 
+	std::string zfill(int value, int length)
+	{
+		std::string result = std::to_string(std::abs(value));
+		while (static_cast<int>(result.size()) < length)
+			result = '0' + result;
+		return result;
+	}
 	std::string sfill(int value, int length, bool isSigned)
 	{
 		std::string result = std::to_string(std::abs(value));

@@ -121,6 +121,17 @@ namespace ag
 				m_total_count++;
 				m_is_measuring = false;
 			}
+			/**
+			 * \brief Stop current time measurement and increase the total counter by specified value
+			 */
+			void stopTimer(int count) noexcept
+			{
+				assert(isMeasuring());
+				m_timer_stop = getTime();
+				m_total_time += std::chrono::duration<int64_t, std::nano>(m_timer_stop - m_timer_start).count();
+				m_total_count += count;
+				m_is_measuring = false;
+			}
 			std::string toString() const;
 
 			/**

@@ -140,6 +140,7 @@ namespace ag
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
 	std::vector<Move> prepareOpening(GameConfig config, int minNumberOfMoves = 0);
 
+	std::string zfill(int value, int length);
 	std::string sfill(int value, int length, bool isSigned);
 	std::string moveToString(const ag::Move &m);
 	ag::Move moveFromString(const std::string &str, ag::Sign sign);
