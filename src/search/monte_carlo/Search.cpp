@@ -120,7 +120,7 @@ namespace ag
 	{
 		int number_of_trials = 2 * get_buffer().maxSize();
 
-		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations) // and not tree.isRootProven())
+		while (get_buffer().storedElements() < get_buffer().maxSize() and tree.getSimulationCount() <= maxSimulations)
 		{
 			TimerGuard timer(stats.select);
 			SearchTask &current_task = get_buffer().getNext();
@@ -165,17 +165,16 @@ namespace ag
 	}
 	void Search::solve()
 	{
+		stats.solve.startTimer();
 		for (int i = 0; i < get_buffer().storedElements(); i++)
-		{
-			TimerGuard timer(stats.solve);
 			solver.solve(get_buffer().get(i), static_cast<TssMode>(search_config.tss_config.mode), search_config.tss_config.max_positions);
-		}
+		stats.solve.stopTimer(get_buffer().storedElements());
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
 	{
+		stats.schedule.startTimer();
 		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
-			TimerGuard timer(stats.schedule);
 			const bool is_root = get_buffer().get(i).visitedPathLength() == 0;
 			const bool is_proven = get_buffer().get(i).getScore().isProven();
 			if (is_root or not is_proven)
@@ -184,6 +183,7 @@ namespace ag
 				evaluator.addToQueue(get_buffer().get(i));
 			}
 		}
+		stats.schedule.stopTimer(get_buffer().storedElements());
 	}
 	bool Search::areTasksReady() const noexcept
 	{
@@ -194,29 +194,28 @@ namespace ag
 	}
 	void Search::generateEdges(const Tree &tree)
 	{
+		stats.generate.startTimer();
 		for (int i = 0; i < get_buffer().storedElements(); i++)
-		{
-			TimerGuard timer(stats.generate);
 			tree.generateEdges(get_buffer().get(i));
-		}
+		stats.generate.stopTimer(get_buffer().storedElements());
 	}
 	void Search::expand(Tree &tree)
 	{
+		stats.expand.startTimer();
 		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
-			TimerGuard timer(stats.expand);
 			const ExpandOutcome out = tree.expand(get_buffer().get(i));
 			stats.nb_wasted_expansions += static_cast<uint64_t>(out == ExpandOutcome::ALREADY_EXPANDED);
 		}
+		stats.expand.stopTimer(get_buffer().storedElements());
 	}
 	void Search::backup(Tree &tree)
 	{
 		stats.nb_node_count += get_buffer().storedElements();
+		stats.backup.startTimer();
 		for (int i = 0; i < get_buffer().storedElements(); i++)
-		{
-			TimerGuard timer(stats.backup);
 			tree.backup(get_buffer().get(i));
-		}
+		stats.backup.stopTimer(get_buffer().storedElements());
 		get_buffer().clear();
 	}
 	void Search::cleanup(Tree &tree)
