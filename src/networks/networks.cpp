@@ -84,15 +84,44 @@ namespace ag
 		graph.addOutput(v);
 
 		auto q = createActionValuesHead(graph, x, filters);
-		graph.addOutput(q, 0.2f);
+		graph.addOutput(q, 0.05f);
 
 		graph.init();
 		graph.setOptimizer(ml::Optimizer());
 		if (trainingOptions.l2_regularization != 0.0)
-		{
 			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
-			graph.getNode(graph.numberOfNodes() - 2).getLayer().setRegularizer(ml::Regularizer(0.1f * trainingOptions.l2_regularization)); // action values head
-		}
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
+	BottleneckPV::BottleneckPV() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string BottleneckPV::name() const
+	{
+		return "BottleneckPV";
+	}
+	void BottleneckPV::create_network(const TrainingConfig &trainingOptions)
+	{
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 32 });
+		const int blocks = trainingOptions.blocks;
+		const int filters = trainingOptions.filters;
+
+		auto x = createInputBlock(graph, input_shape, filters);
+
+		for (int i = 0; i < blocks; i++)
+			x = createBottleneckBlock_v3(graph, x, filters);
+
+		auto p = createPolicyHead(graph, x, filters);
+		graph.addOutput(p);
+
+		auto v = createValueHead(graph, x, filters);
+		graph.addOutput(v);
+
+		graph.init();
+		graph.setOptimizer(ml::Optimizer());
+		if (trainingOptions.l2_regularization != 0.0)
+			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -113,7 +142,7 @@ namespace ag
 		auto x = createInputBlock(graph, input_shape, filters);
 
 		for (int i = 0; i < blocks; i++)
-			x = createBottleneckBlock_v2(graph, x, filters);
+			x = createBottleneckBlock_v3(graph, x, filters);
 
 		auto p = createPolicyHead(graph, x, filters);
 		graph.addOutput(p);
@@ -122,15 +151,12 @@ namespace ag
 		graph.addOutput(v);
 
 		auto q = createActionValuesHead(graph, x, filters);
-		graph.addOutput(q, 0.2f);
+		graph.addOutput(q, 0.05f);
 
 		graph.init();
 		graph.setOptimizer(ml::Optimizer());
 		if (trainingOptions.l2_regularization != 0.0)
-		{
 			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
-			graph.getNode(graph.numberOfNodes() - 2).getLayer().setRegularizer(ml::Regularizer(0.1f * trainingOptions.l2_regularization)); // action values head
-		}
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
