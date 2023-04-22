@@ -66,13 +66,15 @@ namespace ag
 		private:
 			struct Defaults
 			{
-					static constexpr float exploration_constant = 1.25f;
+					static constexpr float exploration_c = 1.25f;
+					static constexpr float exploration_exponent = 0.5f;
 					static constexpr int max_children = std::numeric_limits<int>::max();
 					static constexpr float policy_expansion_threshold = 0.0f;
 					static constexpr int style_factor = 2;
 			};
 		public:
-			float exploration_constant = Defaults::exploration_constant;
+			float exploration_c = Defaults::exploration_c;
+			float exploration_exponent = Defaults::exploration_exponent;
 			int max_children = Defaults::max_children;
 			float policy_expansion_threshold = Defaults::policy_expansion_threshold;
 			int style_factor = Defaults::style_factor; /**< 0 - win + draw, 2 - win + 0.5 * draw, 4 - win */
@@ -140,6 +142,7 @@ namespace ag
 	struct TrainingConfig
 	{
 			std::string network_arch = "ResnetPV";
+			std::string sampler_type = "visits";
 			bool augment_training_data = true;
 			DeviceConfig device_config;
 			int steps_per_iteration = 1000;
@@ -174,6 +177,7 @@ namespace ag
 	{
 			bool use_evaluation = true;
 			bool in_parallel = true;
+			std::vector<int> opponents;
 			SelfplayConfig selfplay_options;
 
 			EvaluationConfig() = default;

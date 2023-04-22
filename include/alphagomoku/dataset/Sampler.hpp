@@ -11,6 +11,7 @@
 #include <alphagomoku/dataset/data_packs.hpp>
 
 #include <vector>
+#include <memory>
 #include <cstddef>
 
 namespace ag
@@ -21,21 +22,43 @@ namespace ag
 
 namespace ag
 {
-
 	class Sampler
 	{
-			const GameDataBuffer &buffer;
+			const GameDataBuffer *buffer = nullptr;
 			SearchDataPack search_data_pack;
 			std::vector<int> game_ordering;
 			size_t counter = 0;
-			int batch_size;
+			int batch_size = 0;
 		public:
-			Sampler(const GameDataBuffer &buffer, int batchSize);
-			void get(TrainingDataPack &result);
+			Sampler() = default;
+			Sampler(const Sampler &other) = delete;
+			Sampler(Sampler &&other) = delete;
+			Sampler& operator=(const Sampler &other) = delete;
+			Sampler& operator=(Sampler &&other) = delete;
+			virtual ~Sampler() = default;
+			virtual void init(const GameDataBuffer &buffer, int batchSize);
+			virtual void get(TrainingDataPack &result);
+		private:
+			virtual void prepare_training_data(TrainingDataPack &result, const SearchDataPack &sample) = 0;
+	};
+
+	class SamplerVisits: public Sampler
+	{
+		public:
+			SamplerVisits() = default;
 		private:
 			void prepare_training_data(TrainingDataPack &result, const SearchDataPack &sample);
-			void prepare_training_data_v2(TrainingDataPack &result, const SearchDataPack &sample);
 	};
+
+	class SamplerValues: public Sampler
+	{
+		public:
+			SamplerValues() = default;
+		private:
+			void prepare_training_data(TrainingDataPack &result, const SearchDataPack &sample);
+	};
+
+	std::unique_ptr<Sampler> createSampler(const std::string &name);
 
 } /* namespace ag */
 

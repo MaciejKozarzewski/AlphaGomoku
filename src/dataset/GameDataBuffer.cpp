@@ -57,14 +57,14 @@ namespace ag
 	{
 		buffer_data.clear();
 	}
-	int GameDataBuffer::size() const noexcept
+	int GameDataBuffer::numberOfGames() const noexcept
 	{
 		return buffer_data.size();
 	}
 	int GameDataBuffer::numberOfSamples() const noexcept
 	{
 		int result = 0;
-		for (size_t i = 0; i < buffer_data.size(); i++)
+		for (int i = 0; i < numberOfGames(); i++)
 			result += buffer_data[i].numberOfSamples();
 		return result;
 	}

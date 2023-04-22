@@ -172,7 +172,7 @@ namespace ag
 	bool GeneratorManager::hasEnoughGames() const noexcept
 	{
 		std::lock_guard<std::mutex> lock(buffer_mutex);
-		return game_buffer.size() >= games_to_generate;
+		return game_buffer.numberOfGames() >= games_to_generate;
 	}
 	void GeneratorManager::resetGames()
 	{
@@ -221,7 +221,7 @@ namespace ag
 	}
 	void GeneratorManager::printStats()
 	{
-		std::cout << "Played games = " << game_buffer.size() << "/" << games_to_generate << '\n';
+		std::cout << "Played games = " << game_buffer.numberOfGames() << "/" << games_to_generate << '\n';
 		std::cout << game_buffer.getStats().toString() << '\n';
 
 		NNEvaluatorStats evaluator_stats;

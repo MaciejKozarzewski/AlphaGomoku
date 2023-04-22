@@ -98,7 +98,7 @@ namespace ag
 			search.expand(tree);
 			search.backup(tree);
 
-			if (tree.getSimulationCount() > selfplay_config.simulations)
+			if (tree.getSimulationCount() > selfplay_config.simulations or tree.isRootProven())
 			{
 				make_move();
 				if (game.isOver())
@@ -151,6 +151,8 @@ namespace ag
 //		std::cout << tree.getNodeCacheStats().toString() << '\n';
 //		std::cout << search.getStats().toString() << '\n';
 //		std::cout << nn_evaluator.getStats().toString() << '\n';
+//		tree.clearNodeCacheStats();
+//		search.clearStats();
 //		search.getSolver().print_stats();
 //		std::cout << Board::toString(game.getBoard(), true);
 //		std::cout << root_node.toString() << '\n';
@@ -172,12 +174,13 @@ namespace ag
 	void GameGenerator::prepare_search()
 	{
 		search.cleanup(tree);
-		tree.setBoard(game.getBoard(), game.getSignToMove(), true); // force remove root node
+		tree.setBoard(game.getBoard(), game.getSignToMove(), false); // force remove root node
 		search.setBoard(game.getBoard(), game.getSignToMove());
 
 		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
-		tree.setEdgeSelector(PUCTSelector(mcts_config.exploration_constant, 0.5f));
-		tree.setEdgeGenerator(NoisyGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
+		const int root_depth = Board::numberOfMoves(tree.getBoard());
+		tree.setEdgeSelector(NoisyPUCTSelector(root_depth, mcts_config.exploration_c, 0.5f));
+		tree.setEdgeGenerator(BaseGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold, true));
 	}
 
 } /* namespace ag */

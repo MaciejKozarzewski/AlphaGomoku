@@ -45,6 +45,7 @@ namespace ag
 			void loadBuffer(GameDataBuffer &result, const std::string &path);
 
 			int get_last_checkpoint() const;
+			void save_buffer_stats(const GameDataBuffer &buffer) const;
 	};
 
 } /* namespace ag */

@@ -21,7 +21,7 @@ namespace
 	using namespace ag;
 	PUCTSelector_parent get_base_selector(const EngineSettings &settings)
 	{
-		return PUCTSelector_parent(settings.getSearchConfig().mcts_config.exploration_constant, settings.getStyleFactor()); // FIXME
+		return PUCTSelector_parent(settings.getSearchConfig().mcts_config.exploration_c, settings.getStyleFactor()); // FIXME
 	}
 	BaseGenerator get_base_generator(const EngineSettings &settings)
 	{

@@ -66,7 +66,8 @@ namespace ag
 	}
 
 	MCTSConfig::MCTSConfig(const Json &cfg) :
-			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
+			exploration_c(get_value<float>(cfg, "exploration_constant", Defaults::exploration_c)),
+			exploration_exponent(get_value<float>(cfg, "exploration_exponent", Defaults::exploration_exponent)),
 			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
 			policy_expansion_threshold(get_value<float>(cfg, "policy_expansion_threshold", Defaults::policy_expansion_threshold)),
 			style_factor(get_value<int>(cfg, "style_factor", Defaults::style_factor))
@@ -74,7 +75,7 @@ namespace ag
 	}
 	Json MCTSConfig::toJson() const
 	{
-		return Json( { { "exploration_constant", exploration_constant }, { "max_children", max_children }, { "policy_expansion_threshold",
+		return Json( { { "exploration_constant", exploration_c },{ "exploration_exponent", exploration_exponent }, { "max_children", max_children }, { "policy_expansion_threshold",
 				policy_expansion_threshold }, { "style_factor", style_factor } });
 	}
 
@@ -119,6 +120,7 @@ namespace ag
 
 	TrainingConfig::TrainingConfig(const Json &options) :
 			network_arch(get_value<std::string>(options, "network_arch")),
+			sampler_type(get_value<std::string>(options, "sampler_type", "visits")),
 			augment_training_data(get_value<bool>(options, "augment_training_data")),
 			device_config(options["device_config"]),
 			steps_per_iteration(get_value<int>(options, "steps_per_iteration")),
@@ -146,6 +148,7 @@ namespace ag
 	{
 		Json result;
 		result["network_arch"] = network_arch;
+		result["sampler_type"] = sampler_type;
 		result["augment_training_data"] = augment_training_data;
 		result["device_config"] = device_config.toJson();
 		result["steps_per_iteration"] = steps_per_iteration;
@@ -194,12 +197,18 @@ namespace ag
 			in_parallel(get_value<bool>(options, "in_parallel")),
 			selfplay_options(options["selfplay_options"])
 	{
+		if (options.hasKey("opponents"))
+			for (int i = 0; i < options["opponents"].size(); i++)
+				opponents.push_back(options["opponents"][i].getInt());
 	}
 	Json EvaluationConfig::toJson() const
 	{
 		Json result;
 		result["use_evaluation"] = use_evaluation;
 		result["in_parallel"] = in_parallel;
+		result["opponents"] = Json(JsonType::Array);
+		for (size_t i = 0; i < opponents.size(); i++)
+			result["opponents"][i] = opponents[i];
 		result["selfplay_options"] = selfplay_options.toJson();
 		return result;
 	}

@@ -46,12 +46,7 @@ namespace ag
 		search.setBoard(board, signToMove);
 
 		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
-//		if (startsWith(getName(), "old"))
-			tree.setEdgeSelector(PUCTSelector_parent(mcts_config.exploration_constant, 0.5f)); // FIXME
-//		else
-//			tree.setEdgeSelector(PUCTSelector(mcts_config.exploration_constant, 0.5f));
-
-//		tree.setEdgeSelector(PUCTSelector(mcts_config.exploration_constant, 0.5f));
+		tree.setEdgeSelector(PUCTSelector_parent(mcts_config.exploration_c, mcts_config.exploration_exponent, 0.5f));
 		tree.setEdgeGenerator(BaseGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
 	}
 	void Player::selectSolveEvaluate()
@@ -70,7 +65,30 @@ namespace ag
 	}
 	bool Player::isSearchOver()
 	{
-		if (tree.getSimulationCount() >= simulations)
+//		if (startsWith(getName(), "value"))
+//		{
+//			if (tree.getSimulationCount() > tree.getBoard().size() - Board::numberOfMoves(tree.getBoard()))
+//			{
+//				search.cleanup(tree);
+//				nn_evals = 0;
+//				return true;
+//			}
+//			else
+//				return false;
+//		}
+//		if (startsWith(getName(), "policy"))
+//		{
+//			if (tree.getSimulationCount() >= simulations)
+//			{
+//				search.cleanup(tree);
+//				nn_evals = 0;
+//				return true;
+//			}
+//			else
+//				return false;
+//		}
+
+		if (tree.getSimulationCount() >= simulations or tree.isRootProven())
 		{
 			search.cleanup(tree);
 			nn_evals = 0;
@@ -93,11 +111,27 @@ namespace ag
 	}
 	Move Player::getMove() const noexcept
 	{
+//		if (startsWith(getName(), "value"))
+//		{
+//			MaxValueSelector selector;
+//			const Node root_node = tree.getInfo( { });
+//			Edge *edge = selector.select(&root_node);
+//			return edge->getMove();
+//		}
+//		if (startsWith(getName(), "policy"))
+//		{
+//			MaxPolicySelector selector;
+//			const Node root_node = tree.getInfo( { });
+//			Edge *edge = selector.select(&root_node);
+//			return edge->getMove();
+//		}
+
 		BestEdgeSelector selector;
 		const Node root_node = tree.getInfo( { });
 		Edge *edge = selector.select(&root_node);
 
 //		std::cout << "Player : " << getName() << '\n';
+//		std::cout << '\n' << "selected : " << edge->toString() << '\n';
 //		std::cout << Board::toString(tree.getBoard(), true) << '\n';
 //		std::cout << root_node.toString() << '\n';
 //		root_node.sortEdges();

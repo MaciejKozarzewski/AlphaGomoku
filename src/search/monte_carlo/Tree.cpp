@@ -82,7 +82,7 @@ namespace
 		tmp.increaseDistance();
 		if (edge->getScore() != -tmp)
 			return true;
-		if ((edge->getValue() - edge->getNode()->getValue().getInverted()).abs() >= leak_threshold)
+		if ((edge->getValue() - edge->getNode()->getValue().getInverted()).abs() > leak_threshold)
 			return true;
 		return false;
 	}
@@ -336,6 +336,31 @@ namespace ag
 			}
 			else
 				break;
+
+//			if (has_information_leak(pair.edge))
+//			{
+//				const Value current_edge_value = pair.edge->getValue();
+//				const Value target_value = pair.edge->getNode()->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
+//
+//				const int current_edge_visits = pair.edge->getVisits();
+//				const int target_visits = pair.edge->getNode()->getVisits();
+//
+//				const Value edge_correction = target_value - current_edge_value;
+//				const int visits_correction = target_visits - current_edge_visits;
+//
+//				const Value node_sum = pair.node->getValue() * pair.node->getVisits();
+//				const Value edge_sum = current_edge_value * current_edge_visits;
+//				const Value target_sum = target_value * target_visits;
+//
+//				const Value node_correction = (node_sum - edge_sum + target_sum) / static_cast<float>(pair.node->getVisits() + visits_correction)
+//						- pair.node->getValue();
+//				pair.edge->correctLeak(edge_correction, visits_correction);
+//				pair.node->correctLeak(node_correction, visits_correction);
+//				update_score(pair.edge);
+//				update_score(pair.node);
+//			}
+//			else
+//				break;
 		}
 	}
 	void Tree::cancelVirtualLoss(const SearchTask &task) noexcept

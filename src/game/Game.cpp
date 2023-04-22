@@ -160,7 +160,6 @@ namespace ag
 	{
 		Json result;
 		result["game_config"] = game_config.toJson();
-		result["outcome"] = toString(getOutcome());
 		result["moves"] = Json(JsonType::Array);
 		for (size_t i = 0; i < played_moves.size(); i++)
 			result["moves"][i] = played_moves[i].text();

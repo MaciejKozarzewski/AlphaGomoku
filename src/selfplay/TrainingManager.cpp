@@ -16,14 +16,6 @@ namespace
 {
 	using namespace ag;
 
-	std::string get_name(int id)
-	{
-		if (id < 10)
-			return "AG_00" + std::to_string(id);
-		if (id < 100)
-			return "AG_0" + std::to_string(id);
-		return "AG_" + std::to_string(id);
-	}
 	MasterLearningConfig load_config(std::string path)
 	{
 		if (not pathExists(path))
@@ -179,6 +171,7 @@ namespace ag
 			return;
 		std::cout << "Finished generating games\n";
 
+		save_buffer_stats(generator_manager.getGameBuffer());
 		splitBuffer(generator_manager.getGameBuffer(), training_games, validation_games);
 	}
 	void TrainingManager::train_and_validate()
@@ -201,11 +194,12 @@ namespace ag
 		std::cout << "Using learning rate " << learning_rate << '\n';
 		model->changeLearningRate(learning_rate);
 
+		const double start = getTime();
 		sl_manager.train(*model, train_buffer, config.training_config.steps_per_iteration);
 
 		// save model
 		model->saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
-		std::cout << "Training finished\n";
+		std::cout << "Training finished in " << (getTime() - start) << "s\n";
 
 		// run validation
 		GameDataBuffer validation_buffer;
@@ -231,17 +225,18 @@ namespace ag
 		const std::string path_to_networks = working_dir + "/checkpoint/network_";
 
 		const std::string first_network = path_to_networks + std::to_string(epoch) + "_opt.bin";
-		const std::string first_name = get_name(epoch);
+		const std::string first_name = "AG_" + zfill(epoch, 3);
 
 		EvaluationManager evaluator_manager(config.game_config, config.evaluation_config.selfplay_options);
 		evaluator_manager.setFirstPlayer(config.evaluation_config.selfplay_options, first_network, first_name);
 
 		std::cout << "Evaluating network " << epoch << " against";
-		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
+		const int max_parts = std::min(evaluator_manager.numberOfThreads(), (int) config.evaluation_config.opponents.size());
+		for (int i = 0; i < max_parts; i++)
 		{
-			const int index = std::max(0, epoch - 1 - i);
+			const int index = std::max(0, epoch + config.evaluation_config.opponents[i]);
 			const std::string second_network = path_to_networks + std::to_string(index) + "_opt.bin";
-			const std::string second_name = get_name(index);
+			const std::string second_name = "AG_" + zfill(index, 3);
 
 			evaluator_manager.setSecondPlayer(i, config.evaluation_config.selfplay_options, second_network, second_name);
 			std::cout << ((i == 0) ? " " : ", ") << std::to_string(index);
@@ -286,6 +281,26 @@ namespace ag
 	int TrainingManager::get_last_checkpoint() const
 	{
 		return static_cast<int>(metadata["last_checkpoint"]);
+	}
+	void TrainingManager::save_buffer_stats(const GameDataBuffer &buffer) const
+	{
+		if (working_dir.empty())
+			return;
+		std::string path = working_dir + "/buffer_stats.txt";
+		std::ofstream history_file;
+		history_file.open(path.data(), std::ios::app);
+		if (get_last_checkpoint() == 0)
+			history_file << "#step avg_samples avg_length cross_wins draws circle_wins\n";
+
+		const GameDataBufferStats stats = buffer.getStats();
+		history_file << get_last_checkpoint() << ' ';
+		history_file << (double) stats.samples / stats.games << ' ';
+		history_file << (double) stats.game_length / stats.games << ' ';
+		history_file << (double) stats.cross_win / stats.games << ' ';
+		history_file << (double) stats.draws / stats.games << ' ';
+		history_file << (double) stats.circle_win / stats.games;
+		history_file << '\n';
+		history_file.close();
 	}
 
 } /* namespace ag */

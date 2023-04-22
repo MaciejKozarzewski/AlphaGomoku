@@ -111,7 +111,8 @@ namespace ag
 		const int rows = model.getInputShape().dim(1);
 		const int cols = model.getInputShape().dim(2);
 
-		Sampler sampler(buffer, batch_size);
+		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
+		sampler->init(buffer, batch_size);
 
 		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
 
@@ -122,7 +123,7 @@ namespace ag
 
 			for (int b = 0; b < batch_size; b++)
 			{
-				sampler.get(data_packs.at(b));
+				sampler->get(data_packs.at(b));
 				if (config.augment_training_data)
 					augment_data_pack(data_packs.at(b));
 			}
@@ -148,17 +149,18 @@ namespace ag
 		const int rows = model.getInputShape().dim(1);
 		const int cols = model.getInputShape().dim(2);
 
-		Sampler sampler(buffer, batch_size);
+		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
+		sampler->init(buffer, batch_size);
 
 		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
 
 		int counter = 0;
-		while (counter < buffer.size())
+		while (counter < buffer.numberOfGames())
 		{
 			int this_batch = 0;
-			while (counter < buffer.size() and this_batch < batch_size)
+			while (counter < buffer.numberOfGames() and this_batch < batch_size)
 			{
-				sampler.get(data_packs.at(this_batch));
+				sampler->get(data_packs.at(this_batch));
 				counter++;
 				this_batch++;
 			}
