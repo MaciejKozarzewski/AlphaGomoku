@@ -38,21 +38,11 @@ namespace ag
 	class BaseGenerator: public EdgeGenerator
 	{
 		private:
-			int max_edges;
-			float expansion_threshold;
+			const int max_edges;
+			const float expansion_threshold;
+			const bool force_expand_root;
 		public:
-			BaseGenerator(int maxEdges, float expansionThreshold);
-			std::unique_ptr<EdgeGenerator> clone() const;
-			void generate(SearchTask &task) const;
-	};
-
-	class NoisyGenerator: public EdgeGenerator
-	{
-		private:
-			int max_edges;
-			float expansion_threshold;
-		public:
-			NoisyGenerator(int maxEdges, float expansionThreshold);
+			BaseGenerator(int maxEdges, float expansionThreshold, bool forceExpandRoot = false);
 			std::unique_ptr<EdgeGenerator> clone() const;
 			void generate(SearchTask &task) const;
 	};

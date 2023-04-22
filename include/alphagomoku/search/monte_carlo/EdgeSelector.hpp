@@ -57,9 +57,26 @@ namespace ag
 	{
 		private:
 			const float exploration_constant; /**< controls the level of exploration */
+			const float exploration_exponent;
 			const float style_factor; /**< used to determine what to optimize during search */
 		public:
-			PUCTSelector_parent(float exploration, float styleFactor = 0.5f);
+			PUCTSelector_parent(float exploration_c, float exploration_exp, float styleFactor = 0.5f);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+	/**
+	 * @brief PUCT edge selector that optimizes P(win) + styleFactor * P(draw) but applies noise to the policy priors.
+	 */
+	class NoisyPUCTSelector: public EdgeSelector
+	{
+		private:
+			std::vector<float> noisy_policy;
+			const int root_depth;
+			const float exploration_constant; /**< controls the level of exploration */
+			const float style_factor; /**< used to determine what to optimize during search */
+			bool is_initialized = false;
+		public:
+			NoisyPUCTSelector(int rootDepth, float exploration, float styleFactor = 0.5f);
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
 	};
@@ -103,11 +120,23 @@ namespace ag
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
 	};
+	class MaxPolicySelector: public EdgeSelector
+	{
+		public:
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
 
 	/**
 	 * @brief Edge selector that chooses edge with the most visits.
 	 */
 	class MaxVisitSelector: public EdgeSelector
+	{
+		public:
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+	class MinVisitSelector: public EdgeSelector
 	{
 		public:
 			std::unique_ptr<EdgeSelector> clone() const;

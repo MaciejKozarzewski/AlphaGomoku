@@ -24,20 +24,17 @@ namespace
 		float sum_priors = 0.0f;
 		for (size_t i = 0; i < edges.size(); i++)
 			sum_priors += edges[i].getPolicyPrior();
-		if (fabsf(sum_priors - 1.0f) > 0.01f) // do not renormalize if the sum is close to 1
+		if (sum_priors == 0.0f)
+		{ // in this case divide the distribution evenly among all edges
+			sum_priors = 1.0f / edges.size();
+			for (size_t i = 0; i < edges.size(); i++)
+				edges[i].setPolicyPrior(sum_priors);
+		}
+		else
 		{
-			if (sum_priors == 0.0f)
-			{ // in this case divide the distribution evenly among all edges
-				sum_priors = 1.0f / edges.size();
-				for (size_t i = 0; i < edges.size(); i++)
-					edges[i].setPolicyPrior(sum_priors);
-			}
-			else
-			{
-				sum_priors = 1.0f / sum_priors;
-				for (size_t i = 0; i < edges.size(); i++)
-					edges[i].setPolicyPrior(edges[i].getPolicyPrior() * sum_priors);
-			}
+			sum_priors = 1.0f / sum_priors;
+			for (size_t i = 0; i < edges.size(); i++)
+				edges[i].setPolicyPrior(edges[i].getPolicyPrior() * sum_priors);
 		}
 	}
 	struct MaxPolicyPrior
@@ -173,18 +170,21 @@ namespace
 
 namespace ag
 {
-	BaseGenerator::BaseGenerator(int maxEdges, float expansionThreshold) :
+	BaseGenerator::BaseGenerator(int maxEdges, float expansionThreshold, bool forceExpandRoot) :
 			max_edges(maxEdges),
-			expansion_threshold(expansionThreshold)
+			expansion_threshold(expansionThreshold),
+			force_expand_root(forceExpandRoot)
 	{
 	}
 	std::unique_ptr<EdgeGenerator> BaseGenerator::clone() const
 	{
-		return std::make_unique<BaseGenerator>(max_edges, expansion_threshold);
+		return std::make_unique<BaseGenerator>(max_edges, expansion_threshold, force_expand_root);
 	}
 	void BaseGenerator::generate(SearchTask &task) const
 	{
 		assert(task.isReady());
+
+		const bool expand_fully = (task.getRelativeDepth() == 0 and force_expand_root);
 
 		if (task.mustDefend())
 		{
@@ -202,7 +202,8 @@ namespace ag
 		initialize_edges(task);
 		if (not task.wasProcessedBySolver())
 			check_terminal_conditions(task);
-		prune_weak_moves(task, max_edges, expansion_threshold);
+		if (not expand_fully) // do not prune root if such option is turned on
+			prune_weak_moves(task, max_edges, expansion_threshold);
 		renormalize_policy(task.getEdges());
 
 		if (task.getEdges().size() == 0) // TODO remove this later
@@ -220,26 +221,6 @@ namespace ag
 		}
 
 		assert(task.getEdges().size() > 0);
-	}
-
-	NoisyGenerator::NoisyGenerator(int maxEdges, float expansionThreshold) :
-			max_edges(maxEdges),
-			expansion_threshold(expansionThreshold)
-	{
-	}
-	std::unique_ptr<EdgeGenerator> NoisyGenerator::clone() const
-	{
-		return std::make_unique<NoisyGenerator>(max_edges, expansion_threshold);
-	}
-	void NoisyGenerator::generate(SearchTask &task) const
-	{
-		assert(task.isReady());
-
-		if (task.getRelativeDepth() == 0)
-			addNoise(task.getBoard(), task.getPolicy(), 0.25f);
-//			addDirichletNoise(task.getBoard(), task.getPolicy(), 0.25f);
-//			addGumbelNoise(task.getBoard(), task.getPolicy(), 1.0f);
-		BaseGenerator(max_edges, expansion_threshold).generate(task);
 	}
 
 	BalancedGenerator::BalancedGenerator(int balanceDepth, const EdgeGenerator &baseGenerator) :
