@@ -62,7 +62,7 @@ namespace ag
 			std::atomic<int> max_depth { 0 };
 			Sign sign_to_move = Sign::NONE;
 
-			TreeConfig tree_config;
+			TreeConfig config;
 		public:
 			Tree(const TreeConfig &treeConfig);
 			int64_t getMemory() const noexcept;

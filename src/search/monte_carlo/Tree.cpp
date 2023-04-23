@@ -72,11 +72,11 @@ namespace
 		}
 	}
 
-	bool has_information_leak(const Edge *edge) noexcept
+	bool has_information_leak(const Edge *edge, float leak_threshold) noexcept
 	{
-		constexpr float leak_threshold = 0.01f;
 		assert(edge != nullptr);
-		if (edge->isLeaf())
+		assert(leak_threshold >= 0.0f);
+		if (edge->isLeaf() or leak_threshold >= 1.0f)
 			return false;
 		Score tmp = edge->getNode()->getScore();
 		tmp.increaseDistance();
@@ -113,7 +113,7 @@ namespace
 namespace ag
 {
 	Tree::Tree(const TreeConfig &treeConfig) :
-			tree_config(treeConfig)
+			config(treeConfig)
 	{
 	}
 	int64_t Tree::getMemory() const noexcept
@@ -129,7 +129,7 @@ namespace ag
 		if (not equalSize(base_board, newBoard))
 		{
 			const GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
-			node_cache = NodeCache(game_config, tree_config);
+			node_cache = NodeCache(game_config, config);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size
 		}
@@ -235,7 +235,7 @@ namespace ag
 				// if not found in the cache it means that the edge is really a leaf
 			}
 
-			if (has_information_leak(edge))
+			if (has_information_leak(edge, config.information_leak_threshold))
 				return SelectOutcome::INFORMATION_LEAK;
 		}
 		max_depth = std::max((int) max_depth, task.visitedPathLength());
@@ -283,7 +283,7 @@ namespace ag
 			if (task.visitedPathLength() > 0) // in a rare case it could be that the root node has already been expanded by some other thread
 			{ // but if not
 				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
-				if (has_information_leak(task.getLastEdge()))
+				if (has_information_leak(task.getLastEdge(), config.information_leak_threshold))
 					correctInformationLeak(task);
 			}
 			return ExpandOutcome::ALREADY_EXPANDED;
@@ -322,7 +322,7 @@ namespace ag
 		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
 		{
 			NodeEdgePair pair = task.getPair(i);
-			if (has_information_leak(pair.edge))
+			if (has_information_leak(pair.edge, config.information_leak_threshold))
 			{
 				const Value current_edge_value = pair.edge->getValue();
 				const Value target_edge_value = pair.edge->getNode()->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
