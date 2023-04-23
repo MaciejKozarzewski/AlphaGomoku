@@ -46,7 +46,8 @@ namespace ag
 		search.setBoard(board, signToMove);
 
 		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
-		tree.setEdgeSelector(PUCTSelector_parent(mcts_config.exploration_c, mcts_config.exploration_exponent, 0.5f));
+		std::unique_ptr<EdgeSelector> tmp = EdgeSelector::create(mcts_config.edge_selector_config);
+		tree.setEdgeSelector(*tmp);
 		tree.setEdgeGenerator(BaseGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
 	}
 	void Player::selectSolveEvaluate()

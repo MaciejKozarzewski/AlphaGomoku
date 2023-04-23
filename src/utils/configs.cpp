@@ -54,6 +54,7 @@ namespace ag
 	}
 
 	TreeConfig::TreeConfig(const Json &cfg) :
+			information_leak_threshold(get_value<float>(cfg, "information_leak_threshold", Defaults::information_leak_threshold)),
 			initial_node_cache_size(get_value<int>(cfg, "initial_node_cache_size", Defaults::initial_node_cache_size)),
 			edge_bucket_size(get_value<int>(cfg, "edge_bucket_size", Defaults::edge_bucket_size)),
 			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size))
@@ -61,22 +62,36 @@ namespace ag
 	}
 	Json TreeConfig::toJson() const
 	{
-		return Json( { { "initial_node_cache_size", initial_node_cache_size }, { "edge_bucket_size", edge_bucket_size }, { "node_bucket_size",
-				node_bucket_size } });
+		return Json( { { "information_leak_threshold", information_leak_threshold }, { "initial_node_cache_size", initial_node_cache_size }, {
+				"edge_bucket_size", edge_bucket_size }, { "node_bucket_size", node_bucket_size } });
+	}
+
+	EdgeSelectorConfig::EdgeSelectorConfig(const Json &cfg) :
+			policy(get_value<std::string>(cfg, "policy", "puct")),
+			init_to(get_value<std::string>(cfg, "init_to", "parent")),
+			noise_type(get_value<std::string>(cfg, "noise_type", "none")),
+			noise_weight(get_value<float>(cfg, "noise_weight", Defaults::noise_weight)),
+			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
+			exploration_exponent(get_value<float>(cfg, "exploration_exponent", Defaults::exploration_exponent)),
+			style_factor(get_value<float>(cfg, "style_factor", Defaults::style_factor))
+	{
+	}
+	Json EdgeSelectorConfig::toJson() const
+	{
+		return Json( { { "policy", policy }, { "init_to", init_to }, { "noise_type", noise_type }, { "noise_weight", noise_weight }, {
+				"exploration_constant", exploration_constant }, { "exploration_exponent", exploration_exponent }, { "style_factor", style_factor } });
 	}
 
 	MCTSConfig::MCTSConfig(const Json &cfg) :
-			exploration_c(get_value<float>(cfg, "exploration_constant", Defaults::exploration_c)),
-			exploration_exponent(get_value<float>(cfg, "exploration_exponent", Defaults::exploration_exponent)),
+			edge_selector_config(get_value<EdgeSelectorConfig>(cfg, "edge_selector_config", EdgeSelectorConfig())),
 			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
-			policy_expansion_threshold(get_value<float>(cfg, "policy_expansion_threshold", Defaults::policy_expansion_threshold)),
-			style_factor(get_value<int>(cfg, "style_factor", Defaults::style_factor))
+			policy_expansion_threshold(get_value<float>(cfg, "policy_expansion_threshold", Defaults::policy_expansion_threshold))
 	{
 	}
 	Json MCTSConfig::toJson() const
 	{
-		return Json( { { "exploration_constant", exploration_c },{ "exploration_exponent", exploration_exponent }, { "max_children", max_children }, { "policy_expansion_threshold",
-				policy_expansion_threshold }, { "style_factor", style_factor } });
+		return Json( { { "edge_selector_config", edge_selector_config.toJson() }, { "max_children", max_children }, { "policy_expansion_threshold",
+				policy_expansion_threshold } });
 	}
 
 	TSSConfig::TSSConfig(const Json &cfg) :

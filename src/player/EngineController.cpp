@@ -19,9 +19,9 @@
 namespace
 {
 	using namespace ag;
-	PUCTSelector_parent get_base_selector(const EngineSettings &settings)
+	std::unique_ptr<EdgeSelector> get_base_selector(const EngineSettings &settings)
 	{
-		return PUCTSelector_parent(settings.getSearchConfig().mcts_config.exploration_c, settings.getStyleFactor()); // FIXME
+		return EdgeSelector::create(settings.getSearchConfig().mcts_config.edge_selector_config);
 	}
 	BaseGenerator get_base_generator(const EngineSettings &settings)
 	{
@@ -33,13 +33,13 @@ namespace ag
 {
 	Move get_balanced_move(const SearchSummary &summary)
 	{
-		BalancedSelector selector(std::numeric_limits<int>::max(), PUCTSelector(0.0f));
+		BalancedSelector selector;
 		return selector.select(&summary.node)->getMove();
 	}
 	std::vector<Move> get_multiple_balanced_moves(SearchSummary summary, int number)
 	{
 		assert(summary.node.numberOfEdges() >= number);
-		BalancedSelector selector(std::numeric_limits<int>::max(), PUCTSelector(0.0f));
+		BalancedSelector selector;
 		std::vector<Move> result;
 		for (int i = 0; i < number; i++)
 		{
@@ -117,7 +117,7 @@ namespace ag
 	void EngineController::start_best_move_search()
 	{
 		time_manager.startTimer();
-		search_engine.setEdgeSelector(get_base_selector(engine_settings));
+		search_engine.setEdgeSelector(*get_base_selector(engine_settings));
 		search_engine.setEdgeGenerator(get_base_generator(engine_settings));
 		search_engine.startSearch();
 	}
@@ -125,7 +125,7 @@ namespace ag
 	{
 		time_manager.startTimer();
 		const int move_number = search_engine.getTree().getMoveNumber();
-		search_engine.setEdgeSelector(BalancedSelector(move_number + balancingMoves, get_base_selector(engine_settings)));
+		search_engine.setEdgeSelector(BalancedSelector(move_number + balancingMoves, *get_base_selector(engine_settings)));
 		search_engine.setEdgeGenerator(BalancedGenerator(move_number + balancingMoves, get_base_generator(engine_settings)));
 		search_engine.startSearch();
 	}
@@ -133,7 +133,7 @@ namespace ag
 	{
 		time_manager.startTimer();
 		const int move_number = search_engine.getTree().getMoveNumber();
-		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, get_base_selector(engine_settings)));
+		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, *get_base_selector(engine_settings)));
 		search_engine.setEdgeGenerator(CenterOnlyGenerator(centralSquareSize, get_base_generator(engine_settings)));
 		search_engine.startSearch();
 	}
@@ -141,7 +141,7 @@ namespace ag
 	{
 		time_manager.startTimer();
 		const int move_number = search_engine.getTree().getMoveNumber();
-		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, get_base_selector(engine_settings)));
+		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, *get_base_selector(engine_settings)));
 		search_engine.setEdgeGenerator(CenterExcludingGenerator(centralSquareSize, get_base_generator(engine_settings)));
 		search_engine.startSearch();
 	}
@@ -149,7 +149,7 @@ namespace ag
 	{
 		time_manager.startTimer();
 		const int move_number = search_engine.getTree().getMoveNumber();
-		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, get_base_selector(engine_settings)));
+		search_engine.setEdgeSelector(BalancedSelector(move_number + 1, *get_base_selector(engine_settings)));
 		search_engine.setEdgeGenerator(SymmetricalExcludingGenerator(get_base_generator(engine_settings)));
 		search_engine.startSearch();
 	}

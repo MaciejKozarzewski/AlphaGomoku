@@ -164,7 +164,7 @@ namespace ag
 			}
 			if (option.name == "style")
 			{
-				search_config.mcts_config.style_factor = std::stoi(option.value);
+				search_config.mcts_config.edge_selector_config.style_factor = 0.25f * std::stoi(option.value);
 				return SetOptionOutcome::SUCCESS;
 			}
 
@@ -267,11 +267,6 @@ namespace ag
 	{
 		std::lock_guard lock(mutex);
 		return max_memory - 150 * 1024 * 1024; // assuming 150MB offset for all objects other than the Tree
-	}
-	float EngineSettings::getStyleFactor() const noexcept
-	{
-		std::lock_guard lock(mutex);
-		return 0.25f * search_config.mcts_config.style_factor;
 	}
 	bool EngineSettings::isInAnalysisMode() const noexcept
 	{

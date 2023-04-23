@@ -151,9 +151,9 @@ namespace ag
 //		std::cout << tree.getNodeCacheStats().toString() << '\n';
 //		std::cout << search.getStats().toString() << '\n';
 //		std::cout << nn_evaluator.getStats().toString() << '\n';
+//		search.getSolver().print_stats();
 //		tree.clearNodeCacheStats();
 //		search.clearStats();
-//		search.getSolver().print_stats();
 //		std::cout << Board::toString(game.getBoard(), true);
 //		std::cout << root_node.toString() << '\n';
 //		root_node.sortEdges();
@@ -178,8 +178,8 @@ namespace ag
 		search.setBoard(game.getBoard(), game.getSignToMove());
 
 		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
-		const int root_depth = Board::numberOfMoves(tree.getBoard());
-		tree.setEdgeSelector(NoisyPUCTSelector(root_depth, mcts_config.exploration_c, 0.5f));
+		std::unique_ptr<EdgeSelector> tmp = EdgeSelector::create(mcts_config.edge_selector_config);
+		tree.setEdgeSelector(*tmp);
 		tree.setEdgeGenerator(BaseGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold, true));
 	}
 

@@ -48,11 +48,13 @@ namespace ag
 		private:
 			struct Defaults
 			{
+					static constexpr float information_leak_threshold = 0.01f;
 					static constexpr int initial_node_cache_size = 65536;
 					static constexpr int edge_bucket_size = 100000;
 					static constexpr int node_bucket_size = 10000;
 			};
 		public:
+			float information_leak_threshold = Defaults::information_leak_threshold;
 			int initial_node_cache_size = Defaults::initial_node_cache_size;
 			int edge_bucket_size = Defaults::edge_bucket_size;
 			int node_bucket_size = Defaults::node_bucket_size;
@@ -61,23 +63,43 @@ namespace ag
 			TreeConfig(const Json &cfg);
 			Json toJson() const;
 	};
+
+	struct EdgeSelectorConfig
+	{
+		private:
+			struct Defaults
+			{
+					static constexpr float noise_weight = 0.0f;
+					static constexpr float exploration_constant = 1.25f;
+					static constexpr float exploration_exponent = 0.5f;
+					static constexpr float style_factor = 0.5f;
+			};
+		public:
+			std::string policy = "puct"; // allowed values are: 'puct', 'uct', 'max_value', 'max_policy', 'max_visit', 'min_visit,' 'best'
+			std::string init_to = "parent"; // allowed values are: 'parent', 'loss', 'draw', 'q_head'
+			std::string noise_type = "none"; // allowed values are: 'none', 'custom', 'dirichlet', 'gumbel'
+			float noise_weight = Defaults::noise_weight; // only relevant if noise_type != 'none'
+			float exploration_constant = Defaults::exploration_constant;
+			float exploration_exponent = Defaults::exploration_exponent;
+			float style_factor = Defaults::style_factor;
+
+			EdgeSelectorConfig() = default;
+			EdgeSelectorConfig(const Json &cfg);
+			Json toJson() const;
+	};
+
 	struct MCTSConfig
 	{
 		private:
 			struct Defaults
 			{
-					static constexpr float exploration_c = 1.25f;
-					static constexpr float exploration_exponent = 0.5f;
 					static constexpr int max_children = std::numeric_limits<int>::max();
 					static constexpr float policy_expansion_threshold = 0.0f;
-					static constexpr int style_factor = 2;
 			};
 		public:
-			float exploration_c = Defaults::exploration_c;
-			float exploration_exponent = Defaults::exploration_exponent;
+			EdgeSelectorConfig edge_selector_config;
 			int max_children = Defaults::max_children;
 			float policy_expansion_threshold = Defaults::policy_expansion_threshold;
-			int style_factor = Defaults::style_factor; /**< 0 - win + draw, 2 - win + 0.5 * draw, 4 - win */
 
 			MCTSConfig() = default;
 			MCTSConfig(const Json &cfg);

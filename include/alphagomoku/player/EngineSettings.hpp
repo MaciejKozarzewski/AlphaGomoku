@@ -83,7 +83,6 @@ namespace ag
 			int getMaxNodes() const noexcept;
 			int getThreadNum() const noexcept;
 			int64_t getMaxMemory() const noexcept;
-			float getStyleFactor() const noexcept;
 			bool isInAnalysisMode() const noexcept;
 			bool isUsingAutoPondering() const noexcept;
 			bool isUsingSymmetries() const noexcept;

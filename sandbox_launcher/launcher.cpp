@@ -1191,8 +1191,6 @@ void test_search()
 
 	SearchConfig search_config;
 	search_config.max_batch_size = 8;
-	search_config.mcts_config.exploration_c = 1.25f;
-	search_config.mcts_config.exploration_exponent = 0.5f;
 	search_config.mcts_config.max_children = 32;
 	search_config.mcts_config.policy_expansion_threshold = 1.0e-4f;
 	search_config.tss_config.mode = 0;
@@ -1213,7 +1211,7 @@ void test_search()
 	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku550/networks/network_57_opt.bin");
 //	nn_evaluator.loadGraph("./old_6x64s.bin");
-	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/test4_test/checkpoint/network_118_opt.bin");
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/test7_test/checkpoint/network_37_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/standard_15x15/checkpoint/network_0_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/tl/checkpoint/network_99_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/test_6x64s/checkpoint/network_70_opt.bin");
@@ -2348,18 +2346,23 @@ void test_search()
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
 //	tree.setEdgeSelector(NoisyPUCTSelector(Board::numberOfMoves(board), 1.25f));
-	tree.setEdgeSelector(PUCTSelector_parent(search_config.mcts_config.exploration_c, search_config.mcts_config.exploration_exponent));
+
+	search_config.mcts_config.edge_selector_config.init_to = "q_head";
+	search_config.mcts_config.edge_selector_config.noise_type = "gumbel";
+	search_config.mcts_config.edge_selector_config.noise_weight = 1.0f;
+
+	tree.setEdgeSelector(PUCTSelector(search_config.mcts_config.edge_selector_config));
 	tree.setEdgeGenerator(BaseGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold, false));
 
 	int next_step = 0;
-	for (int j = 0; j <= 100000; j++)
+	for (int j = 0; j <= 1; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ..." << std::endl;
 			next_step += 10000;
 		}
-		search.select(tree, 100000);
+		search.select(tree, 1);
 		search.solve();
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
@@ -2615,14 +2618,18 @@ void test_nnue()
 
 void test_evaluate()
 {
-	const std::string path = "/home/maciek/alphagomoku/new_runs/test5_test/";
+	const std::string path = "/home/maciek/alphagomoku/new_runs/test6_test/";
 	MasterLearningConfig config(FileLoader(path + "config.json").getJson());
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
 
+//	cfg.simulations = 1000;
+//	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "old_6x64s");
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/test5_test/checkpoint/network_159_opt.bin", "AG_159");
+
 	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "old_6x64s");
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/test5_test/checkpoint/network_150_opt.bin", "AG_150");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/test6_test/checkpoint/network_60_opt.bin", "AG_060");
 
 	const double start = getTime();
 	manager.generate(1000);
@@ -2630,7 +2637,7 @@ void test_evaluate()
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs/test5_test/asdf.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs/test6_test/compare.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -2640,34 +2647,37 @@ void parameter_tuning()
 //	std::vector<double> exploration_c = { 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5 };
 //	std::vector<double> exploration_exp = { 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8 };
 
-	std::vector<double> exploration_c = { 1.0 };
-	std::vector<double> exploration_exp = { 0.4 };
+	std::vector<double> exploration_c = { 1.25 };
+	std::vector<double> exploration_exp = { 0.5 };
 
 	for (size_t i1 = 0; i1 < exploration_c.size(); i1++)
 		for (size_t i2 = 0; i2 < exploration_exp.size(); i2++)
 		{
-			const std::string path = "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/";
-			MasterLearningConfig config(FileLoader(path + "tuning_cfg.json").getJson());
+			const std::string path = "/home/maciek/alphagomoku/new_runs/";
+			MasterLearningConfig config(FileLoader(path + "tuning_config.json").getJson());
 			EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 			SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-			cfg.simulations = 200;
+			cfg.simulations = 4000;
 			cfg.search_config.tss_config.max_positions = 100;
 
 			manager.setFirstPlayer(cfg, "./old_6x64s.bin", "base");
 
-			cfg.search_config.mcts_config.exploration_c = exploration_c[i1];
-			cfg.search_config.mcts_config.exploration_exponent = exploration_exp[i2];
-			manager.setSecondPlayer(cfg, "./old_6x64s.bin", "old_" + std::to_string(exploration_c[i1]) + "_" + std::to_string(exploration_exp[i2]));
+			cfg.search_config.mcts_config.edge_selector_config.init_to = "loss";
+
+//			cfg.search_config.mcts_config.edge_selector_config.exploration_constant = exploration_c[i1];
+//			cfg.search_config.mcts_config.edge_selector_config.exploration_exponent = exploration_exp[i2];
+//			manager.setSecondPlayer(cfg, "./old_6x64s.bin", "old_" + std::to_string(exploration_c[i1]) + "_" + std::to_string(exploration_exp[i2]));
+			manager.setSecondPlayer(cfg, "./old_6x64s.bin", "init_to_loss");
 
 			std::cout << "testing " << exploration_c[i1] << " " << exploration_exp[i2] << '\n';
 			const double start = getTime();
-			manager.generate(10000);
+			manager.generate(256);
 			const double stop = getTime();
 			std::cout << "generated in " << (stop - start) << '\n';
 
 			const std::string to_save = manager.getPGN();
-			std::ofstream file("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/tuning_200.pgn", std::ios::out | std::ios::app);
+			std::ofstream file("/home/maciek/alphagomoku/new_runs/testy.pgn", std::ios::out | std::ios::app);
 			file.write(to_save.data(), to_save.size());
 			file.close();
 		}
@@ -2970,7 +2980,7 @@ void test_proven_search(int mcts_nodes, int tss_nodes, bool fast)
 
 	SearchConfig search_config;
 	search_config.max_batch_size = 32;
-	search_config.mcts_config.exploration_c = 1.25f;
+	search_config.mcts_config.edge_selector_config.exploration_constant = 1.25f;
 	search_config.mcts_config.max_children = 32;
 	search_config.tss_config.mode = 2;
 	search_config.tss_config.max_positions = tss_nodes;
@@ -3007,7 +3017,7 @@ void test_proven_search(int mcts_nodes, int tss_nodes, bool fast)
 
 			tree.setBoard(pack.board, pack.played_move.sign);
 			search.setBoard(pack.board, pack.played_move.sign);
-			tree.setEdgeSelector(PUCTSelector(1.25f));
+			tree.setEdgeSelector(PUCTSelector(search_config.mcts_config.edge_selector_config));
 			tree.setEdgeGenerator(BaseGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold));
 
 			for (int k = 0; k <= mcts_nodes; k++)
@@ -3608,7 +3618,7 @@ int main(int argc, char *argv[])
 //	transfer_learning();
 
 //	convert_old_network();
-//	test_search();
+	test_search();
 //	prepare_proven_dataset();
 //	test_evaluate();
 //	parameter_tuning();
@@ -3621,9 +3631,9 @@ int main(int argc, char *argv[])
 //	train_simple_evaluator();
 //	return 0;
 
-	TrainingManager tm("/home/maciek/alphagomoku/new_runs/test_test/");
-	for (int i = 0; i < 1; i++)
-		tm.runIterationRL();
+//	TrainingManager tm("/home/maciek/alphagomoku/new_runs/test8_test/");
+//	for (int i = 0; i < 1; i++)
+//		tm.runIterationRL();
 
 //	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/sampler_v2/", "/home/maciek/alphagomoku/new_runs_2023/corrected_15x15s/");
 //	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/history1/", "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/standard_15x15/");
