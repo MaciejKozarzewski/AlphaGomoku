@@ -244,8 +244,6 @@ namespace ag
 		std::cout << '\n';
 
 		evaluator_manager.generate(config.evaluation_config.selfplay_options.games_per_iteration);
-		if (hasCapturedSignal(SignalType::INT))
-			return;
 
 		const std::string to_save = evaluator_manager.getPGN();
 		std::cout << "Evaluation finished\n";
