@@ -16,6 +16,20 @@
 #include <minml/utils/json.hpp>
 #include <minml/utils/serialization.hpp>
 
+namespace
+{
+	/*
+	 * Function used to calculate reduced number of simulations if draw probability exceeds certain threshold.
+	 */
+	int get_simulations_for_move(float drawRate, int maxSimulations, int minSimulations) noexcept
+	{
+		assert(maxSimulations >= minSimulations);
+		constexpr float draw_threshold = 0.7f;
+		const float reduction_fraction = ag::clip((drawRate - draw_threshold) / (1.0f - draw_threshold), 0.0f, 1.0f);
+		return maxSimulations - reduction_fraction * (maxSimulations - minSimulations);
+	}
+}
+
 namespace ag
 {
 	GameGenerator::GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GeneratorManager &manager,
@@ -98,7 +112,11 @@ namespace ag
 			search.expand(tree);
 			search.backup(tree);
 
-			if (tree.getSimulationCount() > selfplay_config.simulations or tree.isRootProven())
+			// if draw probability is higher than some level we proportionally reduce the number of simulations to save time (15-20% speedup)
+			const Value root_eval = tree.getInfo( { }).getValue();
+			const int simulations = get_simulations_for_move(root_eval.draw_rate, selfplay_config.simulations, 100);
+
+			if (tree.getSimulationCount() > simulations or tree.isRootProven())
 			{
 				make_move();
 				if (game.isOver())
