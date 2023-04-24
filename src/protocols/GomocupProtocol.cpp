@@ -8,6 +8,7 @@
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/version.hpp>
 
 #include <cassert>
@@ -39,12 +40,12 @@ namespace ag
 			Protocol(queueIN, queueOUT)
 	{
 		// @formatter:off
-		registerOutputProcessor(MessageType::BEST_MOVE, [this](OutputSender &sender) { this->best_move(sender);});
-		registerOutputProcessor(MessageType::PLAIN_STRING, [this](OutputSender &sender) { this->plain_string(sender);});
+		registerOutputProcessor(MessageType::BEST_MOVE,       [this](OutputSender &sender) { this->best_move(sender);});
+		registerOutputProcessor(MessageType::PLAIN_STRING,    [this](OutputSender &sender) { this->plain_string(sender);});
 		registerOutputProcessor(MessageType::UNKNOWN_COMMAND, [this](OutputSender &sender) { this->unknown_command(sender);});
-		registerOutputProcessor(MessageType::ERROR, [this](OutputSender &sender) { this->error(sender);});
-		registerOutputProcessor(MessageType::INFO_MESSAGE, [this](OutputSender &sender) { this->info_message(sender);});
-		registerOutputProcessor(MessageType::ABOUT_ENGINE, [this](OutputSender &sender) { this->about_engine(sender);});
+		registerOutputProcessor(MessageType::ERROR,           [this](OutputSender &sender) { this->error(sender);});
+		registerOutputProcessor(MessageType::INFO_MESSAGE,    [this](OutputSender &sender) { this->info_message(sender);});
+		registerOutputProcessor(MessageType::ABOUT_ENGINE,    [this](OutputSender &sender) { this->about_engine(sender);});
 
 		registerInputProcessor("info timeout_turn", [this](InputListener &listener) { this->info_timeout_turn(listener);});
 		registerInputProcessor("info timeout_match",[this](InputListener &listener) { this->info_timeout_match(listener);});

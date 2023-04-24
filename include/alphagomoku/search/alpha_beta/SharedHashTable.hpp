@@ -11,7 +11,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/ZobristHashing.hpp>
 #include <alphagomoku/search/Score.hpp>
-#include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
 #include <alphagomoku/utils/AlignedAllocator.hpp>
 #include <alphagomoku/utils/SpinLock.hpp>

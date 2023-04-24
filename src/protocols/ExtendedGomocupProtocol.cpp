@@ -33,20 +33,20 @@ namespace ag
 		registerInputProcessor("info protocol_lag",	[this](InputListener &listener) { this->info_protocol_lag(listener);});
 		registerInputProcessor("info thread_num",	[this](InputListener &listener) { this->info_thread_num(listener);});
 
-		registerInputProcessor("play",				[this](InputListener &listener) { this->play(listener);});
-		registerInputProcessor("turn",				[this](InputListener &listener) { this->turn(listener);});
-		registerInputProcessor("takeback",			[this](InputListener &listener) { this->takeback(listener);});
-		registerInputProcessor("ponder",			[this](InputListener &listener) { this->ponder(listener);});
-		registerInputProcessor("stop",				[this](InputListener &listener) { this->stop(listener);});
-		registerInputProcessor("showforbid",		[this](InputListener &listener) { this->showforbid(listener);});
-		registerInputProcessor("balance",			[this](InputListener &listener) { this->balance(listener);});
-		registerInputProcessor("clearhash",			[this](InputListener &listener) { this->clearhash(listener);});
-		registerInputProcessor("protocolversion",	[this](InputListener &listener) { this->protocolversion(listener);});
+		registerInputProcessor("play",			  [this](InputListener &listener) { this->play(listener);});
+		registerInputProcessor("turn",			  [this](InputListener &listener) { this->turn(listener);});
+		registerInputProcessor("takeback",		  [this](InputListener &listener) { this->takeback(listener);});
+		registerInputProcessor("ponder",		  [this](InputListener &listener) { this->ponder(listener);});
+		registerInputProcessor("stop",			  [this](InputListener &listener) { this->stop(listener);});
+		registerInputProcessor("showforbid",	  [this](InputListener &listener) { this->showforbid(listener);});
+		registerInputProcessor("balance",		  [this](InputListener &listener) { this->balance(listener);});
+		registerInputProcessor("clearhash",		  [this](InputListener &listener) { this->clearhash(listener);});
+		registerInputProcessor("protocolversion", [this](InputListener &listener) { this->protocolversion(listener);});
 		// openings
-		registerInputProcessor("proboard",		[this](InputListener &listener) { this->proboard(listener);});
-		registerInputProcessor("longproboard",	[this](InputListener &listener) { this->longproboard(listener);});
-		registerInputProcessor("swapboard",		[this](InputListener &listener) { this->swapboard(listener);});
-		registerInputProcessor("swap2board",	[this](InputListener &listener) { this->swap2board(listener);});
+		registerInputProcessor("proboard",	   [this](InputListener &listener) { this->proboard(listener);});
+		registerInputProcessor("longproboard", [this](InputListener &listener) { this->longproboard(listener);});
+		registerInputProcessor("swapboard",	   [this](InputListener &listener) { this->swapboard(listener);});
+		registerInputProcessor("swap2board",   [this](InputListener &listener) { this->swap2board(listener);});
 // @formatter:on
 	}
 	void ExtendedGomocupProtocol::reset()

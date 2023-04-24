@@ -10,6 +10,7 @@
 
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/game/Move.hpp>
 
 #include <vector>

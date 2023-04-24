@@ -10,7 +10,7 @@
 
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/search/ZobristHashing.hpp>
-#include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
 
 #include <vector>

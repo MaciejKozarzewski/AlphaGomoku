@@ -5,7 +5,9 @@
  *      Author: Maciej Kozarzewski
  */
 
+#include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/game/Board.hpp>
 
 #include <cinttypes>
@@ -18,86 +20,8 @@
 #include <random>
 #include <vector>
 
-namespace
-{
-	uint32_t get_random_int32()
-	{
-#ifdef NDEBUG
-		thread_local std::mt19937 generator(std::chrono::system_clock::now().time_since_epoch().count());
-#else
-		thread_local std::mt19937 generator(0);
-#endif
-		return generator();
-	}
-	uint64_t get_random_int64()
-	{
-#ifdef NDEBUG
-		thread_local std::mt19937_64 generator(std::chrono::system_clock::now().time_since_epoch().count());
-#else
-		thread_local std::mt19937_64 generator(0);
-#endif
-		return generator();
-	}
-
-}
-
 namespace ag
 {
-	float randFloat()
-	{
-		return get_random_int32() * 2.3283064370808e-10f;
-	}
-	double randDouble()
-	{
-		return get_random_int64() * 5.42101086242752e-20;
-	}
-	float randGaussian()
-	{
-		thread_local bool is_stored = false;
-		thread_local float stored_value = 0.0f;
-		if (is_stored)
-		{
-			is_stored = false;
-			return stored_value;
-		}
-
-		float x1, x2, w;
-		do
-		{
-			x1 = 2.0f * randFloat() - 1.0f;
-			x2 = 2.0f * randFloat() - 1.0f;
-			w = x1 * x1 + x2 * x2;
-		} while (w >= 1.0f);
-		w = std::sqrt((-2.0f * std::log(w)) / w);
-
-		is_stored = true;
-		stored_value = x2 * w;
-
-		return x1 * w;
-	}
-	int32_t randInt()
-	{
-		return get_random_int32();
-	}
-	int32_t randInt(int r)
-	{
-		assert(r != 0);
-		return get_random_int32() % r;
-	}
-	int32_t randInt(int r0, int r1)
-	{
-		assert(r0 != r1);
-		return r0 + get_random_int32() % (r1 - r0);
-	}
-	uint64_t randLong()
-	{
-		return get_random_int64();
-	}
-	bool randBool()
-	{
-		return get_random_int32() & 1;
-	}
-
 	std::string currentDateTime()
 	{
 		time_t now = time(0);
@@ -139,82 +63,6 @@ namespace ag
 				policy[i] *= sum;
 		}
 	}
-	void addNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight)
-	{
-		assert(equalSize(board, policy));
-		if (noiseWeight == 0.0f)
-			return;
-
-		std::vector<float> noise;
-		noise.reserve(policy.size());
-		float sum = 0.0f;
-		for (int i = 0; i < policy.size(); i++)
-			if (board[i] == Sign::NONE)
-			{
-				noise.push_back(pow(randFloat(), 4) * (1.0f - sum));
-				sum += noise.back();
-			}
-		std::random_shuffle(noise.begin(), noise.end());
-		for (int i = 0, k = 0; i < board.size(); i++)
-			if (board[i] == Sign::NONE)
-			{
-				policy[i] = (1.0f - noiseWeight) * policy[i] + noiseWeight * noise[k];
-				k++;
-			}
-	}
-	void addDirichletNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight)
-	{
-		assert(equalSize(board, policy));
-		if (noiseWeight == 0.0f)
-			return;
-
-		std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
-		std::gamma_distribution<double> noise(0.05);
-
-		matrix<float> noise_matrix(policy.rows(), policy.cols());
-		float sum = 0.0f;
-		for (int i = 0; i < policy.size(); i++)
-		{
-			noise_matrix[i] = noise(generator);
-			sum += noise_matrix[i];
-		}
-		for (int i = 0; i < board.size(); i++)
-			policy[i] = (1.0f - noiseWeight) * policy[i] + noiseWeight * noise_matrix[i] / sum;
-	}
-	void addGumbelNoise(const matrix<Sign> &board, matrix<float> &policy, float noiseWeight)
-	{
-		assert(equalSize(board, policy));
-		if (noiseWeight == 0.0f)
-			return;
-
-		float max_value = std::numeric_limits<float>::lowest();
-		for (int i = 0; i < policy.size(); i++)
-		{
-			const float gumbel_noise = -safe_log(-safe_log(randFloat()));
-			policy[i] = safe_log(policy[i]) + noiseWeight * gumbel_noise;
-			max_value = std::max(max_value, policy[i]);
-		}
-
-		float sum = 0.0f;
-		for (int i = 0; i < policy.size(); i++)
-		{
-			policy[i] = std::exp(policy[i] - max_value);
-			if (policy[i] < 1.0e-9f)
-				policy[i] = 0.0f;
-			sum += policy[i];
-		}
-
-		assert(sum > 0.0f);
-		sum = 1.0f / sum;
-		for (int i = 0; i < policy.size(); i++)
-			policy[i] *= sum;
-	}
-
-	void scaleArray(matrix<float> &array, float scale)
-	{
-		for (int i = 0; i < array.size(); i++)
-			array[i] *= scale;
-	}
 
 	std::vector<float> averageStats(std::vector<float> &stats)
 	{
@@ -249,29 +97,9 @@ namespace ag
 		}
 		return Move(i / policy.rows(), i % policy.cols());
 	}
-	void normalize(matrix<float> &policy)
-	{
-		float r = std::accumulate(policy.begin(), policy.end(), 0.0f);
-		if (r == 0.0f)
-			policy.fill(1.0f / policy.size());
-		else
-		{
-			r = 1.0f / r;
-			for (int i = 0; i < policy.size(); i++)
-				policy[i] *= r;
-		}
-	}
 	float max(const matrix<float> &policy)
 	{
 		return *std::max(policy.begin(), policy.end());
-	}
-
-	std::vector<int> permutation(int length)
-	{
-		std::vector<int> result(length);
-		std::iota(result.begin(), result.end(), 0);
-		std::random_shuffle(result.begin(), result.end());
-		return result;
 	}
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist)
@@ -308,7 +136,7 @@ namespace ag
 							}
 				}
 	}
-	std::vector<Move> prepareOpening(GameConfig config, int minNumberOfMoves)
+	std::vector<Move> prepareOpening(const GameConfig &config, int minNumberOfMoves)
 	{
 		matrix<float> map_dist(config.rows, config.cols);
 		matrix<Sign> board(config.rows, config.cols);

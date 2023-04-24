@@ -51,17 +51,17 @@ namespace ag
 		registerInputProcessor("info rule",			[this](InputListener &listener) { this->info_rule(listener);});
 		registerInputProcessor("info show_detail",	[this](InputListener &listener) { this->info_show_detail(listener);});
 
-		registerInputProcessor("start",			[this](InputListener &listener) { this->start(listener);});
-		registerInputProcessor("yxboard",		[this](InputListener &listener) { this->yxboard(listener);});
-		registerInputProcessor("yxstop",		[this](InputListener &listener) { this->yxstop(listener);});
-		registerInputProcessor("yxshowforbid",	[this](InputListener &listener) { this->yxshowforbid(listener);});
-		registerInputProcessor("yxbalance",		[this](InputListener &listener) { this->yxbalance(listener);});
-		registerInputProcessor("yxnbest",		[this](InputListener &listener) { this->yxnbest(listener);});
+		registerInputProcessor("start",		   [this](InputListener &listener) { this->start(listener);});
+		registerInputProcessor("yxboard",	   [this](InputListener &listener) { this->yxboard(listener);});
+		registerInputProcessor("yxstop",	   [this](InputListener &listener) { this->yxstop(listener);});
+		registerInputProcessor("yxshowforbid", [this](InputListener &listener) { this->yxshowforbid(listener);});
+		registerInputProcessor("yxbalance",	   [this](InputListener &listener) { this->yxbalance(listener);});
+		registerInputProcessor("yxnbest",	   [this](InputListener &listener) { this->yxnbest(listener);});
 		// hashtable
-		registerInputProcessor("yxhashclear",		[this](InputListener &listener) { this->yxhashclear(listener);});
-		registerInputProcessor("yxhashdump",		[this](InputListener &listener) { this->yxhashdump(listener);});
-		registerInputProcessor("yxhashload",		[this](InputListener &listener) { this->yxhashload(listener);});
-		registerInputProcessor("yxshowhashusage",	[this](InputListener &listener) { this->yxshowhashusage(listener);});
+		registerInputProcessor("yxhashclear",	  [this](InputListener &listener) { this->yxhashclear(listener);});
+		registerInputProcessor("yxhashdump",	  [this](InputListener &listener) { this->yxhashdump(listener);});
+		registerInputProcessor("yxhashload",	  [this](InputListener &listener) { this->yxhashload(listener);});
+		registerInputProcessor("yxshowhashusage", [this](InputListener &listener) { this->yxshowhashusage(listener);});
 		// openings
 		registerInputProcessor("yxswap2",	[this](InputListener &listener) { this->yxswap2(listener);});
 		registerInputProcessor("yxsoosorv",	[this](InputListener &listener) { this->yxsoosorv(listener);});

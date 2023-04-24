@@ -9,6 +9,7 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 
 #include <iostream>

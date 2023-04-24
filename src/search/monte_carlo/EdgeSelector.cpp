@@ -8,7 +8,8 @@
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/Node.hpp>
 #include <alphagomoku/utils/configs.hpp>
-#include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
+#include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 
 #include <cassert>
@@ -206,61 +207,26 @@ namespace
 		return find_best_edge_impl<Op, false>(node, op, std::vector<float>());
 	}
 
-	std::vector<float> createNoise(const Node *rootNode, float noiseWeight)
+	std::vector<float> applyCustomNoise(const Node *rootNode, float noiseWeight)
 	{
-		std::vector<float> result(rootNode->numberOfEdges());
-		float sum = 0.0f;
-		for (size_t i = 0; i < result.size(); i++)
-		{
-			result[i] = pow(randFloat(), 4) * (1.0f - sum);
-			sum += result[i];
-		}
-		std::random_shuffle(result.begin(), result.end());
+		std::vector<float> result = createCustomNoise(rootNode->numberOfEdges());
 		for (size_t i = 0; i < result.size(); i++)
 			result[i] = (1.0f - noiseWeight) * rootNode->getEdge(i).getPolicyPrior() + noiseWeight * result[i];
 		return result;
 	}
-	std::vector<float> createDirichletNoise(const Node *rootNode, float noiseWeight)
+	std::vector<float> applyDirichletNoise(const Node *rootNode, float noiseWeight)
 	{
-		std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
-		std::gamma_distribution<double> noise(0.05);
-
-		std::vector<float> result(rootNode->numberOfEdges());
-		float sum = 0.0f;
+		std::vector<float> result = createDirichletNoise(rootNode->numberOfEdges(), 0.05f);
 		for (size_t i = 0; i < result.size(); i++)
-		{
-			result[i] = noise(generator);
-			sum += result[i];
-		}
-		std::random_shuffle(result.begin(), result.end());
-		for (size_t i = 0; i < result.size(); i++)
-			result[i] = (1.0f - noiseWeight) * rootNode->getEdge(i).getPolicyPrior() + noiseWeight * result[i] / sum;
+			result[i] = (1.0f - noiseWeight) * rootNode->getEdge(i).getPolicyPrior() + noiseWeight * result[i];
 		return result;
 	}
-	std::vector<float> createGumbelNoise(const Node *rootNode, float noiseWeight)
+	std::vector<float> applyGumbelNoise(const Node *rootNode, float noiseWeight)
 	{
-		float max_value = std::numeric_limits<float>::lowest();
-		std::vector<float> result(rootNode->numberOfEdges());
+		std::vector<float> result = createGumbelNoise(rootNode->numberOfEdges());
 		for (size_t i = 0; i < result.size(); i++)
-		{
-			const float gumbel_noise = -safe_log(-safe_log(randFloat()));
-			result[i] = safe_log(rootNode->getEdge(i).getPolicyPrior()) + noiseWeight * gumbel_noise;
-			max_value = std::max(max_value, result[i]);
-		}
-
-		float sum = 0.0f;
-		for (size_t i = 0; i < result.size(); i++)
-		{
-			result[i] = std::exp(result[i] - max_value);
-			if (result[i] < 1.0e-9f)
-				result[i] = 0.0f;
-			sum += result[i];
-		}
-
-		assert(sum > 0.0f);
-		sum = 1.0f / sum;
-		for (size_t i = 0; i < result.size(); i++)
-			result[i] *= sum;
+			result[i] = safe_log(rootNode->getEdge(i).getPolicyPrior()) + noiseWeight * result[i];
+		softmax(result);
 		return result;
 	}
 }
@@ -313,11 +279,11 @@ namespace ag
 		if (use_noise and noisy_policy.empty())
 		{ // initialize noise
 			if (noise_type == "custom")
-				noisy_policy = createNoise(node, noise_weight);
+				noisy_policy = applyCustomNoise(node, noise_weight);
 			if (noise_type == "dirichlet")
-				noisy_policy = createDirichletNoise(node, noise_weight);
+				noisy_policy = applyDirichletNoise(node, noise_weight);
 			if (noise_type == "gumbel")
-				noisy_policy = createGumbelNoise(node, noise_weight);
+				noisy_policy = applyGumbelNoise(node, noise_weight);
 		}
 
 		if (init_to == "q_head")

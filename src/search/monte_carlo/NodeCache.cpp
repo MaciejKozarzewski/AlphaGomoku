@@ -7,7 +7,7 @@
 
 #include <alphagomoku/search/monte_carlo/NodeCache.hpp>
 #include <alphagomoku/game/Board.hpp>
-#include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 
 #include <cassert>
 

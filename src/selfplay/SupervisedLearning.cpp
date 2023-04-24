@@ -15,6 +15,9 @@
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
+#include <alphagomoku/utils/random.hpp>
+#include <alphagomoku/utils/os_utils.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -139,6 +142,8 @@ namespace ag
 			updateTrainingStats(loss, accuracy);
 
 			learning_steps++;
+			if (hasCapturedSignal(SignalType::INT))
+				return;
 		}
 	}
 	void SupervisedLearning::validate(AGNetwork &model, GameDataBuffer &buffer)

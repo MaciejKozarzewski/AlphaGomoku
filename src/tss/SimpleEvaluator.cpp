@@ -7,6 +7,7 @@
 
 #include <alphagomoku/tss/SimpleEvaluator.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/random.hpp>
 
 #include <stdexcept>
 #include <cassert>

@@ -5,4 +5,5 @@ target_sources(AlphaGomoku PRIVATE 	ArgumentParser.cpp
 									Logger.cpp
 									misc.cpp
 									os_utils.cpp
+									random.cpp
 									statistics.cpp)

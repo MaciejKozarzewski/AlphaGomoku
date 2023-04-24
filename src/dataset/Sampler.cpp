@@ -9,7 +9,8 @@
 #include <alphagomoku/dataset/GameDataBuffer.hpp>
 #include <alphagomoku/dataset/GameDataStorage.hpp>
 #include <alphagomoku/dataset/SearchDataStorage.hpp>
-#include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
+#include <alphagomoku/utils/random.hpp>
 
 #include <iostream>
 

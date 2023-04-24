@@ -35,6 +35,7 @@
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/SpinLock.hpp>
+#include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 #include <alphagomoku/networks/networks.hpp>
 #include <alphagomoku/version.hpp>
@@ -2618,7 +2619,7 @@ void test_nnue()
 
 void test_evaluate()
 {
-	const std::string path = "/home/maciek/alphagomoku/new_runs/test6_test/";
+	const std::string path = "/home/maciek/alphagomoku/new_runs/test8_test/";
 	MasterLearningConfig config(FileLoader(path + "config.json").getJson());
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
@@ -2629,7 +2630,7 @@ void test_evaluate()
 //	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/test5_test/checkpoint/network_159_opt.bin", "AG_159");
 
 	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "old_6x64s");
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/test6_test/checkpoint/network_60_opt.bin", "AG_060");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/test8_test/checkpoint/network_110_opt.bin", "AG_110");
 
 	const double start = getTime();
 	manager.generate(1000);
@@ -2637,7 +2638,7 @@ void test_evaluate()
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs/test6_test/compare.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs/test8_test/compare.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -3618,9 +3619,9 @@ int main(int argc, char *argv[])
 //	transfer_learning();
 
 //	convert_old_network();
-	test_search();
+//	test_search();
 //	prepare_proven_dataset();
-//	test_evaluate();
+	test_evaluate();
 //	parameter_tuning();
 //	test_proven_search(1000, 200, true);
 //	for (int i = 0; i < 120; i++)
@@ -3631,7 +3632,7 @@ int main(int argc, char *argv[])
 //	train_simple_evaluator();
 //	return 0;
 
-//	TrainingManager tm("/home/maciek/alphagomoku/new_runs/test8_test/");
+//	TrainingManager tm("/home/maciek/alphagomoku/new_runs/test_test/");
 //	for (int i = 0; i < 1; i++)
 //		tm.runIterationRL();
 

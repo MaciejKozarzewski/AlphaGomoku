@@ -9,6 +9,7 @@
 #include <alphagomoku/search/monte_carlo/SearchTask.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
