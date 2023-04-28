@@ -115,7 +115,7 @@ namespace ag
 		moves.fill(false);
 		forbidden_moves_cache.clear();
 
-		actions.clear();
+		this->actions->clear();
 		Result result = try_draw_in_1();
 		if (result.must_continue)
 			result = try_win_in_1();
@@ -134,7 +134,7 @@ namespace ag
 		{
 			const int count = add_own_half_open_fours();
 			if (count > 0)
-				actions.has_initiative = true;
+				this->actions->has_initiative = true;
 		}
 		this->actions = nullptr;
 		return result.score;
@@ -153,7 +153,6 @@ namespace ag
 					if (iter->move.location() == loc)
 					{
 						iter->score = s;
-						iter->is_final = s.isProven();
 						return;
 					}
 				assert(false); // the move must be contained in the action list
@@ -161,7 +160,7 @@ namespace ag
 		}
 		else
 		{
-			actions->add(Move(get_own_sign(), loc), s, s.isProven());
+			actions->add(Move(get_own_sign(), loc), s);
 			moves.at(loc.row, loc.col) = true;
 		}
 	}

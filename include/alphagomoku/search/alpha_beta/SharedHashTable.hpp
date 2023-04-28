@@ -164,7 +164,7 @@ namespace ag
 			}
 			SharedTableData seek(const HashKey128 &hash) const noexcept
 			{
-//				SpinLockGuard guard(get_lock(hash));
+				SpinLockGuard guard(get_lock(hash));
 
 				const Bucket &bucket = m_hashtable[get_index_of(hash)];
 				for (size_t i = 0; i < bucket.size(); i++)
@@ -174,7 +174,7 @@ namespace ag
 			}
 			void insert(const HashKey128 &hash, SharedTableData value) noexcept
 			{
-//				SpinLockGuard guard(get_lock(hash));
+				SpinLockGuard guard(get_lock(hash));
 
 				value.set_generation_and_key(m_base_generation, hash.getLow());
 				const Entry new_entry(hash, value);

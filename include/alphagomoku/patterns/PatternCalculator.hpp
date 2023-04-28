@@ -106,10 +106,7 @@ namespace ag
 			const ThreatHistogram& getThreatHistogram(Sign sign) const noexcept
 			{
 				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-				if (sign == Sign::CROSS)
-					return cross_threats;
-				else
-					return circle_threats;
+				return (sign == Sign::CROSS) ? cross_threats : circle_threats;
 			}
 			NormalPattern getNormalPatternAt(int row, int col, Direction dir) const noexcept
 			{
@@ -126,10 +123,7 @@ namespace ag
 			DirectionGroup<PatternType> getPatternTypeAt(Sign sign, int row, int col) const noexcept
 			{
 				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
-				if (sign == Sign::CROSS)
-					return pattern_types.at(row, col).for_cross;
-				else
-					return pattern_types.at(row, col).for_circle;
+				return (sign == Sign::CROSS) ? pattern_types.at(row, col).for_cross : pattern_types.at(row, col).for_circle;
 			}
 			PatternType getPatternTypeAt(Sign sign, int row, int col, Direction dir) const noexcept
 			{

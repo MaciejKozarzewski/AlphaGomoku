@@ -23,13 +23,11 @@ namespace ag
 	{
 			Move move;
 			Score score;
-			bool is_final = false;
 			Action() noexcept = default;
-			void init(Move m, Score s, bool isf) noexcept
+			void init(Move m, Score s) noexcept
 			{
 				move = m;
 				score = s;
-				is_final = isf;
 			}
 			friend bool operator<(const Action &lhs, const Action &rhs) noexcept
 			{
@@ -118,9 +116,9 @@ namespace ag
 				return std::any_of(begin(), end(), [m](const Action &action)
 				{	return action.move.location() == m;});
 			}
-			void add(Move move, Score score, bool isFinal) noexcept
+			void add(Move move, Score score) noexcept
 			{
-				m_children[m_size++].init(move, score, isFinal);
+				m_children[m_size++].init(move, score);
 			}
 			void removeAction(size_t index) noexcept
 			{
@@ -158,7 +156,7 @@ namespace ag
 				std::cout << "baseline score = " << baseline_score.toString() << '\n';
 				for (int i = 0; i < size(); i++)
 					std::cout << i << " : " << m_children[i].move.toString() << " : " << m_children[i].move.text() << " : " << m_children[i].score
-							<< " : " << m_children[i].is_final << '\n';
+							<< '\n';
 				std::cout << '\n';
 			}
 	};

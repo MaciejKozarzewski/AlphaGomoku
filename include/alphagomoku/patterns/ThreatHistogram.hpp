@@ -20,7 +20,6 @@ namespace ag
 {
 	class ThreatHistogram
 	{
-//			std::array<LocationList, 10> threats;
 			LocationList threats[10];
 		public:
 			ThreatHistogram()

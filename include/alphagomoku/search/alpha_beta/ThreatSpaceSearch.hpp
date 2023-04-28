@@ -65,68 +65,6 @@ namespace ag
 		RECURSIVE, /* iterative deepening VCF search is used */
 	};
 
-//	class ThreatSpaceSearch
-//	{
-//		private:
-//			struct Result
-//			{
-//					Score score;
-//					bool is_final = true;
-//					Result(Score s, bool isf) noexcept :
-//							score(s),
-//							is_final(isf)
-//					{
-//					}
-//					friend Result operator-(const Result &a) noexcept
-//					{
-//						return Result(-a.score, a.is_final);
-//					}
-//			};
-//			ActionStack action_stack;
-//
-//			int max_positions; // maximum number of positions that will be searched
-//			TssMode search_mode = TssMode::BASIC;
-//
-//			int position_counter = 0;
-//
-//			GameConfig game_config;
-//			PatternCalculator pattern_calculator;
-//			ThreatGenerator threat_generator;
-//
-//			LocalHashTable local_table;
-//			SharedHashTable shared_table;
-//			HashKey128 hash_key;
-//
-//			size_t step_counter = 0;
-//			int tuning_step = 2;
-//			Measurement lower_measurement;
-//			Measurement upper_measurement;
-//			TSSStats stats;
-//		public:
-//			ThreatSpaceSearch(const GameConfig &gameConfig, const TSSConfig &tssConfig);
-//
-//			void increaseGeneration();
-//			int64_t getMemory() const noexcept;
-//			void solve(SearchTask &task, TssMode mode, int maxPositions);
-//			void tune(float speed);
-//
-//			TSSStats getStats() const;
-//			void clearStats();
-//			void print_stats() const
-//			{
-//				pattern_calculator.print_stats();
-//				std::cout << stats.toString() << '\n';
-//				std::cout << "LocalHashTable load factor = " << local_table.loadFactor(true) << '\n';
-//				std::cout << "SharedHashTable load factor = " << shared_table.loadFactor(true) << '\n';
-//			}
-//		private:
-//			Result recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
-//			Result recursive_solve_v2(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
-//
-//			bool is_move_legal(Move m) const noexcept;
-//			Score evaluate();
-//	};
-
 	class ThreatSpaceSearch
 	{
 		private:
@@ -167,7 +105,7 @@ namespace ag
 				std::cout << "SharedHashTable load factor = " << shared_table.loadFactor(true) << '\n';
 			}
 		private:
-			Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions, bool isRoot);
+			Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions);
 			bool is_move_legal(Move m) const noexcept;
 			Score evaluate();
 	};
