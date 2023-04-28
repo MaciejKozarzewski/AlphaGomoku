@@ -125,6 +125,38 @@ namespace ag
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
+	BottleneckPVraw::BottleneckPVraw() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string BottleneckPVraw::name() const
+	{
+		return "BottleneckPVraw";
+	}
+	void BottleneckPVraw::create_network(const TrainingConfig &trainingOptions)
+	{
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 8 });
+		const int blocks = trainingOptions.blocks;
+		const int filters = trainingOptions.filters;
+
+		auto x = createInputBlock(graph, input_shape, filters);
+
+		for (int i = 0; i < blocks; i++)
+			x = createBottleneckBlock_v3(graph, x, filters);
+
+		auto p = createPolicyHead(graph, x, filters);
+		graph.addOutput(p);
+
+		auto v = createValueHead(graph, x, filters);
+		graph.addOutput(v);
+
+		graph.init();
+		graph.setOptimizer(ml::Optimizer());
+		if (trainingOptions.l2_regularization != 0.0)
+			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
 	BottleneckPVQ::BottleneckPVQ() noexcept :
 			AGNetwork()
 	{
