@@ -187,6 +187,7 @@ namespace ag
 			games_per_iteration(get_value<int>(options, "games_per_iteration")),
 			games_per_thread(get_value<int>(options, "games_per_thread")),
 			simulations(get_value<int>(options, "simulations")),
+			final_selector(get_value<EdgeSelectorConfig>(options, "final_selector")),
 			device_config(),
 			search_config(options["search_config"])
 	{
@@ -201,6 +202,7 @@ namespace ag
 		result["games_per_iteration"] = games_per_iteration;
 		result["games_per_thread"] = games_per_thread;
 		result["simulations"] = simulations;
+		result["final_selector"] = final_selector.toJson();
 		for (size_t i = 0; i < device_config.size(); i++)
 			result["device_config"][i] = device_config[i].toJson();
 		result["search_config"] = search_config.toJson();

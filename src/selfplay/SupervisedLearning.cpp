@@ -143,7 +143,7 @@ namespace ag
 
 			learning_steps++;
 			if (hasCapturedSignal(SignalType::INT))
-				return;
+				exit(0);
 		}
 	}
 	void SupervisedLearning::validate(AGNetwork &model, GameDataBuffer &buffer)

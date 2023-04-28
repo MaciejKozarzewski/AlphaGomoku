@@ -44,6 +44,10 @@ namespace ag
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
 	std::vector<Move> prepareOpening(const GameConfig &config, int minNumberOfMoves = 0);
+	/*
+	 * Function used to calculate reduced number of simulations if draw probability exceeds certain threshold.
+	 */
+	int get_simulations_for_move(float drawRate, int maxSimulations, int minSimulations) noexcept;
 
 	std::string zfill(int value, int length);
 	std::string sfill(int value, int length, bool isSigned);

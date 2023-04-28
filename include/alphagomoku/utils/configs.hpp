@@ -187,6 +187,7 @@ namespace ag
 			int games_per_iteration = 100;
 			int games_per_thread = 8;
 			int simulations = 100;
+			EdgeSelectorConfig final_selector;
 			std::vector<DeviceConfig> device_config = { DeviceConfig() };
 			SearchConfig search_config;
 

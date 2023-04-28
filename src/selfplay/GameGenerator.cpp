@@ -16,20 +16,6 @@
 #include <minml/utils/json.hpp>
 #include <minml/utils/serialization.hpp>
 
-namespace
-{
-	/*
-	 * Function used to calculate reduced number of simulations if draw probability exceeds certain threshold.
-	 */
-	int get_simulations_for_move(float drawRate, int maxSimulations, int minSimulations) noexcept
-	{
-		assert(maxSimulations >= minSimulations);
-		constexpr float draw_threshold = 0.7f;
-		const float reduction_fraction = ag::clip((drawRate - draw_threshold) / (1.0f - draw_threshold), 0.0f, 1.0f);
-		return maxSimulations - reduction_fraction * (maxSimulations - minSimulations);
-	}
-}
-
 namespace ag
 {
 	GameGenerator::GameGenerator(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, GeneratorManager &manager,
@@ -180,8 +166,8 @@ namespace ag
 //			std::cout << "    " << root_node.getEdge(i).toString() << '\n';
 //		tree.printSubtree(2, false);
 
-		BestEdgeSelector selector;
-		const Move move = selector.select(&root_node)->getMove();
+		std::unique_ptr<EdgeSelector> selector = EdgeSelector::create(selfplay_config.final_selector);
+		const Move move = selector->select(&root_node)->getMove();
 
 		SearchDataPack sample(root_node, game.getBoard());
 //		data.print();

@@ -7,6 +7,7 @@
 
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/game/Board.hpp>
 
@@ -164,6 +165,15 @@ namespace ag
 			if (getOutcome(config.rules, board, result.back()) == GameOutcome::UNKNOWN)
 				return result;
 		}
+	}
+	int get_simulations_for_move(float drawRate, int maxSimulations, int minSimulations) noexcept
+	{
+		assert(0.0f <= drawRate && drawRate <= 1.0f);
+		assert(maxSimulations >= minSimulations);
+
+		constexpr float draw_threshold = 0.75f;
+		const float reduction_fraction = clip((drawRate - draw_threshold) / (1.0f - draw_threshold), 0.0f, 1.0f);
+		return maxSimulations - reduction_fraction * (maxSimulations - minSimulations);
 	}
 
 	std::string zfill(int value, int length)

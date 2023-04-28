@@ -30,6 +30,7 @@ namespace ag
 		private:
 			NNEvaluator &nn_evaluator;
 			GameConfig game_config;
+			EdgeSelectorConfig final_move_selection_config;
 			Tree tree;
 			Search search;
 

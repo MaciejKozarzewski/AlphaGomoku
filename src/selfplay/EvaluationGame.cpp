@@ -16,10 +16,10 @@
 
 namespace ag
 {
-
 	Player::Player(const GameConfig &gameOptions, const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name) :
 			nn_evaluator(evaluator),
 			game_config(gameOptions),
+			final_move_selection_config(options.final_selector),
 			tree(options.search_config.tree_config),
 			search(gameOptions, options.search_config),
 			name(name),
@@ -89,7 +89,11 @@ namespace ag
 //				return false;
 //		}
 
-		if (tree.getSimulationCount() >= simulations or tree.isRootProven())
+		// if draw probability is higher than some level we proportionally reduce the number of simulations to save time (15-20% speedup)
+		const Value root_eval = tree.getInfo( { }).getValue();
+		const int sims = get_simulations_for_move(root_eval.draw_rate, simulations, 100);
+
+		if (tree.getSimulationCount() > sims or tree.isRootProven())
 		{
 			search.cleanup(tree);
 			nn_evals = 0;
@@ -112,24 +116,9 @@ namespace ag
 	}
 	Move Player::getMove() const noexcept
 	{
-//		if (startsWith(getName(), "value"))
-//		{
-//			MaxValueSelector selector;
-//			const Node root_node = tree.getInfo( { });
-//			Edge *edge = selector.select(&root_node);
-//			return edge->getMove();
-//		}
-//		if (startsWith(getName(), "policy"))
-//		{
-//			MaxPolicySelector selector;
-//			const Node root_node = tree.getInfo( { });
-//			Edge *edge = selector.select(&root_node);
-//			return edge->getMove();
-//		}
-
-		BestEdgeSelector selector;
+		std::unique_ptr<EdgeSelector> selector = EdgeSelector::create(final_move_selection_config);
 		const Node root_node = tree.getInfo( { });
-		Edge *edge = selector.select(&root_node);
+		Edge *edge = selector->select(&root_node);
 
 //		std::cout << "Player : " << getName() << '\n';
 //		std::cout << '\n' << "selected : " << edge->toString() << '\n';

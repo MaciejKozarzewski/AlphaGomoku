@@ -61,6 +61,20 @@ namespace ag
 	};
 
 	/**
+	 * @brief Lower Confidence Bound edge selector.
+	 */
+	class LCBSelector: public EdgeSelector
+	{
+		private:
+			const float exploration_constant; /**< controls the level of exploration */
+			const float style_factor; /**< used to determine what to optimize during search */
+		public:
+			LCBSelector(const EdgeSelectorConfig &config);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+
+	/**
 	 * @brief Edge selector used to find few balanced moves, then continues with the baseSelector.
 	 */
 	class BalancedSelector: public EdgeSelector

@@ -53,7 +53,9 @@ namespace ag
 	}
 	Move get_best_move(const SearchSummary &summary)
 	{
-		BestEdgeSelector selector;
+		EdgeSelectorConfig config;
+		config.exploration_constant = 1.25f;
+		LCBSelector selector(config);
 		return selector.select(&summary.node)->getMove();
 	}
 	void log_balancing_move(const std::string &whichOne, Move m)
