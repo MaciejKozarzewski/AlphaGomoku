@@ -47,18 +47,18 @@ namespace ag
 
 		const FastZobristHashing hashing(board.rows(), board.cols());
 
-		HashKey64 hash0 = hashing.getHash(board);
+		HashKey128 hash0 = hashing.getHash(board);
 
 		const Move move1("Oe3");
 		hashing.updateHash(hash0, move1);
 		Board::putMove(board, move1);
-		HashKey64 hash1 = hashing.getHash(board);
+		HashKey128 hash1 = hashing.getHash(board);
 		EXPECT_EQ(hash0, hash1);
 
 		const Move move2("Xe4");
 		hashing.updateHash(hash0, move2);
 		Board::putMove(board, move2);
-		HashKey64 hash2 = hashing.getHash(board);
+		HashKey128 hash2 = hashing.getHash(board);
 		EXPECT_EQ(hash0, hash2);
 	}
 	TEST(TestFastZobristHashing, undo)
@@ -76,18 +76,18 @@ namespace ag
 
 		const FastZobristHashing hashing(board.rows(), board.cols());
 
-		HashKey64 hash0 = hashing.getHash(board);
+		HashKey128 hash0 = hashing.getHash(board);
 
 		const Move move1("Oe3");
 		hashing.updateHash(hash0, move1);
 		Board::undoMove(board, move1);
-		HashKey64 hash1 = hashing.getHash(board);
+		HashKey128 hash1 = hashing.getHash(board);
 		EXPECT_EQ(hash0, hash1);
 
 		const Move move2("Xe4");
 		hashing.updateHash(hash0, move2);
 		Board::undoMove(board, move2);
-		HashKey64 hash2 = hashing.getHash(board);
+		HashKey128 hash2 = hashing.getHash(board);
 		EXPECT_EQ(hash0, hash2);
 	}
 

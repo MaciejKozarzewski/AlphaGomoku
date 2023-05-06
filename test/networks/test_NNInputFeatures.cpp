@@ -133,10 +133,10 @@ namespace ag
 					case Sign::ILLEGAL:
 						break;
 				}
-				EXPECT_FALSE(is_set_bit<3>(x)); // forbidden move
+				EXPECT_TRUE(is_set_bit<3>(x));  // ones (constant channel)
 				EXPECT_FALSE(is_set_bit<4>(x)); // black (cross) to move
 				EXPECT_TRUE(is_set_bit<5>(x));  // white (circle) to move
-				EXPECT_TRUE(is_set_bit<6>(x));  // ones (constant channel)
+				EXPECT_FALSE(is_set_bit<6>(x)); // forbidden move
 				EXPECT_FALSE(is_set_bit<7>(x)); // zeros (constant channel)
 			}
 
@@ -209,10 +209,10 @@ namespace ag
 					case Sign::ILLEGAL:
 						break;
 				}
-				EXPECT_FALSE(is_set_bit<3>(x)); // forbidden move
+				EXPECT_TRUE(is_set_bit<3>(x));  // ones (constant channel)
 				EXPECT_TRUE(is_set_bit<4>(x)); // black (cross) to move
 				EXPECT_FALSE(is_set_bit<5>(x));  // white (circle) to move
-				EXPECT_TRUE(is_set_bit<6>(x));  // ones (constant channel)
+				EXPECT_FALSE(is_set_bit<6>(x)); // forbidden move
 				EXPECT_FALSE(is_set_bit<7>(x)); // zeros (constant channel)
 			}
 
