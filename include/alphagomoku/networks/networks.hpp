@@ -47,6 +47,14 @@ namespace ag
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
 	};
+	class BottleneckBroadcastPVraw: public AGNetwork
+	{
+		public:
+			BottleneckBroadcastPVraw() noexcept;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
 	class BottleneckPVQ: public AGNetwork
 	{
 		public:

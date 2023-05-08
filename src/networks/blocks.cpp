@@ -11,6 +11,7 @@
 #include <minml/layers/Dense.hpp>
 #include <minml/layers/Add.hpp>
 #include <minml/layers/BatchNormalization.hpp>
+#include <minml/layers/GlobalBroadcastHW.hpp>
 #include <minml/layers/Softmax.hpp>
 
 namespace ag
@@ -21,6 +22,14 @@ namespace ag
 		x = graph.add(ml::Conv2D(filters, 5, "linear").useBias(false), x);
 		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
 		return x;
+	}
+
+	ml::GraphNodeID createBroadcastingBlock(ml::Graph &graph, ml::GraphNodeID x)
+	{
+		return graph.add(ml::GlobalBroadcastHW("relu"), x);
+//		auto y = graph.add(ml::GlobalBroadcastHW(), x);
+//		x = graph.add(ml::Add("relu"), { x, y });
+//		return x;
 	}
 
 	ml::GraphNodeID createResidualBlock(ml::Graph &graph, ml::GraphNodeID x, int filters)
