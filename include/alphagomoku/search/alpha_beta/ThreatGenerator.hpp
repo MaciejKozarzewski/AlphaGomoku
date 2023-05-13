@@ -84,6 +84,7 @@ namespace ag
 			Score add_own_4x3_forks();
 			int add_own_half_open_fours();
 			Score try_solve_own_fork_4x3(Location move);
+			void mark_forbidden_moves();
 
 			Sign get_own_sign() const noexcept;
 			Sign get_opponent_sign() const noexcept;

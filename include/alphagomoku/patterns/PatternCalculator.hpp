@@ -177,6 +177,7 @@ namespace ag
 			void printRawFeature(int row, int col) const;
 			void printThreat(int row, int col) const;
 			void printAllThreats() const;
+			void printForbiddenMoves();
 			void print(Move lastMove = Move()) const;
 			void print_stats() const;
 		private:

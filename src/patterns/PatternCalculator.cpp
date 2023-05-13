@@ -147,6 +147,14 @@ namespace ag
 		std::cout << "Threats-for-circle----------\n";
 		circle_threats.print();
 	}
+	void PatternCalculator::printForbiddenMoves()
+	{
+		std::cout << "Forbidden moves for cross\n";
+		for (int i = 0; i < internal_board.rows(); i++)
+			for (int j = 0; j < internal_board.cols(); j++)
+				if (isForbidden(Sign::CROSS, i, j))
+					std::cout << Move(i, j, Sign::CROSS).text() << '\n';
+	}
 	void PatternCalculator::print(Move lastMove) const
 	{
 		if (lastMove == Move())

@@ -211,14 +211,15 @@ namespace ag
 //		if (result.score.getEval() ==  Score::min_value())
 //		if (task.getScore().getEval() == Score::min_value())
 //		{
-//		std::cout << result.score.toString() << " at " << position_counter << '\n';
+//		std::cout << result.toString() << " at " << position_counter << '\n';
 //		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
 //		pattern_calculator.print();
 //		pattern_calculator.printAllThreats();
+//		pattern_calculator.printForbiddenMoves();
 //		actions.print();
 //		std::cout << task.toString();
 //		std::cout << "\n---------------------------------------------\n";
-//			exit(-1);
+//		exit(-1);
 //		}
 
 		stats.total_positions += position_counter;
@@ -333,9 +334,6 @@ namespace ag
 					const Score tt_score = tt_entry.score();
 					if (tt_score.isProven())
 						return tt_score;
-//					if (tt_entry.depth() >= depthRemaining
-//							and ((tt_bound == Bound::LOWER and tt_score >= beta) or (tt_bound == Bound::UPPER and tt_score <= alpha)))
-//						return tt_score;
 					if (tt_entry.depth() >= depthRemaining
 							and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
 									or (tt_bound == Bound::UPPER and tt_score <= alpha)))
@@ -362,32 +360,33 @@ namespace ag
 
 		actions.moveCloserToFront(hash_move, 0);
 		for (int i = 0; i < actions.size(); i++)
-		{
-			position_counter++;
-			if (position_counter > max_positions)
-				return evaluate();
+			if (not actions[i].score.isProven())
+			{
+				position_counter++;
+				if (position_counter > max_positions)
+					return evaluate();
 
-			const Move move = actions[i].move;
+				const Move move = actions[i].move;
 
-			shared_table.getHashFunction().updateHash(hash_key, move);
-			shared_table.prefetch(hash_key);
-			pattern_calculator.addMove(move);
+				shared_table.getHashFunction().updateHash(hash_key, move);
+				shared_table.prefetch(hash_key);
+				pattern_calculator.addMove(move);
 
-			ActionList next_ply_actions(actions, actions[i]);
-			Score tmp = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions);
-			tmp.increaseDistance();
+				ActionList next_ply_actions(actions, actions[i]);
+				Score tmp = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions);
+				tmp.increaseDistance();
 
-			pattern_calculator.undoMove(move);
-			shared_table.getHashFunction().updateHash(hash_key, move);
+				pattern_calculator.undoMove(move);
+				shared_table.getHashFunction().updateHash(hash_key, move);
 
-			actions[i].score = tmp; // required for recovering of the search results
+				actions[i].score = tmp; // required for recovering of the search results
 
-			result = std::max(result, actions[i].score);
+				result = std::max(result, actions[i].score);
 
-			alpha = std::max(alpha, actions[i].score);
-			if (actions[i].score >= beta or actions[i].score.isWin())
-				break;
-		}
+				alpha = std::max(alpha, actions[i].score);
+				if (actions[i].score >= beta or actions[i].score.isWin())
+					break;
+			}
 		// if either
 		//  - no actions were generated, or
 		//  - all actions are losing but we don't have to defend

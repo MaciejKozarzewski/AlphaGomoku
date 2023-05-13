@@ -136,7 +136,10 @@ namespace ag
 			if (count > 0)
 				this->actions->has_initiative = true;
 		}
+		if (result.must_continue and is_anything_forbidden_for(get_own_sign()))
+			mark_forbidden_moves();
 		this->actions = nullptr;
+
 		return result.score;
 	}
 	/*
@@ -185,7 +188,10 @@ namespace ag
 			while (i < result.size())
 			{
 				if (is_forbidden(get_own_sign(), result[i]))
+				{
+					add_move<OVERRIDE_DUPLICATE>(result[i], Score::loss_in(1));
 					result.remove(i);
+				}
 				else
 					i++;
 			}
@@ -747,6 +753,20 @@ namespace ag
 				return Score::loss_in(2); // opponent will create winning threat in response
 		}
 	}
+	void ThreatGenerator::mark_forbidden_moves()
+	{
+		assert(get_own_sign() == Sign::CROSS);
+		assert(get_own_threats(ThreatType::FIVE).size() == 0); // win in 1 threats should have been checked earlier
+		// because of the above assumptions we can now just add overlines and 4x4 forks, as we know that they don't contain a winning move
+		add_moves<OVERRIDE_DUPLICATE>(get_own_threats(ThreatType::OVERLINE), Score::loss_in(1));
+		add_moves<OVERRIDE_DUPLICATE>(get_own_threats(ThreatType::FORK_4x4), Score::loss_in(1));
+
+		// we only need to check 3x3 forks because they are non-trivial
+		const LocationList &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
+		for (auto move = own_fork_3x3.begin(); move < own_fork_3x3.end(); move++)
+			if (is_forbidden(Sign::CROSS, *move))
+				add_move<OVERRIDE_DUPLICATE>(*move, Score::loss_in(1));
+	}
 
 	Sign ThreatGenerator::get_own_sign() const noexcept
 	{
@@ -779,8 +799,8 @@ namespace ag
 	bool ThreatGenerator::is_forbidden(Sign sign, Location loc) const noexcept
 	{
 		if (is_anything_forbidden_for(sign))
-		{ // caching forbidden moves is not that much useful, it has about 7% hit rate
-		  // and saves less than 0.04% of pattern recalculations
+		{ // caching forbidden moves is not that much useful, it has about 9% hit rate
+		  // and saves ~0.56% of pattern recalculations
 			for (size_t i = 0; i < forbidden_moves_cache.size(); i++)
 				if (forbidden_moves_cache[i].first == loc)
 					return forbidden_moves_cache[i].second;
