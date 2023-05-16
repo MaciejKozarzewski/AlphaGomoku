@@ -360,6 +360,7 @@ namespace ag
 
 		actions.moveCloserToFront(hash_move, 0);
 		for (int i = 0; i < actions.size(); i++)
+		{
 			if (not actions[i].score.isProven())
 			{
 				position_counter++;
@@ -378,15 +379,15 @@ namespace ag
 
 				pattern_calculator.undoMove(move);
 				shared_table.getHashFunction().updateHash(hash_key, move);
-
 				actions[i].score = tmp; // required for recovering of the search results
-
-				result = std::max(result, actions[i].score);
-
-				alpha = std::max(alpha, actions[i].score);
-				if (actions[i].score >= beta or actions[i].score.isWin())
-					break;
 			}
+
+			result = std::max(result, actions[i].score);
+
+			alpha = std::max(alpha, actions[i].score);
+			if (actions[i].score >= beta or actions[i].score.isWin())
+				break;
+		}
 		// if either
 		//  - no actions were generated, or
 		//  - all actions are losing but we don't have to defend
