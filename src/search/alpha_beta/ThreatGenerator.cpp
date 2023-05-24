@@ -13,6 +13,7 @@
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 
 #include <cassert>
+#include <bitset>
 #include <x86intrin.h>
 
 namespace
@@ -111,11 +112,12 @@ namespace ag
 	Score ThreatGenerator::generate(ActionList &actions, GeneratorMode mode)
 	{
 		assert(this->actions == nullptr);
+		assert(actions.isEmpty());
+
 		this->actions = &actions;
 		moves.fill(false);
 		forbidden_moves_cache.clear();
 
-		this->actions->clear();
 		Result result = try_draw_in_1();
 		if (result.must_continue)
 			result = try_win_in_1();
@@ -138,8 +140,18 @@ namespace ag
 		}
 		if (result.must_continue and is_anything_forbidden_for(get_own_sign()))
 			mark_forbidden_moves();
-		this->actions = nullptr;
+		if (result.must_continue and mode >= GeneratorMode::REDUCED)
+		{
+			add_moves<EXCLUDE_DUPLICATE>(get_own_threats(ThreatType::FORK_3x3), Score(3));
+			add_moves<EXCLUDE_DUPLICATE>(get_own_threats(ThreatType::OPEN_3), Score(2));
 
+			const BitMask2D<uint32_t, 32> mask = (mode == GeneratorMode::REDUCED) ? mark_neighborhood() : pattern_calculator.getLegalMovesMask();
+			create_remaining_moves(mask);
+		}
+
+		actions.is_fully_expanded = actions.must_defend or mode >= GeneratorMode::REDUCED;
+
+		this->actions = nullptr;
 		return result.score;
 	}
 	/*
@@ -483,15 +495,6 @@ namespace ag
 		assert(actions->must_defend == false && actions->has_initiative == false);
 
 		const bool has_any_four = pattern_calculator.getThreatHistogram(get_own_sign()).hasAnyFour();
-//		if (pattern_calculator.getThreatHistogram(get_own_sign()).hasAnyFour())
-//		{ // any four that we can make may help to gain initiative
-//			actions->has_initiative = true;
-//			const Score best_score = add_own_4x3_forks();
-//			if (best_score.isWin())
-//				return Result::canStopNow(best_score);
-//			else
-//				add_own_half_open_fours(); // it makes sense to add other threats only if there is no winning 4x3 fork
-//		}
 		actions->baseline_score = Score::loss_in(4); // will be reverted at the end if there are no threats
 
 		if (game_config.rules != GameRules::RENJU)
@@ -661,6 +664,8 @@ namespace ag
 	}
 	int ThreatGenerator::add_own_half_open_fours()
 	{
+		constexpr Score static_move_score(4);
+
 		int hidden_count = 0;
 		if (is_anything_forbidden_for(get_own_sign()))
 		{ // in renju rule there might be a half-open four hidden inside a legal 3x3 fork - only for cross (black) player
@@ -673,7 +678,7 @@ namespace ag
 				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
 				if (group.contains(PatternType::HALF_OPEN_4) and not is_forbidden(get_own_sign(), *move))
 				{
-					add_move<EXCLUDE_DUPLICATE>(*move);
+					add_move<EXCLUDE_DUPLICATE>(*move, static_move_score);
 					hidden_count++;
 				}
 			}
@@ -709,14 +714,16 @@ namespace ag
 //		}
 //		return hidden_count;
 
-		add_moves<EXCLUDE_DUPLICATE>(get_own_threats(ThreatType::HALF_OPEN_4)); // half-open four is a threat of win in 1
+		add_moves<EXCLUDE_DUPLICATE>(get_own_threats(ThreatType::HALF_OPEN_4), static_move_score); // half-open four is a threat of win in 1
 		return hidden_count + get_own_threats(ThreatType::HALF_OPEN_4).size();
 	}
 	Score ThreatGenerator::try_solve_own_fork_4x3(Location move)
 	{
+		constexpr Score static_move_score(5);
+
 		assert(get_own_threat_at(move.row, move.col) == ThreatType::FORK_4x3);
 		if (is_anything_forbidden_for(get_own_sign())) // unfortunately it is very often (approximately i in 30 positions)
-			return Score(); // there is a possibility that inside the three there will later be a forbidden move, it's too complicated to check statically
+			return static_move_score; // there is a possibility that inside the three there will later be a forbidden move, it's too complicated to check statically
 
 		const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move.row, move.col);
 		const Direction direction = group.findDirectionOf(PatternType::HALF_OPEN_4);
@@ -744,7 +751,7 @@ namespace ag
 				return Score::win_in(5); // but it is not worth checking, it is a win anyway, doesn't matter if longer or shorter
 			case ThreatType::HALF_OPEN_4: // moderately rare (approximately 1 in 300 positions)
 			case ThreatType::FORK_4x3: // rare (approximately 1 in 5000 positions)
-				return Score(); // too complicated to check statically
+				return static_move_score; // too complicated to check statically
 			case ThreatType::FORK_4x4: // rare (approximately 1 in 4500 positions)
 			case ThreatType::OPEN_4:
 				return Score::loss_in(4); // opponent will create a 'win in 3' type of threat
@@ -766,6 +773,79 @@ namespace ag
 		for (auto move = own_fork_3x3.begin(); move < own_fork_3x3.end(); move++)
 			if (is_forbidden(Sign::CROSS, *move))
 				add_move<OVERRIDE_DUPLICATE>(*move, Score::loss_in(1));
+	}
+	BitMask2D<uint32_t, 32> ThreatGenerator::mark_neighborhood()
+	{
+		/*
+		 * Mask of the following pattern:
+		 * ! _ _ ! _ _ !  -> 1001001 = 73
+		 * _ ! ! ! ! ! _  -> 0111110 = 62
+		 * _ ! ! ! ! ! _  -> 0111110 = 62
+		 * ! ! ! _ ! ! !  -> 1110111 = 119
+		 * _ ! ! ! ! ! _  -> 0111110 = 62
+		 * _ ! ! ! ! ! _  -> 0111110 = 62
+		 * ! _ _ ! _ _ !  -> 1001001 = 73
+		 */
+#ifdef __AVX2__
+		static const __m256i masks = _mm256_slli_epi32(_mm256_setr_epi32(73u, 62u, 62u, 119u, 62u, 62u, 73u, 0u), 25u);
+#elif defined(__SSE2__)
+		static const __m128i masks1 = _mm_slli_epi32(_mm_setr_epi32(73u, 62u, 62u, 119u), 25u);
+		static const __m128i masks2 = _mm_slli_epi32(_mm_setr_epi32(62u, 62u, 73u, 0u), 25u);
+#else
+		// masks are shifted maximally to the left
+		static const uint32_t masks[7] =
+		{	73u << 25u, 62u << 25u, 62u << 25u, 119u << 25u, 62u << 25u, 62u << 25u, 73u << 25u, 0u};
+#endif
+
+		constexpr int row_offset = 3;
+		const BitMask2D<uint32_t> &legal_moves = pattern_calculator.getLegalMovesMask();
+		BitMask2D<uint32_t, 32> result(row_offset + game_config.rows + row_offset + 1, game_config.cols);
+
+		for (int row = 0; row < game_config.rows; row++)
+		{
+			uint32_t tmp = legal_moves[row];
+			for (int col = 0; col < game_config.cols; col++, tmp >>= 1)
+				if ((tmp & 1) == 0)
+				{ // the spot is not legal -> it is occupied
+#ifdef __AVX2__
+					const __m256i shift = _mm256_set1_epi32(28 - col);
+					const __m256i x = _mm256_loadu_si256((__m256i*) (result.data() + row));
+					_mm256_storeu_si256((__m256i*) (result.data() + row), _mm256_or_si256(x, _mm256_srlv_epi32(masks, shift)));
+#elif defined(__SSE2__)
+					const __m128i shift = _mm_set_epi32(0, 0, 0, 28 - col);
+					const __m128i x1 = _mm_loadu_si128((__m128i*) (result.data() + row));
+					const __m128i x2 = _mm_loadu_si128((__m128i*) (result.data() + row + 4));
+					_mm_storeu_si128((__m128i*) (result.data() + row), _mm_or_si128(x1, _mm_srl_epi32(masks1, shift)));
+					_mm_storeu_si128((__m128i*) (result.data() + row + 4), _mm_or_si128(x2, _mm_srl_epi32(masks2, shift)));
+#else
+					const int shift = 28 - col; // now calculate how much the masks need to be shifted to the right to match desired position
+					for (int i = 0; i < 7; i++)
+						result[row + i] |= (result[i] >> shift);// now just apply patterns to the board
+#endif
+				}
+		}
+		if (pattern_calculator.getCurrentDepth() == 0) // no moves were made on board
+			result.at(row_offset + game_config.rows / 2, game_config.cols / 2) = true; // mark single move at the center
+
+		// moves[i] is a mask of moves that has been added until this point
+		// so (~moves[i]) is a mask of moves that has not been added
+		// result[row_offset + i] is a mask of all neighboring moves to all stones already on board
+		// but they might be illegal, so it is masked with legal_moves[i]
+		// and it is assigned back to the result[i] because this array will be used for adding all moves that are left
+		for (int i = 0; i < game_config.rows; i++)
+			result[i] = (~moves[i]) & (result[row_offset + i] & legal_moves[i]);
+		return result;
+	}
+	void ThreatGenerator::create_remaining_moves(const BitMask2D<uint32_t, 32> &mask)
+	{
+		for (int row = 0; row < game_config.rows; row++)
+		{
+			uint32_t tmp = mask[row];
+			for (int col = 0; col < game_config.cols; col++, tmp >>= 1)
+				if (tmp & 1)
+					add_move<EXCLUDE_DUPLICATE>(Location(row, col),
+							Score(-std::abs(row - game_config.rows / 2) - std::abs(col - game_config.cols / 2)));
+		}
 	}
 
 	Sign ThreatGenerator::get_own_sign() const noexcept

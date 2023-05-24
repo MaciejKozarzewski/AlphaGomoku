@@ -62,6 +62,9 @@ namespace ag
 			ThreatHistogram cross_threats;
 			ThreatHistogram circle_threats;
 
+			std::vector<Change<ThreatEncoding>> changed_threats;
+			Change<Sign> changed_moves;
+
 			const PatternTable *pattern_table = nullptr; // non-owning
 			const ThreatTable *threat_table = nullptr; // non-owning
 			const DefensiveMoveTable *defensive_move_table = nullptr; // non-owning
@@ -78,6 +81,15 @@ namespace ag
 
 			void addMove(Move move) noexcept;
 			void undoMove(Move move) noexcept;
+
+			Change<Sign> getChangeOfMoves() const noexcept
+			{
+				return changed_moves;
+			}
+			const std::vector<Change<ThreatEncoding>>& getChangeOfThreats() const noexcept
+			{
+				return changed_threats;
+			}
 
 			GameConfig getConfig() const noexcept
 			{

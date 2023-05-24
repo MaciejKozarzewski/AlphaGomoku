@@ -61,7 +61,8 @@
 #include <alphagomoku/ab_search/MinimaxSearch.hpp>
 #include <alphagomoku/ab_search/StaticSolver.hpp>
 #include <alphagomoku/ab_search/AlphaBetaSearch.hpp>
-#include <alphagomoku/ab_search/nnue/NNUE.hpp>
+#include <alphagomoku/networks/NNUE.hpp>
+
 #include <minml/utils/ZipWrapper.hpp>
 #include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
 
@@ -88,398 +89,6 @@
 #include <x86intrin.h>
 
 using namespace ag;
-
-void benchmark_features()
-{
-	std::vector<matrix<Sign>> boards_15x15;
-	std::vector<Sign> signs_to_move_15x15;
-	boards_15x15.push_back(Board::fromString(" X X O X X X O X O X X _ O X _\n"
-			" X _ _ _ O X O O X X X O _ _ X\n"
-			" X O O _ O X X O X O _ X O _ O\n"
-			" O X X O X X O O X O O X X _ O\n"
-			" X X O X O O O X X O X O O O O\n"
-			" _ X O X O X O O O X O X X X _\n"
-			" _ X _ X _ X X O O O O X X _ X\n"
-			" O O X O O _ X O X _ O X _ O O\n"
-			" X _ X O X O O O O X X X _ O X\n"
-			" O O O X O X X X X O O O O X X\n"
-			" O X O O O O X O O X X O O X _\n"
-			" X X O X X X X O _ O X X X O O\n"
-			" _ X O _ X _ O X _ _ X O _ _ X\n"
-			" _ O X O _ X O O X _ X X O O _\n"
-			" X _ X O _ _ O X _ O O X O _ O\n"));
-	signs_to_move_15x15.push_back(Sign::CROSS);
-
-	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_15x15.push_back(Sign::CIRCLE);
-
-	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
-					" _ _ _ _ _ O X X X X O X _ _ X\n"// 1
-					" _ _ _ _ _ _ O _ O X _ O _ O _\n"// 2
-					" _ _ _ _ _ _ _ X O _ X O O _ _\n"// 3
-					" _ _ _ _ _ _ X O X O O O X X X\n"// 4
-					" _ _ _ _ _ _ _ O _ X O _ _ O _\n"// 5
-					" _ _ _ _ O _ X _ O X O X X _ _\n"// 6
-					" _ _ _ _ _ X _ _ _ _ _ X O _ _\n"// 7
-					" _ _ _ X X _ _ _ X O X O _ _ X\n"// 8
-					" _ _ _ X _ O X X O O _ X O O _\n"// 9
-					" _ _ O _ _ _ O O O X O X O _ _\n"// 10
-					" _ _ _ _ _ _ X _ O _ X O X _ _\n"// 11
-					" _ _ _ _ _ _ _ _ _ O O X X _ _\n"// 12
-					" _ _ _ _ _ _ _ _ _ X O O O O X\n"// 13
-					" _ _ _ _ _ _ _ _ _ _ _ X _ X _\n"));// 14
-	signs_to_move_15x15.push_back(Sign::CROSS);
-
-	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n" // 0
-					" _ _ _ _ _ O X X X X O _ _ _ _\n"// 1
-					" _ _ _ _ _ _ O _ O X _ O _ _ _\n"// 2
-					" _ _ _ _ _ _ _ X O _ X _ O _ _\n"// 3
-					" _ _ _ _ _ _ X O X O O O X X _\n"// 4
-					" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n"// 5
-					" _ _ _ _ _ _ _ _ O X O X _ _ _\n"// 6
-					" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"// 7
-					" _ _ _ _ _ _ _ _ X O X _ _ _ _\n"// 8
-					" _ _ _ _ _ _ X X O O _ X O _ _\n"// 9
-					" _ _ _ _ _ _ O O _ X O X O _ _\n"// 10
-					" _ _ _ _ _ _ X _ O _ X O X _ _\n"// 11
-					" _ _ _ _ _ _ _ _ _ O O X X _ _\n"// 12
-					" _ _ _ _ _ _ _ _ _ X O _ _ O _\n"// 13
-					" _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"));// 14
-	signs_to_move_15x15.push_back(Sign::CIRCLE);
-
-	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" // 0
-					" _ _ _ _ _ _ _ _ O _ X _ _ _ _\n"// 1
-					" _ _ _ _ _ _ _ _ _ X O O O _ _\n"// 2
-					" _ _ _ _ _ _ _ _ _ X O _ _ _ _\n"// 3
-					" _ _ _ _ _ _ X _ O O O X O _ _\n"// 4
-					" _ _ _ _ _ _ _ _ X O X X X X O\n"// 5
-					" _ _ _ _ _ _ _ _ X O X _ _ _ _\n"// 6
-					" _ _ _ _ _ _ _ _ _ _ X _ X _ _\n"// 7
-					" _ _ _ _ _ _ _ _ _ X O O _ _ _\n"// 8
-					" _ _ _ _ _ _ _ _ O X O _ _ _ _\n"// 9
-					" _ _ _ _ _ _ _ _ _ O X _ _ _ _\n"// 10
-					" _ _ _ _ _ _ _ _ O _ O _ _ _ _\n"// 11
-					" _ _ _ _ _ _ _ X _ _ _ X _ _ _\n"// 12
-					" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"// 13
-					" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));// 14
-	signs_to_move_15x15.push_back(Sign::CIRCLE);
-
-	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ O _ O O _ O _ _ _ _\n"
-			" _ _ _ _ _ _ _ X O X _ _ _ _ _\n"
-			" _ _ _ _ _ _ O X X O X _ _ _ _\n"
-			" _ _ _ _ O X X X X O O X O _ _\n"
-			" _ _ _ O X O _ X O X X X X O _\n"
-			" X O X X X O X O X O O O X O _\n"
-			" _ _ O O O X _ O X O X O O X _\n"
-			" _ X O O O X O _ _ O X X X X O\n"
-			" _ _ X _ _ O _ X O X O O X X _\n"
-			" _ _ _ _ X _ X O X O _ _ _ O _\n"
-			" _ _ _ _ _ _ X O _ _ _ O _ X _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_15x15.push_back(Sign::CROSS);
-
-	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O _ _ O _ _ _ _\n"
-			" _ _ _ _ _ _ _ X O X _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X X O X _ _ _ _\n"
-			" _ _ _ _ _ _ _ X _ O O _ O _ _\n"
-			" _ _ _ O X O _ _ O X _ X X _ _\n"
-			" _ _ X X X O X O X O O O X O _\n"
-			" _ _ _ O O X _ O X _ X O _ X _\n"
-			" _ _ O O O X O _ _ O X X _ X _\n"
-			" _ _ X _ _ O _ X O X O O _ X _\n"
-			" _ _ _ _ X _ X O X O _ _ _ O _\n"
-			" _ _ _ _ _ _ X O _ _ _ O _ X _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_15x15.push_back(Sign::CROSS);
-
-	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ O X O _ _ _\n"
-			" _ _ _ _ _ _ _ _ X O X X O _ _\n"
-			" _ _ _ _ _ _ O _ X _ O X O _ _\n"
-			" _ _ _ _ O X X X O O _ X _ _ _\n"
-			" _ _ _ X _ O O O X X _ X _ _ _\n"
-			" _ _ _ O _ X X O X _ O O _ _ _\n"
-			" _ _ _ O X O _ O O X X _ _ _ _\n"
-			" _ _ O O X O X O _ X _ O _ _ _\n"
-			" _ _ X X X O X X O O _ X _ _ _\n"
-			" _ _ X O O O O X _ _ _ _ _ _ _\n"
-			" _ O X _ _ X X O X _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_15x15.push_back(Sign::CROSS);
-
-	boards_15x15.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ X _ O _ X _ O _ _ _\n"
-			" _ _ _ _ _ _ O O X _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"));
-	signs_to_move_15x15.push_back(Sign::CIRCLE);
-
-	std::vector<matrix<Sign>> boards_20x20;
-	std::vector<Sign> signs_to_move_20x20;
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O X X _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X O O _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ X _ X X O _ X X _ O _ _ _ _ _ _ _\n"
-			" _ _ _ X O O O _ X O O X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ X O O X _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ X _ _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O _ _ _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ X _ O _ _ _ O _ X _ _ _ _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CROSS);
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O X X _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O O _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ O X O O O X _ O _\n"
-			" _ _ _ _ _ _ _ _ _ _ O X X _ X O X X _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ O X O O X _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ X _ _ O X X X _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ O _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CIRCLE);
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ X O O O _ _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X X X O _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O X O O X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O X X O O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O O X X _ O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ O X X X _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ O X _ X _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CROSS);
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ O _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ X _ O X O O O X O X _ _ _ _ _\n"
-			" _ _ _ _ _ _ X _ _ O X X X X O _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X O X O X O O O X _ _ _ _\n"
-			" _ _ _ _ _ O _ O X _ O X X X O _ O _ _ _\n"
-			" _ _ _ _ _ _ X O X O _ _ X O X X _ _ _ _\n"
-			" _ _ _ _ _ X O X X O X O O O O _ X _ _ _\n"
-			" _ _ _ _ _ _ O _ _ X _ O X O _ O _ O _ _\n"
-			" _ _ _ _ X _ X O O X X _ O X _ _ _ _ _ _\n"
-			" _ _ _ _ O O X X _ X O X _ O _ X _ _ _ _\n"
-			" _ _ _ _ O X O O O X O O O X O _ _ _ _ _\n"
-			" _ _ _ X O X X O X O X X O O X X _ _ _ _\n"
-			" _ X _ O O X X X X O _ X X X O O _ _ _ _\n"
-			" _ O X X X _ O X O X O X O _ _ _ _ _ _ _\n"
-			" _ _ _ X _ O _ _ O X X O _ _ _ _ _ _ _ _\n"
-			" _ _ O _ O _ _ _ O X _ O O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ O X X X O X _ _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CROSS);
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X _ _ _ X _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ O _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X X O X O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ X X _ O _ O X O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ O X O O O O X O X _ _ _ _ _ _\n"
-			" _ _ _ _ X O X _ O X O O _ X O _ _ _ _ _\n"
-			" _ _ _ _ _ O _ X X O X O X X X X O _ _ _\n"
-			" _ _ _ X X O O _ X _ _ O X O _ X _ _ _ _\n"
-			" _ _ _ _ O X X O X X X X O X O O O _ _ _\n"
-			" _ _ _ O _ O O X O _ O X O _ _ O X _ _ _\n"
-			" _ _ X _ _ X O X X X O X O X X _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O O O X O X O _ O _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ X O X _ X O X _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ O O X O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ X _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CIRCLE);
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ O _ _ _ _ O _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X X O _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O O X X X _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ X O _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ X _ O _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CROSS);
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ O X X X X O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ X O O O O X O _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ X _ _ _ X _ O X X _ _ _ _ _\n"
-			" _ _ _ _ _ O _ _ _ O _ X _ O O _ X _ X _\n"
-			" _ _ _ _ _ _ _ _ _ X O X X X _ O _ O _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ O X _ O O X O _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ O X O X O X O _ X _ _\n"
-			" _ _ _ _ _ _ _ _ _ O X O _ O O X O _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ X O X _ O _ O _ _\n"
-			" _ _ _ _ _ _ _ _ _ X X O X O X _ X _ X _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ X _ O _ _ _ O _ X _ X O _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CIRCLE);
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ O _ _ _ _ O O _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O X _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ X X X _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X X _ X O _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O O _ O _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CROSS);
-
-	boards_20x20.push_back(Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O _ X _\n"
-			" _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ X O _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ O _ X X O _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ X _ _ _ X O O O X X _\n"
-			" _ _ _ _ _ _ _ _ _ _ O O X O _ X O O _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ O X X X O X _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ X O O O X _ X _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ X O _ X _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"));
-	signs_to_move_20x20.push_back(Sign::CROSS);
-
-	std::vector<GameRules> rules = { GameRules::FREESTYLE, GameRules::STANDARD };
-	std::cout << "15x15 board\n";
-	for (size_t r = 0; r < rules.size(); r++)
-	{
-//		FeatureExtractor extractor_15x15(GameConfig(rules[r], 15, 15));
-
-		double start = getTime();
-		for (int i = 0; i < 100000; i++)
-		{
-//			for (size_t j = 0; j < boards_15x15.size(); j++)
-//				extractor_15x15.setBoard(boards_15x15[j], signs_to_move_15x15[j]);
-		}
-		double stop = getTime();
-
-		std::cout << toString(rules[r]) << " : " << (stop - start) << "s\n";
-	}
-
-	std::cout << "20x20 board\n";
-	for (size_t r = 0; r < rules.size(); r++)
-	{
-//		FeatureExtractor extractor_20x20(GameConfig(rules[r], 20, 20));
-
-		double start = getTime();
-		for (int i = 0; i < 100000; i++)
-		{
-//			for (size_t j = 0; j < boards_20x20.size(); j++)
-//				extractor_20x20.setBoard(boards_20x20[j], signs_to_move_20x20[j]);
-		}
-		double stop = getTime();
-
-		std::cout << toString(rules[r]) << " : " << (stop - start) << "s\n";
-	}
-}
 
 bool is_symmetric(const matrix<Sign> &board)
 {
@@ -1037,8 +646,8 @@ void test_pattern_calculator()
 void test_proven_positions(int pos)
 {
 //	GameConfig game_config(GameRules::FREESTYLE, 20);
-//	GameConfig game_config(GameRules::STANDARD, 15);
-	GameConfig game_config(GameRules::RENJU, 15);
+	GameConfig game_config(GameRules::STANDARD, 15);
+//	GameConfig game_config(GameRules::RENJU, 15);
 //	GameConfig game_config(GameRules::CARO5, 15);
 //	GameConfig game_config(GameRules::CARO6, 20);
 
@@ -1190,14 +799,14 @@ void test_forbidden_moves()
 void test_search()
 {
 //	GameConfig game_config(GameRules::CARO, 15);
-	GameConfig game_config(GameRules::RENJU, 15);
+	GameConfig game_config(GameRules::STANDARD, 15);
 //	GameConfig game_config(GameRules::FREESTYLE, 20);
 
 	SearchConfig search_config;
 	search_config.max_batch_size = 8;
 	search_config.mcts_config.max_children = 32;
 	search_config.mcts_config.policy_expansion_threshold = 1.0e-4f;
-	search_config.tss_config.mode = 0;
+	search_config.tss_config.mode = 2;
 	search_config.tss_config.max_positions = 1000;
 	search_config.tss_config.hash_table_size = 1048576;
 
@@ -1215,7 +824,7 @@ void test_search()
 	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku550/networks/network_57_opt.bin");
 //	nn_evaluator.loadGraph("./old_6x64s.bin");
-	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/btl_pv_8x128r/checkpoint/network_100_opt.bin");
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/standard_15x15/checkpoint/network_0_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/tl/checkpoint/network_99_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/test_6x64s/checkpoint/network_70_opt.bin");
@@ -2314,58 +1923,58 @@ void test_search()
 		/*         a b c d e f g h i j k l m n o        */);
 
 	board = Board::fromString(
-			/*         a b c d e f g h i j k l m n o          */
+			/*         a b c d e f g h i j k l m n o        */
 			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-			/*  2 */ " _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n" /*  2 */
+			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
 			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-			/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-			/*  5 */ " _ _ _ _ O _ O _ _ _ _ _ _ _ _\n" /*  5 */
-			/*  6 */ " _ _ _ _ _ X O _ _ _ _ _ _ _ _\n" /*  6 */
-			/*  7 */ " _ _ _ _ X _ X _ _ X _ O _ _ _\n" /*  7 */
-			/*  8 */ " _ _ _ X O _ X X O O _ _ _ _ _\n" /*  8 */
-			/*  9 */ " _ O X O O O X X X X O O _ _ _\n" /*  9 */
-			/* 10 */ " _ O _ X O O X O _ O X X X O X\n" /* 10 */
-			/* 11 */ " _ _ _ _ _ X O _ X _ _ _ _ _ _\n" /* 11 */
-			/* 12 */ " _ _ _ _ X _ _ _ _ _ O _ _ _ _\n" /* 12 */
-			/* 13 */ " _ _ _ O _ _ _ _ _ _ _ _ X _ _\n" /* 13 */
-			/* 14 */ " _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n" /* 14 */
-			/*         a b c d e f g h i j k l m n o          */);
+			/*  4 */ " _ _ _ _ _ O O O X _ _ _ _ _ _\n" /*  4 */
+			/*  5 */ " _ _ _ _ _ O X O O _ _ _ _ _ _\n" /*  5 */
+			/*  6 */ " _ _ _ _ _ O X X X X O _ _ _ _\n" /*  6 */
+			/*  7 */ " _ _ _ _ _ X X _ _ _ _ _ _ _ _\n" /*  7 */
+			/*  8 */ " _ _ _ _ _ X _ _ X _ _ _ _ _ _\n" /*  8 */
+			/*  9 */ " _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /*  9 */
+			/* 10 */ " _ _ _ _ _ _ _ O X _ _ X _ _ _\n" /* 10 */
+			/* 11 */ " _ _ _ _ _ _ _ X O _ _ _ _ _ _\n" /* 11 */
+			/* 12 */ " _ _ _ _ _ O O _ _ _ _ _ _ _ _\n" /* 12 */
+			/* 13 */ " _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /* 13 */
+			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+			/*         a b c d e f g h i j k l m n o        */);
 // @formatter:on
-	sign_to_move = Sign::CROSS;
+	sign_to_move = Sign::CIRCLE;
 
 	ThreatSpaceSearch ts_search(game_config, search_config.tss_config);
 
 	SearchTask task(game_config);
 
-	SearchTask task2(game_config);
-	task2.set(board, sign_to_move);
-	ts_search.solve(task2, TssMode::RECURSIVE, 10);
-	std::cout << "\n\n\n";
-	ts_search.print_stats();
-	std::cout << "\n\n\n" << task2.toString() << '\n';
-	return;
+//	SearchTask task2(game_config);
+//	task2.set(board, sign_to_move);
+//	ts_search.solve(task2, TssMode::RECURSIVE, 1000000);
+//	std::cout << "\n\n\n";
+//	ts_search.print_stats();
+//	std::cout << "\n\n\n" << task2.toString() << '\n';
+//	return;
 
 	Search search(game_config, search_config);
 	tree.setBoard(board, sign_to_move);
 //	tree.setEdgeSelector(NoisyPUCTSelector(Board::numberOfMoves(board), 1.25f));
 
-	search_config.mcts_config.edge_selector_config.init_to = "q_head";
-	search_config.mcts_config.edge_selector_config.noise_type = "none";
-	search_config.mcts_config.edge_selector_config.noise_weight = 1.0f;
+//	search_config.mcts_config.edge_selector_config.init_to = "q_head";
+//	search_config.mcts_config.edge_selector_config.noise_type = "none";
+//	search_config.mcts_config.edge_selector_config.noise_weight = 1.0f;
 
 	tree.setEdgeSelector(PUCTSelector(search_config.mcts_config.edge_selector_config));
 	tree.setEdgeGenerator(BaseGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold, false));
 
 	int next_step = 0;
-	for (int j = 0; j <= 1000; j++)
+	for (int j = 0; j <= 10000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ..." << std::endl;
 			next_step += 10000;
 		}
-		search.select(tree, 1000);
+		search.select(tree, 10000);
 		search.solve();
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
@@ -2377,8 +1986,8 @@ void test_search()
 
 //		std::cout << "\n\n\n";
 //		tree.printSubtree(10, true, 5);
-//		if (tree.isRootProven())
-//			break;
+		if (tree.isRootProven())
+			break;
 	}
 	search.cleanup(tree);
 
@@ -2644,20 +2253,32 @@ void test_evaluate()
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 1.25f;
 //	manager.setFirstPlayer(cfg, "./old_6x64f.bin", "old_6x64f");
 
-	cfg.simulations = 1000;
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "bottleneck_255");
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/sl_btl_brd_pv_8x128s/checkpoint/network_261_opt.bin", "broadcast_261");
+//	cfg.simulations = 750;
+//	cfg.search_config.tss_config.max_positions = 1000;
+//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "AG_255_x1.5_tss1k");
+//
+//	cfg.simulations = 750;
+//	cfg.search_config.tss_config.max_positions = 10000;
+//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "AG_255_x1.5_tss10k");
+
+//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/sl_btl_brd_pv_8x128s/checkpoint/network_261_opt.bin", "broadcast_261");
 //	cfg.final_selector.exploration_constant = 1.25f;
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 1.25f;
-//	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "old_6x64s");
+//	cfg.simulations = 1000;
+	cfg.search_config.tss_config.mode = 2;
+	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "tss2_reduced_at_root_x2");
+//	cfg.simulations = 750;
+//	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.5f;
+	cfg.search_config.tss_config.mode = 1;
+	manager.setSecondPlayer(cfg, "./old_6x64s.bin", "tss1");
 
 	const double start = getTime();
-	manager.generate(1000);
+	manager.generate(4000);
 	const double stop = getTime();
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs/sl_btl_brd_pv_8x128s/compare.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs/final_cmp6.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 
@@ -2737,44 +2358,40 @@ void parameter_tuning()
 
 class Embedding
 {
-		std::array<int, 17> indices;
-
-		int clamp(int max, int value) const
-		{
-			return std::min(max, value);
-		}
+		/*
+		 * row 0 - is cross (black) to move. If set to 0 it means that circle (white) is moving.
+		 * Input encoding
+		 *   0:6 - cross (black) threats (OPEN_3 to FIVE)
+		 *   7:13 - circle (white) threats (OPEN_3 to FIVE)
+		 *     14 - is cross (black) stone
+		 *     15 - is circle (white) stone
+		 */
 	public:
-		void set(const PatternCalculator &calc)
+		void set(const PatternCalculator &calc, float *tensor)
 		{
-			indices[0] = 0 + static_cast<int>(calc.getSignToMove() == Sign::CROSS);
+			tensor[0] = static_cast<int>(calc.getSignToMove() == Sign::CROSS);
 
-			auto own = calc.getThreatHistogram(calc.getSignToMove());
-			indices[1] = 2 + clamp(7, (1 + own.get(ThreatType::OPEN_3).size()) / 2);
-			indices[2] = 10 + clamp(3, own.get(ThreatType::FORK_3x3).size());
-			indices[3] = 14 + clamp(7, (1 + own.get(ThreatType::HALF_OPEN_4).size()) / 2);
-			indices[4] = 22 + clamp(3, own.get(ThreatType::FORK_4x3).size());
-			indices[5] = 26 + clamp(3, own.get(ThreatType::FORK_4x4).size());
-			indices[6] = 30 + clamp(3, own.get(ThreatType::OPEN_4).size());
-			indices[7] = 34 + clamp(3, own.get(ThreatType::FIVE).size());
-			indices[8] = 38 + clamp(3, own.get(ThreatType::OVERLINE).size());
-
-			auto opp = calc.getThreatHistogram(invertSign(calc.getSignToMove()));
-			indices[9] = 42 + clamp(7, (1 + opp.get(ThreatType::OPEN_3).size()) / 2);
-			indices[10] = 50 + clamp(3, opp.get(ThreatType::FORK_3x3).size());
-			indices[11] = 54 + clamp(7, (1 + opp.get(ThreatType::HALF_OPEN_4).size()) / 2);
-			indices[12] = 62 + clamp(3, opp.get(ThreatType::FORK_4x3).size());
-			indices[13] = 66 + clamp(3, opp.get(ThreatType::FORK_4x4).size());
-			indices[14] = 70 + clamp(3, opp.get(ThreatType::OPEN_4).size());
-			indices[15] = 74 + clamp(3, opp.get(ThreatType::FIVE).size());
-			indices[16] = 78 + clamp(3, opp.get(ThreatType::OVERLINE).size());
-		}
-		constexpr int size() const noexcept
-		{
-			return indices.size();
-		}
-		int operator[](int index) const
-		{
-			return indices[index];
+			int idx = 1;
+			for (int row = 0; row < calc.getConfig().rows; row++)
+				for (int col = 0; col < calc.getConfig().cols; col++, idx += 16)
+				{
+					const ThreatEncoding te = calc.getThreatAt(row, col);
+					const ThreatType cross = std::max(ThreatType::OPEN_3, std::min(ThreatType::FIVE, te.forCross()));
+					const ThreatType circle = std::max(ThreatType::OPEN_3, std::min(ThreatType::FIVE, te.forCircle()));
+					tensor[idx + (int) cross - 2] = 1.0f;
+					tensor[idx + 7 + (int) circle - 2] = 1.0f;
+					switch (calc.signAt(row, col))
+					{
+						default:
+							break;
+						case Sign::CROSS:
+							tensor[idx + 14] = 1.0f;
+							break;
+						case Sign::CIRCLE:
+							tensor[idx + 15] = 1.0f;
+							break;
+					}
+				}
 		}
 };
 
@@ -2790,17 +2407,21 @@ void train_simple_evaluator()
 {
 	ml::Device::setNumberOfThreads(1);
 	GameDataBuffer buffer;
-	for (int i = 0; i <= 24; i++)
-		buffer.load("/home/maciek/alphagomoku/tests_2023/base_q_head/train_buffer/buffer_" + std::to_string(i) + ".bin");
+	for (int i = 200; i < 250; i++)
+		buffer.load("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer/buffer_" + std::to_string(i) + ".bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
 	SearchDataPack pack(15, 15);
 
 	GameConfig game_config(GameRules::STANDARD, 15);
 
-	const int batch_size = 256;
+	const int batch_size = 1024;
 	ml::Graph model;
-	auto x = model.addInput( { batch_size, 82 });
+	auto x = model.addInput( { batch_size, 1 + game_config.rows * game_config.cols * 16 });
+	x = model.add(ml::Dense(64, "linear"), x);
+	x = model.add(ml::BatchNormalization("relu"), x);
+//	x = model.add(ml::Dense(16, "linear"), x);
+//	x = model.add(ml::BatchNormalization("relu"), x);
 	x = model.add(ml::Dense(8, "linear"), x);
 	x = model.add(ml::BatchNormalization("relu"), x);
 	x = model.add(ml::Dense(1, "sigmoid"), x);
@@ -2810,7 +2431,8 @@ void train_simple_evaluator()
 	model.setOptimizer(ml::Optimizer());
 	model.setRegularizer(ml::Regularizer(4.0e-5f));
 	model.setLearningRate(1.0e-3f);
-	model.moveTo(ml::Device::cpu());
+	model.moveTo(ml::Device::cuda(0));
+	model.print();
 
 	PatternCalculator calc(game_config);
 
@@ -2862,68 +2484,37 @@ void train_simple_evaluator()
 
 	Embedding embedding;
 
-	for (int e = 0; e < 50; e++)
+	std::vector<float> input_on_cpu(model.getInputShape().volume());
+	std::vector<float> target_on_cpu(model.getOutputShape().volume());
+
+	for (int e = 0; e < 100; e++)
 	{
-		if (e == 20)
+		if (e == 50)
 			model.setLearningRate(1.0e-4f);
-		if (e == 40)
+		if (e == 75)
 			model.setLearningRate(1.0e-5f);
 
 		float loss = 0.0f;
 		int count = 0;
 		for (int step = 0; step < 1000; step++)
 		{
-			model.getInput(0).zeroall(model.context());
-			int b = 0;
-			while (b < batch_size)
+			std::fill(input_on_cpu.begin(), input_on_cpu.end(), 0.0f);
+			for (int b = 0; b < batch_size; b++)
 			{
 				const int i = randInt(buffer.numberOfGames());
 				const int j = randInt(buffer.getGameData(i).numberOfSamples());
 
 				buffer.getGameData(i).getSample(pack, j);
-				if (pack.minimax_score.isWin() or pack.minimax_score.isLoss())
-				{
-					const Sign own_sign = pack.played_move.sign;
-					const Sign opp_sign = invertSign(own_sign);
+				calc.setBoard(pack.board, pack.played_move.sign);
 
-					calc.setBoard(pack.board, pack.played_move.sign);
-					embedding.set(calc);
-
-					for (int i = 0; i < embedding.size(); i++)
-						model.getInput(0).set(1.0f, { b, embedding[i] });
-
-//					for (int k = 0; k < 8; k++)
-//					{
-//						const int tmp = calc.getThreatHistogram(own_sign).get(static_cast<ThreatType>(2 + k)).size();
-//						model.getInput(0).set(1.0f, { b, k * 8 + std::min(7, tmp) });
-//					}
-//					for (int k = 0; k < 8; k++)
-//					{
-//						const int tmp = calc.getThreatHistogram(opp_sign).get(static_cast<ThreatType>(2 + k)).size();
-//						model.getInput(0).set(1.0f, { b, 64 + k * 8 + std::min(7, tmp) });
-//					}
-
-//					for (int k = 0; k < 8; k++)
-//					{
-//						const float value = calc.getThreatHistogram(own_sign).get(static_cast<ThreatType>(2 + k)).size();
-//						model.getInput(0).set(value, { b, k });
-//					}
-//					for (int k = 0; k < 8; k++)
-//					{
-//						const float value = calc.getThreatHistogram(opp_sign).get(static_cast<ThreatType>(2 + k)).size();
-//						model.getInput(0).set(value, { b, 8 + k });
-//					}
-
-//					model.getTarget(0).set(convertOutcome(pack.game_outcome, pack.played_move.sign).getExpectation(), { b, 0 });
-
-					if (pack.minimax_score.isWin())
-						model.getTarget(0).set(1.0f, { b, 0 });
-					else
-						model.getTarget(0).set(0.0f, { b, 0 });
-
-					b++;
-				}
+				const int input_size = model.getInputShape().dim(1);
+				embedding.set(calc, input_on_cpu.data() + b * input_size);
+//				target_on_cpu[b] = pack.minimax_value.getExpectation();
+				target_on_cpu[b] = convertOutcome(pack.game_outcome, pack.played_move.sign).getExpectation();
 			}
+			model.getInput().copyFromHost(model.context(), input_on_cpu.data(), sizeof(float) * input_on_cpu.size());
+			model.getTarget().copyFromHost(model.context(), target_on_cpu.data(), sizeof(float) * target_on_cpu.size());
+
 			model.forward(batch_size);
 			model.backward(batch_size);
 			model.learn();
@@ -2933,34 +2524,48 @@ void train_simple_evaluator()
 		std::cout << "epoch " << e << ", loss " << loss / count << '\n';
 	}
 
-	model.makeNonTrainable();
-	ml::FoldBatchNorm().optimize(model);
+	{
+		SerializedObject so;
+		Json json = model.save(so);
+		FileSaver("nnue_64x8x1.bin").save(json, so, 2);
+	}
 
-	int layer_id = 0;
-	for (int n = 0; n < model.numberOfNodes(); n++)
-		if (model.getNode(n).getLayer().name() == "Dense")
-		{
-			ml::Tensor weights = model.getNode(n).getLayer().getWeights().getParam();
-			ml::Tensor bias = model.getNode(n).getLayer().getBias().getParam();
+	{
+		model.makeNonTrainable();
+		ml::FoldBatchNorm().optimize(model);
+		SerializedObject so;
+		Json json = model.save(so);
+		FileSaver("nnue_64x8x1_opt.bin").save(json, so, 2);
+	}
 
-			std::cout << "// layer " << layer_id << '\n';
-			std::cout << "// first row is a bias" << '\n';
-			std::cout << "//@formatter:off" << '\n';
-			std::cout << "static const std::vector<float, AlignedAllocator<float, 64>> weights_" << layer_id << " = {" << '\n';
-			for (int i = 0; i < weights.dim(0); i++)
-				std::cout << convert(bias.get( { i })) << ", ";
-			std::cout << '\n';
-			for (int i = 0; i < weights.dim(1); i++)
-			{
-				for (int j = 0; j < weights.dim(0); j++)
-					std::cout << convert(weights.get( { j, i })) << ", ";
-				std::cout << '\n';
-			}
-			std::cout << "};" << '\n';
-			std::cout << "//@formatter:on" << '\n' << '\n';
-
-			layer_id++;
-		}
+//	model.makeNonTrainable();
+//	ml::FoldBatchNorm().optimize(model);
+//
+//	int layer_id = 0;
+//	for (int n = 0; n < model.numberOfNodes(); n++)
+//		if (model.getNode(n).getLayer().name() == "Dense")
+//		{
+//			ml::Tensor weights = model.getNode(n).getLayer().getWeights().getParam();
+//			ml::Tensor bias = model.getNode(n).getLayer().getBias().getParam();
+//
+//			std::cout << "// layer " << layer_id << '\n';
+//			std::cout << "// first row is a bias" << '\n';
+//			std::cout << "//@formatter:off" << '\n';
+//			std::cout << "static const std::vector<float, AlignedAllocator<float, 64>> weights_" << layer_id << " = {" << '\n';
+//			for (int i = 0; i < weights.dim(0); i++)
+//				std::cout << convert(bias.get( { i })) << ", ";
+//			std::cout << '\n';
+//			for (int i = 0; i < weights.dim(1); i++)
+//			{
+//				for (int j = 0; j < weights.dim(0); j++)
+//					std::cout << convert(weights.get( { j, i })) << ", ";
+//				std::cout << '\n';
+//			}
+//			std::cout << "};" << '\n';
+//			std::cout << "//@formatter:on" << '\n' << '\n';
+//
+//			layer_id++;
+//		}
 
 //	ml::Tensor weights = model.getNode(1).getLayer().getWeights().getParam();
 //	ml::Tensor bias = model.getNode(1).getLayer().getBias().getParam();
@@ -2981,6 +2586,55 @@ void train_simple_evaluator()
 //	for (int j = 0; j < weights.dim(1); j++)
 //		std::cout << weights.get( { 0, j }) << ' ';
 //	std::cout << '\n';
+}
+
+void train_nnue()
+{
+	ml::Device::setNumberOfThreads(1);
+	GameDataBuffer buffer;
+	for (int i = 200; i < 250; i++)
+		buffer.load("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer/buffer_" + std::to_string(i) + ".bin");
+	std::cout << buffer.getStats().toString() << '\n';
+
+	SearchDataPack pack(15, 15);
+
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	const int batch_size = 1024;
+	nnue::TrainingNNUE model(game_config, batch_size);
+
+	for (int e = 0; e < 100; e++)
+	{
+		if (e == 50)
+			model.setLearningRate(1.0e-4f);
+		if (e == 75)
+			model.setLearningRate(1.0e-5f);
+
+		const double start = getTime();
+		float loss = 0.0f;
+		int count = 0;
+		for (int step = 0; step < 1000; step++)
+		{
+			for (int b = 0; b < batch_size; b++)
+			{
+				const int i = randInt(buffer.numberOfGames());
+				const int j = randInt(buffer.getGameData(i).numberOfSamples());
+
+				buffer.getGameData(i).getSample(pack, j);
+				augment(pack.board, randInt(8));
+				model.packInputData(b, pack.board, pack.played_move.sign);
+//				model.packTargetData(b, convertOutcome(pack.game_outcome, pack.played_move.sign).getExpectation());
+				model.packTargetData(b, pack.minimax_value.getExpectation());
+			}
+
+			model.forward(batch_size);
+			loss += model.backward(batch_size);
+			model.learn();
+			count++;
+		}
+		std::cout << "epoch " << e << ", loss " << loss / count << " in " << (getTime() - start) << "s\n";
+		model.save("nnue_32x32x8x1.bin");
+	}
 }
 
 void prepare_proven_dataset()
@@ -3485,12 +3139,30 @@ float cross_entropy(const float *target, const float *output, int size)
 float cross_entropy(Value target, Value output)
 {
 	float t[3] = { std::max(0.0f, target.win_rate), std::max(0.0f, target.draw_rate), std::max(0.0f, target.loss_rate()) };
-	float o[3] = { output.win_rate, output.draw_rate, output.loss_rate() };
+	float o[3] = { std::max(0.0f, output.win_rate), std::max(0.0f, output.draw_rate), std::max(0.0f, output.loss_rate()) };
 	return cross_entropy(t, o, 3);
 }
 
 int main(int argc, char *argv[])
 {
+
+//	{
+//		ActionStack action_stack(10000);
+//
+//		ActionList list = action_stack.create_root();
+//		for (int i = 0; i < 10; i++)
+//			list.add(Move(i, 0), Score(i));
+//		action_stack.increment(list.size());
+//		list.print();
+//		ActionList list2 = action_stack.create_from_action(list[0]);
+//		for (int i = 0; i < 5; i++)
+//			list2.add(Move(5, i), Score(-i));
+//		action_stack.increment(list2.size());
+//
+//		list.print();
+//		list2.print();
+//		return 0;
+//	}
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
@@ -3672,7 +3344,70 @@ int main(int argc, char *argv[])
 //	convert_old_network();
 //	test_search();
 //	prepare_proven_dataset();
-//	test_proven_positions(1000);
+//	test_proven_positions(10000);
+//	train_simple_evaluator();
+	train_nnue();
+	return 0;
+	nnue::TrainingNNUE nnue(GameConfig(GameRules::STANDARD, 15), 1);
+	nnue.load("nnue_64x16x1.bin");
+//	nnue.load("nnue_256x32x32x1.bin");
+	nnue::NNUEWeights weights = nnue.dump();
+
+	{
+		matrix<Sign> board = Board::fromString(""
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+				" _ _ _ O _ O _ O _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"
+				" _ _ _ _ _ O X X X X _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+		const Sign sign_to_move = Sign::CIRCLE;
+		nnue.packInputData(0, board, sign_to_move);
+		nnue.forward(1);
+		const float eval = nnue.unpackOutput(0);
+		std::cout << "eval = " << eval << '\n';
+//		return 0;
+
+		nnue::InferenceNNUE inf_nnue(GameConfig(GameRules::STANDARD, 15), weights);
+		PatternCalculator calc(GameConfig(GameRules::STANDARD, 15));
+		calc.setBoard(board, sign_to_move);
+		inf_nnue.refresh(calc);
+
+//		calc.addMove(Move(Sign::CIRCLE, 8, 10));
+//		inf_nnue.update(calc);
+
+//		Board::putMove(board, Move(Sign::CIRCLE, 8, 10));
+//		calc.setBoard(board, invertSign(sign_to_move));
+//		inf_nnue.refresh(calc);
+
+		const double start = getTime();
+		int repeats = 0;
+		for (; repeats < 100000000; repeats += 10)
+		{
+			for (int j = 0; j < 10; j++)
+//				calc.setBoard(board, sign_to_move);
+//				inf_nnue.refresh(calc);
+				inf_nnue.forward();
+//				inf_nnue.update(calc);
+			if ((getTime() - start) > 10.0)
+				break;
+		}
+		const double stop = getTime();
+		const double time = stop - start;
+		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
+		std::cout << "n/s = " << repeats / time << " (" << time / repeats * 1.0e6 << "ms)\n";
+//		std::cout << "eval = " << inf_nnue.forward() << '\n';
+	}
+
 //	test_evaluate();
 //	parameter_tuning();
 
@@ -3714,11 +3449,63 @@ int main(int argc, char *argv[])
 
 	return 0;
 
+//	{
+//		GameDataBuffer buffer("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/valid_buffer/buffer_200.bin");
+//		std::cout << buffer.getStats().toString() << '\n';
+//
+//		std::unique_ptr<AGNetwork> network_fp32, network_fp16;
+//		network_fp32 = loadAGNetwork("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_200_opt.bin");
+//		network_fp16 = loadAGNetwork("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_200_opt.bin");
+//
+//		network_fp32->setBatchSize(1);
+//		network_fp32->moveTo(ml::Device::cuda(0));
+//
+//		network_fp16->setBatchSize(1);
+//		network_fp16->moveTo(ml::Device::cpu());
+//		network_fp16->convertToHalfFloats();
+//
+//		SearchDataPack pack(15, 15);
+//
+//		matrix<Value> action_values;
+//		matrix<float> policy_fp32(15, 15), policy_fp16(15, 15);
+//		Value value_fp32, value_fp16;
+//
+//		float ce_policy = 0.0f, ce_value = 0.0f;
+//		int count = 0;
+//		for (int i = 0; i < buffer.numberOfGames() / 10; i++)
+//		{
+//			std::cout << i << "/" << buffer.numberOfGames() / 10 << '\n';
+//			for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+//			{
+//				buffer.getGameData(i).getSample(pack, j);
+//				network_fp32->packInputData(0, pack.board, pack.played_move.sign);
+//				network_fp16->packInputData(0, pack.board, pack.played_move.sign);
+//
+//				network_fp32->forward(1);
+//				network_fp16->forward(1);
+//
+//				network_fp32->unpackOutput(0, policy_fp32, action_values, value_fp32);
+//				network_fp16->unpackOutput(0, policy_fp16, action_values, value_fp16);
+//
+////				std::cout << value_fp32.toString() << "\n" << Board::toString(pack.board, policy_fp32, true) << '\n';
+////				std::cout << value_fp16.toString() << "\n" << Board::toString(pack.board, policy_fp16, true) << '\n';
+//
+//				ce_policy += cross_entropy(policy_fp32.data(), policy_fp16.data(), policy_fp32.size());
+//				ce_value += cross_entropy(value_fp32, value_fp16);
+//				count++;
+//			}
+//			std::cout << "diff policy = " << ce_policy / count << '\n';
+//			std::cout << "diff value  = " << ce_value / count << '\n';
+//		}
+//
+//		return 0;
+//	}
+
 	{
 //		GameDataBuffer buffer("/home/maciek/alphagomoku/new_runs_2023/test_6x64s_2/train_buffer/buffer_34.bin");
 //		std::cout << buffer.getStats().toString() << '\n';
 
-		GameConfig game_config(GameRules::RENJU, 15, 15);
+		GameConfig game_config(GameRules::STANDARD, 15, 15);
 		TrainingConfig cfg;
 		cfg.blocks = 6;
 		cfg.filters = 64;
@@ -3726,7 +3513,7 @@ int main(int argc, char *argv[])
 //		network = loadAGNetwork("./old_6x64s.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/test_6x64/checkpoint/network_90_opt.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/test_sampler_v2/checkpoint/network_94_opt.bin");
-		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/btl_pv_8x128r/checkpoint/network_100_opt.bin");
+		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/supervised/broadcast_skip2_relu_8x128s/network_99_opt.bin");
 
 //		network.init(game_config, cfg);
@@ -3736,7 +3523,7 @@ int main(int argc, char *argv[])
 //		network.optimize();
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/test_6x64s_2/checkpoint/network_33_opt.bin");
 //		network->optimize();
-		network->setBatchSize(8);
+		network->setBatchSize(16);
 		network->moveTo(ml::Device::cpu());
 //		network->moveTo(ml::Device::cuda(0));
 //		network->convertToHalfFloats();
@@ -3796,29 +3583,46 @@ int main(int argc, char *argv[])
 //		network.packInputData(0, pack.board, pack.played_move.sign);
 
 		board = Board::fromString(""
-		/*        a b c d e f g h i j k l m n o          */
-		/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-				/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-				/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-				/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-				/*  4 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  4 */
-				/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-				/*  6 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  6 */
-				/*  7 */" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n" /*  7 */
-				/*  8 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  8 */
-				/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-				/* 10 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /* 10 */
-				/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-				/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-				/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-				/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-		/*        a b c d e f g h i j k l m n o          */);
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+				" _ _ _ O _ O _ O _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"
+				" _ _ _ _ _ O X X X X _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+
+//		board = Board::fromString(""
+//		/*        a b c d e f g h i j k l m n o          */
+//		/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+//				/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+//				/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+//				/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
+//				/*  4 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  4 */
+//				/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
+//				/*  6 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  6 */
+//				/*  7 */" _ _ _ _ X _ O O O _ X _ _ _ _\n" /*  7 */
+//				/*  8 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  8 */
+//				/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
+//				/* 10 */" _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /* 10 */
+//				/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+//				/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+//				/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+//				/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+//		/*        a b c d e f g h i j k l m n o          */);
 
 		const Sign sign_to_move = Sign::CIRCLE;
-		PatternCalculator calc(game_config);
-		calc.setBoard(board, sign_to_move);
-		calc.printAllThreats();
-		calc.printForbiddenMoves();
+//		PatternCalculator calc(game_config);
+//		calc.setBoard(board, sign_to_move);
+//		calc.printAllThreats();
+//		calc.printForbiddenMoves();
 //		network.packInputData(0, board, sign_to_move);
 
 		SearchDataPack pack(15, 15);
@@ -3830,11 +3634,11 @@ int main(int argc, char *argv[])
 		Value value;
 
 //		network.packInputData(0, pack.board, pack.played_move.sign);
-		network->packInputData(0, board, sign_to_move);
-		network->packInputData(1, board, sign_to_move);
-//		network.forward(1);
+		for (int i = 0; i < network->getBatchSize(); i++)
+			network->packInputData(i, board, sign_to_move);
+		network->forward(1);
 //		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		network->forward(2);
+//		network->forward(2);
 //		return 0;
 
 //		const double start = getTime();
@@ -3847,7 +3651,6 @@ int main(int argc, char *argv[])
 //		}
 //		const double stop = getTime();
 //		const double time = stop - start;
-//
 //		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
 //		std::cout << "n/s = " << network->getBatchSize() * repeats / time << '\n';
 //		return 0;

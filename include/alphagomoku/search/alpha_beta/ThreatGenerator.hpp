@@ -29,7 +29,9 @@ namespace ag
 	{
 		BASIC,
 		STATIC,
-		VCF
+		VCF,
+		REDUCED,
+		LEGAL
 	};
 
 	class ThreatGenerator
@@ -65,7 +67,6 @@ namespace ag
 			ThreatGenerator(GameConfig gameConfig, PatternCalculator &calc);
 			void setDrawAfter(int moves) noexcept;
 			void setHashMove(Move m) noexcept;
-			void setKillerMoves(const ShortVector<Move, 4> &killers) noexcept;
 			Score generate(ActionList &actions, GeneratorMode mode);
 		private:
 			template<AddMode Mode>
@@ -85,6 +86,8 @@ namespace ag
 			int add_own_half_open_fours();
 			Score try_solve_own_fork_4x3(Location move);
 			void mark_forbidden_moves();
+			BitMask2D<uint32_t, 32> mark_neighborhood();
+			void create_remaining_moves(const BitMask2D<uint32_t, 32> &mask);
 
 			Sign get_own_sign() const noexcept;
 			Sign get_opponent_sign() const noexcept;

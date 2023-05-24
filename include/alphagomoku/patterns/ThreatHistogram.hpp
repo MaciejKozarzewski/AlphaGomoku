@@ -27,6 +27,10 @@ namespace ag
 				for (int i = 1; i < 10; i++) // do not reserve for 'NONE' threat
 					threats[i].reserve(128);
 			}
+			int numberOf(ThreatType threat) const noexcept
+			{
+				return get(threat).size();
+			}
 			const LocationList& get(ThreatType threat) const noexcept
 			{
 				assert(static_cast<int>(threat) < 10);

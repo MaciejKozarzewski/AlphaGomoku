@@ -8,6 +8,7 @@
 #ifndef ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATSPACESEARCH_HPP_
 #define ALPHAGOMOKU_SEARCH_ALPHA_BETA_THREATSPACESEARCH_HPP_
 
+#include <alphagomoku/networks/NNUE.hpp>
 #include <alphagomoku/search/alpha_beta/ActionList.hpp>
 #include <alphagomoku/search/alpha_beta/LocalHashTable.hpp>
 #include <alphagomoku/search/alpha_beta/SharedHashTable.hpp>
@@ -78,6 +79,7 @@ namespace ag
 			GameConfig game_config;
 			PatternCalculator pattern_calculator;
 			ThreatGenerator threat_generator;
+			nnue::InferenceNNUE inference_nnue;
 
 			SharedHashTable shared_table;
 			HashKey128 hash_key;
@@ -98,12 +100,7 @@ namespace ag
 
 			TSSStats getStats() const;
 			void clearStats();
-			void print_stats() const
-			{
-				pattern_calculator.print_stats();
-				std::cout << stats.toString() << '\n';
-				std::cout << "SharedHashTable load factor = " << shared_table.loadFactor(true) << '\n';
-			}
+			void print_stats() const;
 		private:
 			Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions);
 			bool is_move_legal(Move m) const noexcept;

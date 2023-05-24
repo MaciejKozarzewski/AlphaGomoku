@@ -172,7 +172,7 @@ namespace ag
 		const int filters = trainingOptions.filters;
 
 		auto x = createInputBlock(graph, input_shape, filters);
-		x = createBroadcastingBlock(graph, x);
+//		x = createBroadcastingBlock(graph, x);
 
 		for (int i = 0; i < blocks; i++)
 		{

@@ -359,7 +359,7 @@ namespace ag
 #else
 					const int shift = 28 - col; // now calculate how much the masks need to be shifted to the right to match desired position
 					for (int i = 0; i < 7; i++)
-					neighboring_moves[row + i] |= (neighboring_moves[i] >> shift);// now just apply patterns to the board
+						neighboring_moves[row + i] |= (neighboring_moves[i] >> shift);// now just apply patterns to the board
 #endif
 				}
 		}

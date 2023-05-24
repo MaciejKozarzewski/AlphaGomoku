@@ -5,9 +5,9 @@
  *      Author: Maciej Kozarzewski
  */
 
-#include <alphagomoku/ab_search/nnue/NNUE.hpp>
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/game/rules.hpp>
+#include <alphagomoku/networks/NNUE.hpp>
 #include <alphagomoku/protocols/Protocol.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/configs.hpp>

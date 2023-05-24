@@ -17,8 +17,7 @@
 
 namespace ag
 {
-	enum class GameOutcome
-	;
+	enum class GameOutcome;
 } /* namespace ag */
 
 namespace ag
@@ -38,24 +37,24 @@ namespace ag
 	class Score
 	{
 			uint16_t m_data; // 3 bits for proven score, 13 bits for evaluation shifted by +4000
-			explicit Score(uint16_t raw) :
+			constexpr explicit Score(uint16_t raw) noexcept :
 					m_data(raw)
 			{
 			}
 		public:
-			Score() noexcept :
+			constexpr Score() noexcept :
 					Score(ProvenValue::UNKNOWN, 0)
 			{
 			}
-			Score(ProvenValue pv) :
+			constexpr Score(ProvenValue pv) noexcept :
 					Score(pv, 0)
 			{
 			}
-			Score(int evaluation) :
+			constexpr Score(int evaluation) noexcept :
 					Score(ProvenValue::UNKNOWN, evaluation)
 			{
 			}
-			Score(ProvenValue pv, int evaluation) :
+			constexpr Score(ProvenValue pv, int evaluation) noexcept :
 					m_data(static_cast<uint16_t>(pv) << 13u)
 			{
 				assert(-4000 <= evaluation && evaluation <= 4000);
@@ -252,7 +251,7 @@ namespace ag
 					case ProvenValue::DRAW:
 						return Value::draw();
 					case ProvenValue::UNKNOWN:
-						return Value(std::tanh(getEval() / 1000.0f), 0.0f); // TODO this might change in the future
+						return Value((1000 + getEval()) / 2000.0f, 0.0f);
 					case ProvenValue::WIN:
 						return Value::win();
 					default:

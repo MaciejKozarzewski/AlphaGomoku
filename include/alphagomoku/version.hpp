@@ -15,7 +15,7 @@ namespace ag
 	struct Version
 	{
 			static const int major = 5;
-			static const int minor = 5;
+			static const int minor = 6;
 			static const int revision = 0;
 	};
 

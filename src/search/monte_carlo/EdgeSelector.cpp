@@ -135,7 +135,7 @@ namespace
 					case ProvenValue::UNKNOWN:
 						return edge.getExpectation(style_factor);
 					case ProvenValue::WIN:
-						return +1000.0f -  edge.getScore().getDistance();
+						return +1000.0f - edge.getScore().getDistance();
 				}
 			}
 	};
@@ -320,9 +320,11 @@ namespace ag
 				noisy_policy = applyGumbelNoise(node, noise_weight);
 		}
 
+		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
+
 		if (init_to == "q_head")
 		{
-			const PUCT_q_head op(node, exploration_constant, exploration_exponent, style_factor);
+			const PUCT_q_head op(node, c_puct, exploration_exponent, style_factor);
 			if (use_noise)
 				return find_best_edge_impl<PUCT_q_head, true>(node, op, noisy_policy);
 			else
@@ -338,7 +340,7 @@ namespace ag
 				if (init_to == "draw")
 					initial_q = 0.5;
 			}
-			const PUCT op(node, exploration_constant, exploration_exponent, style_factor, initial_q);
+			const PUCT op(node, c_puct, exploration_exponent, style_factor, initial_q);
 			if (use_noise)
 				return find_best_edge_impl<PUCT, true>(node, op, noisy_policy);
 			else
