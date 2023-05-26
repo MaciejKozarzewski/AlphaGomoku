@@ -18,9 +18,9 @@
 
 #include <minml/utils/json.hpp>
 #include <minml/utils/serialization.hpp>
-#include "minml/core/Device.hpp"
-#include "minml/layers/Dense.hpp"
-#include "minml/layers/BatchNormalization.hpp"
+#include <minml/core/Device.hpp>
+#include <minml/layers/Dense.hpp>
+#include <minml/layers/BatchNormalization.hpp>
 #include <minml/graph/graph_optimizers.hpp>
 
 #include <iostream>
@@ -120,17 +120,28 @@ namespace ag
 			}
 		}
 
-		TrainingNNUE::TrainingNNUE(GameConfig gameConfig, int batchSize) :
+		TrainingNNUE::TrainingNNUE(GameConfig gameConfig, int batchSize, const std::string &path) :
+				game_config(gameConfig),
+				calculator(gameConfig)
+		{
+			load(path);
+			model.setInputShape(ml::Shape( { batchSize, model.getInputShape().lastDim() }));
+			input_on_cpu = std::vector<float>(model.getInputShape().volume());
+			target_on_cpu = std::vector<float>(model.getOutputShape().volume());
+		}
+		TrainingNNUE::TrainingNNUE(GameConfig gameConfig, std::initializer_list<int> arch, int batchSize) :
 				game_config(gameConfig),
 				calculator(gameConfig)
 		{
 			auto x = model.addInput( { batchSize, 1 + gameConfig.rows * gameConfig.cols * 16 });
-			x = model.add(ml::Dense(32, "linear"), x);
-			x = model.add(ml::BatchNormalization("relu").useGamma(false), x);
-			x = model.add(ml::Dense(32, "linear"), x);
-			x = model.add(ml::BatchNormalization("relu").useGamma(false), x);
-			x = model.add(ml::Dense(32, "linear"), x);
-			x = model.add(ml::BatchNormalization("relu").useGamma(false), x);
+			for (size_t i = 0; i < arch.size() - 1; i++)
+			{
+				const int neurons = arch.begin()[i];
+				x = model.add(ml::Dense(neurons, "relu"), x);
+//				x = model.add(ml::Dense(neurons, "linear").useBias(false), x);
+//				x = model.add(ml::BatchNormalization("relu").useGamma(false), x);
+			}
+			assert(arch.begin()[arch.size() - 1] == 1);
 			x = model.add(ml::Dense(1, "sigmoid"), x);
 			model.addOutput(x);
 
@@ -153,11 +164,11 @@ namespace ag
 			tensor[0] = static_cast<float>(signToMove == Sign::CROSS);
 			for (ThreatType tt = ThreatType::OPEN_3; tt <= ThreatType::FIVE; tt = increment_threat_type(tt))
 			{
-				const auto &cross_threats = calculator.getThreatHistogram(Sign::CROSS).get(tt);
+				const LocationList &cross_threats = calculator.getThreatHistogram(Sign::CROSS).get(tt);
 				for (auto iter = cross_threats.begin(); iter < cross_threats.end(); iter++)
 					tensor[get_row_index(*iter) + 0 + static_cast<int>(tt) - 2] = 1.0f;
 
-				const auto &circle_threats = calculator.getThreatHistogram(Sign::CIRCLE).get(tt);
+				const LocationList &circle_threats = calculator.getThreatHistogram(Sign::CIRCLE).get(tt);
 				for (auto iter = circle_threats.begin(); iter < circle_threats.end(); iter++)
 					tensor[get_row_index(*iter) + 7 + static_cast<int>(tt) - 2] = 1.0f;
 			}
@@ -183,6 +194,9 @@ namespace ag
 //			std::cout << '\n';
 //			for (int i = 0; i < 16; i++)
 //				std::cout << model.getNode(2).getOutputTensor().get( { 0, i }) << ' ';
+//			std::cout << '\n';
+//			for (int i = 0; i < 16; i++)
+//				std::cout << model.getNode(3).getOutputTensor().get( { 0, i }) << ' ';
 //			std::cout << '\n' << '\n';
 		}
 		float TrainingNNUE::backward(int batchSize)
@@ -277,9 +291,9 @@ namespace ag
 
 				NnueLayer<float, float> tmp(inputs, neurons);
 				int idx = 0;
-				for (int i = 0; i < neurons; i++)
-					for (int j = 0; j < inputs; j++, idx++)
-						tmp.weights()[idx] = weights.get( { i, j }) * scales[j];
+				for (int i = 0; i < inputs; i++)
+					for (int j = 0; j < neurons; j++, idx++)
+						tmp.weights()[idx] = weights.get( { j, i }) * scales[i];
 				for (int i = 0; i < neurons; i++)
 					tmp.bias()[i] = bias.get( { i });
 				scales = std::vector<float>(neurons, 1.0f);
@@ -323,7 +337,7 @@ namespace ag
 		}
 		InferenceNNUE::InferenceNNUE(GameConfig gameConfig, const NNUEWeights &weights) :
 				game_config(gameConfig),
-				accumulator(weights.layer_0.neurons()),
+				accumulator_stack(gameConfig.rows * gameConfig.cols, Accumulator<int16_t>(weights.layer_0.neurons())),
 				weights(weights)
 		{
 			removed_features.reserve(128);
@@ -334,6 +348,8 @@ namespace ag
 		{
 			TimerGuard tg(stats.refresh);
 
+			current_depth = calc.getCurrentDepth();
+
 			added_features.clear();
 
 			if (calc.getSignToMove() == Sign::CROSS)
@@ -341,11 +357,11 @@ namespace ag
 
 			for (ThreatType tt = ThreatType::OPEN_3; tt <= ThreatType::FIVE; tt = increment_threat_type(tt))
 			{
-				const auto &cross_threats = calc.getThreatHistogram(Sign::CROSS).get(tt);
+				const LocationList &cross_threats = calc.getThreatHistogram(Sign::CROSS).get(tt);
 				for (auto iter = cross_threats.begin(); iter < cross_threats.end(); iter++)
 					added_features.push_back(get_row_index(*iter) + 0 + static_cast<int>(tt) - 2);
 
-				const auto &circle_threats = calc.getThreatHistogram(Sign::CIRCLE).get(tt);
+				const LocationList &circle_threats = calc.getThreatHistogram(Sign::CIRCLE).get(tt);
 				for (auto iter = circle_threats.begin(); iter < circle_threats.end(); iter++)
 					added_features.push_back(get_row_index(*iter) + 7 + static_cast<int>(tt) - 2);
 			}
@@ -353,7 +369,7 @@ namespace ag
 				if (calc.getBoard()[i] != Sign::NONE)
 					added_features.push_back(1 + 16 * i + 14 + static_cast<int>(calc.getBoard()[i]) - 1);
 
-			refresh_function(weights.layer_0, accumulator, added_features);
+			refresh_function(weights.layer_0, get_current_accumulator(), added_features);
 //			for (int i = 0; i < accumulator.size(); i++)
 //				std::cout << accumulator.data()[i] << ' ';
 //			std::cout << '\n';
@@ -361,6 +377,11 @@ namespace ag
 		void InferenceNNUE::update(const PatternCalculator &calc)
 		{
 			TimerGuard tg(stats.update);
+
+			const bool is_accumulator_ready = current_depth >= calc.getCurrentDepth() or calc.getCurrentDepth() == 0;
+			current_depth = calc.getCurrentDepth();
+			if (is_accumulator_ready)
+				return;
 
 			added_features.clear();
 			removed_features.clear();
@@ -404,7 +425,7 @@ namespace ag
 				removed_features.push_back(base_row_index + 14 + static_cast<int>(previous) - 1);
 			}
 
-			update_function(weights.layer_0, accumulator, removed_features, added_features);
+			update_function(weights.layer_0, get_previous_accumulator(), get_current_accumulator(), removed_features, added_features);
 
 //			for (int i = 0; i < accumulator.size(); i++)
 //				std::cout << accumulator.data()[i] << ' ';
@@ -413,7 +434,7 @@ namespace ag
 		float InferenceNNUE::forward()
 		{
 			TimerGuard tg(stats.forward);
-			return forward_function(accumulator, weights.layer_1, weights.fp32_layers);
+			return forward_function(get_current_accumulator(), weights.layer_1, weights.fp32_layers);
 		}
 		void InferenceNNUE::print_stats() const
 		{
@@ -424,27 +445,36 @@ namespace ag
 		 */
 		void InferenceNNUE::init_functions() noexcept
 		{
-//			if (ml::Device::cpuSimdLevel() >= ml::CpuSimd::AVX2)
-//			{
-			refresh_function = avx2_refresh_accumulator;
-			update_function = avx2_update_accumulator;
-			forward_function = avx2_forward;
-//			}
-//			else
-//			{
-//				if (ml::Device::cpuSimdLevel() >= ml::CpuSimd::SSE2)
-//				{
-//					refresh_function = sse41_refresh_accumulator;
-//					update_function = sse41_update_accumulator;
-//					forward_function = sse41_forward;
-//				}
-//				else
-//				{
-//			refresh_function = def_refresh_accumulator;
-//			update_function = def_update_accumulator;
-//			forward_function = def_forward;
-//				}
-//			}
+			if (ml::Device::cpuSimdLevel() >= ml::CpuSimd::AVX2)
+			{
+				refresh_function = avx2_refresh_accumulator;
+				update_function = avx2_update_accumulator;
+				forward_function = avx2_forward;
+			}
+			else
+			{
+				if (ml::Device::cpuSimdLevel() >= ml::CpuSimd::SSE2)
+				{
+					refresh_function = sse41_refresh_accumulator;
+					update_function = sse41_update_accumulator;
+					forward_function = sse41_forward;
+				}
+				else
+				{
+					refresh_function = def_refresh_accumulator;
+					update_function = def_update_accumulator;
+					forward_function = def_forward;
+				}
+			}
+		}
+		Accumulator<int16_t>& InferenceNNUE::get_current_accumulator()
+		{
+			return accumulator_stack[current_depth];
+		}
+		Accumulator<int16_t>& InferenceNNUE::get_previous_accumulator()
+		{
+			assert(current_depth > 0);
+			return accumulator_stack[current_depth - 1];
 		}
 		int InferenceNNUE::get_row_index(Location loc) const noexcept
 		{

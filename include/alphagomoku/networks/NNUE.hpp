@@ -47,7 +47,8 @@ namespace ag
 				std::vector<float> input_on_cpu, target_on_cpu;
 				PatternCalculator calculator;
 			public:
-				TrainingNNUE(GameConfig gameConfig, int batchSize);
+				TrainingNNUE(GameConfig gameConfig, int batchSize, const std::string &path);
+				TrainingNNUE(GameConfig gameConfig, std::initializer_list<int> arch, int batchSize);
 				void packInputData(int index, const matrix<Sign> &board, Sign signToMove);
 				void packTargetData(int index, float valueTarget);
 				float unpackOutput(int index) const;
@@ -77,7 +78,8 @@ namespace ag
 		class InferenceNNUE
 		{
 				GameConfig game_config;
-				Accumulator<int16_t> accumulator;
+				std::vector<Accumulator<int16_t>> accumulator_stack;
+				int current_depth = 0;
 				NNUEWeights weights;
 
 				std::vector<int> removed_features;
@@ -86,7 +88,9 @@ namespace ag
 				NNUEStats stats;
 
 				std::function<void(const NnueLayer<int8_t, int16_t>&, Accumulator<int16_t>&, const std::vector<int>&)> refresh_function;
-				std::function<void(const NnueLayer<int8_t, int16_t>&, Accumulator<int16_t>&, const std::vector<int>&, const std::vector<int>&)> update_function;
+				std::function<
+						void(const NnueLayer<int8_t, int16_t>&, const Accumulator<int16_t>&, Accumulator<int16_t>&, const std::vector<int>&,
+								const std::vector<int>&)> update_function;
 				std::function<float(const Accumulator<int16_t>&, const NnueLayer<int16_t, int32_t>&, const std::vector<NnueLayer<float, float>>&)> forward_function;
 			public:
 				InferenceNNUE() = default;
@@ -98,6 +102,8 @@ namespace ag
 				void print_stats() const;
 			private:
 				void init_functions() noexcept;
+				Accumulator<int16_t>& get_current_accumulator();
+				Accumulator<int16_t>& get_previous_accumulator();
 				int get_row_index(Location loc) const noexcept;
 		};
 

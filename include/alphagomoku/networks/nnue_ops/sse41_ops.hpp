@@ -24,8 +24,8 @@ namespace ag
 		/*
 		 * \brief Updates the input feature accumulator.
 		 */
-		void sse41_update_accumulator(const NnueLayer<int8_t, int16_t> &layer_0, Accumulator<int16_t> &accumulator, const std::vector<int> &removed,
-				const std::vector<int> &added) noexcept;
+		void sse41_update_accumulator(const NnueLayer<int8_t, int16_t> &layer_0, const Accumulator<int16_t> &oldAccumulator,
+				Accumulator<int16_t> &newAccumulator, const std::vector<int> &removed, const std::vector<int> &added) noexcept;
 
 		/*
 		 * \brief Runs forward pass of the accumulator activation, middle and output layers.

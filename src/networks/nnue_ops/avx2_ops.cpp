@@ -16,355 +16,384 @@ namespace
 	using namespace ag;
 	using namespace ag::nnue;
 
-	__m256i relu_16x16(__m256i x) noexcept
+	template<typename T>
+	constexpr int register_capacity() noexcept
 	{
-		return _mm256_max_epi16(_mm256_setzero_si256(), x);
+		return 256 / (8 * sizeof(T));
 	}
-	__m256i relu_8x32(__m256i x) noexcept
+	template<typename T>
+	bool is_aligned(const void *ptr) noexcept
 	{
-		return _mm256_max_epi32(_mm256_setzero_si256(), x);
+		return (reinterpret_cast<std::uintptr_t>(ptr) % sizeof(T)) == 0;
 	}
-	float horizontal_add(__m256 x) noexcept
+
+	template<typename T, int N>
+	class SimdVector
 	{
-		const __m128 x128 = _mm_add_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x));
+			static_assert(N % register_capacity<T>() == 0);
+
+			static constexpr int RegCapacity = register_capacity<T>();
+			static constexpr int RegCount = N / RegCapacity;
+			__m256i m_storage[RegCount];
+		public:
+			SimdVector() noexcept = default;
+			SimdVector(__m256i x) noexcept
+			{
+				for (int i = 0; i < reg_count(); i++)
+					m_storage[i] = x;
+			}
+			SimdVector(const T *ptr) noexcept
+			{
+				load(ptr);
+			}
+			constexpr int reg_capacity() const noexcept
+			{
+				return RegCapacity;
+			}
+			constexpr int reg_count() const noexcept
+			{
+				return RegCount;
+			}
+			constexpr int size() const noexcept
+			{
+				return N;
+			}
+			void load(const T *ptr) noexcept
+			{
+				assert(ptr != nullptr);
+				assert(is_aligned<__m256i >(ptr));
+				for (int i = 0; i < reg_count(); i++)
+					m_storage[i] = _mm256_load_si256(reinterpret_cast<const __m256i*>(ptr + i * RegCapacity));
+			}
+			void store(T *ptr) noexcept
+			{
+				assert(ptr != nullptr);
+				assert(is_aligned<__m256i >(ptr));
+				for (int i = 0; i < reg_count(); i++)
+					_mm256_store_si256(reinterpret_cast<__m256i*>(ptr + i * RegCapacity), m_storage[i]);
+			}
+			const __m256i& operator[](int index) const noexcept
+			{
+				assert(0 <= index && index < size());
+				return m_storage[index];
+			}
+			__m256i& operator[](int index) noexcept
+			{
+				assert(0 <= index && index < size());
+				return m_storage[index];
+			}
+	};
+	template<int N>
+	class SimdVector<float, N>
+	{
+			static_assert(N % register_capacity<float>() == 0);
+
+			static constexpr int RegCapacity = register_capacity<float>();
+			static constexpr int RegCount = N / RegCapacity;
+			__m256 m_storage[RegCount];
+		public:
+			SimdVector() noexcept = default;
+			SimdVector(__m256 x) noexcept
+			{
+				for (int i = 0; i < reg_count(); i++)
+					m_storage[i] = x;
+			}
+			SimdVector(const float *ptr) noexcept
+			{
+				load(ptr);
+			}
+			constexpr int reg_capacity() const noexcept
+			{
+				return RegCapacity;
+			}
+			constexpr int reg_count() const noexcept
+			{
+				return RegCount;
+			}
+			constexpr int size() const noexcept
+			{
+				return N;
+			}
+			void load(const float *ptr) noexcept
+			{
+				assert(ptr != nullptr);
+				assert(is_aligned<__m256 >(ptr));
+				for (int i = 0; i < reg_count(); i++)
+					m_storage[i] = _mm256_load_ps(ptr + i * RegCapacity);
+			}
+			void store(float *ptr) noexcept
+			{
+				assert(ptr != nullptr);
+				assert(is_aligned<__m256 >(ptr));
+				for (int i = 0; i < reg_count(); i++)
+					_mm256_store_ps(ptr + i * RegCapacity, m_storage[i]);
+			}
+			const __m256& operator[](int index) const noexcept
+			{
+				assert(0 <= index && index < size());
+				return m_storage[index];
+			}
+			__m256& operator[](int index) noexcept
+			{
+				assert(0 <= index && index < size());
+				return m_storage[index];
+			}
+	};
+
+	/*
+	 * Conversions
+	 */
+	template<int N>
+	SimdVector<int16_t, N> convert_INT8_to_INT16(const SimdVector<int8_t, N> &x) noexcept
+	{
+		SimdVector<int16_t, N> result;
+		for (int i = 0; i < x.reg_count(); i++)
+		{
+			result[2 * i + 0] = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(x[i]));
+			result[2 * i + 1] = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(x[i], 1));
+		}
+		return result;
+	}
+	template<int N>
+	SimdVector<float, N> convert_INT32_to_FP32(const SimdVector<int32_t, N> &x) noexcept
+	{
+		SimdVector<float, N> result;
+		for (int i = 0; i < x.reg_count(); i++)
+			result[i] = _mm256_cvtepi32_ps(x[i]);
+		return result;
+	}
+
+	/*
+	 * Broadcasting
+	 */
+	SimdVector<int16_t, register_capacity<int16_t>()> broadcast_2xINT16(const int16_t *ptr) noexcept
+	{
+		assert(ptr != nullptr);
+		assert(is_aligned<int32_t>(ptr));
+		return SimdVector<int16_t, register_capacity<int16_t>()>(_mm256_castps_si256(_mm256_broadcast_ss(reinterpret_cast<const float*>(ptr))));
+	}
+
+	/*
+	 * Addition and subtraction
+	 */
+	template<int N>
+	SimdVector<int16_t, N> add(const SimdVector<int16_t, N> &a, const SimdVector<int16_t, N> &b) noexcept
+	{
+		SimdVector<int16_t, N> result;
+		for (int i = 0; i < b.reg_count(); i++)
+			result[i] = _mm256_add_epi16(a[i], b[i]);
+		return result;
+	}
+	template<int N>
+	SimdVector<int16_t, N> sub(const SimdVector<int16_t, N> &a, const SimdVector<int16_t, N> &b) noexcept
+	{
+		SimdVector<int16_t, N> result;
+		for (int i = 0; i < b.reg_count(); i++)
+			result[i] = _mm256_sub_epi16(a[i], b[i]);
+		return result;
+	}
+	template<int N>
+	SimdVector<float, N> add(const SimdVector<float, N> &a, const SimdVector<float, N> &b) noexcept
+	{
+		SimdVector<float, N> result;
+		for (int i = 0; i < b.reg_count(); i++)
+			result[i] = _mm256_add_ps(a[i], b[i]);
+		return result;
+	}
+
+	/*
+	 * Multiplication and FMA
+	 */
+	template<int N>
+	SimdVector<int32_t, N> mul_add_1xN(const SimdVector<int16_t, register_capacity<int16_t>()> &a, const SimdVector<int16_t, 2 * N> &b,
+			const SimdVector<int32_t, N> &c) noexcept
+	{
+		assert(a.reg_count() == 1);
+		assert(b.reg_count() == c.reg_count());
+		SimdVector<int32_t, N> result;
+		for (int i = 0; i < b.reg_count(); i++)
+			result[i] = _mm256_add_epi32(c[i], _mm256_madd_epi16(a[0], b[i]));
+		return result;
+	}
+	template<int N>
+	SimdVector<float, N> mul_add_1xN(const SimdVector<float, register_capacity<float>()> &a, const SimdVector<float, N> &b,
+			const SimdVector<float, N> &c) noexcept
+	{
+		assert(a.reg_count() == 1);
+		SimdVector<float, N> result;
+		for (int i = 0; i < b.reg_count(); i++)
+			result[i] = _mm256_fmadd_ps(a[0], b[i], c[i]);
+		return result;
+	}
+	template<int N>
+	SimdVector<float, N> mul(const SimdVector<float, N> &a, const SimdVector<float, N> &b) noexcept
+	{
+		SimdVector<float, N> result;
+		for (int i = 0; i < b.reg_count(); i++)
+			result[i] = _mm256_mul_ps(a[i], b[i]);
+		return result;
+	}
+
+	/*
+	 * ReLU
+	 */
+	template<int N>
+	SimdVector<int16_t, N> relu(const SimdVector<int16_t, N> &x) noexcept
+	{
+		SimdVector<int16_t, N> result;
+		for (int i = 0; i < x.reg_count(); i++)
+			result[i] = _mm256_max_epi16(_mm256_setzero_si256(), x[i]);
+		return result;
+	}
+	template<int N>
+	SimdVector<int32_t, N> relu(const SimdVector<int32_t, N> &x) noexcept
+	{
+		SimdVector<int32_t, N> result;
+		for (int i = 0; i < x.reg_count(); i++)
+			result[i] = _mm256_max_epi32(_mm256_setzero_si256(), x[i]);
+		return result;
+	}
+	template<int N>
+	SimdVector<float, N> relu(const SimdVector<float, N> &x) noexcept
+	{
+		SimdVector<float, N> result;
+		for (int i = 0; i < x.reg_count(); i++)
+			result[i] = _mm256_max_ps(_mm256_setzero_ps(), x[i]);
+		return result;
+	}
+
+	/*
+	 * Horizontal reduction
+	 */
+	template<int N>
+	float horizontal_add(const SimdVector<float, N> &x) noexcept
+	{
+		__m256 x256 = x[0];
+		for (int i = 1; i < x.reg_count(); i++)
+			x256 = _mm256_add_ps(x256, x[i]);
+		const __m128 x128 = _mm_add_ps(_mm256_extractf128_ps(x256, 1), _mm256_castps256_ps128(x256));
 		const __m128 x64 = _mm_add_ps(x128, _mm_movehl_ps(x128, x128));
 		const __m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
 		return _mm_cvtss_f32(x32);
 	}
 
-	template<int AccumulatorLength>
-	struct RefreshAccumulator
+	template<int Half, int N>
+	void update_4xN(SimdVector<float, N> &res, __m256 in, const float *weights) noexcept
 	{
-			static_assert(AccumulatorLength % 16 == 0);
+		static_assert(Half == 0 || Half == 1);
+		in = _mm256_permute2f128_ps(in, in, Half | (Half << 4));
 
-			void run(const NnueLayer<int8_t, int16_t> &layer_1, Accumulator<int16_t> &accumulator, const std::vector<int> &active) const noexcept
-			{
-				assert(layer_1.neurons() == AccumulatorLength);
-				assert(accumulator.size() == AccumulatorLength);
+		const SimdVector<float, register_capacity<float>()> in0(_mm256_shuffle_ps(in, in, 0x00)); // broadcast element 0
+		const SimdVector<float, register_capacity<float>()> in1(_mm256_shuffle_ps(in, in, 0x55)); // broadcast element 1
+		const SimdVector<float, register_capacity<float>()> in2(_mm256_shuffle_ps(in, in, 0xAA)); // broadcast element 2
+		const SimdVector<float, register_capacity<float>()> in3(_mm256_shuffle_ps(in, in, 0xFF)); // broadcast element 3
 
-				constexpr int length = AccumulatorLength / 16;
-				__m256i acc[length]; // length x (16 x int16)
-				for (int j = 0; j < length; j++)
-					acc[j] = _mm256_load_si256((const __m256i*) (layer_1.bias() + j * 16));
-				for (size_t i = 0; i < active.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + active[i] * AccumulatorLength;
-					for (int j = 0; j < length; j++, ptr += 16)
-					{
-						const __m128i row = _mm_load_si128((__m128i*) ptr); // loading 16 x int8
-						const __m256i a = _mm256_cvtepi8_epi16(row); // unpacked into 16 x int16
-						acc[j] = _mm256_add_epi16(acc[j], a);
-					}
-				}
-				for (int j = 0; j < length; j++)
-					_mm256_store_si256((__m256i*) (accumulator.data() + j * 16), acc[j]);
-			}
-	};
-	template<>
-	struct RefreshAccumulator<64>
+		const SimdVector<float, N> w0(weights + 0 * N);
+		const SimdVector<float, N> w1(weights + 1 * N);
+		const SimdVector<float, N> w2(weights + 2 * N);
+		const SimdVector<float, N> w3(weights + 3 * N);
+
+		SimdVector<float, N> tmp(_mm256_setzero_ps());
+		tmp = mul_add_1xN(in0, w0, tmp);
+		res = mul_add_1xN(in1, w1, res);
+		tmp = mul_add_1xN(in2, w2, tmp);
+		res = mul_add_1xN(in3, w3, res);
+
+		res = add(res, tmp);
+	}
+
+	template<int N>
+	void refresh_accumulator_impl(const NnueLayer<int8_t, int16_t> &layer_1, Accumulator<int16_t> &accumulator,
+			const std::vector<int> &active) noexcept
 	{
-			void run(const NnueLayer<int8_t, int16_t> &layer_1, Accumulator<int16_t> &accumulator, const std::vector<int> &active) const noexcept
-			{
-				assert(layer_1.neurons() == 64);
-				assert(accumulator.size() == 64);
+		assert(layer_1.neurons() == N);
+		assert(accumulator.size() == N);
 
-				__m256i acc0 = _mm256_load_si256((const __m256i*) (layer_1.bias() + 0 * 16));
-				__m256i acc1 = _mm256_load_si256((const __m256i*) (layer_1.bias() + 1 * 16));
-				__m256i acc2 = _mm256_load_si256((const __m256i*) (layer_1.bias() + 2 * 16));
-				__m256i acc3 = _mm256_load_si256((const __m256i*) (layer_1.bias() + 3 * 16));
-				for (size_t i = 0; i < active.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + active[i] * 64;
+		SimdVector<int16_t, N> acc(layer_1.bias());
+		for (size_t i = 0; i < active.size(); i++)
+		{
+			assert(0 <= active[i] && active[i] < layer_1.inputs());
+			const SimdVector<int8_t, N> weights(layer_1.weights() + active[i] * N);
+			acc = add(acc, convert_INT8_to_INT16(weights));
+		}
+		acc.store(accumulator.data());
+	}
 
-					const __m128i row0 = _mm_load_si128((const __m128i*) (ptr + 0 * 16)); // loading 16 x int8
-					const __m128i row1 = _mm_load_si128((const __m128i*) (ptr + 1 * 16)); // loading 16 x int8
-					const __m128i row2 = _mm_load_si128((const __m128i*) (ptr + 2 * 16)); // loading 16 x int8
-					const __m128i row3 = _mm_load_si128((const __m128i*) (ptr + 3 * 16)); // loading 16 x int8
-					acc0 = _mm256_add_epi16(acc0, _mm256_cvtepi8_epi16(row0));
-					acc1 = _mm256_add_epi16(acc1, _mm256_cvtepi8_epi16(row1));
-					acc2 = _mm256_add_epi16(acc2, _mm256_cvtepi8_epi16(row2));
-					acc3 = _mm256_add_epi16(acc3, _mm256_cvtepi8_epi16(row3));
-				}
-				_mm256_store_si256((__m256i*) (accumulator.data() + 0 * 16), acc0);
-				_mm256_store_si256((__m256i*) (accumulator.data() + 1 * 16), acc1);
-				_mm256_store_si256((__m256i*) (accumulator.data() + 2 * 16), acc2);
-				_mm256_store_si256((__m256i*) (accumulator.data() + 3 * 16), acc3);
-			}
-	};
-
-	template<int AccumulatorLength>
-	struct UpdateAccumulator
+	template<int N>
+	void update_accumulator_impl(const NnueLayer<int8_t, int16_t> &layer_1, const Accumulator<int16_t> &oldAccumulator,
+			Accumulator<int16_t> &newAccumulator, const std::vector<int> &removed, const std::vector<int> &added) noexcept
 	{
-			void run(const NnueLayer<int8_t, int16_t> &layer_1, Accumulator<int16_t> &accumulator, const std::vector<int> &removed,
-					const std::vector<int> &added) const noexcept
-			{
-				assert(layer_1.neurons() == AccumulatorLength);
-				assert(accumulator.size() == AccumulatorLength);
+		assert(layer_1.neurons() == N);
+		assert(oldAccumulator.size() == N);
+		assert(newAccumulator.size() == N);
 
-				constexpr int Parts = AccumulatorLength / 16;
-				// 2 x (16 x int16) - together 32 accumulators for difference in features
-				__m256i acc[4];
-				for (int i = 0; i < 4; i++)
-					acc[i] = _mm256_load_si256((const __m256i*) (accumulator.data() + i * 16));
-				// accumulate difference between accumulators in int16
-				for (size_t i = 0; i < removed.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + removed[i] * 64;
-					const __m256i row0 = _mm256_loadu_si256((const __m256i*) (ptr + 0 * 32)); // loading first half (32 x int8)
-					const __m256i row1 = _mm256_loadu_si256((const __m256i*) (ptr + 1 * 32)); // loading second half (32 x int8)
-					const __m256i a = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row0)); // unpacked first half into 16 x int16
-					const __m256i b = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row0, 1)); // unpacked second half into 16 x int16
-					const __m256i c = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row1)); // unpacked first half into 16 x int16
-					const __m256i d = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row1, 1)); // unpacked second half into 16 x int16
-					acc[0] = _mm256_sub_epi16(acc[0], a);
-					acc[1] = _mm256_sub_epi16(acc[1], b);
-					acc[2] = _mm256_sub_epi16(acc[2], c);
-					acc[3] = _mm256_sub_epi16(acc[3], d);
-				}
+		SimdVector<int16_t, N> acc(oldAccumulator.data());
+		for (size_t i = 0; i < removed.size(); i++)
+		{
+			assert(0 <= removed[i] && removed[i] < layer_1.inputs());
+			const SimdVector<int8_t, N> weights(layer_1.weights() + removed[i] * N);
+			acc = sub(acc, convert_INT8_to_INT16(weights));
+		}
+		for (size_t i = 0; i < added.size(); i++)
+		{
+			assert(0 <= added[i] && added[i] < layer_1.inputs());
+			const SimdVector<int8_t, N> weights(layer_1.weights() + added[i] * N);
+			acc = add(acc, convert_INT8_to_INT16(weights));
+		}
+		acc.store(newAccumulator.data());
 
-				for (size_t i = 0; i < added.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + added[i] * 64;
-					const __m256i row0 = _mm256_loadu_si256((const __m256i*) (ptr + 0 * 32)); // loading first half (32 x int8)
-					const __m256i row1 = _mm256_loadu_si256((const __m256i*) (ptr + 1 * 32)); // loading second half (32 x int8)
-					const __m256i a = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row0)); // unpacked first half into 16 x int16
-					const __m256i b = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row0, 1)); // unpacked second half into 16 x int16
-					const __m256i c = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row1)); // unpacked first half into 16 x int16
-					const __m256i d = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row1, 1)); // unpacked second half into 16 x int16
-					acc[0] = _mm256_add_epi16(acc[0], a);
-					acc[1] = _mm256_add_epi16(acc[1], b);
-					acc[2] = _mm256_add_epi16(acc[2], c);
-					acc[3] = _mm256_add_epi16(acc[3], d);
-				}
+	}
 
-				for (int i = 0; i < 4; i++)
-					_mm256_storeu_si256((__m256i*) (accumulator.data() + i * 16), acc[i]);
-			}
-	};
-	template<>
-	struct UpdateAccumulator<32>
+	template<int Neurons>
+	inline SimdVector<float, Neurons> run_int16_layer(const Accumulator<int16_t> &accumulator, const NnueLayer<int16_t, int32_t> &layer) noexcept
 	{
-			void run(const NnueLayer<int8_t, int16_t> &layer_1, Accumulator<int16_t> &accumulator, const std::vector<int> &removed,
-					const std::vector<int> &added) const noexcept
-			{
-				assert(layer_1.neurons() == 32);
-				assert(accumulator.size() == 32);
+		assert(accumulator.size() % 4 == 0);
+		assert(layer.inputs() == accumulator.size());
+		assert(layer.neurons() == Neurons);
+		/*
+		 * accumulator is loaded and broadcasted as 2xint16 (a0, a1)
+		 * 														/col 0 \  /col 1 \
+		 * weights are loaded as columns interleaved by 2 rows (b00, b10, b01, b11, ...)
+		 * 														\2 rows/  \2 rows/
+		 */
+		SimdVector<int32_t, Neurons> output(layer.bias());
 
-				// 2 x (16 x int16) - together 32 accumulators for difference in features
-				__m256i acc[2];
-				for (int i = 0; i < 2; i++)
-					acc[i] = _mm256_load_si256((const __m256i*) (accumulator.data() + i * 16));
-				// accumulate difference between accumulators in int16
-				for (size_t i = 0; i < removed.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + removed[i] * 32;
-					const __m256i row = _mm256_loadu_si256((const __m256i*) ptr); // loading entire row (32 x int8)
-					const __m256i a = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row)); // unpacked first half into 16 x int16
-					const __m256i b = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row, 1)); // unpacked second half into 16 x int16
-					acc[0] = _mm256_sub_epi16(acc[0], a);
-					acc[1] = _mm256_sub_epi16(acc[1], b);
-				}
+		for (int i = 0; i < accumulator.size(); i += 4)
+		{
+			SimdVector<int16_t, register_capacity<int16_t>()> acc_element0 = relu(broadcast_2xINT16(accumulator.data() + i + 0)); // broadcast elements acc0, acc1
+			SimdVector<int16_t, register_capacity<int16_t>()> acc_element1 = relu(broadcast_2xINT16(accumulator.data() + i + 2)); // broadcast elements acc0, acc1
 
-				for (size_t i = 0; i < added.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + added[i] * 32;
-					const __m256i row = _mm256_loadu_si256((const __m256i*) ptr); // loading entire row (32 x int8)
-					const __m256i a = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row)); // unpacked first half into 16 x int16
-					const __m256i b = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row, 1)); // unpacked second half into 16 x int16
-					acc[0] = _mm256_add_epi16(acc[0], a);
-					acc[1] = _mm256_add_epi16(acc[1], b);
-				}
-
-				for (int i = 0; i < 2; i++)
-					_mm256_storeu_si256((__m256i*) (accumulator.data() + i * 16), acc[i]);
-			}
-	};
-	template<>
-	struct UpdateAccumulator<64>
+			const SimdVector<int16_t, 2 * Neurons> w0(layer.weights() + (i + 0) * Neurons); // load 2 rows of weights
+			const SimdVector<int16_t, 2 * Neurons> w1(layer.weights() + (i + 2) * Neurons); // load 2 rows of weights
+			output = mul_add_1xN(acc_element0, w0, output);
+			output = mul_add_1xN(acc_element1, w1, output);
+		}
+		return convert_INT32_to_FP32(relu(output));
+	}
+	template<int Inputs, int Neurons>
+	inline SimdVector<float, Neurons> run_fp32_layer(const SimdVector<float, Inputs> &input, const NnueLayer<float, float> &layer) noexcept
 	{
-			void run(const NnueLayer<int8_t, int16_t> &layer_1, Accumulator<int16_t> &accumulator, const std::vector<int> &removed,
-					const std::vector<int> &added) const noexcept
-			{
-				assert(layer_1.neurons() == 64);
-				assert(accumulator.size() == 64);
+		assert(layer.inputs() == Inputs);
+		assert(layer.neurons() == Neurons);
 
-				// 2 x (16 x int16) - together 32 accumulators for difference in features
-				__m256i acc[4];
-				for (int i = 0; i < 4; i++)
-					acc[i] = _mm256_load_si256((const __m256i*) (accumulator.data() + i * 16));
-				// accumulate difference between accumulators in int16
-				for (size_t i = 0; i < removed.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + removed[i] * 64;
-					const __m256i row0 = _mm256_loadu_si256((const __m256i*) (ptr + 0 * 32)); // loading first half (32 x int8)
-					const __m256i row1 = _mm256_loadu_si256((const __m256i*) (ptr + 1 * 32)); // loading second half (32 x int8)
-					const __m256i a = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row0)); // unpacked first half into 16 x int16
-					const __m256i b = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row0, 1)); // unpacked second half into 16 x int16
-					const __m256i c = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row1)); // unpacked first half into 16 x int16
-					const __m256i d = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row1, 1)); // unpacked second half into 16 x int16
-					acc[0] = _mm256_sub_epi16(acc[0], a);
-					acc[1] = _mm256_sub_epi16(acc[1], b);
-					acc[2] = _mm256_sub_epi16(acc[2], c);
-					acc[3] = _mm256_sub_epi16(acc[3], d);
-				}
-
-				for (size_t i = 0; i < added.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + added[i] * 64;
-					const __m256i row0 = _mm256_loadu_si256((const __m256i*) (ptr + 0 * 32)); // loading first half (32 x int8)
-					const __m256i row1 = _mm256_loadu_si256((const __m256i*) (ptr + 1 * 32)); // loading second half (32 x int8)
-					const __m256i a = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row0)); // unpacked first half into 16 x int16
-					const __m256i b = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row0, 1)); // unpacked second half into 16 x int16
-					const __m256i c = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row1)); // unpacked first half into 16 x int16
-					const __m256i d = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row1, 1)); // unpacked second half into 16 x int16
-					acc[0] = _mm256_add_epi16(acc[0], a);
-					acc[1] = _mm256_add_epi16(acc[1], b);
-					acc[2] = _mm256_add_epi16(acc[2], c);
-					acc[3] = _mm256_add_epi16(acc[3], d);
-				}
-
-				for (int i = 0; i < 4; i++)
-					_mm256_storeu_si256((__m256i*) (accumulator.data() + i * 16), acc[i]);
-			}
-	};
-	template<>
-	struct UpdateAccumulator<256>
+		SimdVector<float, Neurons> output(layer.bias()); // load bias
+		for (int i = 0; i < Inputs / 8; i++)
+		{
+			update_4xN<0>(output, input[i], layer.weights() + (2 * i + 0) * 4 * Neurons); // processing 4 rows at the time
+			update_4xN<1>(output, input[i], layer.weights() + (2 * i + 1) * 4 * Neurons); // processing 4 rows at the time
+		}
+		return relu(output);
+	}
+	template<int Inputs>
+	inline float run_final_fp32_layer(const SimdVector<float, Inputs> &input, const NnueLayer<float, float> &layer) noexcept
 	{
-			void run(const NnueLayer<int8_t, int16_t> &layer_1, Accumulator<int16_t> &accumulator, const std::vector<int> &removed,
-					const std::vector<int> &added) const noexcept
-			{
-				assert(layer_1.neurons() == 64);
-				assert(accumulator.size() == 64);
+		assert(layer.inputs() == Inputs);
+		assert(layer.neurons() == 1);
 
-				// 2 x (16 x int16) - together 32 accumulators for difference in features
-				__m256i acc[4];
-				for (int i = 0; i < 4; i++)
-					acc[i] = _mm256_load_si256((const __m256i*) (accumulator.data() + i * 16));
-				// accumulate difference between accumulators in int16
-				for (size_t i = 0; i < removed.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + removed[i] * 64;
-					const __m256i row0 = _mm256_loadu_si256((const __m256i*) (ptr + 0 * 32)); // loading first half (32 x int8)
-					const __m256i row1 = _mm256_loadu_si256((const __m256i*) (ptr + 1 * 32)); // loading second half (32 x int8)
-					const __m256i a = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row0)); // unpacked first half into 16 x int16
-					const __m256i b = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row0, 1)); // unpacked second half into 16 x int16
-					const __m256i c = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row1)); // unpacked first half into 16 x int16
-					const __m256i d = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row1, 1)); // unpacked second half into 16 x int16
-					acc[0] = _mm256_sub_epi16(acc[0], a);
-					acc[1] = _mm256_sub_epi16(acc[1], b);
-					acc[2] = _mm256_sub_epi16(acc[2], c);
-					acc[3] = _mm256_sub_epi16(acc[3], d);
-				}
-
-				for (size_t i = 0; i < added.size(); i++)
-				{
-					const int8_t *ptr = layer_1.weights() + added[i] * 64;
-					const __m256i row0 = _mm256_loadu_si256((const __m256i*) (ptr + 0 * 32)); // loading first half (32 x int8)
-					const __m256i row1 = _mm256_loadu_si256((const __m256i*) (ptr + 1 * 32)); // loading second half (32 x int8)
-					const __m256i a = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row0)); // unpacked first half into 16 x int16
-					const __m256i b = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row0, 1)); // unpacked second half into 16 x int16
-					const __m256i c = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(row1)); // unpacked first half into 16 x int16
-					const __m256i d = _mm256_cvtepi8_epi16(_mm256_extractf128_si256(row1, 1)); // unpacked second half into 16 x int16
-					acc[0] = _mm256_add_epi16(acc[0], a);
-					acc[1] = _mm256_add_epi16(acc[1], b);
-					acc[2] = _mm256_add_epi16(acc[2], c);
-					acc[3] = _mm256_add_epi16(acc[3], d);
-				}
-
-				for (int i = 0; i < 4; i++)
-					_mm256_storeu_si256((__m256i*) (accumulator.data() + i * 16), acc[i]);
-			}
-	};
-
-	template<int AccumulatorLength, int MiddleNeurons>
-	struct Forward
-	{
-			float run(const Accumulator<int16_t> &accumulator, const NnueLayer<int16_t, int32_t> &layer_2,
-					const NnueLayer<float, float> &layer_3) const noexcept
-			{
-				/*
-				 * accumulator is loaded and broadcasted as 2xint16 (a0, a1)
-				 * 														/col 0 \  /col 1 \
-				 * weights are loaded as columns interleaved by 2 rows (b00, b10, b01, b11, ...)
-				 * 														\2 rows/  \2 rows/
-				 */
-
-				constexpr int MiddleSize = MiddleNeurons / 8;
-
-				__m256i acc[MiddleSize];
-				for (int j = 0; j < MiddleSize; j++)
-					acc[j] = _mm256_load_si256((const __m256i*) (layer_2.bias() + j * 8)); // load bias
-
-				for (int i = 0; i < AccumulatorLength; i += 2)
-				{
-					__m256i acc_element = _mm256_castps_si256(_mm256_broadcast_ss((reinterpret_cast<const float*>(accumulator.data() + i))));
-					acc_element = relu_16x16(acc_element);
-
-//					if (not _mm256_testz_si256(acc_element, acc_element))
-					for (int j = 0; j < MiddleSize; j++)
-					{
-						__m256i tmp = _mm256_load_si256((const __m256i*) (layer_2.weights() + i * MiddleNeurons + j * 16)); // load weights
-						acc[j] = _mm256_add_epi32(acc[j], _mm256_madd_epi16(acc_element, tmp));
-					}
-				}
-
-				for (int j = 0; j < MiddleSize; j++)
-					acc[j] = relu_8x32(acc[j]);
-
-				__m256 out = _mm256_setzero_ps();
-				for (int j = 0; j < MiddleSize; j++)
-				{
-					const __m256 tmp = _mm256_cvtepi32_ps(acc[j]);
-					const __m256 w = _mm256_load_ps(layer_3.weights() + j * 8);
-					out = _mm256_fmadd_ps(tmp, w, out);
-				}
-
-				return sigmoid(layer_3.bias()[0] + horizontal_add(out));
-			}
-	};
-
-	template<>
-	struct Forward<64, 16>
-	{
-			float run(const Accumulator<int16_t> &accumulator, const NnueLayer<int16_t, int32_t> &layer_2,
-					const NnueLayer<float, float> &layer_3) const noexcept
-			{
-				/*
-				 * accumulator is loaded and broadcasted as 2xint16 (a0, a1)
-				 * 														/col 0 \  /col 1 \
-					 * weights are loaded as columns interleaved by 2 rows (b00, b10, b01, b11, ...)
-				 * 														\2 rows/  \2 rows/
-				 */
-
-				__m256i acc0 = _mm256_load_si256((const __m256i*) (layer_2.bias() + 0 * 8)); // load bias
-				__m256i acc1 = _mm256_load_si256((const __m256i*) (layer_2.bias() + 1 * 8)); // load bias
-
-				for (int i = 0; i < 64; i += 2)
-				{
-					__m256i acc_element = _mm256_castps_si256(_mm256_broadcast_ss((reinterpret_cast<const float*>(accumulator.data() + i))));
-					acc_element = relu_16x16(acc_element);
-
-//					if (not _mm256_testz_si256(acc_element, acc_element))
-					const __m256i tmp0 = _mm256_load_si256((const __m256i*) (layer_2.weights() + i * 16 + 0 * 16)); // load weights
-					const __m256i tmp1 = _mm256_load_si256((const __m256i*) (layer_2.weights() + i * 16 + 1 * 16)); // load weights
-					acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(acc_element, tmp0));
-					acc1 = _mm256_add_epi32(acc1, _mm256_madd_epi16(acc_element, tmp1));
-				}
-
-				acc0 = relu_8x32(acc0);
-				acc1 = relu_8x32(acc1);
-
-				const __m256 tmp0 = _mm256_cvtepi32_ps(acc0);
-				const __m256 tmp1 = _mm256_cvtepi32_ps(acc1);
-
-				__m256 w0 = _mm256_load_ps(layer_3.weights() + 0 * 8);
-				__m256 w1 = _mm256_load_ps(layer_3.weights() + 1 * 8);
-				w0 = _mm256_mul_ps(w0, tmp0);
-				w1 = _mm256_mul_ps(w1, tmp1);
-
-				return sigmoid(layer_3.bias()[0] + horizontal_add(_mm256_add_ps(w0, w1)));
-			}
-	};
+		const SimdVector<float, Inputs> weights(layer.weights());
+		const SimdVector<float, Inputs> output = mul(input, weights);
+		return sigmoid(layer.bias()[0] + horizontal_add(output));
+	}
 
 }
 
@@ -376,42 +405,21 @@ namespace ag
 		void avx2_refresh_accumulator(const NnueLayer<int8_t, int16_t> &layer_0, Accumulator<int16_t> &accumulator,
 				const std::vector<int> &active) noexcept
 		{
-			if (accumulator.size() == 32)
-				RefreshAccumulator<32>().run(layer_0, accumulator, active);
-			if (accumulator.size() == 64)
-				RefreshAccumulator<64>().run(layer_0, accumulator, active);
+			refresh_accumulator_impl<64>(layer_0, accumulator, active);
 		}
 
-		void avx2_update_accumulator(const NnueLayer<int8_t, int16_t> &layer_0, Accumulator<int16_t> &accumulator, const std::vector<int> &removed,
-				const std::vector<int> &added) noexcept
+		void avx2_update_accumulator(const NnueLayer<int8_t, int16_t> &layer_0, const Accumulator<int16_t> &oldAccumulator,
+				Accumulator<int16_t> &newAccumulator, const std::vector<int> &removed, const std::vector<int> &added) noexcept
 		{
-			if (accumulator.size() == 32)
-				UpdateAccumulator<32>().run(layer_0, accumulator, removed, added);
-			if (accumulator.size() == 64)
-				UpdateAccumulator<64>().run(layer_0, accumulator, removed, added);
+			update_accumulator_impl<64>(layer_0, oldAccumulator, newAccumulator, removed, added);
 		}
 
 		float avx2_forward(const Accumulator<int16_t> &accumulator, const NnueLayer<int16_t, int32_t> &layer_1,
 				const std::vector<NnueLayer<float, float>> &fp32_layers) noexcept
 		{
-			if (layer_1.neurons() == 8)
-			{
-				if (accumulator.size() == 32)
-					return Forward<32, 8>().run(accumulator, layer_1, fp32_layers[0]);
-				if (accumulator.size() == 64)
-					return Forward<64, 8>().run(accumulator, layer_1, fp32_layers[0]);
-			}
-			if (layer_1.neurons() == 16)
-			{
-				if (accumulator.size() == 32)
-					return Forward<32, 16>().run(accumulator, layer_1, fp32_layers[0]);
-				if (accumulator.size() == 64)
-					return Forward<64, 16>().run(accumulator, layer_1, fp32_layers[0]);
-			}
-			if (layer_1.neurons() == 32 and accumulator.size() == 256)
-				return Forward<256, 32>().run(accumulator, layer_1, fp32_layers[0]);
-
-			return 0.0f;
+			const auto out2 = run_int16_layer<16>(accumulator, layer_1);
+			const auto out3 = run_fp32_layer<16, 16>(out2, fp32_layers[0]);
+			return run_final_fp32_layer(out3, fp32_layers[1]);
 		}
 
 	} /* namespace nnue */
