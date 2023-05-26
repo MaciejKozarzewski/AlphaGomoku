@@ -195,12 +195,12 @@ namespace ag
 	{
 		ShortVector<Location, 6> result = pattern_calculator.getDefensiveMoves(get_own_sign(), move.row, move.col, dir);
 		if (is_anything_forbidden_for(get_own_sign()))
-		{ // we have to exclude moves that are forbidden
+		{ // forbidden moves require special handling
 			int i = 0;
 			while (i < result.size())
 			{
 				if (is_forbidden(get_own_sign(), result[i]))
-				{
+				{ // if a defensive move is forbidden, we assign appropriate loss score to that move and exclude it from the list
 					add_move<OVERRIDE_DUPLICATE>(result[i], Score::loss_in(1));
 					result.remove(i);
 				}
@@ -343,12 +343,12 @@ namespace ag
 		Score best_score = Score::min_value();
 		for (auto move = defensive_moves.get_list().begin(); move < defensive_moves.get_list().end(); move++)
 		{
+			assert(is_forbidden(get_own_sign(), *move) == false); // forbidden moves should have been excluded earlier
 			Score response_score;
 			switch (get_own_threat_at(move->row, move->col))
 			{
 				case ThreatType::FORK_3x3:
 				{
-					assert(is_forbidden(get_own_sign(), *move) == false); // forbidden moves should have been excluded earlier
 					if (is_anything_forbidden_for(get_own_sign()))
 					{ // relevant only for renju rule and cross (black) player
 						const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
@@ -371,7 +371,6 @@ namespace ag
 				}
 				case ThreatType::FORK_4x4:
 				{ // rare (approximately 1 in 3000 positions)
-					assert(is_anything_forbidden_for(get_own_sign()) == false); // forbidden moves should have been excluded earlier
 					response_score = Score::win_in(3);
 					break;
 				}
@@ -607,7 +606,7 @@ namespace ag
 			}
 		}
 		if (actions->must_defend)
-		{ // TODO actually all those moves should be added before any defensive ones, but as for now it would be tricky to implement
+		{
 			actions->has_initiative = has_any_four;
 			const Score best_score = add_own_4x3_forks();
 			if (best_score.isWin())

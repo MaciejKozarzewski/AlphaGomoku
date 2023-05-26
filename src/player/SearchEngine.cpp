@@ -36,7 +36,7 @@ namespace ag
 		{
 			evaluators.push_back(std::make_unique<NNEvaluator>(settings.getDeviceConfigs().at(i)));
 			evaluators.back()->useSymmetries(settings.isUsingSymmetries());
-			evaluators.back()->loadGraph(settings.getPathToNetwork());
+			evaluators.back()->loadGraph(settings.getPathToConvNetwork());
 			free_evaluators.push_back(i);
 		}
 	}

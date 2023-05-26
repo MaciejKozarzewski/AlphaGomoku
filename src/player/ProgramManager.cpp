@@ -298,7 +298,10 @@ namespace ag
 
 		static const std::array<std::string, 5> tmp = { "freestyle", "standard", "renju", "caro5", "caro6" };
 		for (auto iter = tmp.begin(); iter < tmp.end(); iter++)
-			config["networks"][*iter] = launch_path + config["networks"][*iter].getString();
+		{
+			config["conv_networks"][*iter] = launch_path + config["conv_networks"][*iter].getString();
+			config["nnue_networks"][*iter] = launch_path + config["nnue_networks"][*iter].getString();
+		}
 	}
 
 	void ProgramManager::setup_protocol()

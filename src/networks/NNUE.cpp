@@ -31,17 +31,15 @@ namespace
 	using namespace ag;
 	using namespace ag::nnue;
 
-	static std::map<GameRules, std::string> paths_to_weights;
-
 	std::vector<float> get_scales(const ml::Tensor &weights, float max_range)
 	{
 		std::vector<float> result(weights.firstDim());
 		for (int i = 0; i < weights.firstDim(); i++)
 		{
-			float tmp = 1.0e-8f;
+			float tmp = 0.0f;
 			for (int j = 0; j < weights.lastDim(); j++)
 				tmp = std::max(tmp, std::abs(weights.get( { i, j })));
-			result[i] = tmp / max_range;
+			result[i] = (tmp == 0.0f) ? 1.0f : (tmp / max_range);
 		}
 		return result;
 	}
@@ -54,70 +52,46 @@ namespace
 	{
 		return static_cast<T>(x);
 	}
+	[[maybe_unused]] void placeholder_refresh_accumulator(const NnueLayer<int8_t, int16_t> &layer_0, Accumulator<int16_t> &accumulator,
+			const std::vector<int> &active) noexcept
+	{
+	}
+	[[maybe_unused]] void placeholder_update_accumulator(const NnueLayer<int8_t, int16_t> &layer_0, const Accumulator<int16_t> &oldAccumulator,
+			Accumulator<int16_t> &newAccumulator, const std::vector<int> &removed, const std::vector<int> &added) noexcept
+	{
+	}
+	[[maybe_unused]] float placeholder_forward(const Accumulator<int16_t> &accumulator, const NnueLayer<int16_t, int32_t> &layer_1,
+			const std::vector<NnueLayer<float, float>> &fp32_layers) noexcept
+	{
+		return 0.0f;
+	}
 }
 
 namespace ag
 {
 	namespace nnue
 	{
-		NNUEWeights::NNUEWeights(GameRules rules)
+		NNUEWeights::NNUEWeights(const std::string &path)
 		{
-			FileLoader fl(paths_to_weights.find(rules)->second);
+			FileLoader fl(path);
 			load(fl.getJson(), fl.getBinaryData());
 		}
 		Json NNUEWeights::save(SerializedObject &so) const
 		{
 			Json result;
-			result["layer_1"] = save_layer(layer_0, so);
-			result["layer_2"] = save_layer(layer_1, so);
+			result["layer_0"] = save_layer(layer_0, so);
+			result["layer_1"] = save_layer(layer_1, so);
 			for (size_t i = 0; i < fp32_layers.size(); i++)
 				result["layer_" + std::to_string(2 + i)] = save_layer(fp32_layers[i], so);
 			return result;
 		}
 		void NNUEWeights::load(const Json &json, const SerializedObject &so)
 		{
-			load_layer(layer_0, json["layer_1"], so);
-			load_layer(layer_1, json["layer_2"], so);
+			load_layer(layer_0, json["layer_0"], so);
+			load_layer(layer_1, json["layer_1"], so);
 			fp32_layers.resize(json.size() - 2);
 			for (size_t i = 0; i < fp32_layers.size(); i++)
 				load_layer(fp32_layers[i], json["layer_" + std::to_string(2 + i)], so);
-		}
-		void NNUEWeights::setPaths(const std::map<GameRules, std::string> &paths)
-		{
-			paths_to_weights = paths;
-		}
-		const NNUEWeights& NNUEWeights::get(GameRules rules)
-		{
-			switch (rules)
-			{
-				case GameRules::FREESTYLE:
-				{
-					static const NNUEWeights table(GameRules::FREESTYLE);
-					return table;
-				}
-				case GameRules::STANDARD:
-				{
-					static const NNUEWeights table(GameRules::STANDARD);
-					return table;
-				}
-				case GameRules::RENJU:
-				{
-					static const NNUEWeights table(GameRules::RENJU);
-					return table;
-				}
-				case GameRules::CARO5:
-				{
-					static const NNUEWeights table(GameRules::CARO5);
-					return table;
-				}
-				case GameRules::CARO6:
-				{
-					static const NNUEWeights table(GameRules::CARO6);
-					return table;
-				}
-				default:
-					throw std::logic_error("NNUEWeights::get() unknown rule " + std::to_string((int) rules));
-			}
 		}
 
 		TrainingNNUE::TrainingNNUE(GameConfig gameConfig, int batchSize, const std::string &path) :
@@ -137,9 +111,9 @@ namespace ag
 			for (size_t i = 0; i < arch.size() - 1; i++)
 			{
 				const int neurons = arch.begin()[i];
-				x = model.add(ml::Dense(neurons, "relu"), x);
-//				x = model.add(ml::Dense(neurons, "linear").useBias(false), x);
-//				x = model.add(ml::BatchNormalization("relu").useGamma(false), x);
+//				x = model.add(ml::Dense(neurons, "relu"), x);
+				x = model.add(ml::Dense(neurons, "linear").useBias(false), x);
+				x = model.add(ml::BatchNormalization("relu").useGamma(false), x);
 			}
 			assert(arch.begin()[arch.size() - 1] == 1);
 			x = model.add(ml::Dense(1, "sigmoid"), x);
@@ -311,7 +285,7 @@ namespace ag
 		}
 
 		/*
-		 * TSSStats
+		 * NNUEStats
 		 */
 		NNUEStats::NNUEStats() :
 				refresh("refresh"),
@@ -331,10 +305,6 @@ namespace ag
 		/*
 		 * InferenceNNUE
 		 */
-		InferenceNNUE::InferenceNNUE(GameConfig gameConfig) :
-				InferenceNNUE(gameConfig, NNUEWeights::get(gameConfig.rules))
-		{
-		}
 		InferenceNNUE::InferenceNNUE(GameConfig gameConfig, const NNUEWeights &weights) :
 				game_config(gameConfig),
 				accumulator_stack(gameConfig.rows * gameConfig.cols, Accumulator<int16_t>(weights.layer_0.neurons())),
@@ -346,7 +316,7 @@ namespace ag
 		}
 		void InferenceNNUE::refresh(const PatternCalculator &calc)
 		{
-			TimerGuard tg(stats.refresh);
+//			TimerGuard tg(stats.refresh);
 
 			current_depth = calc.getCurrentDepth();
 
@@ -376,7 +346,7 @@ namespace ag
 		}
 		void InferenceNNUE::update(const PatternCalculator &calc)
 		{
-			TimerGuard tg(stats.update);
+//			TimerGuard tg(stats.update);
 
 			const bool is_accumulator_ready = current_depth >= calc.getCurrentDepth() or calc.getCurrentDepth() == 0;
 			current_depth = calc.getCurrentDepth();
@@ -433,7 +403,7 @@ namespace ag
 		}
 		float InferenceNNUE::forward()
 		{
-			TimerGuard tg(stats.forward);
+//			TimerGuard tg(stats.forward);
 			return forward_function(get_current_accumulator(), weights.layer_1, weights.fp32_layers);
 		}
 		void InferenceNNUE::print_stats() const

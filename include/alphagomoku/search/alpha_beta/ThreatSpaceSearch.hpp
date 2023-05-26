@@ -92,6 +92,7 @@ namespace ag
 		public:
 			ThreatSpaceSearch(const GameConfig &gameConfig, const TSSConfig &tssConfig);
 
+			void loadWeights(const nnue::NNUEWeights &weights);
 			void increaseGeneration();
 			void clear();
 			int64_t getMemory() const noexcept;

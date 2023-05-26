@@ -31,13 +31,10 @@ namespace ag
 				NnueLayer<int16_t, int32_t> layer_1;
 				std::vector<NnueLayer<float, float>> fp32_layers;
 
-				NNUEWeights() = default;
-				NNUEWeights(GameRules rules);
+				NNUEWeights() noexcept = default;
+				NNUEWeights(const std::string &path);
 				Json save(SerializedObject &so) const;
 				void load(const Json &json, const SerializedObject &so);
-
-				static void setPaths(const std::map<GameRules, std::string> &paths);
-				static const NNUEWeights& get(GameRules rules);
 		};
 
 		class TrainingNNUE
@@ -94,7 +91,6 @@ namespace ag
 				std::function<float(const Accumulator<int16_t>&, const NnueLayer<int16_t, int32_t>&, const std::vector<NnueLayer<float, float>>&)> forward_function;
 			public:
 				InferenceNNUE() = default;
-				InferenceNNUE(GameConfig gameConfig);
 				InferenceNNUE(GameConfig gameConfig, const NNUEWeights &weights);
 				void refresh(const PatternCalculator &calc);
 				void update(const PatternCalculator &calc);

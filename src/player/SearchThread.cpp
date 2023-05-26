@@ -14,6 +14,8 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 
+#include <alphagomoku/networks/NNUE.hpp>
+
 namespace
 {
 	int get_batch_size(int simulation_count, int max_batch_size) noexcept
@@ -31,6 +33,7 @@ namespace ag
 			evaluator_pool(evaluators),
 			search(settings.getGameConfig(), settings.getSearchConfig())
 	{
+		search.getSolver().loadWeights(nnue::NNUEWeights(settings.getPathToNnueNetwork()));
 	}
 	SearchThread::~SearchThread()
 	{

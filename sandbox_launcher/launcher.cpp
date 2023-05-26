@@ -660,6 +660,7 @@ void test_proven_positions(int pos)
 
 	TSSConfig tss_config;
 	ThreatSpaceSearch ts_search(game_config, tss_config);
+	ts_search.loadWeights(nnue::NNUEWeights("asdf.bin"));
 
 	SearchDataPack pack(game_config.rows, game_config.cols);
 	SearchTask task(game_config);
@@ -799,8 +800,8 @@ void test_forbidden_moves()
 void test_search()
 {
 //	GameConfig game_config(GameRules::CARO, 15);
+//	GameConfig game_config(GameRules::STANDARD, 15);
 	GameConfig game_config(GameRules::STANDARD, 15);
-//	GameConfig game_config(GameRules::FREESTYLE, 20);
 
 	SearchConfig search_config;
 	search_config.max_batch_size = 8;
@@ -813,7 +814,7 @@ void test_search()
 	Tree tree(search_config.tree_config);
 
 	DeviceConfig device_config;
-	device_config.batch_size = 8;
+	device_config.batch_size = 32;
 	device_config.omp_threads = 1;
 //#ifdef NDEBUG
 	device_config.device = ml::Device::cuda(0);
@@ -821,10 +822,11 @@ void test_search()
 //	device_config.device = ml::Device::cpu();
 //#endif
 	NNEvaluator nn_evaluator(device_config);
-	nn_evaluator.useSymmetries(false);
+	nn_evaluator.useSymmetries(true);
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku550/networks/network_57_opt.bin");
 //	nn_evaluator.loadGraph("./old_6x64s.bin");
 	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin");
+//	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/btl_pv_8x128f/checkpoint/network_242_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/standard_15x15/checkpoint/network_0_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/tl/checkpoint/network_99_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs_2023/test_6x64s/checkpoint/network_70_opt.bin");
@@ -1940,22 +1942,48 @@ void test_search()
 			/* 13 */ " _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /* 13 */
 			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
 			/*         a b c d e f g h i j k l m n o        */);
+//	board = Board::fromString(
+//			/*         a b c d e f g h i j k l m n o p q r s t          */
+//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
+//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
+//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
+//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
+//			/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
+//			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
+//			/*  6 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
+//			/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
+//			/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
+//			/*  9 */ " _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  9 */
+//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /* 10 */
+//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
+//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
+//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
+//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
+//			/* 15 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 15 */
+//			/* 16 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 16 */
+//			/* 17 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 17 */
+//			/* 18 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 18 */
+//			/* 19 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 19 */
+//			/*         a b c d e f g h i j k l m n o p q r s t          */
+//			);
 // @formatter:on
 	sign_to_move = Sign::CIRCLE;
 
 	ThreatSpaceSearch ts_search(game_config, search_config.tss_config);
+	ts_search.loadWeights(nnue::NNUEWeights("networks/freestyle_nnue_64x16x16x1.bin"));
 
 	SearchTask task(game_config);
 
 //	SearchTask task2(game_config);
 //	task2.set(board, sign_to_move);
-//	ts_search.solve(task2, TssMode::RECURSIVE, 1000000);
+//	ts_search.solve(task2, TssMode::RECURSIVE, 10000);
 //	std::cout << "\n\n\n";
 //	ts_search.print_stats();
 //	std::cout << "\n\n\n" << task2.toString() << '\n';
 //	return;
 
 	Search search(game_config, search_config);
+	search.getSolver().loadWeights(nnue::NNUEWeights("networks/freestyle_nnue_64x16x16x1.bin"));
 	tree.setBoard(board, sign_to_move);
 //	tree.setEdgeSelector(NoisyPUCTSelector(Board::numberOfMoves(board), 1.25f));
 
@@ -1967,14 +1995,14 @@ void test_search()
 	tree.setEdgeGenerator(BaseGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold, false));
 
 	int next_step = 0;
-	for (int j = 0; j <= 10000; j++)
+	for (int j = 0; j <= 1000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
 			std::cout << tree.getSimulationCount() << " ..." << std::endl;
-			next_step += 10000;
+			next_step += 1000;
 		}
-		search.select(tree, 10000);
+		search.select(tree, 1000);
 		search.solve();
 		search.scheduleToNN(nn_evaluator);
 		nn_evaluator.evaluateGraph();
@@ -1992,6 +2020,7 @@ void test_search()
 	search.cleanup(tree);
 
 //	tree.printSubtree(100);
+
 	std::cout << search.getStats().toString() << '\n';
 	std::cout << "memory = " << ((tree.getMemory() + search.getMemory()) / 1048576.0) << "MB\n\n";
 	std::cout << "max depth = " << tree.getMaximumDepth() << '\n';
@@ -2253,32 +2282,35 @@ void test_evaluate()
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 1.25f;
 //	manager.setFirstPlayer(cfg, "./old_6x64f.bin", "old_6x64f");
 
-//	cfg.simulations = 750;
-//	cfg.search_config.tss_config.max_positions = 1000;
-//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "AG_255_x1.5_tss1k");
-//
-//	cfg.simulations = 750;
-//	cfg.search_config.tss_config.max_positions = 10000;
-//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "AG_255_x1.5_tss10k");
+	cfg.simulations = 1000;
+	cfg.search_config.tss_config.max_positions = 500;
+	cfg.search_config.tss_config.mode = 1;
+//	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.75;
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "tss1");
+
+//	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 1.25;
+	cfg.search_config.mcts_config.edge_selector_config.init_to = "q_head";
+	cfg.search_config.tss_config.mode = 2;
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "tss2_nnue_q");
 
 //	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/sl_btl_brd_pv_8x128s/checkpoint/network_261_opt.bin", "broadcast_261");
 //	cfg.final_selector.exploration_constant = 1.25f;
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 1.25f;
 //	cfg.simulations = 1000;
-	cfg.search_config.tss_config.mode = 2;
-	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "tss2_reduced_at_root_x2");
+//	cfg.search_config.tss_config.mode = 2;
+//	manager.setFirstPlayer(cfg, "./old_6x64s.bin", "tss2_reduced_at_root_x2");
 //	cfg.simulations = 750;
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.5f;
-	cfg.search_config.tss_config.mode = 1;
-	manager.setSecondPlayer(cfg, "./old_6x64s.bin", "tss1");
+//	cfg.search_config.tss_config.mode = 1;
+//	manager.setSecondPlayer(cfg, "./old_6x64s.bin", "tss1");
 
 	const double start = getTime();
-	manager.generate(4000);
+	manager.generate(1000);
 	const double stop = getTime();
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs/final_cmp6.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs/cmp_q.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 
@@ -2592,16 +2624,15 @@ void train_nnue()
 {
 	ml::Device::setNumberOfThreads(1);
 	GameDataBuffer buffer;
-	for (int i = 200; i < 250; i++)
-		buffer.load("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer/buffer_" + std::to_string(i) + ".bin");
+	for (int i = 200; i < 225; i++)
+		buffer.load("/home/maciek/alphagomoku/new_runs/btl_pv_8x128c5/train_buffer/buffer_" + std::to_string(i) + ".bin");
 	std::cout << buffer.getStats().toString() << '\n';
 
-	SearchDataPack pack(15, 15);
+	GameConfig game_config(GameRules::CARO5, 15);
 
-	GameConfig game_config(GameRules::STANDARD, 15);
-
+	SearchDataPack pack(game_config.rows, game_config.cols);
 	const int batch_size = 1024;
-	nnue::TrainingNNUE model(game_config, batch_size);
+	nnue::TrainingNNUE model(game_config, { 64, 16, 16, 1 }, batch_size);
 
 	for (int e = 0; e < 100; e++)
 	{
@@ -2633,7 +2664,7 @@ void train_nnue()
 			count++;
 		}
 		std::cout << "epoch " << e << ", loss " << loss / count << " in " << (getTime() - start) << "s\n";
-		model.save("nnue_32x32x8x1.bin");
+		model.save("nnue_c5_64x16x16x1.bin");
 	}
 }
 
@@ -3145,24 +3176,6 @@ float cross_entropy(Value target, Value output)
 
 int main(int argc, char *argv[])
 {
-
-//	{
-//		ActionStack action_stack(10000);
-//
-//		ActionList list = action_stack.create_root();
-//		for (int i = 0; i < 10; i++)
-//			list.add(Move(i, 0), Score(i));
-//		action_stack.increment(list.size());
-//		list.print();
-//		ActionList list2 = action_stack.create_from_action(list[0]);
-//		for (int i = 0; i < 5; i++)
-//			list2.add(Move(5, i), Score(-i));
-//		action_stack.increment(list2.size());
-//
-//		list.print();
-//		list2.print();
-//		return 0;
-//	}
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
@@ -3344,14 +3357,19 @@ int main(int argc, char *argv[])
 //	convert_old_network();
 //	test_search();
 //	prepare_proven_dataset();
-//	test_proven_positions(10000);
+//	test_proven_positions(1000);
 //	train_simple_evaluator();
-	train_nnue();
+//	test_evaluate();
+//	parameter_tuning();
+//	train_nnue();
 	return 0;
-	nnue::TrainingNNUE nnue(GameConfig(GameRules::STANDARD, 15), 1);
-	nnue.load("nnue_64x16x1.bin");
-//	nnue.load("nnue_256x32x32x1.bin");
+	nnue::TrainingNNUE nnue(GameConfig(GameRules::RENJU, 15), 1, "nnue_c5_64x16x16x1.bin");
 	nnue::NNUEWeights weights = nnue.dump();
+	SerializedObject so;
+	Json json = weights.save(so);
+	FileSaver fs("networks/caro5_nnue_64x16x16x1.bin");
+	fs.save(json, so, 2, false);
+	return 0;
 
 	{
 		matrix<Sign> board = Board::fromString(""
@@ -3384,6 +3402,7 @@ int main(int argc, char *argv[])
 
 //		calc.addMove(Move(Sign::CIRCLE, 8, 10));
 //		inf_nnue.update(calc);
+		std::cout << "eval = " << inf_nnue.forward() << '\n';
 
 //		Board::putMove(board, Move(Sign::CIRCLE, 8, 10));
 //		calc.setBoard(board, invertSign(sign_to_move));
@@ -3405,11 +3424,9 @@ int main(int argc, char *argv[])
 		const double time = stop - start;
 		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
 		std::cout << "n/s = " << repeats / time << " (" << time / repeats * 1.0e6 << "ms)\n";
-//		std::cout << "eval = " << inf_nnue.forward() << '\n';
+		std::cout << "eval = " << inf_nnue.forward() << '\n';
+//		inf_nnue.forward();
 	}
-
-//	test_evaluate();
-//	parameter_tuning();
 
 //	test_proven_search(1000, 200, true);
 //	for (int i = 0; i < 120; i++)

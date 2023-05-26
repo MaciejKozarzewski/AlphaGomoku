@@ -91,9 +91,9 @@ namespace
 		assert(edge != nullptr);
 		if (not edge->isLeaf())
 		{
-			Score tmp = edge->getNode()->getScore();
+			Score tmp = -(edge->getNode()->getScore());
 			tmp.increaseDistance();
-			edge->setScore(-tmp);
+			edge->setScore(tmp);
 		}
 	}
 	void update_score(Node *node) noexcept

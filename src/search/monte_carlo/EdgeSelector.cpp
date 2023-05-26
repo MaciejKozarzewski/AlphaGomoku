@@ -321,6 +321,7 @@ namespace ag
 		}
 
 		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
+//		const float c_puct = exploration_constant;
 
 		if (init_to == "q_head")
 		{
@@ -338,7 +339,9 @@ namespace ag
 			else
 			{
 				if (init_to == "draw")
-					initial_q = 0.5;
+					initial_q = 0.5f;
+				else
+					initial_q = 0.0f;
 			}
 			const PUCT op(node, c_puct, exploration_exponent, style_factor, initial_q);
 			if (use_noise)

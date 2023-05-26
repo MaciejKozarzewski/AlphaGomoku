@@ -241,7 +241,7 @@ namespace ag
 			TaskData td = in_progress_queue.at(i);
 			get_network().unpackOutput(i, policy, action_values, value);
 			augment(td.ptr->getPolicy(), policy, -td.symmetry);
-			augment(td.ptr->getActionValues(), action_values, -td.symmetry);
+			augment(td.ptr->getActionValues(), action_values, -td.symmetry); // TODO silently assuming that action values come from TSS
 			td.ptr->setValue(value);
 			td.ptr->markAsProcessedByNetwork();
 		}

@@ -184,8 +184,6 @@ namespace ag
 	{
 		assert(task.isReady());
 
-		const bool expand_fully = (task.getRelativeDepth() == 0 and force_expand_root);
-
 		if (task.mustDefend())
 		{
 			assert(task.wasProcessedBySolver());
@@ -202,6 +200,7 @@ namespace ag
 		initialize_edges(task);
 		if (not task.wasProcessedBySolver())
 			check_terminal_conditions(task);
+		const bool expand_fully = (task.getRelativeDepth() == 0 and force_expand_root);
 		if (not expand_fully) // do not prune root if such option is turned on
 			prune_weak_moves(task, max_edges, expansion_threshold);
 		renormalize_policy(task.getEdges());

@@ -2,19 +2,22 @@
 # Change Log
 All notable changes to this project will be documented in this file.
  
-## [Unreleased] - 2022-02-24
+## [Unreleased] - 2022-05-26
  
 ### Added
-- Added support for Renju and Caro rule (without new networks so far).
+- Added support for Renju and Caro rule.
 - Added basic support for Yixin protocol.
-- Added support for more opening rules.
+- Added possibility to support more opening rules (WIP).
 - Search with GPU uses double buffering to improve performance (on my machine up to 20% faster for 1 thread/GPU, 10% for 2 threads/GPU).
-- Neural network is using Gomoku-specific input features.
-- Neural network has additional output head for action values.
+- Added more architectures of the main neural network.
+- Solver uses NNUE-like evaluation function.
  
 ### Changed
 - Reduced memory consumption of MCTS by about 8% (on average).
-- Improved solver.
+- Solver turned into alpha-beta search.
+- Solver now keeps its entire tree in memory (surprisingly almost no benefit).
+- Final move selection is based on Lower Confidence Bound (LCB) rather than some heuristic formula.
+- Tuned search parameters.
  
 ### Fixed
 - Fixed crash when the time for turn is very small and no nodes have been searched (now there is always at least 1).
