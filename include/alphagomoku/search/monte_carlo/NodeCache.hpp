@@ -14,6 +14,7 @@
 #include <alphagomoku/utils/ObjectPool.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 
+#include <array>
 #include <memory>
 
 namespace ag

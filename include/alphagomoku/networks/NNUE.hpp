@@ -12,7 +12,7 @@
 #include <alphagomoku/patterns/PatternCalculator.hpp>
 #include <alphagomoku/search/Value.hpp>
 
-#include <map>
+#include <functional>
 #include <string>
 
 #include <minml/graph/Graph.hpp>

@@ -110,13 +110,13 @@ namespace ag
 	{
 		switch (mode)
 		{
-			case SignalHandlerMode::DEFAULT:
+			case SignalHandlerMode::DEFAULT_HANDLER:
 				signal(get_signal(type), SIG_DFL);
 				break;
-			case SignalHandlerMode::IGNORE:
+			case SignalHandlerMode::IGNORE_SIGNAL:
 				signal(get_signal(type), SIG_IGN);
 				break;
-			case SignalHandlerMode::CUSTOM:
+			case SignalHandlerMode::CUSTOM_HANDLER:
 			{
 				switch (type)
 				{

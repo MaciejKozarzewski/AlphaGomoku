@@ -11,6 +11,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/AlignedAllocator.hpp>
 
+#include <vector>
 #include <cinttypes>
 #include <cassert>
 

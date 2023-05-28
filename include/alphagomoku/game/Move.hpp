@@ -53,8 +53,8 @@ namespace ag
 					row(r),
 					col(c)
 			{
-				assert(0 <= row && row < 128);
-				assert(0 <= col && col < 128);
+				assert(0 <= row && row < 32);
+				assert(0 <= col && col < 32);
 			}
 			constexpr explicit Location(uint16_t loc) noexcept :
 					Location(loc & 255, loc >> 8)
@@ -110,8 +110,8 @@ namespace ag
 					row(r),
 					col(c)
 			{
-				assert(0 <= row && row < 128);
-				assert(0 <= col && col < 128);
+				assert(0 <= row && row < 32);
+				assert(0 <= col && col < 32);
 			}
 			constexpr Move(Sign s, int r, int c) noexcept :
 					Move(r, c, s)

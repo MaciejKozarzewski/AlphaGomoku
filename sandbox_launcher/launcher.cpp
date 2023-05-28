@@ -57,10 +57,6 @@
 #include <alphagomoku/patterns/PatternTable.hpp>
 #include <alphagomoku/patterns/PatternClassifier.hpp>
 #include <alphagomoku/patterns/Pattern.hpp>
-#include <alphagomoku/ab_search/MoveGenerator.hpp>
-#include <alphagomoku/ab_search/MinimaxSearch.hpp>
-#include <alphagomoku/ab_search/StaticSolver.hpp>
-#include <alphagomoku/ab_search/AlphaBetaSearch.hpp>
 #include <alphagomoku/networks/NNUE.hpp>
 
 #include <minml/utils/ZipWrapper.hpp>

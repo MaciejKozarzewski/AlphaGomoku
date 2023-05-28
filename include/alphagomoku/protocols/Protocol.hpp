@@ -13,6 +13,7 @@
 #include <alphagomoku/utils/configs.hpp>
 
 #include <variant>
+#include <functional>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
@@ -35,9 +36,9 @@ namespace ag
 			InputListener() = default;
 			InputListener(std::istream &inputStream, bool caseSensitive = false);
 			InputListener(const InputListener &other) = delete;
-			InputListener(InputListener &&other) = default;
+			InputListener(InputListener &&other) = delete;
 			InputListener& operator=(const InputListener &other) = delete;
-			InputListener& operator=(InputListener &&other) = default;
+			InputListener& operator=(InputListener &&other) = delete;
 			~InputListener() = default;
 
 			/** \brief Returns true if there are no elements in the input queue.

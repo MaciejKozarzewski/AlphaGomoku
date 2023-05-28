@@ -23,7 +23,7 @@ using namespace ag;
 int main(int argc, char *argv[])
 {
 	std::cout << ml::Device::hardwareInfo() << '\n';
-	setupSignalHandler(SignalType::INT, SignalHandlerMode::CUSTOM);
+	setupSignalHandler(SignalType::INT, SignalHandlerMode::CUSTOM_HANDLER);
 
 	std::string mode;
 	int number_of_iterations = 0;

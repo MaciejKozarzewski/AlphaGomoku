@@ -50,9 +50,9 @@ namespace ag
 	};
 	enum class SignalHandlerMode
 	{
-		DEFAULT,
-		IGNORE,
-		CUSTOM
+		DEFAULT_HANDLER,
+		IGNORE_SIGNAL,
+		CUSTOM_HANDLER
 	};
 	void setupSignalHandler(SignalType type, SignalHandlerMode mode);
 	bool hasCapturedSignal(SignalType type) noexcept;
