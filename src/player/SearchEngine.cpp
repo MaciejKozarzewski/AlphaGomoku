@@ -89,6 +89,9 @@ namespace ag
 	void SearchEngine::reset()
 	{
 		best_score = Score::min_value();
+		tree.clear();
+		for (size_t i = 0; i < search_threads.size(); i++)
+			search_threads[i]->reset();
 	}
 	void SearchEngine::setPosition(const matrix<Sign> &board, Sign signToMove)
 	{

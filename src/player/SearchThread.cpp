@@ -40,6 +40,10 @@ namespace ag
 		stop();
 		join();
 	}
+	void SearchThread::reset()
+	{
+		search.getSolver().clear();
+	}
 	void SearchThread::setPosition(const matrix<Sign> &board, Sign signToMove)
 	{
 		assert(!isRunning());

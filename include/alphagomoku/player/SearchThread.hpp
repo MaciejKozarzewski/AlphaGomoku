@@ -36,6 +36,7 @@ namespace ag
 		public:
 			SearchThread(const EngineSettings &settings, Tree &tree, const NNEvaluatorPool &evaluators);
 			~SearchThread();
+			void reset();
 			void setPosition(const matrix<Sign> &board, Sign signToMove);
 			void start();
 			void stop() noexcept;
