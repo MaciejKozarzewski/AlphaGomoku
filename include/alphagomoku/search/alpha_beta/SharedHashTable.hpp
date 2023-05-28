@@ -14,7 +14,7 @@
 #include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
 #include <alphagomoku/utils/AlignedAllocator.hpp>
-#include <alphagomoku/utils/SpinLock.hpp>
+//#include <alphagomoku/utils/SpinLock.hpp>
 
 #include <array>
 #include <vector>
@@ -127,18 +127,18 @@ namespace ag
 			using Bucket = std::array<Entry, 4>;
 
 			std::vector<Bucket, AlignedAllocator<Bucket, sizeof(Bucket)>> m_hashtable;
-			mutable std::vector<SpinLock, AlignedAllocator<SpinLock, sizeof(SpinLock)>> m_locks;
+//			mutable std::vector<SpinLock, AlignedAllocator<SpinLock, sizeof(SpinLock)>> m_locks;
 			FastZobristHashing m_hash_function;
 			HashKey64 m_bucket_mask;
-			HashKey64 m_lock_mask;
+//			HashKey64 m_lock_mask;
 			int m_base_generation = 0;
 		public:
 			SharedHashTable(int rows, int columns, size_t initialSize = 1024) :
 					m_hashtable(roundToPowerOf2(initialSize) / 4),
-					m_locks(64),
+//					m_locks(64),
 					m_hash_function(rows, columns),
-					m_bucket_mask(m_hashtable.size() - 1),
-					m_lock_mask(m_locks.size() - 1)
+					m_bucket_mask(m_hashtable.size() - 1)
+//					m_lock_mask(m_locks.size() - 1)
 			{
 				clear();
 			}
@@ -164,7 +164,7 @@ namespace ag
 			}
 			SharedTableData seek(const HashKey128 &hash) const noexcept
 			{
-				SpinLockGuard guard(get_lock(hash));
+//				SpinLockGuard guard(get_lock(hash));
 
 				const Bucket &bucket = m_hashtable[get_index_of(hash)];
 				for (size_t i = 0; i < bucket.size(); i++)
@@ -174,7 +174,7 @@ namespace ag
 			}
 			void insert(const HashKey128 &hash, SharedTableData value) noexcept
 			{
-				SpinLockGuard guard(get_lock(hash));
+//				SpinLockGuard guard(get_lock(hash));
 
 				value.set_generation_and_key(m_base_generation, hash.getLow());
 				const Entry new_entry(hash, value);
@@ -213,10 +213,10 @@ namespace ag
 				return static_cast<double>(result) / (size * getBucketSize());
 			}
 		private:
-			SpinLock& get_lock(const HashKey128 &hash) const noexcept
-			{
-				return m_locks[hash.getLow() & m_lock_mask];
-			}
+//			SpinLock& get_lock(const HashKey128 &hash) const noexcept
+//			{
+//				return m_locks[hash.getLow() & m_lock_mask];
+//			}
 			size_t get_index_of(const HashKey128 &hash) const noexcept
 			{
 				return hash.getLow() & m_bucket_mask;
