@@ -10,7 +10,6 @@
 
 #include <alphagomoku/networks/NNUE.hpp>
 #include <alphagomoku/search/alpha_beta/ActionList.hpp>
-#include <alphagomoku/search/alpha_beta/LocalHashTable.hpp>
 #include <alphagomoku/search/alpha_beta/SharedHashTable.hpp>
 #include <alphagomoku/search/alpha_beta/ThreatGenerator.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
