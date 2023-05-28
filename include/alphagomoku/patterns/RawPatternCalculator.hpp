@@ -35,7 +35,7 @@ namespace ag
 			uint64_t *antidiagonal = nullptr;
 		public:
 			RawPatternCalculator() noexcept = default;
-			RawPatternCalculator(int rows, int cols) :
+			RawPatternCalculator(int rows, int cols) noexcept :
 					m_data(6 * rows),
 					size(rows),
 					horizontal(m_data.data()),
@@ -129,6 +129,7 @@ namespace ag
 			{
 				assert(board.isSquare());
 				static_assert(std::is_same<T, NormalPattern>::value or std::is_same<T, ExtendedPattern>::value, "");
+
 				const auto get = [](const matrix<Sign> &board, int row, int col)
 				{	return board.isInside(row, col) ? static_cast<uint32_t>(board.at(row, col)) : 3u;};
 
@@ -144,7 +145,7 @@ namespace ag
 				}
 				if (board.at(move.row, move.col) != Sign::NONE)
 				{ // the patterns must have central spot empty
-					const uint32_t mask = ~(3u << static_cast<uint32_t>(2 * Pad));
+					constexpr uint32_t mask = ~(3u << static_cast<uint32_t>(2 * Pad));
 					result.horizontal &= mask;
 					result.vertical &= mask;
 					result.diagonal &= mask;
@@ -152,7 +153,7 @@ namespace ag
 				}
 				return DirectionGroup<T>( { T(result.horizontal), T(result.vertical), T(result.diagonal), T(result.antidiagonal) });
 			}
-			static bool isStraightFourAt(const matrix<Sign> &board, Move move, Direction direction)
+			static bool isStraightFourAt(const matrix<Sign> &board, Move move, Direction direction) noexcept
 			{
 				assert(board.isSquare());
 				assert(board.at(move.row, move.col) == Sign::NONE);

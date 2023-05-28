@@ -46,6 +46,7 @@ namespace ag
 					const uint16_t value = location.toShort();
 					const int length = list.size();
 #ifdef __AVX2__
+					assert(is_aligned<__m256i>(ptr));
 					const __m256i val = _mm256_set1_epi16(value);
 					for (int i = 0; i < length; i += 32, ptr += 32)
 					{
@@ -67,6 +68,7 @@ namespace ag
 						}
 					}
 #elif defined(__SSE2__)
+					assert(is_aligned<__m128i>(ptr));
 					const __m128i val = _mm_set1_epi16(value);
 					for (int i = 0; i < length; i += 16, ptr += 16)
 					{

@@ -25,6 +25,12 @@ namespace ag
 
 namespace ag
 {
+	template<typename T>
+	bool is_aligned(const void *ptr) noexcept
+	{
+		return (reinterpret_cast<std::uintptr_t>(ptr) % sizeof(T)) == 0;
+	}
+
 	/*
 	 * \brief Returns current time in seconds.
 	 */

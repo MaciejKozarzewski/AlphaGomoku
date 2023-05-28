@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/networks/nnue_ops/avx2_ops.hpp>
+#include <alphagomoku/utils/misc.hpp>
 
 #include <x86intrin.h>
 #include <cassert>
@@ -20,11 +21,6 @@ namespace
 	constexpr int register_capacity() noexcept
 	{
 		return 128 / (8 * sizeof(T));
-	}
-	template<typename T>
-	bool is_aligned(const void *ptr) noexcept
-	{
-		return (reinterpret_cast<std::uintptr_t>(ptr) % sizeof(T)) == 0;
 	}
 
 	template<typename T, int N>

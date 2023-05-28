@@ -123,7 +123,7 @@ namespace ag
 			{
 				return std::max(std::max(horizontal, vertical), std::max(diagonal, antidiagonal));
 			}
-			Direction findDirectionOf(T value) const noexcept
+			Direction findDirectionOf(T value) const noexcept // TODO find out if this can be optimized
 			{
 				if (horizontal == value)
 					return HORIZONTAL;

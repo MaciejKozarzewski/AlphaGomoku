@@ -182,7 +182,7 @@ namespace ag
 	void YixinBoardProtocol::info_caution_factor(InputListener &listener)
 	{
 		const int cf = 4 - std::stoi(extract_command_data(listener, "info caution_factor")); // value must be inverted as in AG higher values correspond to more aggressive style
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "caution_factor", std::to_string(cf) }));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "style", std::to_string(cf) }));
 	}
 	void YixinBoardProtocol::info_pondering(InputListener &listener)
 	{

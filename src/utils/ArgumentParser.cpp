@@ -29,7 +29,7 @@ namespace
 			result = std::max(result, iter->getHelpFormatted().length());
 		return result;
 	}
-	void empty_action()
+	void empty_action() noexcept
 	{
 	}
 }

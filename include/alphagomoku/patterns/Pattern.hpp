@@ -138,6 +138,7 @@ namespace ag
 				return lhs.m_length == rhs.m_length and lhs.m_feature == rhs.m_feature;
 			}
 	};
-}
+
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_PATTERNS_PATTERN_HPP_ */

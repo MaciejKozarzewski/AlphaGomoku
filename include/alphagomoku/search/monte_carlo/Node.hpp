@@ -26,7 +26,7 @@ namespace ag
 			static constexpr uint16_t is_root = 0x0002u;
 			static constexpr uint16_t is_fully_expanded = 0x0004u;
 
-			Edge *edges = nullptr;
+			Edge *edges = nullptr; // may be owning or not
 			Value value;
 			int32_t visits = 0;
 			Score score;
