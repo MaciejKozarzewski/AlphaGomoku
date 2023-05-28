@@ -1,4 +1,4 @@
-target_sources(AlphaGomoku PRIVATE 	EvaluationGame.cpp
+target_sources(${LibName} PRIVATE 	EvaluationGame.cpp
 									EvaluationManager.cpp
 									GameGenerator.cpp
 									GeneratorManager.cpp

@@ -1,4 +1,4 @@
-target_sources(AlphaGomoku PRIVATE 	ExtendedGomocupProtocol.cpp
+target_sources(${LibName} PRIVATE 	ExtendedGomocupProtocol.cpp
 									GomocupProtocol.cpp
 									Protocol.cpp
 									YixinBoardProtocol.cpp)

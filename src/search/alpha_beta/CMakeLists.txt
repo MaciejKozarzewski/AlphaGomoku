@@ -1,2 +1,2 @@
-target_sources(AlphaGomoku PRIVATE 	ThreatGenerator.cpp
+target_sources(${LibName} PRIVATE 	ThreatGenerator.cpp
 									ThreatSpaceSearch.cpp)

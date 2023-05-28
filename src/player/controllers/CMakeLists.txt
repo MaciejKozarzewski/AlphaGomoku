@@ -1,4 +1,4 @@
-target_sources(AlphaGomoku PRIVATE 	dispatcher.cpp
+target_sources(${LibName} PRIVATE 	dispatcher.cpp
 									MatchController.cpp
 									PonderingController.cpp
 									Swap1stController.cpp

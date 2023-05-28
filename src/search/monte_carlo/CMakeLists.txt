@@ -1,4 +1,4 @@
-target_sources(AlphaGomoku PRIVATE 	Edge.cpp
+target_sources(${LibName} PRIVATE 	Edge.cpp
 									EdgeGenerator.cpp
 									EdgeSelector.cpp
 									NNEvaluator.cpp

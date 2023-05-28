@@ -1,4 +1,4 @@
-target_sources(AlphaGomoku PRIVATE 	ArgumentParser.cpp
+target_sources(${LibName} PRIVATE 	ArgumentParser.cpp
 									augmentations.cpp
 									configs.cpp
 									file_util.cpp

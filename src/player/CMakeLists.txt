@@ -1,5 +1,5 @@
 add_subdirectory("controllers")
-target_sources(AlphaGomoku PRIVATE 	benchmark.cpp
+target_sources(${LibName} PRIVATE 	benchmark.cpp
 									configuration.cpp
 									EngineController.cpp
 									EngineSettings.cpp

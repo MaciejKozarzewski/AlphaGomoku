@@ -1,4 +1,4 @@
-target_sources(AlphaGomoku PRIVATE 	nnue_ops/avx2_ops.cpp
+target_sources(${LibName} PRIVATE 	nnue_ops/avx2_ops.cpp
 									nnue_ops/def_ops.cpp
 									nnue_ops/layers.cpp
 									nnue_ops/sse41_ops.cpp

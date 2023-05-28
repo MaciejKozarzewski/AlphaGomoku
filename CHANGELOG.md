@@ -6,11 +6,11 @@ All notable changes to this project will be documented in this file.
  
 ### Added
 - Added support for Renju and Caro rule.
-- Added basic support for Yixin protocol.
+- Added some support for Yixin protocol.
 - Added possibility to support more opening rules (WIP).
 - Search with GPU uses double buffering to improve performance (on my machine up to 20% faster for 1 thread/GPU, 10% for 2 threads/GPU).
 - Added more architectures of the main neural network.
-- Solver uses NNUE-like evaluation function.
+- Implemented NNUE-like evaluation function (not used for now).
  
 ### Changed
 - Reduced memory consumption of MCTS by about 8% (on average).
@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
  
 ### Fixed
 - Fixed crash when the time for turn is very small and no nodes have been searched (now there is always at least 1).
+- Swap2 opening book is no longer required to run the engine (but must be present to use swap2/swap opening commands).
 
 ## [5.3.4] - 2022-04-20
  
