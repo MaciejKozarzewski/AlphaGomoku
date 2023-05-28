@@ -29,7 +29,10 @@ namespace
 	std::vector<std::vector<ag::Move>> load_opening_book(const std::string &path)
 	{
 		if (std::filesystem::exists(path) == false)
-			throw std::logic_error("No swap2 opening book");
+		{
+			ag::Logger::write("No swap2 opening book");
+			return std::vector<std::vector<ag::Move>>();
+		}
 		else
 		{
 			ag::FileLoader fl(path);

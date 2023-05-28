@@ -39,8 +39,14 @@ namespace ag
 
 		if (state == ControllerState::PUT_FIRST_3_STONES)
 		{
-			const int r = randInt(engine_settings.getSwap2Openings().size());
-			Message msg(MessageType::BEST_MOVE, engine_settings.getSwap2Openings()[r]);
+			Message msg;
+			if (engine_settings.getSwap2Openings().size() == 0)
+				msg = Message(MessageType::ERROR, "No swap2 opening book");
+			else
+			{
+				const int r = randInt(engine_settings.getSwap2Openings().size());
+				msg = Message(MessageType::BEST_MOVE, engine_settings.getSwap2Openings()[r]);
+			}
 			outputQueue.push(msg);
 			state = ControllerState::IDLE;
 		}
