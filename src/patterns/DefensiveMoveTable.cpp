@@ -332,7 +332,7 @@ namespace ag
 		// results  "!___!!", "!__!_!", "!_!__!", "!!___!"
 		// each occurs three times appropriately shifted, with central spot empty
 		// last four are just a padding to make the array length divisible by 8
-		using aligned_vector = std::vector<uint32_t, AlignedAllocator<uint32_t, 32>>;
+		using aligned_vector = std::vector<uint32_t, AlignedAllocator<uint32_t, 64>>;
 
 		static const aligned_vector patterns = { 320u, 4352u, 20480u, 80u, 16640u, 69632u, 272u, 4160u, 81920u, 320u, 4352u, 20480u,
 				0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu };
