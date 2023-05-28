@@ -140,7 +140,7 @@ namespace ag
 	}
 	void ThreatSpaceSearch::loadWeights(const nnue::NNUEWeights &weights)
 	{
-		inference_nnue = nnue::InferenceNNUE(game_config, weights);
+//		inference_nnue = nnue::InferenceNNUE(game_config, weights);
 	}
 	void ThreatSpaceSearch::increaseGeneration()
 	{
@@ -153,7 +153,7 @@ namespace ag
 			pattern_calculator.setBoard(task.getBoard(), task.getSignToMove());
 			task.getFeatures().encode(pattern_calculator);
 			action_stack.resize(maxPositions * game_config.rows * game_config.cols);
-			inference_nnue.refresh(pattern_calculator);
+//			inference_nnue.refresh(pattern_calculator);
 		}
 
 		TimerGuard tg(stats.solve);
@@ -381,7 +381,7 @@ namespace ag
 				}
 		}
 
-		inference_nnue.update(pattern_calculator);
+//		inference_nnue.update(pattern_calculator);
 		if (depthRemaining == 0) // if it is a leaf, evaluate the position
 			return evaluate();
 
@@ -413,7 +413,7 @@ namespace ag
 				tmp.increaseDistance();
 
 				pattern_calculator.undoMove(move);
-				inference_nnue.update(pattern_calculator);
+//				inference_nnue.update(pattern_calculator);
 
 				shared_table.getHashFunction().updateHash(hash_key, move);
 				actions[i].score = tmp; // required for recovering of the search results
@@ -457,23 +457,23 @@ namespace ag
 
 	Score ThreatSpaceSearch::evaluate()
 	{
-		return Score(static_cast<int>(2000 * inference_nnue.forward() - 1000));
+//		return Score(static_cast<int>(2000 * inference_nnue.forward() - 1000));
 
 //		TimerGuard tg(stats.evaluate);
-//		const Sign own_sign = pattern_calculator.getSignToMove();
-//		const Sign opponent_sign = invertSign(own_sign);
-//		const int worst_threat = static_cast<int>(ThreatType::OPEN_3);
-//		const int best_threat = static_cast<int>(ThreatType::FIVE);
-//
-//		static const std::array<int, 10> own_values = { 0, 0, 19, 49, 76, 170, 33, 159, 252, 0 };
-//		static const std::array<int, 10> opp_values = { 0, 0, -1, -50, -45, -135, -14, -154, -496, 0 };
-//		int result = 12;
-//		for (int i = worst_threat; i <= best_threat; i++)
-//		{
-//			result += own_values[i] * pattern_calculator.getThreatHistogram(own_sign).numberOf(static_cast<ThreatType>(i));
-//			result += opp_values[i] * pattern_calculator.getThreatHistogram(opponent_sign).numberOf(static_cast<ThreatType>(i));
-//		}
-//		return std::max(-4000, std::min(4000, result));
+		const Sign own_sign = pattern_calculator.getSignToMove();
+		const Sign opponent_sign = invertSign(own_sign);
+		const int worst_threat = static_cast<int>(ThreatType::OPEN_3);
+		const int best_threat = static_cast<int>(ThreatType::FIVE);
+
+		static const std::array<int, 10> own_values = { 0, 0, 19, 49, 76, 170, 33, 159, 252, 0 };
+		static const std::array<int, 10> opp_values = { 0, 0, -1, -50, -45, -135, -14, -154, -496, 0 };
+		int result = 12;
+		for (int i = worst_threat; i <= best_threat; i++)
+		{
+			result += own_values[i] * pattern_calculator.getThreatHistogram(own_sign).numberOf(static_cast<ThreatType>(i));
+			result += opp_values[i] * pattern_calculator.getThreatHistogram(opponent_sign).numberOf(static_cast<ThreatType>(i));
+		}
+		return std::max(-4000, std::min(4000, result));
 	}
 
 } /* namespace ag */

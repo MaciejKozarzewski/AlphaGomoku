@@ -33,7 +33,7 @@ namespace ag
 			evaluator_pool(evaluators),
 			search(settings.getGameConfig(), settings.getSearchConfig())
 	{
-		search.getSolver().loadWeights(nnue::NNUEWeights(settings.getPathToNnueNetwork()));
+//		search.getSolver().loadWeights(nnue::NNUEWeights(settings.getPathToNnueNetwork())); // TODO return back to this once TSS gets improved
 	}
 	SearchThread::~SearchThread()
 	{
