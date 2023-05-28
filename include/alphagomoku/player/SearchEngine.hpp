@@ -52,6 +52,7 @@ namespace ag
 
 		public:
 			SearchEngine(const EngineSettings &settings);
+			void reset();
 			void setPosition(const matrix<Sign> &board, Sign signToMove);
 			void setEdgeSelector(const EdgeSelector &selector);
 			void setEdgeGenerator(const EdgeGenerator &generator);

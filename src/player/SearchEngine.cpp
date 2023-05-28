@@ -86,6 +86,10 @@ namespace ag
 			tree(settings.getSearchConfig().tree_config)
 	{
 	}
+	void SearchEngine::reset()
+	{
+		best_score = Score::min_value();
+	}
 	void SearchEngine::setPosition(const matrix<Sign> &board, Sign signToMove)
 	{
 		assert(isSearchFinished());

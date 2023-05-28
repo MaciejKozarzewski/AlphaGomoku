@@ -111,6 +111,8 @@ namespace ag
 						game_counter++;
 						set_position(std::vector<Move>()); // clear board
 						protocol->reset();
+						if (search_engine != nullptr)
+							search_engine->reset();
 						break;
 					}
 					case MessageType::SET_OPTION:
