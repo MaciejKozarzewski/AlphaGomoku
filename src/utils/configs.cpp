@@ -136,6 +136,7 @@ namespace ag
 	TrainingConfig::TrainingConfig(const Json &options) :
 			network_arch(get_value<std::string>(options, "network_arch")),
 			sampler_type(get_value<std::string>(options, "sampler_type", "visits")),
+			keep_loaded(get_value<bool>(options, "keep_loaded", true)),
 			augment_training_data(get_value<bool>(options, "augment_training_data")),
 			device_config(options["device_config"]),
 			steps_per_iteration(get_value<int>(options, "steps_per_iteration")),
@@ -164,6 +165,7 @@ namespace ag
 		Json result;
 		result["network_arch"] = network_arch;
 		result["sampler_type"] = sampler_type;
+		result["keep_loaded"] = keep_loaded;
 		result["augment_training_data"] = augment_training_data;
 		result["device_config"] = device_config.toJson();
 		result["steps_per_iteration"] = steps_per_iteration;

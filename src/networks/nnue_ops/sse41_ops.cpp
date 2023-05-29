@@ -168,7 +168,8 @@ namespace
 	{
 		assert(ptr != nullptr);
 		assert(is_aligned<int32_t>(ptr));
-		return SimdVector<int16_t, register_capacity<int16_t>()>(_mm_shuffle_epi32(_mm_loadu_si32(ptr), 0x00));
+		const __m128 tmp =  _mm_load_ss(reinterpret_cast<const float*>(ptr));
+		return SimdVector<int16_t, register_capacity<int16_t>()>(_mm_shuffle_epi32(_mm_castps_si128(tmp), 0x00));
 	}
 
 	/*

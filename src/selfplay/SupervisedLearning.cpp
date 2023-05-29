@@ -7,6 +7,7 @@
 
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 #include <alphagomoku/networks/AGNetwork.hpp>
+#include <alphagomoku/dataset/Dataset.hpp>
 #include <alphagomoku/dataset/GameDataBuffer.hpp>
 #include <alphagomoku/dataset/data_packs.hpp>
 #include <alphagomoku/dataset/Sampler.hpp>
@@ -106,7 +107,7 @@ namespace ag
 			validation_loss.at(1 + i) += loss.at(i);
 		addVectors(validation_accuracy, acc);
 	}
-	void SupervisedLearning::train(AGNetwork &model, GameDataBuffer &buffer, int steps)
+	void SupervisedLearning::train(AGNetwork &model, const Dataset &dataset, int steps)
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
@@ -115,7 +116,7 @@ namespace ag
 		const int cols = model.getInputShape().dim(2);
 
 		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
-		sampler->init(buffer, batch_size);
+		sampler->init(dataset, batch_size);
 
 		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
 
@@ -146,7 +147,7 @@ namespace ag
 				exit(0);
 		}
 	}
-	void SupervisedLearning::validate(AGNetwork &model, GameDataBuffer &buffer)
+	void SupervisedLearning::validate(AGNetwork &model, const Dataset &dataset)
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
@@ -155,15 +156,15 @@ namespace ag
 		const int cols = model.getInputShape().dim(2);
 
 		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
-		sampler->init(buffer, batch_size);
+		sampler->init(dataset, batch_size);
 
 		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
 
 		int counter = 0;
-		while (counter < buffer.numberOfGames())
+		while (counter < dataset.numberOfGames())
 		{
 			int this_batch = 0;
-			while (counter < buffer.numberOfGames() and this_batch < batch_size)
+			while (counter < dataset.numberOfGames() and this_batch < batch_size)
 			{
 				sampler->get(data_packs.at(this_batch));
 				counter++;

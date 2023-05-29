@@ -354,6 +354,7 @@ namespace ag
 	std::unique_ptr<AGNetwork> createAGNetwork(const std::string &architecture)
 	{
 		static const ResnetPV resnet_pv;
+		static const ResnetPVraw resnet_pv_raw;
 		static const ResnetPVQ resnet_pvq;
 		static const BottleneckPV bottleneck_pv;
 		static const BottleneckPVraw bottleneck_pv_raw;
@@ -368,6 +369,8 @@ namespace ag
 
 		if (architecture == resnet_pv.name())
 			return std::make_unique<ResnetPV>();
+		if (architecture == resnet_pv_raw.name())
+			return std::make_unique<ResnetPVraw>();
 		if (architecture == resnet_pvq.name())
 			return std::make_unique<ResnetPVQ>();
 		if (architecture == bottleneck_pv.name())

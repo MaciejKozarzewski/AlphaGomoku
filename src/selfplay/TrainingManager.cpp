@@ -181,9 +181,8 @@ namespace ag
 		SupervisedLearning sl_manager(config.training_config);
 		sl_manager.loadProgress(metadata);
 
-		GameDataBuffer train_buffer;
-		loadBuffer(train_buffer, path_to_data + "/train_buffer/");
-		std::cout << train_buffer.getStats().toString() << '\n';
+		loadDataset(training_dataset, path_to_data + "/train_buffer/");
+		std::cout << training_dataset.getStats().toString() << '\n';
 
 		std::unique_ptr<AGNetwork> model = loadAGNetwork(working_dir + "/checkpoint/network_" + std::to_string(epoch) + ".bin");
 
@@ -195,16 +194,19 @@ namespace ag
 		model->changeLearningRate(learning_rate);
 
 		const double start = getTime();
-		sl_manager.train(*model, train_buffer, config.training_config.steps_per_iteration);
+		sl_manager.train(*model, training_dataset, config.training_config.steps_per_iteration);
+		if (not config.training_config.keep_loaded)
+			training_dataset.clear();
 
 		// save model
 		model->saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
 		std::cout << "Training finished in " << (getTime() - start) << "s\n";
 
 		// run validation
-		GameDataBuffer validation_buffer;
-		loadBuffer(validation_buffer, path_to_data + "/valid_buffer/");
-		sl_manager.validate(*model, validation_buffer);
+		loadDataset(validation_dataset, path_to_data + "/valid_buffer/");
+		sl_manager.validate(*model, validation_dataset);
+		if (not config.training_config.keep_loaded)
+			validation_dataset.clear();
 		std::cout << "Validation finished\n";
 
 		// save metadata and training history
@@ -217,6 +219,7 @@ namespace ag
 		model->optimize();
 		model->saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + "_opt.bin");
 		std::cout << "Optimized model\n";
+
 	}
 	void TrainingManager::evaluate()
 	{
@@ -266,14 +269,19 @@ namespace ag
 		buffer.removeRange(training_games, training_games + validation_games);
 		buffer.save(working_dir + "/train_buffer/buffer_" + std::to_string(get_last_checkpoint()) + ".bin");
 	}
-	void TrainingManager::loadBuffer(GameDataBuffer &result, const std::string &path)
+	void TrainingManager::loadDataset(Dataset &result, const std::string &path)
 	{
 		const int last_checkpoint = metadata["last_checkpoint"];
 		const int buffer_size = config.training_config.buffer_size.getValue(last_checkpoint);
 
-		std::cout << "Loading buffers from " << std::max(0, last_checkpoint + 1 - buffer_size) << " to " << last_checkpoint << '\n';
-		for (int i = std::max(0, last_checkpoint + 1 - buffer_size); i <= last_checkpoint; i++)
-			result.load(path + "buffer_" + std::to_string(i) + ".bin");
+		const int first_buffer = std::max(0, last_checkpoint + 1 - buffer_size);
+		const int last_buffer = last_checkpoint;
+		std::cout << "Loading buffers from " << first_buffer << " to " << last_buffer << '\n';
+
+		for (int i = 0; i < first_buffer; i++)
+			result.unload(i);
+		for (int i = first_buffer; i <= last_buffer; i++)
+			result.load(i, path + "buffer_" + std::to_string(i) + ".bin");
 	}
 
 	int TrainingManager::get_last_checkpoint() const

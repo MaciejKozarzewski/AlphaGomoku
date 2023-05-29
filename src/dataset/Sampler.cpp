@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/dataset/Sampler.hpp>
+#include <alphagomoku/dataset/Dataset.hpp>
 #include <alphagomoku/dataset/GameDataBuffer.hpp>
 #include <alphagomoku/dataset/GameDataStorage.hpp>
 #include <alphagomoku/dataset/SearchDataStorage.hpp>
@@ -21,26 +22,41 @@ namespace
 	{
 		return score.isProven() ? score.convertToValue() : value;
 	}
+	std::vector<std::pair<int, int>> list_all_games(const Dataset &dataset)
+	{
+		std::vector<std::pair<int, int>> result;
+
+		const std::vector<int> list_of_buffers = dataset.getListOfBuffers();
+		for (size_t i = 0; i < list_of_buffers.size(); i++)
+		{
+			const GameDataBuffer &buffer = dataset.getBuffer(list_of_buffers[i]);
+			for (int j = 0; j < buffer.numberOfGames(); j++)
+				result.push_back( { list_of_buffers[i], j });
+		}
+		return result;
+	}
 }
 
 namespace ag
 {
-	void Sampler::init(const GameDataBuffer &buffer, int batchSize)
+	void Sampler::init(const Dataset &dataset, int batchSize)
 	{
-		this->buffer = &buffer;
-		search_data_pack = SearchDataPack(buffer.getConfig().rows, buffer.getConfig().cols);
-		game_ordering = permutation(buffer.numberOfGames());
+		this->dataset = &dataset;
+		buffer_and_game_ordering = list_all_games(dataset);
+		std::random_shuffle(buffer_and_game_ordering.begin(), buffer_and_game_ordering.end());
 		batch_size = batchSize;
 	}
 	void Sampler::get(TrainingDataPack &result)
 	{
-		if (buffer == nullptr)
-			throw std::logic_error("Buffer is null. Most likely this Sampler was not initialized");
+		if (dataset == nullptr)
+			throw std::logic_error("Dataset is null. Most likely this Sampler was not initialized");
 		result.clear();
-		const int game_index = game_ordering.at(counter);
-		const int sample_index = randInt(buffer->getGameData(game_index).numberOfSamples());
+		const int buffer_index = buffer_and_game_ordering.at(counter).first;
+		const int game_index = buffer_and_game_ordering.at(counter).second;
+		const int sample_index = randInt(dataset->getBuffer(buffer_index).getGameData(game_index).numberOfSamples());
 
-		buffer->getGameData(game_index).getSample(search_data_pack, sample_index);
+		search_data_pack = SearchDataPack(dataset->getBuffer(buffer_index).getConfig().rows, dataset->getBuffer(buffer_index).getConfig().cols);
+		dataset->getBuffer(buffer_index).getGameData(game_index).getSample(search_data_pack, sample_index);
 		prepare_training_data(result, search_data_pack);
 
 //		buffer->getGameData(game_index)[sample_index].print();
@@ -48,9 +64,9 @@ namespace ag
 //		result.print();
 
 		counter++;
-		if (counter >= game_ordering.size())
+		if (counter >= buffer_and_game_ordering.size())
 		{
-			std::random_shuffle(game_ordering.begin(), game_ordering.end());
+			std::random_shuffle(buffer_and_game_ordering.begin(), buffer_and_game_ordering.end());
 			counter = 0;
 		}
 	}
