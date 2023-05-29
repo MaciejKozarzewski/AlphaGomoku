@@ -16,27 +16,28 @@
 
 namespace ag
 {
-	class GameDataBuffer;
+	class Dataset;
 	class GameDataStorage;
+	struct GameConfig;
 }
 
 namespace ag
 {
 	class Sampler
 	{
-			const GameDataBuffer *buffer = nullptr;
+			const Dataset *dataset = nullptr;
 			SearchDataPack search_data_pack;
-			std::vector<int> game_ordering;
+			std::vector<std::pair<int, int>> buffer_and_game_ordering;
 			size_t counter = 0;
 			int batch_size = 0;
 		public:
-			Sampler() = default;
+			Sampler() noexcept = default;
 			Sampler(const Sampler &other) = delete;
 			Sampler(Sampler &&other) = delete;
 			Sampler& operator=(const Sampler &other) = delete;
 			Sampler& operator=(Sampler &&other) = delete;
 			virtual ~Sampler() = default;
-			virtual void init(const GameDataBuffer &buffer, int batchSize);
+			virtual void init(const Dataset &dataset, int batchSize);
 			virtual void get(TrainingDataPack &result);
 		private:
 			virtual void prepare_training_data(TrainingDataPack &result, const SearchDataPack &sample) = 0;

@@ -8,6 +8,7 @@
 #ifndef SELFPLAY_TRAININGMANAGER_HPP_
 #define SELFPLAY_TRAININGMANAGER_HPP_
 
+#include <alphagomoku/dataset/Dataset.hpp>
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
@@ -24,6 +25,8 @@ namespace ag
 			Json metadata;
 			std::string working_dir;
 			std::string path_to_data;
+			Dataset training_dataset;
+			Dataset validation_dataset;
 
 			std::future<void> evaluation_future;
 			std::mutex rating_mutex;
@@ -42,7 +45,7 @@ namespace ag
 			void train_and_validate();
 			void evaluate();
 			void splitBuffer(GameDataBuffer &buffer, int training_games, int validation_games);
-			void loadBuffer(GameDataBuffer &result, const std::string &path);
+			void loadDataset(Dataset &result, const std::string &path);
 
 			int get_last_checkpoint() const;
 			void save_buffer_stats(const GameDataBuffer &buffer) const;

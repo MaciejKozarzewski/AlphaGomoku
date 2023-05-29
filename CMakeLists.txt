@@ -66,11 +66,7 @@ else()
 	target_link_libraries(${LibName} PUBLIC "${MINML_BACKEND_PATH}/build/lib/libMinML_cpu.a")
 endif()
 
-if (WIN32)
-		target_link_libraries(${LibName} PUBLIC pthread)
-endif()
-
-target_link_libraries(${LibName} PUBLIC z)
+target_link_libraries(${LibName} PUBLIC z pthread)
 
 # find_package(OpenMP)
 # if(OpenMP_CXX_FOUND)

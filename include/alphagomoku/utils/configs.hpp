@@ -165,6 +165,7 @@ namespace ag
 	{
 			std::string network_arch = "ResnetPV";
 			std::string sampler_type = "visits";
+			bool keep_loaded = true;
 			bool augment_training_data = true;
 			DeviceConfig device_config;
 			int steps_per_iteration = 1000;

@@ -292,7 +292,7 @@ void run_training()
 		if (e == 80)
 			network->changeLearningRate(1.0e-5f);
 		sl.clearStats();
-		sl.train(*network, buffer, 1000);
+//		sl.train(*network, buffer, 1000);
 		sl.saveTrainingHistory(path);
 		network->saveToFile(path + "/network_" + std::to_string(e) + ".bin");
 
@@ -3027,7 +3027,7 @@ void transfer_learning()
 	network->changeLearningRate(1.0e-3f);
 
 	SamplerVisits sampler;
-	sampler.init(buffer, batch_size);
+//	sampler.init(buffer, batch_size);
 
 	std::vector<TrainingDataPack> training_batch;
 	for (size_t i = 0; i < batch_size; i++)
@@ -3358,71 +3358,72 @@ int main(int argc, char *argv[])
 //	test_evaluate();
 //	parameter_tuning();
 //	train_nnue();
-	return 0;
-	nnue::TrainingNNUE nnue(GameConfig(GameRules::RENJU, 15), 1, "nnue_c5_64x16x16x1.bin");
-	nnue::NNUEWeights weights = nnue.dump();
-	SerializedObject so;
-	Json json = weights.save(so);
-	FileSaver fs("networks/caro5_nnue_64x16x16x1.bin");
-	fs.save(json, so, 2, false);
-	return 0;
+//	return 0;
 
-	{
-		matrix<Sign> board = Board::fromString(""
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-				" _ _ _ O _ O _ O _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"
-				" _ _ _ _ _ O X X X X _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-		const Sign sign_to_move = Sign::CIRCLE;
-		nnue.packInputData(0, board, sign_to_move);
-		nnue.forward(1);
-		const float eval = nnue.unpackOutput(0);
-		std::cout << "eval = " << eval << '\n';
-//		return 0;
-
-		nnue::InferenceNNUE inf_nnue(GameConfig(GameRules::STANDARD, 15), weights);
-		PatternCalculator calc(GameConfig(GameRules::STANDARD, 15));
-		calc.setBoard(board, sign_to_move);
-		inf_nnue.refresh(calc);
-
-//		calc.addMove(Move(Sign::CIRCLE, 8, 10));
-//		inf_nnue.update(calc);
-		std::cout << "eval = " << inf_nnue.forward() << '\n';
-
-//		Board::putMove(board, Move(Sign::CIRCLE, 8, 10));
-//		calc.setBoard(board, invertSign(sign_to_move));
+//	nnue::TrainingNNUE nnue(GameConfig(GameRules::RENJU, 15), 1, "nnue_c5_64x16x16x1.bin");
+//	nnue::NNUEWeights weights = nnue.dump();
+//	SerializedObject so;
+//	Json json = weights.save(so);
+//	FileSaver fs("networks/caro5_nnue_64x16x16x1.bin");
+//	fs.save(json, so, 2, false);
+//	return 0;
+//
+//	{
+//		matrix<Sign> board = Board::fromString(""
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
+//				" _ _ _ O _ O _ O _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"
+//				" _ _ _ _ _ O X X X X _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+//				" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+//		const Sign sign_to_move = Sign::CIRCLE;
+//		nnue.packInputData(0, board, sign_to_move);
+//		nnue.forward(1);
+//		const float eval = nnue.unpackOutput(0);
+//		std::cout << "eval = " << eval << '\n';
+////		return 0;
+//
+//		nnue::InferenceNNUE inf_nnue(GameConfig(GameRules::STANDARD, 15), weights);
+//		PatternCalculator calc(GameConfig(GameRules::STANDARD, 15));
+//		calc.setBoard(board, sign_to_move);
 //		inf_nnue.refresh(calc);
-
-		const double start = getTime();
-		int repeats = 0;
-		for (; repeats < 100000000; repeats += 10)
-		{
-			for (int j = 0; j < 10; j++)
-//				calc.setBoard(board, sign_to_move);
-//				inf_nnue.refresh(calc);
-				inf_nnue.forward();
-//				inf_nnue.update(calc);
-			if ((getTime() - start) > 10.0)
-				break;
-		}
-		const double stop = getTime();
-		const double time = stop - start;
-		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
-		std::cout << "n/s = " << repeats / time << " (" << time / repeats * 1.0e6 << "ms)\n";
-		std::cout << "eval = " << inf_nnue.forward() << '\n';
-//		inf_nnue.forward();
-	}
+//
+////		calc.addMove(Move(Sign::CIRCLE, 8, 10));
+////		inf_nnue.update(calc);
+//		std::cout << "eval = " << inf_nnue.forward() << '\n';
+//
+////		Board::putMove(board, Move(Sign::CIRCLE, 8, 10));
+////		calc.setBoard(board, invertSign(sign_to_move));
+////		inf_nnue.refresh(calc);
+//
+//		const double start = getTime();
+//		int repeats = 0;
+//		for (; repeats < 100000000; repeats += 10)
+//		{
+//			for (int j = 0; j < 10; j++)
+////				calc.setBoard(board, sign_to_move);
+////				inf_nnue.refresh(calc);
+//				inf_nnue.forward();
+////				inf_nnue.update(calc);
+//			if ((getTime() - start) > 10.0)
+//				break;
+//		}
+//		const double stop = getTime();
+//		const double time = stop - start;
+//		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
+//		std::cout << "n/s = " << repeats / time << " (" << time / repeats * 1.0e6 << "ms)\n";
+//		std::cout << "eval = " << inf_nnue.forward() << '\n';
+////		inf_nnue.forward();
+//	}
 
 //	test_proven_search(1000, 200, true);
 //	for (int i = 0; i < 120; i++)
@@ -3437,9 +3438,10 @@ int main(int argc, char *argv[])
 //	for (int i = 0; i < 1; i++)
 //		tm.runIterationRL();
 
-//	TrainingManager tm("/home/mkozarzewski/alphagomoku/new_runs/sl_btl_brd_pv_8x128s/", "/home/mkozarzewski/alphagomoku/new_runs/btl_pv_8x128s/");
-//	for (int i = 0; i < 200; i++)
-//		tm.runIterationSL();
+	TrainingManager tm("/home/mkozarzewski/alphagomoku/new_runs/sl_res_pv_8x64s/", "/home/mkozarzewski/alphagomoku/new_runs/btl_pv_8x128s/");
+	for (int i = 0; i < 200; i++)
+		tm.runIterationSL();
+	return 0;
 
 //	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/history1/", "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/standard_15x15/");
 
@@ -3460,7 +3462,7 @@ int main(int argc, char *argv[])
 
 //	test_expand();
 
-	return 0;
+//	return 0;
 
 //	{
 //		GameDataBuffer buffer("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/valid_buffer/buffer_200.bin");
@@ -3520,23 +3522,24 @@ int main(int argc, char *argv[])
 
 		GameConfig game_config(GameRules::STANDARD, 15, 15);
 		TrainingConfig cfg;
-		cfg.blocks = 6;
+		cfg.blocks = 8;
 		cfg.filters = 64;
 		std::unique_ptr<AGNetwork> network;
+//		std::unique_ptr<ResnetPV> network = std::make_unique<ResnetPV>();
 //		network = loadAGNetwork("./old_6x64s.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/test_6x64/checkpoint/network_90_opt.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/test_sampler_v2/checkpoint/network_94_opt.bin");
 		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/supervised/broadcast_skip2_relu_8x128s/network_99_opt.bin");
 
-//		network.init(game_config, cfg);
+//		network->init(game_config, cfg);
 //		network->optimize();
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs/test_6x64/checkpoint/network_60_opt.bin");
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs/test_6x64/checkpoint/network_60_opt.bin");
 //		network.optimize();
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs_2023/test_6x64s_2/checkpoint/network_33_opt.bin");
 //		network->optimize();
-		network->setBatchSize(16);
+		network->setBatchSize(12);
 		network->moveTo(ml::Device::cpu());
 //		network->moveTo(ml::Device::cuda(0));
 //		network->convertToHalfFloats();
@@ -3654,19 +3657,19 @@ int main(int argc, char *argv[])
 //		network->forward(2);
 //		return 0;
 
-//		const double start = getTime();
-//		int repeats = 0;
-//		for (; repeats < 10000; repeats++)
-//		{
-//			network->forward(network->getBatchSize());
-//			if ((getTime() - start) > 20.0)
-//				break;
-//		}
-//		const double stop = getTime();
-//		const double time = stop - start;
-//		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
-//		std::cout << "n/s = " << network->getBatchSize() * repeats / time << '\n';
-//		return 0;
+		const double start = getTime();
+		int repeats = 0;
+		for (; repeats < 10000; repeats++)
+		{
+			network->forward(network->getBatchSize());
+			if ((getTime() - start) > 20.0)
+				break;
+		}
+		const double stop = getTime();
+		const double time = stop - start;
+		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
+		std::cout << "n/s = " << network->getBatchSize() * repeats / time << '\n';
+		return 0;
 		network->unpackOutput(0, policy, action_values, value);
 		std::cout << "\n\n--------------------------------------------------------------\n\n";
 		std::cout << "Value = " << value.toString() << '\n'; //<< " (" << value_target.toString() << ")\n";

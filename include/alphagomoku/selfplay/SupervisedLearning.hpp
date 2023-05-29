@@ -17,7 +17,7 @@
 class Json;
 namespace ag
 {
-	class GameDataBuffer;
+	class Dataset;
 	class AGNetwork;
 } /* namespace ag */
 
@@ -36,8 +36,8 @@ namespace ag
 			SupervisedLearning(const TrainingConfig &config);
 			void updateTrainingStats(const std::vector<float> &loss, std::vector<float> &acc);
 			void updateValidationStats(const std::vector<float> &loss, std::vector<float> &acc);
-			void train(AGNetwork &model, GameDataBuffer &buffer, int steps);
-			void validate(AGNetwork &model, GameDataBuffer &buffer);
+			void train(AGNetwork &model, const Dataset &dataset, int steps);
+			void validate(AGNetwork &model, const Dataset &dataset);
 			void saveTrainingHistory(const std::string &workingDirectory);
 			void clearStats();
 

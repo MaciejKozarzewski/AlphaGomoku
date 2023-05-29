@@ -22,6 +22,15 @@ namespace ag
 			void create_network(const TrainingConfig &trainingOptions);
 	};
 
+	class ResnetPVraw: public AGNetwork
+	{
+		public:
+			ResnetPVraw() noexcept;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
 	class ResnetPVQ: public AGNetwork
 	{
 		public:
