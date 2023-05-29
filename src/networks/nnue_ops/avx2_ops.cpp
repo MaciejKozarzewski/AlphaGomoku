@@ -337,7 +337,6 @@ namespace
 			acc = add(acc, convert_INT8_to_INT16(weights));
 		}
 		acc.store(newAccumulator.data());
-
 	}
 
 	template<int Neurons>

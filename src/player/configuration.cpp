@@ -70,11 +70,15 @@ namespace
 			}
 			std::pair<int, float> getOptimalParams() const noexcept
 			{
-				float max_speed = *(std::max_element(speed.begin(), speed.end()));
+				float max_speed = std::numeric_limits<float>::lowest();
+				std::pair<int, float> result( { 0, 0.0f });
 				for (size_t i = 0; i < speed.size(); i++)
-					if (speed[i] >= 0.95 * max_speed)
-						return std::pair<int, float>( { batch_size[i], speed[i] });
-				return std::pair<int, float>( { 0, 0.0f }); // this should never happen
+					if (speed[i] > max_speed)
+					{
+						result = std::pair<int, float>( { batch_size[i], speed[i] });
+						max_speed = speed[i];
+					}
+				return result;
 			}
 	};
 
@@ -135,8 +139,8 @@ namespace ag
 					max_batch_size = std::max(max_batch_size, tmp.batch_size);
 				}
 			}
-			search_config.tss_config.max_positions = 200;
-			search_config.tss_config.hash_table_size = 1048576;
+			search_config.tss_config.max_positions = 500;
+			search_config.tss_config.hash_table_size = 4 * 1024 * 1024;
 
 			search_config.tree_config.initial_node_cache_size = 65536;
 			search_config.tree_config.edge_bucket_size = 1000000;
@@ -154,8 +158,8 @@ namespace ag
 
 			max_batch_size = tmp.batch_size;
 
-			search_config.tss_config.max_positions = 1600;
-			search_config.tss_config.hash_table_size = 1048576;
+			search_config.tss_config.max_positions = 1000;
+			search_config.tss_config.hash_table_size = 4 * 1024 * 1024;
 
 			search_config.tree_config.initial_node_cache_size = 8192;
 			search_config.tree_config.edge_bucket_size = 100000;

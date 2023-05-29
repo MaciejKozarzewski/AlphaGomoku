@@ -228,7 +228,7 @@ namespace ag
 	}
 	void ProgramManager::benchmark() const
 	{
-		Json benchmark_result = ag::run_benchmark(config["networks"]["standard"], output_sender);
+		Json benchmark_result = ag::run_benchmark(config["conv_networks"]["standard"], output_sender);
 
 		FileSaver fs(argument_parser.getLaunchPath() + "benchmark.json");
 		fs.save(benchmark_result, SerializedObject(), 4, false);
