@@ -9,7 +9,10 @@
 #define ALPHAGOMOKU_NETWORKS_NNUE_OPS_LAYERS_HPP_
 
 #include <alphagomoku/utils/AlignedAllocator.hpp>
-#include <alphagomoku/utils/configs.hpp>
+
+#include <vector>
+#include <cmath>
+#include <cinttypes>
 
 class Json;
 class SerializedObject;

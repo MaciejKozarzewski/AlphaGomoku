@@ -7,6 +7,7 @@
 
 #include <alphagomoku/networks/nnue_ops/layers.hpp>
 
+#include <minml/utils/json.hpp>
 #include <minml/utils/serialization.hpp>
 
 namespace

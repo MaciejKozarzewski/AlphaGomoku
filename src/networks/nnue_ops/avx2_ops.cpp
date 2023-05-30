@@ -10,7 +10,6 @@
 
 #include <x86intrin.h>
 #include <cassert>
-#include <iostream>
 
 namespace
 {

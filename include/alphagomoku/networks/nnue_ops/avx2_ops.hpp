@@ -9,7 +9,9 @@
 #define ALPHAGOMOKU_NETWORKS_NNUE_OPS_AVX2_OPS_HPP_
 
 #include <alphagomoku/networks/nnue_ops/layers.hpp>
+
 #include <vector>
+#include <cinttypes>
 
 namespace ag
 {
