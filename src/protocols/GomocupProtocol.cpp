@@ -308,6 +308,12 @@ namespace ag
 			case 4:
 				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::RENJU) }));
 				return;
+			case 8:
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO6) }));
+				break;
+			case 9:
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rules", toString(GameRules::CARO5) }));
+				break;
 			default:
 				output_queue.push(Message(MessageType::ERROR, "Invalid rule " + data));
 				return;
