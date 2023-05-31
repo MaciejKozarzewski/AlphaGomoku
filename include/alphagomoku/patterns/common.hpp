@@ -11,6 +11,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/AlignedAllocator.hpp>
 
+#include <x86intrin.h>
 #include <vector>
 #include <cinttypes>
 #include <cassert>
@@ -123,7 +124,7 @@ namespace ag
 			{
 				return std::max(std::max(horizontal, vertical), std::max(diagonal, antidiagonal));
 			}
-			Direction findDirectionOf(T value) const noexcept // TODO find out if this can be optimized
+			Direction findDirectionOf(T value) const noexcept
 			{
 				if (horizontal == value)
 					return HORIZONTAL;

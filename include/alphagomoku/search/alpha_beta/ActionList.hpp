@@ -109,6 +109,13 @@ namespace ag
 			{
 				return size() == 0;
 			}
+			bool contains(Move m) const noexcept
+			{
+				for (auto iter = begin(); iter < end(); iter++)
+					if (iter->move == m)
+						return true;
+				return false;
+			}
 			bool contains(Location m) const noexcept
 			{
 				for (auto iter = begin(); iter < end(); iter++)
@@ -116,9 +123,10 @@ namespace ag
 						return true;
 				return false;
 			}
-			void add(Move move, Score score) noexcept
+			void add(Move move, Score score, int num = 1) noexcept
 			{
-				m_children[m_size++].init(move, score);
+				m_children[m_size].init(move, score);
+				m_size += num;
 			}
 			void removeAction(size_t index) noexcept
 			{
@@ -149,6 +157,13 @@ namespace ag
 					}
 				return result;
 			}
+			Score getScoreOf(Move m) const noexcept
+			{
+				for (auto iter = begin(); iter < end(); iter++)
+					if (iter->move == m)
+						return iter->score;
+				return Score();
+			}
 			void print() const
 			{
 				std::cout << "List of " << size() << " actions:\n";
@@ -158,6 +173,16 @@ namespace ag
 					std::cout << i << " : " << m_children[i].move.toString() << " : " << m_children[i].move.text() << " : " << m_children[i].score
 							<< " : " << m_children[i].offset << '\n';
 				std::cout << '\n';
+			}
+			bool equals(const ActionList &other) const noexcept
+			{
+				if (this->size() != other.size() or this->is_fully_expanded != other.is_fully_expanded or this->must_defend != other.must_defend
+						or this->has_initiative != other.has_initiative)
+					return false;
+				for (int i = 0; i < other.size(); i++)
+					if (not this->contains(other[i].move))
+						return false;
+				return true;
 			}
 	};
 

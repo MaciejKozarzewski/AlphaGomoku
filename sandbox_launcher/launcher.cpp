@@ -41,6 +41,7 @@
 #include <alphagomoku/version.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/search/monte_carlo/Tree.hpp>
+#include <alphagomoku/search/alpha_beta/MoveGenerator.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
@@ -85,50 +86,6 @@
 #include <x86intrin.h>
 
 using namespace ag;
-
-bool is_symmetric(const matrix<Sign> &board)
-{
-	matrix<Sign> copy(board.rows(), board.cols());
-
-	for (int i = 1; i < 8; i++)
-	{
-		augment(copy, board, i);
-		if (copy == board)
-			return true;
-	}
-	return false;
-}
-
-void check_all_dataset(const std::string &path, int counter)
-{
-//	size_t all_positions = 0;
-//	size_t all_games = 0;
-//	size_t sym_positions = 0;
-//
-//	matrix<Sign> board(12, 12);
-//	for (int i = 0; i < counter; i++)
-//	{
-//		GameBuffer buffer(path + "buffer_" + std::to_string(i) + ".bin");
-//
-//		all_positions = 0;
-//		for (int j = 0; j < buffer.size(); j++)
-//			all_positions += buffer.getFromBuffer(j).getNumberOfSamples();
-//		std::cout << i << " " << all_positions << " " << buffer.size() << '\n';
-
-//		all_games += buffer.size();
-//		for (int j = 0; j < buffer.size(); j++)
-//		{
-//			all_positions += buffer.getFromBuffer(j).getNumberOfSamples();
-//			for (int k = 0; k < buffer.getFromBuffer(j).getNumberOfSamples(); k++)
-//			{
-//				buffer.getFromBuffer(j).getSample(k).getBoard(board);
-//				if (is_symmetric(board))
-//					sym_positions++;
-//			}
-//		}
-//		std::cout << i << " " << sym_positions << " / " << all_positions << " in " << all_games << " games\n";
-//	}
-}
 
 void find_proven_positions(const std::string &path, int index)
 {
@@ -209,26 +166,6 @@ void find_proven_positions(const std::string &path, int index)
 //	std::cout << t_solver.toString() << '\n';
 }
 
-//void test_evaluate()
-//{
-//	MasterLearningConfig config(FileLoader("/home/maciek/alphagomoku/run2022_15x15s2/config.json").getJson());
-//	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
-//
-//	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-//	cfg.simulations_min = 1000;
-//	cfg.simulations_max = 1000;
-//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/run2022_15x15s2/checkpoint/network_51_opt.bin", "retrain2021");
-//	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/run2022_15x15s/checkpoint/network_124_opt.bin", "train2022");
-//
-//	manager.generate(1000);
-//	std::string to_save;
-//	for (int i = 0; i < manager.numberOfThreads(); i++)
-//		to_save += manager.getGameBuffer(i).generatePGN();
-//	std::ofstream file("/home/maciek/alphagomoku/test_2021vs2022.pgn", std::ios::out | std::ios::app);
-//	file.write(to_save.data(), to_save.size());
-//	file.close();
-//}
-
 void generate_openings(int number)
 {
 	GameConfig game_config(GameRules::STANDARD, 15);
@@ -249,12 +186,6 @@ void generate_openings(int number)
 		generator.generate(32, evaluator, solver);
 		evaluator.evaluateGraph();
 	}
-}
-
-float cross_entropy(float output, float target) noexcept
-{
-	output = std::max(0.0f, std::min(1.0f, output));
-	return -target * safe_log(output) - (1.0f - target) * safe_log(1.0f - output);
 }
 
 void run_training()
@@ -301,56 +232,6 @@ void run_training()
 		tmp->saveToFile(path + "/network_" + std::to_string(e) + "_opt.bin");
 	}
 }
-
-//// no inline, required by [replacement.functions]/3
-//void* operator new(std::size_t sz)
-//{
-//	std::printf("1) new(size_t), size = %zu\n", sz);
-//	if (sz == 0)
-//		++sz; // avoid std::malloc(0) which may return nullptr on success
-//
-//	if (void *ptr = std::malloc(sz))
-//		return ptr;
-//
-//	throw std::bad_alloc { }; // required by [new.delete.single]/3
-//}
-//
-//// no inline, required by [replacement.functions]/3
-//void* operator new[](std::size_t sz)
-//{
-//	std::printf("2) new[](size_t), size = %zu\n", sz);
-//	if (sz == 0)
-//		++sz; // avoid std::malloc(0) which may return nullptr on success
-//
-//	if (void *ptr = std::malloc(sz))
-//		return ptr;
-//
-//	throw std::bad_alloc { }; // required by [new.delete.single]/3
-//}
-//
-//void operator delete(void *ptr) noexcept
-//{
-//	std::puts("3) delete(void*)");
-//	std::free(ptr);
-//}
-//
-//void operator delete(void *ptr, std::size_t size) noexcept
-//{
-//	std::printf("4) delete(void*, size_t), size = %zu\n", size);
-//	std::free(ptr);
-//}
-//
-//void operator delete[](void *ptr) noexcept
-//{
-//	std::puts("5) delete[](void* ptr)");
-//	std::free(ptr);
-//}
-//
-//void operator delete[](void *ptr, std::size_t size) noexcept
-//{
-//	std::printf("6) delete[](void*, size_t), size = %zu\n", size);
-//	std::free(ptr);
-//}
 
 std::string get_BOARD_command(const matrix<Sign> &board, Sign signToMove)
 {
@@ -506,137 +387,179 @@ void train_simple_evaluation()
 
 void test_pattern_calculator()
 {
-////	GameConfig game_config(GameRules::FREESTYLE, 20);
-//	GameConfig game_config(GameRules::STANDARD, 15);
-//
-//	PatternTable::get(game_config.rules);
-//	ThreatTable::get(game_config.rules);
-//	DefensiveMoveTable::get(game_config.rules);
-//
-//	GameDataBuffer buffer;
-//#ifdef NDEBUG
-//	for (int i = 20; i <= 24; i++)
-//#else
-//	for (int i = 24; i <= 24; i++)
-//#endif
-//		buffer.load("/home/maciek/alphagomoku/new_runs_2023/buffer_" + std::to_string(i) + ".bin");
-////		buffer.load("/home/maciek/alphagomoku/run2022_20x20f/train_buffer/buffer_" + std::to_string(i) + ".bin");
-//	std::cout << buffer.getStats().toString() << '\n';
-//
-//	PatternCalculator extractor_new(game_config);
-//	PatternCalculator extractor_new2(game_config);
-//
-//	matrix<Sign> board(game_config.rows, game_config.cols);
-//
-//	int count = 0;
-//	for (int i = 0; i < buffer.size(); i++)
-//	{
-//		if (i % (buffer.size() / 10) == 0)
-//			std::cout << i << " / " << buffer.size() << '\n';
-//
-//		buffer.getGameData(i).getSample(0).getBoard(board);
-//		for (int j = 0; j < buffer.getFromBuffer(i).getNumberOfSamples(); j++)
-//		{
-//			const SearchData &sample = buffer.getGameData(i).getSample(j);
-//			sample.getBoard(board);
-//			extractor_new.setBoard(board, sample.getMove().sign);
-//
-////			if (extractor_new.getThreatHistogram(Sign::CROSS).get(ThreatType::FIVE).size() > 0
-////					and (extractor_new.getThreatHistogram(Sign::CROSS).get(ThreatType::OPEN_4).size() > 0
-////							or extractor_new.getThreatHistogram(Sign::CROSS).get(ThreatType::FORK_4x4).size() > 0))
-////				count++;
-////			if (extractor_new.getThreatHistogram(Sign::CIRCLE).get(ThreatType::FIVE).size() > 0
-////					and (extractor_new.getThreatHistogram(Sign::CIRCLE).get(ThreatType::OPEN_4).size() > 0
-////							or extractor_new.getThreatHistogram(Sign::CIRCLE).get(ThreatType::FORK_4x4).size() > 0))
-////				count++;
-//
-//			for (int k = 0; k < 100; k++)
-//			{
-//				const int x = randInt(game_config.rows);
-//				const int y = randInt(game_config.cols);
-//				if (board.at(x, y) == Sign::NONE)
+//	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	PatternTable::get(game_config.rules);
+	ThreatTable::get(game_config.rules);
+	DefensiveMoveTable::get(game_config.rules);
+
+	GameDataBuffer buffer;
+#ifdef NDEBUG
+	for (int i = 200; i <= 224; i++)
+#else
+	for (int i = 224; i <= 224; i++)
+#endif
+		buffer.load("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/valid_buffer/buffer_" + std::to_string(i) + ".bin");
+	std::cout << buffer.getStats().toString() << '\n';
+
+	PatternCalculator extractor_new(game_config);
+	PatternCalculator extractor_new2(game_config);
+
+	SearchDataPack pack(game_config.rows, game_config.cols);
+
+	int count = 0;
+	for (int i = 0; i < buffer.numberOfGames(); i++)
+	{
+		if (i % (buffer.numberOfGames() / 10) == 0)
+			std::cout << i << " / " << buffer.numberOfGames() << '\n';
+
+		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+		{
+			buffer.getGameData(i).getSample(pack, j);
+			extractor_new.setBoard(pack.board, pack.played_move.sign);
+
+//			if (extractor_new.getThreatHistogram(Sign::CROSS).get(ThreatType::FIVE).size() > 0
+//					and (extractor_new.getThreatHistogram(Sign::CROSS).get(ThreatType::OPEN_4).size() > 0
+//							or extractor_new.getThreatHistogram(Sign::CROSS).get(ThreatType::FORK_4x4).size() > 0))
+//				count++;
+//			if (extractor_new.getThreatHistogram(Sign::CIRCLE).get(ThreatType::FIVE).size() > 0
+//					and (extractor_new.getThreatHistogram(Sign::CIRCLE).get(ThreatType::OPEN_4).size() > 0
+//							or extractor_new.getThreatHistogram(Sign::CIRCLE).get(ThreatType::FORK_4x4).size() > 0))
+//				count++;
+
+			for (int k = 0; k < 100; k++)
+			{
+				const int x = randInt(game_config.rows);
+				const int y = randInt(game_config.cols);
+				if (pack.board.at(x, y) == Sign::NONE)
+				{
+					Sign sign = static_cast<Sign>(randInt(1, 3));
+					extractor_new.addMove(Move(x, y, sign));
+					pack.board.at(x, y) = sign;
+				}
+				else
+				{
+					extractor_new.undoMove(Move(x, y, pack.board.at(x, y)));
+					pack.board.at(x, y) = Sign::NONE;
+				}
+			}
+
+//			extractor_new2.setBoard(board, sample.getMove().sign);
+//			for (int x = 0; x < game_config.rows; x++)
+//				for (int y = 0; y < game_config.cols; y++)
 //				{
-//					Sign sign = static_cast<Sign>(randInt(1, 3));
-//					extractor_new.addMove(Move(x, y, sign));
-//					board.at(x, y) = sign;
-//				}
-//				else
-//				{
-//					extractor_new.undoMove(Move(x, y, board.at(x, y)));
-//					board.at(x, y) = Sign::NONE;
-//				}
-//			}
+//					for (Direction dir = 0; dir < 4; dir++)
+//					{
+//						if (extractor_new2.getNormalPatternAt(x, y, dir) != extractor_new.getNormalPatternAt(x, y, dir))
+//						{
+//							std::cout << "Raw pattern mismatch\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.printRawFeature(x, y);
+//							std::cout << "incremental\n";
+//							extractor_new.printRawFeature(x, y);
+//							exit(-1);
+//						}
+//						if (extractor_new2.getPatternTypeAt(Sign::CROSS, x, y, dir) != extractor_new.getPatternTypeAt(Sign::CROSS, x, y, dir)
+//								or extractor_new2.getPatternTypeAt(Sign::CIRCLE, x, y, dir)
+//										!= extractor_new.getPatternTypeAt(Sign::CIRCLE, x, y, dir))
+//						{
+//							std::cout << "Pattern type mismatch\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.printRawFeature(x, y);
+//							std::cout << "incremental\n";
+//							extractor_new.printRawFeature(x, y);
+//							exit(-1);
+//						}
+//					}
+//					if (extractor_new2.getThreatAt(Sign::CROSS, x, y) != extractor_new.getThreatAt(Sign::CROSS, x, y)
+//							or extractor_new2.getThreatAt(Sign::CIRCLE, x, y) != extractor_new.getThreatAt(Sign::CIRCLE, x, y))
+//					{
+//						std::cout << "Threat type mismatch\n";
+//						std::cout << "Single step\n";
+//						extractor_new2.printThreat(x, y);
+//						std::cout << "incremental\n";
+//						extractor_new.printThreat(x, y);
+//						exit(-1);
+//					}
 //
-////			extractor_new2.setBoard(board, sample.getMove().sign);
-////			for (int x = 0; x < game_config.rows; x++)
-////				for (int y = 0; y < game_config.cols; y++)
-////				{
-////					for (Direction dir = 0; dir < 4; dir++)
-////					{
-////						if (extractor_new2.getNormalPatternAt(x, y, dir) != extractor_new.getNormalPatternAt(x, y, dir))
-////						{
-////							std::cout << "Raw pattern mismatch\n";
-////							std::cout << "Single step\n";
-////							extractor_new2.printRawFeature(x, y);
-////							std::cout << "incremental\n";
-////							extractor_new.printRawFeature(x, y);
-////							exit(-1);
-////						}
-////						if (extractor_new2.getPatternTypeAt(Sign::CROSS, x, y, dir) != extractor_new.getPatternTypeAt(Sign::CROSS, x, y, dir)
-////								or extractor_new2.getPatternTypeAt(Sign::CIRCLE, x, y, dir)
-////										!= extractor_new.getPatternTypeAt(Sign::CIRCLE, x, y, dir))
-////						{
-////							std::cout << "Pattern type mismatch\n";
-////							std::cout << "Single step\n";
-////							extractor_new2.printRawFeature(x, y);
-////							std::cout << "incremental\n";
-////							extractor_new.printRawFeature(x, y);
-////							exit(-1);
-////						}
-////					}
-////					if (extractor_new2.getThreatAt(Sign::CROSS, x, y) != extractor_new.getThreatAt(Sign::CROSS, x, y)
-////							or extractor_new2.getThreatAt(Sign::CIRCLE, x, y) != extractor_new.getThreatAt(Sign::CIRCLE, x, y))
-////					{
-////						std::cout << "Threat type mismatch\n";
-////						std::cout << "Single step\n";
-////						extractor_new2.printThreat(x, y);
-////						std::cout << "incremental\n";
-////						extractor_new.printThreat(x, y);
-////						exit(-1);
-////					}
-////
-////					for (int i = 0; i < 10; i++)
-////					{
-////						if (extractor_new2.getThreatHistogram(Sign::CROSS).get((ThreatType) i).size()
-////								!= extractor_new.getThreatHistogram(Sign::CROSS).get((ThreatType) i).size())
-////						{
-////							std::cout << "Threat histogram mismatch for cross\n";
-////							std::cout << "Single step\n";
-////							extractor_new2.getThreatHistogram(Sign::CROSS).print();
-////							std::cout << "incremental\n";
-////							extractor_new.getThreatHistogram(Sign::CROSS).print();
-////							exit(-1);
-////						}
-////						if (extractor_new2.getThreatHistogram(Sign::CIRCLE).get((ThreatType) i).size()
-////								!= extractor_new.getThreatHistogram(Sign::CIRCLE).get((ThreatType) i).size())
-////						{
-////							std::cout << "Threat histogram mismatch for circle\n";
-////							std::cout << "Single step\n";
-////							extractor_new2.print();
-////							extractor_new2.getThreatHistogram(Sign::CIRCLE).print();
-////							std::cout << "incremental\n";
-////							extractor_new.print();
-////							extractor_new.getThreatHistogram(Sign::CIRCLE).print();
-////							exit(-1);
-////						}
-////					}
-////				}
-//		}
-//	}
-//
-//	std::cout << "count  = " << count << '\n';
-//	std::cout << "New extractor\n";
-//	extractor_new.print_stats();
+//					for (int i = 0; i < 10; i++)
+//					{
+//						if (extractor_new2.getThreatHistogram(Sign::CROSS).get((ThreatType) i).size()
+//								!= extractor_new.getThreatHistogram(Sign::CROSS).get((ThreatType) i).size())
+//						{
+//							std::cout << "Threat histogram mismatch for cross\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.getThreatHistogram(Sign::CROSS).print();
+//							std::cout << "incremental\n";
+//							extractor_new.getThreatHistogram(Sign::CROSS).print();
+//							exit(-1);
+//						}
+//						if (extractor_new2.getThreatHistogram(Sign::CIRCLE).get((ThreatType) i).size()
+//								!= extractor_new.getThreatHistogram(Sign::CIRCLE).get((ThreatType) i).size())
+//						{
+//							std::cout << "Threat histogram mismatch for circle\n";
+//							std::cout << "Single step\n";
+//							extractor_new2.print();
+//							extractor_new2.getThreatHistogram(Sign::CIRCLE).print();
+//							std::cout << "incremental\n";
+//							extractor_new.print();
+//							extractor_new.getThreatHistogram(Sign::CIRCLE).print();
+//							exit(-1);
+//						}
+//					}
+//				}
+		}
+	}
+
+	std::cout << "count  = " << count << '\n';
+	std::cout << "New extractor\n";
+	extractor_new.print_stats();
+}
+
+void test_move_generator()
+{
+//	GameConfig game_config(GameRules::FREESTYLE, 20);
+	GameConfig game_config(GameRules::STANDARD, 15);
+
+	PatternTable::get(game_config.rules);
+	ThreatTable::get(game_config.rules);
+	DefensiveMoveTable::get(game_config.rules);
+
+	GameDataBuffer buffer;
+#ifdef NDEBUG
+	for (int i = 200; i <= 224; i++)
+#else
+	for (int i = 224; i <= 224; i++)
+#endif
+		buffer.load("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer/buffer_" + std::to_string(i) + ".bin");
+	std::cout << buffer.getStats().toString() << '\n';
+
+	PatternCalculator calculator(game_config);
+	MoveGenerator generator(game_config, calculator);
+
+	SearchDataPack pack(game_config.rows, game_config.cols);
+
+	ActionStack action_stack(1024);
+
+	int count = 0;
+	for (int i = 0; i < buffer.numberOfGames(); i++)
+	{
+		if (i % (buffer.numberOfGames() / 10) == 0)
+			std::cout << i << " / " << buffer.numberOfGames() << '\n';
+
+		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+		{
+			buffer.getGameData(i).getSample(pack, j);
+			calculator.setBoard(pack.board, pack.played_move.sign);
+
+			ActionList actions = action_stack.create_root();
+			generator.generate(actions, MoveGeneratorMode::REDUCED);
+		}
+	}
+
+	std::cout << "count  = " << count << '\n';
+	calculator.print_stats();
 }
 
 void test_proven_positions(int pos)
@@ -2279,15 +2202,17 @@ void test_evaluate()
 //	manager.setFirstPlayer(cfg, "./old_6x64f.bin", "old_6x64f");
 
 	cfg.simulations = 1000;
-	cfg.search_config.tss_config.max_positions = 500;
-	cfg.search_config.tss_config.mode = 1;
+//	cfg.search_config.tss_config.max_positions = 500;
+//	cfg.search_config.tss_config.mode = 1;
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.75;
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "tss1");
+	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "btl_8x128");
 
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 1.25;
-	cfg.search_config.mcts_config.edge_selector_config.init_to = "q_head";
-	cfg.search_config.tss_config.mode = 2;
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin", "tss2_nnue_q");
+//	cfg.search_config.mcts_config.edge_selector_config.init_to = "q_head";
+//	cfg.search_config.tss_config.mode = 2;
+
+	cfg.simulations = 1780;
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs/sl_res_pv_8x64s/checkpoint/network_227_opt.bin", "res_8x64_x1.78");
 
 //	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/sl_btl_brd_pv_8x128s/checkpoint/network_261_opt.bin", "broadcast_261");
 //	cfg.final_selector.exploration_constant = 1.25f;
@@ -2306,7 +2231,7 @@ void test_evaluate()
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs/cmp_q.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs/cmp_arch.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 
@@ -2429,191 +2354,6 @@ std::string convert(float f)
 		return "0.0f";
 	else
 		return std::to_string(f) + 'f';
-}
-
-void train_simple_evaluator()
-{
-	ml::Device::setNumberOfThreads(1);
-	GameDataBuffer buffer;
-	for (int i = 200; i < 250; i++)
-		buffer.load("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer/buffer_" + std::to_string(i) + ".bin");
-	std::cout << buffer.getStats().toString() << '\n';
-
-	SearchDataPack pack(15, 15);
-
-	GameConfig game_config(GameRules::STANDARD, 15);
-
-	const int batch_size = 1024;
-	ml::Graph model;
-	auto x = model.addInput( { batch_size, 1 + game_config.rows * game_config.cols * 16 });
-	x = model.add(ml::Dense(64, "linear"), x);
-	x = model.add(ml::BatchNormalization("relu"), x);
-//	x = model.add(ml::Dense(16, "linear"), x);
-//	x = model.add(ml::BatchNormalization("relu"), x);
-	x = model.add(ml::Dense(8, "linear"), x);
-	x = model.add(ml::BatchNormalization("relu"), x);
-	x = model.add(ml::Dense(1, "sigmoid"), x);
-	model.addOutput(x);
-
-	model.init();
-	model.setOptimizer(ml::Optimizer());
-	model.setRegularizer(ml::Regularizer(4.0e-5f));
-	model.setLearningRate(1.0e-3f);
-	model.moveTo(ml::Device::cuda(0));
-	model.print();
-
-	PatternCalculator calc(game_config);
-
-//	std::vector<size_t> corners(10, 0);
-//	std::vector<size_t> sides(10, 0);
-//	std::vector<size_t> center(10, 0);
-//
-//	const int corner_size = 3;
-//	for (int i = 0; i < buffer.size(); i++)
-//		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
-//		{
-//			buffer.getGameData(i).getSample(pack, j);
-//			calc.setBoard(pack.board, pack.played_move.sign);
-//
-//			for (int row = 0; row < game_config.rows; row++)
-//				for (int col = 0; col < game_config.cols; col++)
-//				{
-//					const int dist_h = std::min(row, game_config.rows - 1 - row);
-//					const int dist_w = std::min(col, game_config.cols - 1 - col);
-//
-//					const int cross = (int) calc.getThreatAt(Sign::CROSS, row, col);
-//					const int circle = (int) calc.getThreatAt(Sign::CIRCLE, row, col);
-//
-//					if (dist_h < corner_size and dist_w < corner_size)
-//					{
-//						corners[cross]++;
-//						corners[circle]++;
-//					}
-//					else
-//					{
-//						if (dist_h < corner_size or dist_w < corner_size)
-//						{
-//							sides[cross]++;
-//							sides[circle]++;
-//						}
-//						else
-//						{
-//							center[cross]++;
-//							center[circle]++;
-//						}
-//					}
-//				}
-//		}
-//	const double scale = 0.5 / buffer.numberOfSamples();
-//	for (int i = 0; i < 10; i++)
-//		std::cout << toString((ThreatType) i) << "  :  " << corners[i] * 0.25 * scale << "  " << sides[i] * 0.25 * scale << "  " << center[i] * scale
-//				<< '\n';
-//	return;
-
-	Embedding embedding;
-
-	std::vector<float> input_on_cpu(model.getInputShape().volume());
-	std::vector<float> target_on_cpu(model.getOutputShape().volume());
-
-	for (int e = 0; e < 100; e++)
-	{
-		if (e == 50)
-			model.setLearningRate(1.0e-4f);
-		if (e == 75)
-			model.setLearningRate(1.0e-5f);
-
-		float loss = 0.0f;
-		int count = 0;
-		for (int step = 0; step < 1000; step++)
-		{
-			std::fill(input_on_cpu.begin(), input_on_cpu.end(), 0.0f);
-			for (int b = 0; b < batch_size; b++)
-			{
-				const int i = randInt(buffer.numberOfGames());
-				const int j = randInt(buffer.getGameData(i).numberOfSamples());
-
-				buffer.getGameData(i).getSample(pack, j);
-				calc.setBoard(pack.board, pack.played_move.sign);
-
-				const int input_size = model.getInputShape().dim(1);
-				embedding.set(calc, input_on_cpu.data() + b * input_size);
-//				target_on_cpu[b] = pack.minimax_value.getExpectation();
-				target_on_cpu[b] = convertOutcome(pack.game_outcome, pack.played_move.sign).getExpectation();
-			}
-			model.getInput().copyFromHost(model.context(), input_on_cpu.data(), sizeof(float) * input_on_cpu.size());
-			model.getTarget().copyFromHost(model.context(), target_on_cpu.data(), sizeof(float) * target_on_cpu.size());
-
-			model.forward(batch_size);
-			model.backward(batch_size);
-			model.learn();
-			loss += model.getLoss(batch_size).at(0);
-			count++;
-		}
-		std::cout << "epoch " << e << ", loss " << loss / count << '\n';
-	}
-
-	{
-		SerializedObject so;
-		Json json = model.save(so);
-		FileSaver("nnue_64x8x1.bin").save(json, so, 2);
-	}
-
-	{
-		model.makeNonTrainable();
-		ml::FoldBatchNorm().optimize(model);
-		SerializedObject so;
-		Json json = model.save(so);
-		FileSaver("nnue_64x8x1_opt.bin").save(json, so, 2);
-	}
-
-//	model.makeNonTrainable();
-//	ml::FoldBatchNorm().optimize(model);
-//
-//	int layer_id = 0;
-//	for (int n = 0; n < model.numberOfNodes(); n++)
-//		if (model.getNode(n).getLayer().name() == "Dense")
-//		{
-//			ml::Tensor weights = model.getNode(n).getLayer().getWeights().getParam();
-//			ml::Tensor bias = model.getNode(n).getLayer().getBias().getParam();
-//
-//			std::cout << "// layer " << layer_id << '\n';
-//			std::cout << "// first row is a bias" << '\n';
-//			std::cout << "//@formatter:off" << '\n';
-//			std::cout << "static const std::vector<float, AlignedAllocator<float, 64>> weights_" << layer_id << " = {" << '\n';
-//			for (int i = 0; i < weights.dim(0); i++)
-//				std::cout << convert(bias.get( { i })) << ", ";
-//			std::cout << '\n';
-//			for (int i = 0; i < weights.dim(1); i++)
-//			{
-//				for (int j = 0; j < weights.dim(0); j++)
-//					std::cout << convert(weights.get( { j, i })) << ", ";
-//				std::cout << '\n';
-//			}
-//			std::cout << "};" << '\n';
-//			std::cout << "//@formatter:on" << '\n' << '\n';
-//
-//			layer_id++;
-//		}
-
-//	ml::Tensor weights = model.getNode(1).getLayer().getWeights().getParam();
-//	ml::Tensor bias = model.getNode(1).getLayer().getBias().getParam();
-//
-//	std::cout << "first layer\n";
-//	for (int i = 0; i < weights.dim(0); i++)
-//	{
-//		std::cout << bias.get( { i }) << "   ";
-//		for (int j = 0; j < weights.dim(1); j++)
-//			std::cout << weights.get( { i, j }) << ' ';
-//		std::cout << '\n';
-//	}
-//
-//	std::cout << "second layer\n";
-//	weights = model.getNode(2).getLayer().getWeights().getParam();
-//	bias = model.getNode(2).getLayer().getBias().getParam();
-//	std::cout << bias.get( { 0 }) << "   ";
-//	for (int j = 0; j < weights.dim(1); j++)
-//		std::cout << weights.get( { 0, j }) << ' ';
-//	std::cout << '\n';
 }
 
 void train_nnue()
@@ -3175,6 +2915,7 @@ int main(int argc, char *argv[])
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
 
+
 //	{
 //		FileLoader fl("/home/maciek/alphagomoku/new_runs/test2_test/config.json");
 //		MasterLearningConfig cfg(fl.getJson());
@@ -3356,9 +3097,11 @@ int main(int argc, char *argv[])
 //	test_proven_positions(1000);
 //	train_simple_evaluator();
 //	test_evaluate();
+//	test_pattern_calculator();
+	test_move_generator();
 //	parameter_tuning();
 //	train_nnue();
-//	return 0;
+	return 0;
 
 //	nnue::TrainingNNUE nnue(GameConfig(GameRules::RENJU, 15), 1, "nnue_c5_64x16x16x1.bin");
 //	nnue::NNUEWeights weights = nnue.dump();
@@ -3438,10 +3181,10 @@ int main(int argc, char *argv[])
 //	for (int i = 0; i < 1; i++)
 //		tm.runIterationRL();
 
-	TrainingManager tm("/home/mkozarzewski/alphagomoku/new_runs/sl_res_pv_8x64s/", "/home/mkozarzewski/alphagomoku/new_runs/btl_pv_8x128s/");
-	for (int i = 0; i < 200; i++)
-		tm.runIterationSL();
-	return 0;
+//	TrainingManager tm("/home/mkozarzewski/alphagomoku/new_runs/sl_res_pv_8x64s/", "/home/mkozarzewski/alphagomoku/new_runs/btl_pv_8x128s/");
+//	for (int i = 0; i < 200; i++)
+//		tm.runIterationSL();
+//	return 0;
 
 //	TrainingManager tm("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/history1/", "/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/standard_15x15/");
 
@@ -3523,17 +3266,17 @@ int main(int argc, char *argv[])
 		GameConfig game_config(GameRules::STANDARD, 15, 15);
 		TrainingConfig cfg;
 		cfg.blocks = 8;
-		cfg.filters = 64;
-		std::unique_ptr<AGNetwork> network;
-//		std::unique_ptr<ResnetPV> network = std::make_unique<ResnetPV>();
+		cfg.filters = 128;
+//		std::unique_ptr<AGNetwork> network;
+		std::unique_ptr<BottleneckPVraw> network = std::make_unique<BottleneckPVraw>();
 //		network = loadAGNetwork("./old_6x64s.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/test_6x64/checkpoint/network_90_opt.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/test_sampler_v2/checkpoint/network_94_opt.bin");
-		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin");
+//		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin");
 //		network = loadAGNetwork("/home/maciek/alphagomoku/new_runs/supervised/broadcast_skip2_relu_8x128s/network_99_opt.bin");
 
-//		network->init(game_config, cfg);
-//		network->optimize();
+		network->init(game_config, cfg);
+		network->optimize();
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs/test_6x64/checkpoint/network_60_opt.bin");
 //		network.loadFromFile("/home/maciek/alphagomoku/new_runs/test_6x64/checkpoint/network_60_opt.bin");
 //		network.optimize();
@@ -3542,7 +3285,7 @@ int main(int argc, char *argv[])
 		network->setBatchSize(12);
 		network->moveTo(ml::Device::cpu());
 //		network->moveTo(ml::Device::cuda(0));
-//		network->convertToHalfFloats();
+		network->convertToHalfFloats();
 
 		matrix<Sign> board(15, 15);
 //		board = Board::fromString(""
@@ -3669,7 +3412,7 @@ int main(int argc, char *argv[])
 		const double time = stop - start;
 		std::cout << "time = " << time << "s, repeats = " << repeats << '\n';
 		std::cout << "n/s = " << network->getBatchSize() * repeats / time << '\n';
-		return 0;
+//		return 0;
 		network->unpackOutput(0, policy, action_values, value);
 		std::cout << "\n\n--------------------------------------------------------------\n\n";
 		std::cout << "Value = " << value.toString() << '\n'; //<< " (" << value_target.toString() << ")\n";

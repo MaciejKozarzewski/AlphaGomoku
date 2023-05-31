@@ -1,5 +1,4 @@
 add_executable(${TestName}	test_launcher.cpp
-				ab_search/test_move_generator.cpp
 				dataset/test_CompressedFloat.cpp
 				game/test_Board.cpp
 				game/test_caro.cpp
@@ -11,6 +10,7 @@ add_executable(${TestName}	test_launcher.cpp
 				protocols/test_ExtendedGomocupProtocol.cpp
 				protocols/test_GomocupProtocol.cpp
 				protocols/test_protocol.cpp
+				search/alpha_beta/test_move_generator.cpp
 				search/monte_carlo/test_Edge.cpp
 				search/monte_carlo/test_Node.cpp
 				search/monte_carlo/test_NodeCache.cpp
