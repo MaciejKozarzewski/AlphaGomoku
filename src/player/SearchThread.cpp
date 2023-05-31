@@ -20,7 +20,7 @@ namespace
 {
 	int get_batch_size(int simulation_count, int max_batch_size) noexcept
 	{
-		const int tmp = std::pow(2.0, std::log10(simulation_count)); // doubling batch size for every 10x increase of simulations count
+		const int tmp = std::cbrt(simulation_count); // doubling batch size for every 8x increase of simulations count
 		return std::max(1, std::min(max_batch_size, tmp));
 	}
 }
