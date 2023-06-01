@@ -88,7 +88,6 @@ namespace ag
 	}
 	void SearchEngine::reset()
 	{
-		best_score = Score::min_value();
 		tree.clear();
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->reset();
@@ -162,14 +161,6 @@ namespace ag
 			action_acores.at(m.row, m.col) = root_node.getEdge(i).getScore();
 		}
 		normalize(policy);
-
-		const Score sc = root_node.getScore();
-		if (best_score.isWin() and sc.isLoss())
-		{
-			Logger::write("Score turned from " + best_score.toString() + " into " + sc.toString());
-			exit(-1);
-		}
-		best_score = std::max(best_score, sc);
 
 		Logger::write(root_node.toString());
 		root_node.sortEdges();
