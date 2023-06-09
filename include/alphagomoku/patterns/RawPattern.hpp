@@ -12,6 +12,22 @@
 
 namespace ag
 {
+	struct ReducedPattern
+	{
+		private:
+			uint32_t data = 0;
+		public:
+			static constexpr int length = 9;
+			ReducedPattern() noexcept = default;
+			explicit ReducedPattern(uint32_t x) noexcept :
+					data(x)
+			{
+			}
+			operator uint32_t() const noexcept
+			{
+				return data;
+			}
+	};
 	struct NormalPattern
 	{
 		private:

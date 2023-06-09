@@ -26,6 +26,7 @@ namespace ag
 			static constexpr uint64_t out_of_board = ones<uint64_t, base_shift>();
 			static constexpr uint64_t extended_mask = ones<uint64_t, 2 * ExtendedPattern::length>();
 			static constexpr uint64_t normal_mask = ones<uint64_t, 2 * NormalPattern::length>();
+			static constexpr uint64_t reduced_mask = ones<uint64_t, 2 * ReducedPattern::length>();
 
 			std::vector<uint64_t> m_data;
 			int size = 0;
@@ -47,36 +48,21 @@ namespace ag
 				assert(0 <= size && size <= 20);
 			}
 
-			NormalPattern getNormalPatternAt(int row, int col, Direction dir) const noexcept
+			template<typename T>
+			T getRawPatternAt(int row, int col, Direction dir) const noexcept
 			{
 				switch (dir)
 				{
 					case HORIZONTAL:
-						return NormalPattern(extract<HORIZONTAL, false>(row, col));
+						return T(extract<T, HORIZONTAL>(row, col));
 					case VERTICAL:
-						return NormalPattern(extract<VERTICAL, false>(row, col));
+						return T(extract<T, VERTICAL>(row, col));
 					case DIAGONAL:
-						return NormalPattern(extract<DIAGONAL, false>(row, col));
+						return T(extract<T, DIAGONAL>(row, col));
 					case ANTIDIAGONAL:
-						return NormalPattern(extract<ANTIDIAGONAL, false>(row, col));
+						return T(extract<T, ANTIDIAGONAL>(row, col));
 					default:
-						return NormalPattern();
-				}
-			}
-			ExtendedPattern getExtendedPatternAt(int row, int col, Direction dir) const noexcept
-			{
-				switch (dir)
-				{
-					case HORIZONTAL:
-						return ExtendedPattern(extract<HORIZONTAL, true>(row, col));
-					case VERTICAL:
-						return ExtendedPattern(extract<VERTICAL, true>(row, col));
-					case DIAGONAL:
-						return ExtendedPattern(extract<DIAGONAL, true>(row, col));
-					case ANTIDIAGONAL:
-						return ExtendedPattern(extract<ANTIDIAGONAL, true>(row, col));
-					default:
-						return ExtendedPattern();
+						return T { };
 				}
 			}
 			void set(const matrix<Sign> &board) noexcept
@@ -128,7 +114,7 @@ namespace ag
 			static DirectionGroup<T> getPatternsAt(const matrix<Sign> &board, Move move) noexcept
 			{
 				assert(board.isSquare());
-				static_assert(std::is_same<T, NormalPattern>::value or std::is_same<T, ExtendedPattern>::value, "");
+				static_assert(std::is_same<T, ReducedPattern>::value or std::is_same<T, NormalPattern>::value or std::is_same<T, ExtendedPattern>::value, "");
 
 				const auto get = [](const matrix<Sign> &board, int row, int col)
 				{	return board.isInside(row, col) ? static_cast<uint32_t>(board.at(row, col)) : 3u;};
@@ -189,12 +175,21 @@ namespace ag
 				return false;
 			}
 		private:
-			template<Direction Dir, bool Extended>
+			template<typename T, Direction Dir>
 			uint32_t extract(int row, int col) const noexcept
 			{
 				assert(0 <= row && row < size && 0 <= col && col < size);
 				const uint64_t tmp = data<Dir>()[get_line_index<Dir>(row, col)] >> get_shift_in_line<Dir>(row, col);
-				return Extended ? static_cast<uint32_t>(tmp & extended_mask) : static_cast<uint32_t>((tmp >> 2) & normal_mask);
+				if constexpr (std::is_same<T, ReducedPattern>::value)
+					return static_cast<uint32_t>((tmp >> 4) & reduced_mask);
+
+				if constexpr (std::is_same<T, NormalPattern>::value)
+					return static_cast<uint32_t>((tmp >> 2) & normal_mask);
+
+				if constexpr (std::is_same<T, ExtendedPattern>::value)
+					return static_cast<uint32_t>(tmp & extended_mask);
+
+				return 0;
 			}
 			template<Direction Dir>
 			uint64_t* data() noexcept

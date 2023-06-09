@@ -120,13 +120,21 @@ namespace ag
 				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
 				return (sign == Sign::CROSS) ? cross_threats : circle_threats;
 			}
+			ReducedPattern getReducedPatternAt(int row, int col, Direction dir) const noexcept
+			{
+				return raw_patterns.getRawPatternAt<ReducedPattern>(row, col, dir);
+			}
 			NormalPattern getNormalPatternAt(int row, int col, Direction dir) const noexcept
 			{
-				return raw_patterns.getNormalPatternAt(row, col, dir);
+				return raw_patterns.getRawPatternAt<NormalPattern>(row, col, dir);
 			}
 			ExtendedPattern getExtendedPatternAt(int row, int col, Direction dir) const noexcept
 			{
-				return raw_patterns.getExtendedPatternAt(row, col, dir);
+				return raw_patterns.getRawPatternAt<ExtendedPattern>(row, col, dir);
+			}
+			bool isHalfOpenThreeAt(int row, int col, Direction dir, Sign s) const noexcept
+			{
+				return pattern_table->isHalfOpenThree(getNormalPatternAt(row, col, dir), s);
 			}
 			TwoPlayerGroup<DirectionGroup<PatternType>> getPatternsAt(int row, int col) const noexcept
 			{
@@ -147,15 +155,9 @@ namespace ag
 			}
 			ThreatType getThreatAt(Sign sign, int row, int col) const noexcept
 			{
-				switch (sign)
-				{
-					default:
-						return ThreatType::NONE;
-					case Sign::CROSS:
-						return threat_types.at(row, col).forCross();
-					case Sign::CIRCLE:
-						return threat_types.at(row, col).forCircle();
-				}
+				assert(sign == Sign::CROSS || sign == Sign::CIRCLE);
+				const ThreatEncoding te = threat_types.at(row, col);
+				return (sign == Sign::CROSS) ? te.forCross() : te.forCircle();
 			}
 			ShortVector<Location, 6> getDefensiveMoves(Sign defenderSign, int row, int col, Direction dir) const noexcept
 			{
