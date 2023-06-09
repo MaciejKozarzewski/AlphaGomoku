@@ -96,6 +96,8 @@ namespace ag
 		private:
 			std::vector<PatternEncoding> pattern_types;
 			std::vector<UpdateMask[2]> update_mask;
+			std::vector<bool> half_open_3_cross;
+			std::vector<bool> half_open_3_circle;
 			GameRules game_rules;
 		public:
 			PatternTable(GameRules rules);
@@ -114,6 +116,14 @@ namespace ag
 				assert(narrow_down(pattern) < pattern_types.size());
 				assert((pattern & 3072u) == 0); // central spot must be empty
 				return pattern_types[narrow_down(pattern)];
+			}
+			bool isHalfOpenThree(NormalPattern pattern, Sign s) const noexcept
+			{
+				assert(s == Sign::CROSS || s == Sign::CIRCLE);
+				assert(narrow_down(pattern) < half_open_3_cross.size());
+				assert((pattern & 3072u) == 0); // central spot must be empty
+				const uint32_t idx = narrow_down(pattern);
+				return (s == Sign::CROSS) ? half_open_3_cross[idx] : half_open_3_circle[idx];
 			}
 			static const PatternTable& get(GameRules rules);
 		private:

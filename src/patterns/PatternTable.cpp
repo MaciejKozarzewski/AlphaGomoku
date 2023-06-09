@@ -10,6 +10,7 @@
 #include <alphagomoku/patterns/PatternClassifier.hpp>
 #include <alphagomoku/utils/BitMask.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 
 #include <iostream>
 #include <cassert>
@@ -59,8 +60,8 @@ namespace
 					return PatternType::HALF_OPEN_4;
 				if (is_open_three(f))
 					return PatternType::OPEN_3;
-//				if (is_half_open_three(f))
-//					return PatternType::HALF_OPEN_3;
+				if (is_half_open_three(f))
+					return PatternType::HALF_OPEN_3;
 				return PatternType::NONE;
 			}
 	};
@@ -95,6 +96,8 @@ namespace ag
 	PatternTable::PatternTable(GameRules rules) :
 			pattern_types(power(4, Pattern::length - 1)),
 			update_mask(power(4, Pattern::length - 1)),
+			half_open_3_cross(power(4, Pattern::length - 1)),
+			half_open_3_circle(power(4, Pattern::length - 1)),
 			game_rules(rules)
 	{
 //		double t0 = getTime();
@@ -156,17 +159,34 @@ namespace ag
 				if (line.isValid())
 				{
 					line.setCenter(Sign::CROSS);
-					const PatternType cross = for_cross(line);
+					PatternType cross = for_cross(line);
 					line.setCenter(Sign::CIRCLE);
-					const PatternType circle = for_circle(line);
+					PatternType circle = for_circle(line);
 					line.setCenter(Sign::NONE);
 
-					pattern_types[i] = PatternEncoding(cross, circle);
-					was_processed[i] = true;
+					const int idx0 = i;
+
 					line.flip(); // the features are symmetrical so we can update both at the same time
-					const int idx = line.encode();
-					pattern_types[narrow_down(idx)] = PatternEncoding(cross, circle);
-					was_processed[narrow_down(idx)] = true;
+					const int idx1 = narrow_down(line.encode());
+
+					if (cross == PatternType::HALF_OPEN_3)
+					{
+						half_open_3_cross[idx0] = true;
+						half_open_3_cross[idx1] = true;
+						cross = PatternType::NONE;
+					}
+					if (circle == PatternType::HALF_OPEN_3)
+					{
+						half_open_3_circle[idx0] = true;
+						half_open_3_circle[idx1] = true;
+						circle = PatternType::NONE;
+					}
+
+					pattern_types[idx0] = PatternEncoding(cross, circle);
+					pattern_types[idx1] = PatternEncoding(cross, circle);
+
+					was_processed[idx0] = true;
+					was_processed[idx1] = true;
 				}
 			}
 	}
