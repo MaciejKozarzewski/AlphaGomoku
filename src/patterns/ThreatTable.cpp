@@ -11,8 +11,6 @@
 #include <stdexcept>
 #include <algorithm>
 
-#include <iostream>
-
 namespace
 {
 	using namespace ag;
