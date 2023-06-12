@@ -247,7 +247,7 @@ namespace ag
 				if (std::stoi(tmp.at(1)) == std::stoi(tmp.at(2))) // actually a square board
 				{
 					input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
-					input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(0) }));
+					input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(2) }));
 					input_queue.push(Message(MessageType::START_PROGRAM));
 				}
 				else
