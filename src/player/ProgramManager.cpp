@@ -12,7 +12,7 @@
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/Logger.hpp>
-#include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/selfcheck.hpp>
 #include <alphagomoku/networks/AGNetwork.hpp>
 #include <alphagomoku/version.hpp>
 
@@ -78,13 +78,23 @@ namespace ag
 			benchmark();
 			return false;
 		}
-		const bool success = load_config(argument_parser.getLaunchPath() + name_of_config_file);
-		if (success)
-			setup_paths_in_config();
-		return success;
+		if (run_selfcheck)
+		{
+			selfcheck();
+			return false;
+		}
+		return true;
 	}
 	void ProgramManager::run()
 	{
+		process_pre_launch_commands();
+
+		const bool success = load_config(argument_parser.getLaunchPath() + name_of_config_file);
+		if (not success)
+			return;
+
+		setup_paths_in_config();
+
 		setup_logging();
 		Logger::write("Using config : " + name_of_config_file);
 
@@ -211,6 +221,54 @@ namespace ag
 				"test speed of the available hardware, save to file \"benchmark.json\" and exit. If this file exists it will be overwritten.").action(
 				[this]()
 				{	this->run_benchmark = true;});
+		argument_parser.addArgument("--selfcheck").help("run some self-testing").action([this]()
+		{	this->run_selfcheck = true;});
+	}
+	void ProgramManager::process_pre_launch_commands()
+	{
+		const std::vector<std::string> commands = { "help", "version", "benchmark", "configure", "load-config", "selfcheck" };
+		while (true)
+		{
+			const std::string cmd = input_listener.peekLine();
+
+			bool is_recognized_command = false;
+			if (cmd == "help")
+			{
+				help();
+				is_recognized_command = true;
+			}
+			if (cmd == "version")
+			{
+				version();
+				is_recognized_command = true;
+			}
+			if (cmd == "benchmark")
+			{
+				benchmark();
+				is_recognized_command = true;
+			}
+			if (cmd == "configure")
+			{
+				configure();
+				is_recognized_command = true;
+			}
+			if (startsWith(cmd, "load-config"))
+			{
+				const auto len = strlen("load-config");
+				name_of_config_file = cmd.substr(len, cmd.size() - len);
+				is_recognized_command = true;
+			}
+			if (cmd == "selfcheck")
+			{
+				selfcheck();
+				is_recognized_command = true;
+			}
+
+			if (is_recognized_command)
+				input_listener.consumeLine();
+			else
+				break;
+		}
 	}
 	void ProgramManager::help() const
 	{
@@ -269,6 +327,27 @@ namespace ag
 		FileSaver fs(argument_parser.getLaunchPath() + "config.json");
 		fs.save(cfg, SerializedObject(), 2, false);
 	}
+	void ProgramManager::selfcheck() const
+	{
+		std::ofstream stream(argument_parser.getLaunchPath() + "selfcheck.txt", std::fstream::out);
+
+		stream << "Starting selfcheck for version " << ProgramInfo::version() << std::endl;
+		stream << "Platform: " << getOperatingSystemName() << std::endl;
+
+//		output_sender.send("Checking configuration file");
+//		checkConfigFile(stream, argument_parser.getLaunchPath() + name_of_config_file);
+//		output_sender.send("Checking integrity");
+//		checkIntegrity(stream, argument_parser.getLaunchPath());
+
+		output_sender.send("Checking ML backend");
+		checkMLBackend(stream);
+		output_sender.send("Checking networks");
+		checkNeuralNetwork(stream);
+		output_sender.send("Checking pattern calculation");
+		checkPatternCalculation(stream);
+
+		output_sender.send("Selfcheck completed");
+	}
 	bool ProgramManager::load_config(const std::string &path)
 	{
 		if (pathExists(path))
@@ -277,16 +356,22 @@ namespace ag
 			{
 				FileLoader fl(path);
 				config = fl.getJson();
+				if (config["version"].getString() != ProgramInfo::version())
+				{
+					output_sender.send("You are using outdated version of the configuration file. Try generating a new one.");
+					return false;
+				}
 				return true;
 			} catch (std::exception &e)
 			{
-				output_sender.send("The configuration file is invalid for some reason. Try deleting it and creating a new one.");
+				output_sender.send("The configuration file is invalid for some reason.");
+				output_sender.send(
+						"Make sure that JSON structure is correct. If you checked that it is fine, send a bug report including the config file.");
 			}
 		}
 		else
 		{
-			output_sender.send("Could not load configuration file.");
-			output_sender.send("You can generate new one by launching " + ProgramInfo::name() + " from command line with parameter '--configure'");
+			output_sender.send("Could not load configuration file located at '" + path + "'");
 			output_sender.send(
 					"If you are sure that configuration file exists, it means that the launch path was not parsed correctly (probably because of some special characters in it).");
 		}

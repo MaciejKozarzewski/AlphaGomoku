@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
  
 ## [Unreleased] - 2022-05-26
+### Added
+### Changed
+### Fixed
+
+## [5.6.1] - 2022-06-??
+
+### Added
+- Added self-check utility.
+
+### Changed
+-  Improved automatic fonfiguration.
+
+### Fixed
+- Fixed several SIGILL errors in the ML backend.
+- Fixed typo in Yisinboard protocol implementation.
+- Removed unnecessary logging from search threads.
+
+## [5.6.0] - 2022-06-12
  
 ### Added
 - Added support for Renju and Caro rule.
@@ -23,10 +41,12 @@ All notable changes to this project will be documented in this file.
 - Fixed crash when the time for turn is very small and no nodes have been searched (now there is always at least 1).
 - Swap2 opening book is no longer required to run the engine (but must be present to use swap2/swap opening commands).
 
+
 ## [5.3.4] - 2022-04-20
  
 ### Fixed
 - Fixed error with parsing launch path on Windows.
+
  
 ## [5.3.3] - 2022-04-19
   

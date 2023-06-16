@@ -61,6 +61,7 @@ namespace ag
 			bool display_version = false;
 			bool run_benchmark = false;
 			bool run_configuration = false;
+			bool run_selfcheck = false;
 			bool is_running = true;
 
 			int game_counter = 0;
@@ -74,10 +75,12 @@ namespace ag
 			void run();
 		private:
 			void create_arguments();
+			void process_pre_launch_commands();
 			void help() const;
 			void version() const;
 			void benchmark() const;
 			void configure();
+			void selfcheck() const;
 			bool load_config(const std::string &path);
 			void setup_paths_in_config();
 

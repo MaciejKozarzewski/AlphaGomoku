@@ -149,15 +149,6 @@ namespace ag
 		search.useBuffer(0);
 		while (true)
 		{
-			static double last_time = getTime();
-			if (getTime() - last_time > 1.0)
-			{
-				Logger::write(
-						"SearchThread::asynchronous_run() " + std::to_string(getTime() - last_time) + " : "
-								+ std::to_string(tree.getSimulationCount()));
-				last_time = getTime();
-			}
-
 			search.generateEdges(tree); // this step doesn't require locking the tree
 			{ /* artificial scope for lock */
 				TreeLock lock(tree);

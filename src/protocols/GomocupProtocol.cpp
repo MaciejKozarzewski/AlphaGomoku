@@ -39,7 +39,7 @@ namespace ag
 	GomocupProtocol::GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
 			Protocol(queueIN, queueOUT)
 	{
-		// @formatter:off
+// @formatter:off
 		registerOutputProcessor(MessageType::BEST_MOVE,       [this](OutputSender &sender) { this->best_move(sender);});
 		registerOutputProcessor(MessageType::PLAIN_STRING,    [this](OutputSender &sender) { this->plain_string(sender);});
 		registerOutputProcessor(MessageType::UNKNOWN_COMMAND, [this](OutputSender &sender) { this->unknown_command(sender);});

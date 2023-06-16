@@ -3,7 +3,7 @@ project(AlphaGomoku VERSION 5.6.0 DESCRIPTION "Alpha zero for the game of Gomoku
 
 option(BUILD_TESTING "Build unit tests?" ON)
 option(BUILD_WITH_OPENBLAS "Build with OpenBlas support" OFF)
-option(BUILD_WITH_CUDA "Build with CUDA support" OFF)
+option(BUILD_WITH_CUDA "Build with CUDA support" ON)
 option(BUILD_WITH_CUDNN "Build with CUDNN support" OFF)
 set(MINML_BACKEND_PATH "/home/maciek/cpp_workspace/minml/" CACHE STRING "Path to ml backend library" FORCE)
 set(CMAKE_DEBUG_POSTFIX "_d" CACHE STRING "Choose debug postfix" FORCE)
@@ -43,7 +43,7 @@ add_subdirectory("src/utils/")
 set_target_properties(${LibName} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_include_directories(${LibName} PUBLIC "${PROJECT_SOURCE_DIR}/include")
 target_include_directories(${LibName} PUBLIC "${MINML_BACKEND_PATH}/include")
-target_compile_options(${LibName} PUBLIC -march=native)
+target_compile_options(${LibName} PUBLIC -msse2)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${LibName} PUBLIC -femulated-tls)

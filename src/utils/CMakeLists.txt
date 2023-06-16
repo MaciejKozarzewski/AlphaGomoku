@@ -6,4 +6,5 @@ target_sources(${LibName} PRIVATE 	ArgumentParser.cpp
 									misc.cpp
 									os_utils.cpp
 									random.cpp
+									selfcheck.cpp
 									statistics.cpp)

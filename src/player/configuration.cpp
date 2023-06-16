@@ -141,10 +141,6 @@ namespace ag
 			}
 			search_config.tss_config.max_positions = 500;
 			search_config.tss_config.hash_table_size = 4 * 1024 * 1024;
-
-			search_config.tree_config.initial_node_cache_size = 65536;
-			search_config.tree_config.edge_bucket_size = 1000000;
-			search_config.tree_config.node_bucket_size = 100000;
 		}
 		else
 		{
@@ -161,9 +157,6 @@ namespace ag
 			search_config.tss_config.max_positions = 1000;
 			search_config.tss_config.hash_table_size = 4 * 1024 * 1024;
 
-			search_config.tree_config.initial_node_cache_size = 8192;
-			search_config.tree_config.edge_bucket_size = 100000;
-			search_config.tree_config.node_bucket_size = 10000;
 		}
 
 		result["search_threads"] = search_threads;
