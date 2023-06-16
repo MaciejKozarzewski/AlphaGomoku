@@ -16,6 +16,7 @@
 #elif defined(__linux__)
 #  include <limits.h>
 #  include <unistd.h>
+#  include <sys/utsname.h>
 #endif
 
 namespace
@@ -104,6 +105,41 @@ namespace ag
 				last_slash = i + 1;
 			}
 		return std::pair<std::string, std::string>( { text.substr(0, last_slash), text.substr(last_slash) });
+	}
+
+	std::string getOperatingSystemName()
+	{
+#ifdef _WIN32
+		return "Windows 32-bit";
+#elif _WIN64
+		OSVERSIONINFO vi;
+			vi.dwOSVersionInfoSize = sizeof(vi);
+		if (GetVersionEx(&vi) == 0) throw SystemException("Cannot get OS version information");
+		switch (vi.dwPlatformId)
+		{
+		case VER_PLATFORM_WIN32s:
+			return "Windows 3.x";
+		case VER_PLATFORM_WIN32_WINDOWS:
+			return vi.dwMinorVersion == 0 ? "Windows 95" : "Windows 98";
+		case VER_PLATFORM_WIN32_NT:
+			return "Windows NT";
+		default:
+			return "Unknown";
+		}
+//    return "Windows 64-bit";
+#elif __APPLE__ || __MACH__
+		return "Mac OSX";
+#elif __linux__
+		struct utsname uts;
+		uname(&uts);
+		return std::string(uts.sysname) + ' ' + uts.release + ' ' + uts.version + ' ' + uts.machine;
+//#elif __FreeBSD__
+//        return "FreeBSD";
+//#elif __unix || __unix__
+//        return "Unix";
+//#else
+		return "other OS";
+#endif
 	}
 
 	void setupSignalHandler(SignalType type, SignalHandlerMode mode)

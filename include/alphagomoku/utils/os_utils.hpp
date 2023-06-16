@@ -22,6 +22,11 @@ namespace ag
 	 */
 	std::pair<std::string, std::string> parseLaunchPath(std::string text);
 
+	/*
+	 * \brief Returns the name of the operating system
+	 */
+	std::string getOperatingSystemName();
+
 	enum class PrefetchMode
 	{
 		READ,
