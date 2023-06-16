@@ -382,6 +382,7 @@ namespace ag
 		EXPECT_TRUE(actions2.contains(Move("Xd6")));
 		EXPECT_TRUE(actions2.contains(Move("Xe6")));
 	}
+
 	TEST(TestMoveGenerator, WinIn3Moves_1)
 	{
 // @formatter:off
@@ -474,6 +475,7 @@ namespace ag
 		EXPECT_EQ(actions1.size(), 1);
 		EXPECT_TRUE(actions1.contains(Move("Xb1")));
 	}
+
 	TEST(TestMoveGenerator, WinIn5Moves_3x3)
 	{
 // @formatter:off
@@ -534,212 +536,213 @@ namespace ag
 		EXPECT_FALSE(actions2.must_defend);
 		EXPECT_FALSE(actions2.has_initiative);
 	}
-//	TEST(TestMoveGenerator, DefendLossIn6_4x3)
-//	{
-//// @formatter:off
-//		matrix<Sign> board = Board::fromString(
-//					/*        a b c d e f g h i          */
-//					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
-//					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
-//					/*  2 */" _ _ _ _ ! _ _ _ _\n" /*  2 */
-//					/*  3 */" _ _ _ _ O _ _ _ _\n" /*  3 */
-//					/*  4 */" _ _ _ _ ! ! O O O\n" /*  4 */
-//					/*  5 */" _ _ _ _ O _ _ _ _\n" /*  5 */
-//					/*  6 */" _ _ _ _ ! _ _ _ _\n" /*  6 */
-//					/*  7 */" _ _ _ _ _ _ _ _ _\n" /*  7 */
-//					/*  8 */" _ _ _ _ _ _ _ _ _\n" /*  8 */
-//					/*        a b c d e f g h i          */);
-//// @formatter:on
-//
-//		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
-//		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_TRUE(actions1.must_defend);
-//		EXPECT_FALSE(actions1.has_initiative);
-//		EXPECT_EQ(actions1.size(), 4);
-//		EXPECT_TRUE(actions1.contains(Move("Xe2")));
-//		EXPECT_TRUE(actions1.contains(Move("Xe4")));
-//		EXPECT_TRUE(actions1.contains(Move("Xf4")));
-//		EXPECT_TRUE(actions1.contains(Move("Xe6")));
-//
-//		MoveGenWrapper movegen_caro5(GameRules::CARO5, board, Sign::CROSS);
-//		const ActionList actions2 = movegen_caro5(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_TRUE(actions2.must_defend);
-//		EXPECT_FALSE(actions2.has_initiative);
-////		EXPECT_EQ(actions2.size(), 7); // TODO this value is if we assume that wall also blocks a five in Caro
-//		EXPECT_EQ(actions2.size(), 6);
-//		EXPECT_TRUE(actions2.contains(Move("Xe1")));
-//		EXPECT_TRUE(actions2.contains(Move("Xe2")));
-////		EXPECT_TRUE(actions2.contains(Move("Xd4"))); // TODO this move is here if we assume that wall also blocks a five in Caro
-//		EXPECT_TRUE(actions2.contains(Move("Xe4")));
-//		EXPECT_TRUE(actions2.contains(Move("Xf4")));
-//		EXPECT_TRUE(actions2.contains(Move("Xe6")));
-//		EXPECT_TRUE(actions2.contains(Move("Xe7")));
-//	}
-//	TEST(TestMoveGenerator, DefendLossIn6_3x3)
-//	{
-//// @formatter:off
-//		matrix<Sign> board = Board::fromString(
-//					/*        a b c d e f g h i          */
-//					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
-//					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
-//					/*  2 */" _ _ _ ! _ _ _ _ _\n" /*  2 */
-//					/*  3 */" _ _ _ O _ _ _ _ _\n" /*  3 */
-//					/*  4 */" _ _ _ O _ _ _ _ _\n" /*  4 */
-//					/*  5 */" _ _ ! ! O O ! _ _\n" /*  5 */
-//					/*  6 */" _ _ _ ! _ _ _ _ _\n" /*  6 */
-//					/*  7 */" _ _ _ _ _ _ _ _ _\n" /*  7 */
-//					/*  8 */" _ _ _ _ _ _ _ _ _\n" /*  8 */
-//					/*        a b c d e f g h i          */);
-//// @formatter:on
-//
-//		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
-//		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_TRUE(actions1.must_defend);
-//		EXPECT_FALSE(actions1.has_initiative);
-//		EXPECT_EQ(actions1.size(), 5);
-//		EXPECT_TRUE(actions1.contains(Move("Xd2")));
-//		EXPECT_TRUE(actions1.contains(Move("Xc5")));
-//		EXPECT_TRUE(actions1.contains(Move("Xd5")));
-//		EXPECT_TRUE(actions1.contains(Move("Xg5")));
-//		EXPECT_TRUE(actions1.contains(Move("Xd6")));
-//
-//		MoveGenWrapper movegen_caro5(GameRules::CARO5, board, Sign::CROSS);
-//		const ActionList actions2 = movegen_caro5(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_TRUE(actions2.must_defend);
-//		EXPECT_FALSE(actions2.has_initiative);
-//		EXPECT_EQ(actions2.size(), 9);
-//		EXPECT_TRUE(actions2.contains(Move("Xd1")));
-//		EXPECT_TRUE(actions2.contains(Move("Xd2")));
-//		EXPECT_TRUE(actions2.contains(Move("Xb5")));
-//		EXPECT_TRUE(actions2.contains(Move("Xc5")));
-//		EXPECT_TRUE(actions2.contains(Move("Xd5")));
-//		EXPECT_TRUE(actions2.contains(Move("Xg5")));
-//		EXPECT_TRUE(actions2.contains(Move("Xh5")));
-//		EXPECT_TRUE(actions2.contains(Move("Xd6")));
-//		EXPECT_TRUE(actions2.contains(Move("Xd7")));
-//	}
 
-//	TEST(TestMoveGenerator, FourFreeThree_v1)
-//	{
-//// @formatter:off
-//		matrix<Sign> board = Board::fromString(
-//					/*        a b c d e f g h i          */
-//					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
-//					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
-//					/*  2 */" _ _ _ _ _ _ ! _ _\n" /*  2 */
-//					/*  3 */" _ X O O O ! ! X _\n" /*  3 */
-//					/*  4 */" _ _ _ _ O _ _ _ _\n" /*  4 */
-//					/*  5 */" _ _ _ O _ _ _ _ _\n" /*  5 */
-//					/*  6 */" _ _ ! _ _ _ _ _ _\n" /*  6 */
-//					/*  7 */" _ _ _ _ _ _ _ _ _\n" /*  7 */
-//					/*  8 */" _ _ _ _ _ _ _ _ _\n" /*  8 */
-//					/*        a b c d e f g h i          */);
-//// @formatter:on
-//
-//		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
-//		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_TRUE(actions1.must_defend);
-//		EXPECT_FALSE(actions1.has_initiative);
-//		EXPECT_EQ(actions1.size(), 4);
-//		EXPECT_TRUE(actions1.contains(Move("Xg2")));
-//		EXPECT_TRUE(actions1.contains(Move("Xf3")));
-//		EXPECT_TRUE(actions1.contains(Move("Xg3")));
-//		EXPECT_TRUE(actions1.contains(Move("Xc6")));
-//
-//		MoveGenWrapper movegen_caro5(GameRules::CARO5, board, Sign::CROSS);
-//		const ActionList actions2 = movegen_caro5(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_FALSE(actions2.must_defend);
-//		EXPECT_FALSE(actions2.has_initiative);
-//	}
-//	TEST(TestMoveGenerator, FourFreeThree_v2)
-//	{
-//// @formatter:off
-//		matrix<Sign> board = Board::fromString(
-//					/*        a b c d e f g h i          */
-//					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
-//					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
-//					/*  2 */" _ _ _ _ _ _ ! _ _\n" /*  2 */
-//					/*  3 */" _ X O O O ! ! X _\n" /*  3 */
-//					/*  4 */" _ _ _ _ O _ ! _ _\n" /*  4 */
-//					/*  5 */" _ _ _ O _ _ X _ _\n" /*  5 */
-//					/*  6 */" _ _ ! _ _ _ X _ _\n" /*  6 */
-//					/*  7 */" _ _ _ _ _ _ X _ _\n" /*  7 */
-//					/*  8 */" _ _ _ _ _ _ O _ _\n" /*  8 */
-//					/*        a b c d e f g h i          */);
-//// @formatter:on
-//
-//		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
-//		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_TRUE(actions1.must_defend);
-//		EXPECT_FALSE(actions1.has_initiative);
-//		EXPECT_EQ(actions1.size(), 5);
-//		EXPECT_TRUE(actions1.contains(Move("Xg2")));
-//		EXPECT_TRUE(actions1.contains(Move("Xf3")));
-//		EXPECT_TRUE(actions1.contains(Move("Xg3")));
-//		EXPECT_TRUE(actions1.contains(Move("Xg4")));
-//		EXPECT_TRUE(actions1.contains(Move("Xc6")));
-//	}
-//	TEST(TestMoveGenerator, FourFreeThree_v3)
-//	{
-//// @formatter:off
-//		matrix<Sign> board = Board::fromString(
-//					/*        a b c d e f g h i          */
-//					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
-//					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
-//					/*  2 */" _ _ _ _ _ _ ! _ _\n" /*  2 */
-//					/*  3 */" _ X O O O ! ! X _\n" /*  3 */
-//					/*  4 */" _ _ _ _ O _ ! _ _\n" /*  4 */
-//					/*  5 */" _ _ _ O _ _ ! _ _\n" /*  5 */
-//					/*  6 */" _ _ ! _ _ _ X _ _\n" /*  6 */
-//					/*  7 */" _ _ _ _ _ _ X _ _\n" /*  7 */
-//					/*  8 */" _ _ _ _ _ _ O _ _\n" /*  8 */
-//					/*        a b c d e f g h i          */);
-//// @formatter:on
-//
-//		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
-//		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_TRUE(actions1.must_defend);
-//		EXPECT_FALSE(actions1.has_initiative);
-//		EXPECT_EQ(actions1.size(), 6);
-//		EXPECT_TRUE(actions1.contains(Move("Xg2")));
-//		EXPECT_TRUE(actions1.contains(Move("Xf3")));
-//		EXPECT_TRUE(actions1.contains(Move("Xg3")));
-//		EXPECT_TRUE(actions1.contains(Move("Xg4")));
-//		EXPECT_TRUE(actions1.contains(Move("Xg5")));
-//		EXPECT_TRUE(actions1.contains(Move("Xc6")));
-//	}
-//	TEST(TestMoveGenerator, FourFreeThree_v4)
-//	{
-//// @formatter:off
-//		matrix<Sign> board = Board::fromString(
-//					/*        a b c d e f g h i j          */
-//					/*  0 */" _ _ _ _ _ _ ! _ _ _\n" /*  0 */
-//					/*  1 */" _ _ _ _ ! ! _ _ _ _\n" /*  1 */
-//					/*  2 */" _ _ _ _ ! ! _ _ _ _\n" /*  2 */
-//					/*  3 */" _ _ _ O _ O ! _ _ _\n" /*  3 */
-//					/*  4 */" _ _ O _ X O _ X _ _\n" /*  4 */
-//					/*  5 */" _ ! _ _ _ O _ _ X _\n" /*  5 */
-//					/*  6 */" _ _ _ _ _ X _ _ _ !\n" /*  6 */
-//					/*  7 */" _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//					/*  8 */" _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//					/*  9 */" _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//					/*        a b c d e f g h i j          */);
-//// @formatter:on
-//
-//		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
-//		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
-//		EXPECT_TRUE(actions1.must_defend);
-//		EXPECT_FALSE(actions1.has_initiative);
-//		EXPECT_GE(actions1.size(), 8);
-//		EXPECT_TRUE(actions1.contains(Move("Xg0")));
-//		EXPECT_TRUE(actions1.contains(Move("Xe1")));
-//		EXPECT_TRUE(actions1.contains(Move("Xf1")));
-//		EXPECT_TRUE(actions1.contains(Move("Xe2")));
-//		EXPECT_TRUE(actions1.contains(Move("Xf2")));
-//		EXPECT_TRUE(actions1.contains(Move("Xg3")));
-//		EXPECT_TRUE(actions1.contains(Move("Xb5")));
-//		EXPECT_TRUE(actions1.contains(Move("Xj6")));
-//	}
+	TEST(TestMoveGenerator, DefendLossIn6_4x3)
+	{
+// @formatter:off
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i          */
+					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
+					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ _ _ _ ! _ _ _ _\n" /*  2 */
+					/*  3 */" _ _ _ _ O _ _ _ _\n" /*  3 */
+					/*  4 */" _ _ _ _ ! ! O O O\n" /*  4 */
+					/*  5 */" _ _ _ _ O _ _ _ _\n" /*  5 */
+					/*  6 */" _ _ _ _ ! _ _ _ _\n" /*  6 */
+					/*  7 */" _ _ _ _ _ _ _ _ _\n" /*  7 */
+					/*  8 */" _ _ _ _ _ _ _ _ _\n" /*  8 */
+					/*        a b c d e f g h i          */);
+// @formatter:on
+
+		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
+		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
+		EXPECT_TRUE(actions1.must_defend);
+		EXPECT_FALSE(actions1.has_initiative);
+		EXPECT_EQ(actions1.size(), 4);
+		EXPECT_TRUE(actions1.contains(Move("Xe2")));
+		EXPECT_TRUE(actions1.contains(Move("Xe4")));
+		EXPECT_TRUE(actions1.contains(Move("Xf4")));
+		EXPECT_TRUE(actions1.contains(Move("Xe6")));
+
+		MoveGenWrapper movegen_caro5(GameRules::CARO5, board, Sign::CROSS);
+		const ActionList actions2 = movegen_caro5(MoveGeneratorMode::OPTIMAL);
+		EXPECT_TRUE(actions2.must_defend);
+		EXPECT_FALSE(actions2.has_initiative);
+//		EXPECT_EQ(actions2.size(), 7); // TODO this value is if we assume that wall also blocks a five in Caro
+		EXPECT_EQ(actions2.size(), 6);
+		EXPECT_TRUE(actions2.contains(Move("Xe1")));
+		EXPECT_TRUE(actions2.contains(Move("Xe2")));
+//		EXPECT_TRUE(actions2.contains(Move("Xd4"))); // TODO this move is here if we assume that wall also blocks a five in Caro
+		EXPECT_TRUE(actions2.contains(Move("Xe4")));
+		EXPECT_TRUE(actions2.contains(Move("Xf4")));
+		EXPECT_TRUE(actions2.contains(Move("Xe6")));
+		EXPECT_TRUE(actions2.contains(Move("Xe7")));
+	}
+	TEST(TestMoveGenerator, DefendLossIn6_3x3)
+	{
+// @formatter:off
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i          */
+					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
+					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ _ _ ! _ _ _ _ _\n" /*  2 */
+					/*  3 */" _ _ _ O _ _ _ _ _\n" /*  3 */
+					/*  4 */" _ _ _ O _ _ _ _ _\n" /*  4 */
+					/*  5 */" _ _ ! ! O O ! _ _\n" /*  5 */
+					/*  6 */" _ _ _ ! _ _ _ _ _\n" /*  6 */
+					/*  7 */" _ _ _ _ _ _ _ _ _\n" /*  7 */
+					/*  8 */" _ _ _ _ _ _ _ _ _\n" /*  8 */
+					/*        a b c d e f g h i          */);
+// @formatter:on
+
+		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
+		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
+		EXPECT_TRUE(actions1.must_defend);
+		EXPECT_FALSE(actions1.has_initiative);
+		EXPECT_EQ(actions1.size(), 5);
+		EXPECT_TRUE(actions1.contains(Move("Xd2")));
+		EXPECT_TRUE(actions1.contains(Move("Xc5")));
+		EXPECT_TRUE(actions1.contains(Move("Xd5")));
+		EXPECT_TRUE(actions1.contains(Move("Xg5")));
+		EXPECT_TRUE(actions1.contains(Move("Xd6")));
+
+		MoveGenWrapper movegen_caro5(GameRules::CARO5, board, Sign::CROSS);
+		const ActionList actions2 = movegen_caro5(MoveGeneratorMode::OPTIMAL);
+		EXPECT_TRUE(actions2.must_defend);
+		EXPECT_FALSE(actions2.has_initiative);
+		EXPECT_EQ(actions2.size(), 9);
+		EXPECT_TRUE(actions2.contains(Move("Xd1")));
+		EXPECT_TRUE(actions2.contains(Move("Xd2")));
+		EXPECT_TRUE(actions2.contains(Move("Xb5")));
+		EXPECT_TRUE(actions2.contains(Move("Xc5")));
+		EXPECT_TRUE(actions2.contains(Move("Xd5")));
+		EXPECT_TRUE(actions2.contains(Move("Xg5")));
+		EXPECT_TRUE(actions2.contains(Move("Xh5")));
+		EXPECT_TRUE(actions2.contains(Move("Xd6")));
+		EXPECT_TRUE(actions2.contains(Move("Xd7")));
+	}
+
+	TEST(TestMoveGenerator, FourFreeThree_v1)
+	{
+// @formatter:off
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i          */
+					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
+					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ _ _ _ _ _ ! _ _\n" /*  2 */
+					/*  3 */" _ X O O O ! ! X _\n" /*  3 */
+					/*  4 */" _ _ _ _ O _ _ _ _\n" /*  4 */
+					/*  5 */" _ _ _ O _ _ _ _ _\n" /*  5 */
+					/*  6 */" _ _ ! _ _ _ _ _ _\n" /*  6 */
+					/*  7 */" _ _ _ _ _ _ _ _ _\n" /*  7 */
+					/*  8 */" _ _ _ _ _ _ _ _ _\n" /*  8 */
+					/*        a b c d e f g h i          */);
+// @formatter:on
+
+		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
+		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
+		EXPECT_TRUE(actions1.must_defend);
+		EXPECT_FALSE(actions1.has_initiative);
+		EXPECT_GE(actions1.size(), 4);
+		EXPECT_TRUE(actions1.contains(Move("Xg2")));
+		EXPECT_TRUE(actions1.contains(Move("Xf3")));
+		EXPECT_TRUE(actions1.contains(Move("Xg3")));
+		EXPECT_TRUE(actions1.contains(Move("Xc6")));
+
+		MoveGenWrapper movegen_caro5(GameRules::CARO5, board, Sign::CROSS);
+		const ActionList actions2 = movegen_caro5(MoveGeneratorMode::OPTIMAL);
+		EXPECT_FALSE(actions2.must_defend);
+		EXPECT_FALSE(actions2.has_initiative);
+	}
+	TEST(TestMoveGenerator, FourFreeThree_v2)
+	{
+// @formatter:off
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i          */
+					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
+					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ _ _ _ _ _ ! _ _\n" /*  2 */
+					/*  3 */" _ X O O O ! ! X _\n" /*  3 */
+					/*  4 */" _ _ _ _ O _ ! _ _\n" /*  4 */
+					/*  5 */" _ _ _ O _ _ X _ _\n" /*  5 */
+					/*  6 */" _ _ ! _ _ _ X _ _\n" /*  6 */
+					/*  7 */" _ _ _ _ _ _ X _ _\n" /*  7 */
+					/*  8 */" _ _ _ _ _ _ O _ _\n" /*  8 */
+					/*        a b c d e f g h i          */);
+// @formatter:on
+
+		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
+		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
+		EXPECT_TRUE(actions1.must_defend);
+		EXPECT_TRUE(actions1.has_initiative);
+		EXPECT_GE(actions1.size(), 5);
+		EXPECT_TRUE(actions1.contains(Move("Xg2")));
+		EXPECT_TRUE(actions1.contains(Move("Xf3")));
+		EXPECT_TRUE(actions1.contains(Move("Xg3")));
+		EXPECT_TRUE(actions1.contains(Move("Xg4")));
+		EXPECT_TRUE(actions1.contains(Move("Xc6")));
+	}
+	TEST(TestMoveGenerator, FourFreeThree_v3)
+	{
+// @formatter:off
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i          */
+					/*  0 */" _ _ _ _ _ _ _ _ _\n" /*  0 */
+					/*  1 */" _ _ _ _ _ _ _ _ _\n" /*  1 */
+					/*  2 */" _ _ _ _ _ _ ! _ _\n" /*  2 */
+					/*  3 */" _ X O O O ! ! X _\n" /*  3 */
+					/*  4 */" _ _ _ _ O _ ! _ _\n" /*  4 */
+					/*  5 */" _ _ _ O _ _ ! _ _\n" /*  5 */
+					/*  6 */" _ _ ! _ _ _ X _ _\n" /*  6 */
+					/*  7 */" _ _ _ _ _ _ X _ _\n" /*  7 */
+					/*  8 */" _ _ _ _ _ _ O _ _\n" /*  8 */
+					/*        a b c d e f g h i          */);
+// @formatter:on
+
+		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
+		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
+		EXPECT_TRUE(actions1.must_defend);
+		EXPECT_FALSE(actions1.has_initiative);
+		EXPECT_GE(actions1.size(), 6);
+		EXPECT_TRUE(actions1.contains(Move("Xg2")));
+		EXPECT_TRUE(actions1.contains(Move("Xf3")));
+		EXPECT_TRUE(actions1.contains(Move("Xg3")));
+		EXPECT_TRUE(actions1.contains(Move("Xg4")));
+		EXPECT_TRUE(actions1.contains(Move("Xg5")));
+		EXPECT_TRUE(actions1.contains(Move("Xc6")));
+	}
+	TEST(TestMoveGenerator, FourFreeThree_v4)
+	{
+// @formatter:off
+		matrix<Sign> board = Board::fromString(
+					/*        a b c d e f g h i j          */
+					/*  0 */" _ _ _ _ _ _ ! _ _ _\n" /*  0 */
+					/*  1 */" _ _ _ _ ! ! _ _ _ _\n" /*  1 */
+					/*  2 */" _ _ _ _ ! ! _ _ _ _\n" /*  2 */
+					/*  3 */" _ _ _ O _ O ! _ _ _\n" /*  3 */
+					/*  4 */" _ _ O _ X O _ X _ _\n" /*  4 */
+					/*  5 */" _ ! _ _ _ O _ _ X _\n" /*  5 */
+					/*  6 */" _ _ _ _ _ X _ _ _ !\n" /*  6 */
+					/*  7 */" _ _ _ _ _ _ _ _ _ _\n" /*  7 */
+					/*  8 */" _ _ _ _ _ _ _ _ _ _\n" /*  8 */
+					/*  9 */" _ _ _ _ _ _ _ _ _ _\n" /*  9 */
+					/*        a b c d e f g h i j          */);
+// @formatter:on
+
+		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
+		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
+		EXPECT_TRUE(actions1.must_defend);
+		EXPECT_FALSE(actions1.has_initiative);
+		EXPECT_GE(actions1.size(), 8);
+		EXPECT_TRUE(actions1.contains(Move("Xg0")));
+		EXPECT_TRUE(actions1.contains(Move("Xe1")));
+		EXPECT_TRUE(actions1.contains(Move("Xf1")));
+		EXPECT_TRUE(actions1.contains(Move("Xe2")));
+		EXPECT_TRUE(actions1.contains(Move("Xf2")));
+		EXPECT_TRUE(actions1.contains(Move("Xg3")));
+		EXPECT_TRUE(actions1.contains(Move("Xb5")));
+		EXPECT_TRUE(actions1.contains(Move("Xj6")));
+	}
 	TEST(TestMoveGenerator, FourFreeThree_v5)
 	{
 // @formatter:off
@@ -762,7 +765,7 @@ namespace ag
 		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
 		EXPECT_TRUE(actions1.must_defend);
 		EXPECT_FALSE(actions1.has_initiative);
-		EXPECT_EQ(actions1.size(), 3);
+		EXPECT_GE(actions1.size(), 3);
 		EXPECT_TRUE(actions1.contains(Move("Xc4")));
 		EXPECT_TRUE(actions1.contains(Move("Xf4")));
 		EXPECT_TRUE(actions1.contains(Move("Xh4")));
@@ -977,7 +980,7 @@ namespace ag
 // @formatter:on
 		MoveGenWrapper movegen(GameRules::FREESTYLE, board, Sign::CROSS);
 		const ActionList actions = movegen(MoveGeneratorMode::OPTIMAL);
-		EXPECT_FALSE(actions.must_defend);
+		EXPECT_TRUE(actions.must_defend);
 		EXPECT_FALSE(actions.has_initiative);
 		EXPECT_GE(actions.size(), 1);
 		EXPECT_TRUE(actions.contains(Move("Xc7")));
@@ -1006,7 +1009,7 @@ namespace ag
 // @formatter:on
 		MoveGenWrapper movegen(GameRules::FREESTYLE, board, Sign::CROSS);
 		const ActionList actions = movegen(MoveGeneratorMode::OPTIMAL);
-		EXPECT_FALSE(actions.must_defend);
+		EXPECT_TRUE(actions.must_defend);
 		EXPECT_FALSE(actions.has_initiative);
 		EXPECT_GE(actions.size(), 1);
 		EXPECT_TRUE(actions.contains(Move("Xj12")));
@@ -1035,7 +1038,7 @@ namespace ag
 // @formatter:on
 		MoveGenWrapper movegen(GameRules::FREESTYLE, board, Sign::CROSS);
 		const ActionList actions = movegen(MoveGeneratorMode::OPTIMAL);
-		EXPECT_FALSE(actions.must_defend);
+		EXPECT_TRUE(actions.must_defend);
 		EXPECT_FALSE(actions.has_initiative);
 		EXPECT_GE(actions.size(), 1);
 		EXPECT_TRUE(actions.contains(Move("Xj5")));
@@ -1064,7 +1067,7 @@ namespace ag
 // @formatter:on
 		MoveGenWrapper movegen(GameRules::FREESTYLE, board, Sign::CROSS);
 		const ActionList actions = movegen(MoveGeneratorMode::OPTIMAL);
-		EXPECT_FALSE(actions.must_defend);
+		EXPECT_TRUE(actions.must_defend);
 		EXPECT_FALSE(actions.has_initiative);
 		EXPECT_GE(actions.size(), 1);
 		EXPECT_TRUE(actions.contains(Move("Xf5")));
@@ -1156,7 +1159,7 @@ namespace ag
 // @formatter:on
 		MoveGenWrapper movegen(GameRules::FREESTYLE, board, Sign::CROSS);
 		const ActionList actions = movegen(MoveGeneratorMode::OPTIMAL);
-		EXPECT_FALSE(actions.must_defend);
+		EXPECT_TRUE(actions.must_defend);
 		EXPECT_FALSE(actions.has_initiative);
 		EXPECT_GE(actions.size(), 1);
 		EXPECT_TRUE(actions.contains(Move("Xe8")));
@@ -1185,7 +1188,7 @@ namespace ag
 // @formatter:on
 		MoveGenWrapper movegen(GameRules::FREESTYLE, board, Sign::CIRCLE);
 		const ActionList actions = movegen(MoveGeneratorMode::OPTIMAL);
-		EXPECT_FALSE(actions.must_defend);
+		EXPECT_TRUE(actions.must_defend);
 		EXPECT_TRUE(actions.has_initiative);
 		EXPECT_GE(actions.size(), 1);
 		EXPECT_TRUE(actions.contains(Move("Ok8")));

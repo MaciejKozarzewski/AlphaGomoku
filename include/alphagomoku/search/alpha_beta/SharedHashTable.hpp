@@ -22,14 +22,6 @@
 
 namespace ag
 {
-	enum class Bound
-	{
-		NONE,
-		LOWER,
-		UPPER,
-		EXACT
-	};
-
 	class SharedHashTable;
 
 	class SharedTableData
@@ -190,11 +182,17 @@ namespace ag
 //						}
 
 				// now find the least valuable entry to replace
-				Entry *found = &bucket[0]; // first entry is the 'always replace' one
+				int idx = 0;
 				for (size_t i = 1; i < bucket.size(); i++)
-					if (get_value_of(bucket[i]) < get_value_of(*found))
-						found = &bucket[i];
-				*found = new_entry;
+					if (get_value_of(bucket[i]) < get_value_of(bucket[idx]))
+						idx = i;
+				bucket[idx] = new_entry;
+
+//				Entry *found = &bucket[0]; // first entry is the 'always replace' one
+//				for (size_t i = 1; i < bucket.size(); i++)
+//					if (get_value_of(bucket[i]) < get_value_of(*found))
+//						found = &bucket[i];
+//				*found = new_entry;
 			}
 			void prefetch(const HashKey128 &hash) const noexcept
 			{

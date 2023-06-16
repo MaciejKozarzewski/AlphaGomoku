@@ -54,10 +54,11 @@ namespace ag
 			}
 		public:
 			Score baseline_score; /* score of actions that have not been added to the list (for example moves other than defensive) */
-			Move hash_move;
+			Move last_move;
 			bool is_fully_expanded = false;
 			bool has_initiative = false;
 			bool must_defend = false;
+			bool performed_pattern_update = false;
 
 			bool isRoot() const noexcept
 			{
@@ -70,7 +71,6 @@ namespace ag
 			void clear() noexcept
 			{
 				baseline_score = Score();
-				hash_move = Move();
 				has_initiative = false;
 				must_defend = false;
 				m_size = 0;
@@ -171,7 +171,7 @@ namespace ag
 				std::cout << "baseline score = " << baseline_score.toString() << '\n';
 				for (int i = 0; i < size(); i++)
 					std::cout << i << " : " << m_children[i].move.toString() << " : " << m_children[i].move.text() << " : " << m_children[i].score
-							<< " : " << m_children[i].offset << '\n';
+							<< '\n';
 				std::cout << '\n';
 			}
 			bool equals(const ActionList &other) const noexcept
@@ -191,7 +191,7 @@ namespace ag
 			std::vector<Action> m_data;
 			size_t m_offset = 1; // offset equal zero is reserved
 		public:
-			ActionStack(size_t size) :
+			ActionStack(size_t size = 0) :
 					m_data(size)
 			{
 			}
@@ -204,21 +204,28 @@ namespace ag
 				m_offset = 1;
 				return ActionList(m_data.data(), 0);
 			}
-			ActionList create_from_action(Action &a) noexcept
+			ActionList create_from_actions(ActionList &parent, int index) noexcept
 			{
+				Action &a = parent[index];
 				if (a.offset == 0)
 				{
 					assert(a.size == 0);
 					a.offset = m_offset;
 				}
 				ActionList result(m_data.data() + a.offset, a.size);
-				result.m_distance_from_root = 1;
+				result.m_distance_from_root = parent.m_distance_from_root + 1;
+				result.last_move = a.move;
 				return result;
 			}
 			void increment(size_t num = 1) noexcept
 			{
 				assert(m_offset + num < size());
 				m_offset += num;
+			}
+			void decrement(size_t num = 1) noexcept
+			{
+				assert(0 <= m_offset - num);
+				m_offset -= num;
 			}
 			size_t size() const noexcept
 			{
@@ -227,6 +234,11 @@ namespace ag
 			size_t offset() const noexcept
 			{
 				return m_offset;
+			}
+			Action& operator[](size_t index)
+			{
+				assert(index < size());
+				return m_data[index];
 			}
 	};
 

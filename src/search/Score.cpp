@@ -37,7 +37,6 @@ namespace ag
 				return "WIN";
 		}
 	}
-
 	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove)
 	{
 		switch (outcome)
@@ -54,12 +53,31 @@ namespace ag
 		}
 	}
 
+	std::string toString(Bound b)
+	{
+		switch (b)
+		{
+			default:
+			case Bound::NONE:
+				return "NONE";
+			case Bound::LOWER:
+				return "LOWER";
+			case Bound::UPPER:
+				return "UPPER";
+			case Bound::EXACT:
+				return "EXACT";
+		}
+	}
+
 	std::string Score::toString() const
 	{
 		switch (getProvenValue())
 		{
 			case ProvenValue::LOSS:
-				return "LOSS in " + std::to_string(getEval());
+				if (isInfinite())
+					return "-INF";
+				else
+					return "LOSS in " + std::to_string(getEval());
 			case ProvenValue::DRAW:
 				return "DRAW in " + std::to_string(getEval());
 			default:
@@ -69,7 +87,10 @@ namespace ag
 				else
 					return std::to_string(getEval());
 			case ProvenValue::WIN:
-				return "WIN in " + std::to_string(-getEval());
+				if (isInfinite())
+					return "+INF";
+				else
+					return "WIN in " + std::to_string(-getEval());
 		}
 	}
 	std::string Score::toFormattedString() const
@@ -77,23 +98,28 @@ namespace ag
 		std::string result;
 		if (isProven())
 		{
-			const int dist = std::min(getDistance(), 999);
-			result = spaces(dist);
-			switch (getProvenValue())
+			if (isInfinite())
+				result = this->toString();
+			else
 			{
-				default:
-					break;
-				case ProvenValue::LOSS:
-					result += 'L';
-					break;
-				case ProvenValue::DRAW:
-					result += 'D';
-					break;
-				case ProvenValue::WIN:
-					result += 'W';
-					break;
+				const int dist = std::min(getDistance(), 999);
+				result = spaces(dist);
+				switch (getProvenValue())
+				{
+					default:
+						break;
+					case ProvenValue::LOSS:
+						result += 'L';
+						break;
+					case ProvenValue::DRAW:
+						result += 'D';
+						break;
+					case ProvenValue::WIN:
+						result += 'W';
+						break;
+				}
+				result += std::to_string(dist);
 			}
-			result += std::to_string(dist);
 		}
 		else
 		{

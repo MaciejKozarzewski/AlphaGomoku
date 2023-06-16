@@ -34,61 +34,67 @@ namespace ag
 	std::string toString(ProvenValue pv);
 	ProvenValue convertProvenValue(GameOutcome outcome, Sign signToMove);
 
+	enum class Bound
+	{
+		NONE,
+		LOWER,
+		UPPER,
+		EXACT
+	};
+
+	std::string toString(Bound b);
+
 	class Score
 	{
 			uint16_t m_data; // 3 bits for proven score, 13 bits for evaluation shifted by +4000
-			constexpr explicit Score(uint16_t raw) noexcept :
-					m_data(raw)
-			{
-			}
 		public:
 			constexpr Score() noexcept :
 					Score(ProvenValue::UNKNOWN, 0)
 			{
 			}
-			constexpr Score(ProvenValue pv) noexcept :
+			constexpr explicit Score(ProvenValue pv) noexcept :
 					Score(pv, 0)
 			{
 			}
-			constexpr Score(int evaluation) noexcept :
+			constexpr explicit Score(int evaluation) noexcept :
 					Score(ProvenValue::UNKNOWN, evaluation)
 			{
 			}
-			constexpr Score(ProvenValue pv, int evaluation) noexcept :
+			constexpr explicit Score(ProvenValue pv, int evaluation) noexcept :
 					m_data(static_cast<uint16_t>(pv) << 13u)
 			{
 				assert(-4000 <= evaluation && evaluation <= 4000);
 				m_data |= static_cast<uint16_t>(4000 + evaluation);
 			}
-			void increaseDistance() noexcept
+			void increaseDistance(int i = 1) noexcept
 			{
 				switch (getProvenValue())
 				{
 					case ProvenValue::LOSS:
 					case ProvenValue::DRAW:
-						*this = *this + 1;
+						*this = *this + i;
 						break;
 					default:
 					case ProvenValue::UNKNOWN:
 						break;
 					case ProvenValue::WIN:
-						*this = *this - 1;
+						*this = *this - i;
 						break;
 				}
 			}
-			void decreaseDistance() noexcept
+			void decreaseDistance(int i = 1) noexcept
 			{
 				switch (getProvenValue())
 				{
 					case ProvenValue::LOSS:
 					case ProvenValue::DRAW:
-						*this = *this - 1;
+						*this = *this - i;
 						break;
 					default:
 					case ProvenValue::UNKNOWN:
 						break;
 					case ProvenValue::WIN:
-						*this = *this + 1;
+						*this = *this + i;
 						break;
 				}
 			}
@@ -112,7 +118,7 @@ namespace ag
 			}
 			ProvenValue getProvenValue() const noexcept
 			{
-				return static_cast<ProvenValue>(m_data >> 13u);
+				return static_cast<ProvenValue>((m_data >> 13u) & 3u);
 			}
 			bool isUnproven() const noexcept
 			{
@@ -120,11 +126,11 @@ namespace ag
 			}
 			bool isProven() const noexcept
 			{
-				return getProvenValue() != ProvenValue::UNKNOWN;
+				return getProvenValue() != ProvenValue::UNKNOWN and isFinite();
 			}
 			bool isLoss() const noexcept
 			{
-				return getProvenValue() == ProvenValue::LOSS;
+				return getProvenValue() == ProvenValue::LOSS and isFinite();
 			}
 			bool isDraw() const noexcept
 			{
@@ -132,16 +138,33 @@ namespace ag
 			}
 			bool isWin() const noexcept
 			{
-				return getProvenValue() == ProvenValue::WIN;
+				return getProvenValue() == ProvenValue::WIN and isFinite();
+			}
+
+			bool isFinite() const noexcept
+			{
+				return not isInfinite();
+			}
+			bool isInfinite() const noexcept
+			{
+				return *this == Score::minus_infinity() or *this == Score::plus_infinity();
+			}
+			static Score minus_infinity() noexcept
+			{
+				return Score::from_short(static_cast<uint16_t>(0x0000));
+			}
+			static Score plus_infinity() noexcept
+			{
+				return Score::from_short(static_cast<uint16_t>(0xFFFF));
 			}
 
 			static Score min_value() noexcept
 			{
-				return Score(ProvenValue::LOSS, -4000);
+				return minus_infinity();
 			}
 			static Score max_value() noexcept
 			{
-				return Score(ProvenValue::WIN, +4000);
+				return plus_infinity();
 			}
 			static Score min_eval() noexcept
 			{
@@ -160,10 +183,6 @@ namespace ag
 			{
 				return Score(ProvenValue::LOSS, +plys);
 			}
-			static Score forbidden() noexcept
-			{
-				return Score(ProvenValue::LOSS);
-			}
 			static Score draw() noexcept
 			{
 				return Score(ProvenValue::DRAW);
@@ -181,11 +200,13 @@ namespace ag
 				return Score(ProvenValue::WIN, -plys);
 			}
 
-			static Score from_short(uint16_t raw) noexcept
+			static constexpr Score from_short(uint16_t raw) noexcept
 			{
-				return Score(raw);
+				Score result;
+				result.m_data = raw;
+				return result;
 			}
-			static uint16_t to_short(const Score &score) noexcept
+			static constexpr uint16_t to_short(const Score &score) noexcept
 			{
 				return score.m_data;
 			}
@@ -199,23 +220,23 @@ namespace ag
 				switch (a.getProvenValue())
 				{
 					case ProvenValue::LOSS:
-						return Score(ProvenValue::WIN, -a.getEval());
+						return a.isFinite() ? Score(ProvenValue::WIN, -a.getEval()) : Score::plus_infinity();
 					case ProvenValue::DRAW:
 						return Score(ProvenValue::DRAW, a.getEval());
 					default:
 					case ProvenValue::UNKNOWN:
 						return Score(ProvenValue::UNKNOWN, -a.getEval());
 					case ProvenValue::WIN:
-						return Score(ProvenValue::LOSS, -a.getEval());
+						return a.isFinite() ? Score(ProvenValue::LOSS, -a.getEval()) : Score::minus_infinity();
 				}
 			}
 			friend Score operator+(const Score &a, int i) noexcept
 			{
-				return Score(a.getProvenValue(), a.getEval() + i);
+				return a.isFinite() ? Score(a.getProvenValue(), a.getEval() + i) : a;
 			}
 			friend Score operator-(const Score &a, int i) noexcept
 			{
-				return Score(a.getProvenValue(), a.getEval() - i);
+				return a.isFinite() ? Score(a.getProvenValue(), a.getEval() - i) : a;
 			}
 
 			friend bool operator==(const Score &lhs, const Score &rhs) noexcept
@@ -247,15 +268,51 @@ namespace ag
 				switch (getProvenValue())
 				{
 					case ProvenValue::LOSS:
-						return Value::loss();
+						return isFinite() ? Value::loss() : Value();
 					case ProvenValue::DRAW:
 						return Value::draw();
 					case ProvenValue::UNKNOWN:
 						return Value((1000 + getEval()) / 2000.0f, 0.0f);
 					case ProvenValue::WIN:
-						return Value::win();
+						return isFinite() ? Value::win() : Value();
 					default:
 						return Value();
+				}
+			}
+			/*
+			 * Invert score and increase the distance to win/loss
+			 */
+			friend Score invert_up(Score s) noexcept
+			{
+				switch (s.getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return s.isFinite() ? Score::win_in(s.getDistance() + 1) : -s;
+					case ProvenValue::DRAW:
+						return Score::draw_in(s.getDistance() + 1);
+					default:
+					case ProvenValue::UNKNOWN:
+						return -s;
+					case ProvenValue::WIN:
+						return s.isFinite() ? Score::loss_in(s.getDistance() + 1) : -s;
+				}
+			}
+			/*
+			 * Invert score and decrease the distance to win/loss
+			 */
+			friend Score invert_down(Score s) noexcept
+			{
+				switch (s.getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return s.isFinite() ? Score::win_in(s.getDistance() - 1) : -s;
+					case ProvenValue::DRAW:
+						return Score::draw_in(s.getDistance() - 1);
+					default:
+					case ProvenValue::UNKNOWN:
+						return -s;
+					case ProvenValue::WIN:
+						return s.isFinite() ? Score::loss_in(s.getDistance() - 1) : -s;
 				}
 			}
 

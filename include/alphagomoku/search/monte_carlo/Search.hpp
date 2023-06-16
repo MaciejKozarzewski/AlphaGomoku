@@ -12,6 +12,7 @@
 #include <alphagomoku/game/Game.hpp>
 #include <alphagomoku/search/monte_carlo/SearchTask.hpp>
 #include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
+#include <alphagomoku/search/alpha_beta/AlphaBetaSearch.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/utils/matrix.hpp>
@@ -60,6 +61,7 @@ namespace ag
 			SearchTaskList tasks_list_buffer_1;
 
 			ThreatSpaceSearch solver;
+//			AlphaBetaSearch ab_search;
 
 			GameConfig game_config;
 			SearchConfig search_config;

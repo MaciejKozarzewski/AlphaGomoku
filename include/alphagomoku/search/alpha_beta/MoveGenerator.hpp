@@ -64,6 +64,7 @@ namespace ag
 			BitMask2D<uint32_t, 32> moves;
 			ActionList *actions = nullptr;
 
+			TimedStat m_total_time;
 			TimedStat m_defensive_moves;
 			TimedStat m_draw_in_1;
 			TimedStat m_win_in_1;
@@ -71,9 +72,7 @@ namespace ag
 			TimedStat m_win_in_3;
 			TimedStat m_loss_in_4;
 			TimedStat m_win_in_5;
-			TimedStat m_own_4x3_forks;
-			TimedStat m_own_half_open_fours;
-			TimedStat m_solve_own_fork_4x3;
+			TimedStat m_loss_in_6;
 			TimedStat m_forbidden_moves;
 			TimedStat m_mark_neighborhood;
 			TimedStat m_remaining_moves;
@@ -97,12 +96,15 @@ namespace ag
 			Result try_win_in_3();
 			Result defend_loss_in_4();
 			Result try_win_in_5();
+			Result defend_loss_in_6();
+			Result try_win_in_7();
 			Score add_own_4x3_forks();
 			void add_own_half_open_fours();
 			Score try_solve_own_fork_4x3(Location move);
 			void mark_forbidden_moves();
 			BitMask2D<uint32_t, 32> mark_neighborhood();
-			void create_remaining_moves(const BitMask2D<uint32_t, 32> &mask);
+			BitMask2D<uint32_t, 32> mark_star_like_pattern_for(Sign s);
+			void create_remaining_moves(const BitMask2D<uint32_t, 32> &mask, Score s = Score());
 
 			Sign get_own_sign() const noexcept;
 			Sign get_opponent_sign() const noexcept;
@@ -114,6 +116,7 @@ namespace ag
 			bool is_forbidden(Sign sign, Location loc) const noexcept;
 			const LocationList& get_copy_of(const LocationList &list);
 			bool is_move_valid(Move m) const noexcept;
+			bool is_possible(Score s) const noexcept;
 	};
 
 } /* namespace ag */

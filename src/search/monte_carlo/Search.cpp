@@ -85,6 +85,7 @@ namespace ag
 			tasks_list_buffer_0(gameOptions, searchOptions.max_batch_size),
 			tasks_list_buffer_1(gameOptions, searchOptions.max_batch_size),
 			solver(gameOptions, searchOptions.tss_config),
+//			ab_search(gameOptions, MoveGeneratorMode::OPTIMAL),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{
@@ -110,6 +111,7 @@ namespace ag
 	}
 	SearchStats Search::getStats() const noexcept
 	{
+//		ab_search.print_stats();
 		return stats;
 	}
 	void Search::setBoard(const matrix<Sign> &board, Sign signToMove)
@@ -168,6 +170,7 @@ namespace ag
 		stats.solve.startTimer();
 		for (int i = 0; i < get_buffer().storedElements(); i++)
 			solver.solve(get_buffer().get(i), static_cast<TssMode>(search_config.tss_config.mode), search_config.tss_config.max_positions);
+//			ab_search.solve(get_buffer().get(i), 100, search_config.tss_config.max_positions);
 		stats.solve.stopTimer(get_buffer().storedElements());
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)

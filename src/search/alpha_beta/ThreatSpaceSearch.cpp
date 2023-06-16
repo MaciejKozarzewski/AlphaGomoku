@@ -407,7 +407,7 @@ namespace ag
 				shared_table.prefetch(hash_key);
 				pattern_calculator.addMove(move);
 
-				ActionList next_ply_actions = action_stack.create_from_action(actions[i]);
+				ActionList next_ply_actions = action_stack.create_from_actions(actions, i);
 
 				Score tmp = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions);
 				tmp.increaseDistance();
@@ -473,7 +473,7 @@ namespace ag
 			result += own_values[i] * pattern_calculator.getThreatHistogram(own_sign).numberOf(static_cast<ThreatType>(i));
 			result += opp_values[i] * pattern_calculator.getThreatHistogram(opponent_sign).numberOf(static_cast<ThreatType>(i));
 		}
-		return std::max(-4000, std::min(4000, result));
+		return Score(std::max(-4000, std::min(4000, result)));
 	}
 
 } /* namespace ag */

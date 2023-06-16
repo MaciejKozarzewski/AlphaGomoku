@@ -56,6 +56,10 @@ namespace ag
 			bool was_processed_by_solver = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
 		public:
 			SearchTask(GameConfig config);
+			const GameConfig& getConfig() const noexcept
+			{
+				return game_config;
+			}
 			void set(const matrix<Sign> &base, Sign signToMove);
 			int getAbsoluteDepth() const noexcept
 			{
