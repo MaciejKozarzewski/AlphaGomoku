@@ -50,7 +50,7 @@ namespace ag
 			{
 					static constexpr float information_leak_threshold = 0.01f;
 					static constexpr int initial_node_cache_size = 65536;
-					static constexpr int edge_bucket_size = 100000;
+					static constexpr int edge_bucket_size = 200000;
 					static constexpr int node_bucket_size = 10000;
 			};
 		public:
