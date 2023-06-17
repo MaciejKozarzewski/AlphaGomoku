@@ -21,12 +21,12 @@
 #include <cstring>
 
 #if defined(__linux__)
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
+#  include <stdio.h>
+#  include <stdlib.h>
+#  include <unistd.h>
+#  include <sys/wait.h>
 #elif defined(_WIN32)
-
+#  include <windows.h>
 #endif
 
 #define CHECK_ERROR(x, msg) if ((x) == -1) { std::cerr << (msg) << std::endl; exit(1); }
@@ -34,6 +34,24 @@
 namespace
 {
 	using namespace ag;
+
+	class Redirect
+	{
+			std::streambuf *_coutbuf;
+			std::ostream &_outf;
+		public:
+			explicit Redirect(std::ostream &stream) :
+					_coutbuf(std::cout.rdbuf()),   // save original rdbuf
+					_outf(stream)
+			{
+				std::cout.rdbuf(_outf.rdbuf()); // replace cout's rdbuf with the file's rdbuf
+			}
+			~Redirect()
+			{
+				std::cout << std::flush; // restore cout's rdbuf to the original
+				std::cout.rdbuf(_coutbuf);
+			}
+	};
 
 	bool run_and_redirect_stream(std::ostream &stream, std::function<void()> func)
 	{
@@ -81,27 +99,13 @@ namespace
 			return status == 0;
 		}
 #elif defined(_WIN32)
-
+		Redirect tmp(stream);
+		func();
+		return true;
 #endif
 	}
 
-	class Redirect
-	{
-			std::streambuf *_coutbuf;
-			std::ostream &_outf;
-		public:
-			explicit Redirect(std::ostream &stream) :
-					_coutbuf(std::cout.rdbuf()),   // save original rdbuf
-					_outf(stream)
-			{
-				std::cout.rdbuf(_outf.rdbuf()); // replace cout's rdbuf with the file's rdbuf
-			}
-			~Redirect()
-			{
-				std::cout << std::flush; // restore cout's rdbuf to the original
-				std::cout.rdbuf(_coutbuf);
-			}
-	};
+
 	class PrintAndSave
 	{
 			std::ostream &_outf;

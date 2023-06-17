@@ -244,6 +244,8 @@ namespace ag
 			}
 			if (cmd == "benchmark")
 			{
+				config = createDefaultConfig();
+				setup_paths_in_config();
 				benchmark();
 				is_recognized_command = true;
 			}
