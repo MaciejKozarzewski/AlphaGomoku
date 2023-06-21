@@ -21,13 +21,6 @@ namespace
 	{
 		return std::to_string(m.col) + " " + std::to_string(m.row);
 	}
-	std::string add_leading_zero(int x)
-	{
-		if (x < 10)
-			return "0" + std::to_string(x);
-		else
-			return std::to_string(x);
-	}
 }
 
 namespace ag
@@ -143,11 +136,6 @@ namespace ag
 		{
 
 		}
-		if (msg.holdsString()) // used to swap colors
-		{
-			if (msg.getString() == "swap")
-				sender.send("SWAP");
-		}
 		if (msg.holdsMove()) // used to return the best move
 		{
 			assert(msg.getMove().sign == get_sign_to_move());
@@ -173,7 +161,7 @@ namespace ag
 	}
 	void YixinBoardProtocol::info_max_node(InputListener &listener)
 	{
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "max_node", extract_command_data(listener, "info max_node") }));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "max_nodes", extract_command_data(listener, "info max_node") }));
 	}
 	void YixinBoardProtocol::info_time_increment(InputListener &listener)
 	{
@@ -207,7 +195,7 @@ namespace ag
 	void YixinBoardProtocol::info_rule(InputListener &listener)
 	{
 		const std::string data = extract_command_data(listener, "info rule");
-		is_renju_rule = (std::stoi(data) == 2);
+		is_renju_rule =(std::stoi(data) == 2);
 		switch (std::stoi(data))
 		{
 			case 0:
@@ -237,8 +225,10 @@ namespace ag
 		{
 			case 2:
 			{
-				input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
-				input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(1) }));
+				const int size = std::stoi(tmp.at(1));
+				setup_board_size(size, size);
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", std::to_string(size) }));
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", std::to_string(size) }));
 				input_queue.push(Message(MessageType::START_PROGRAM));
 				break;
 			}
@@ -246,8 +236,10 @@ namespace ag
 			{
 				if (std::stoi(tmp.at(1)) == std::stoi(tmp.at(2))) // actually a square board
 				{
-					input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
-					input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(2) }));
+					const int size = std::stoi(tmp.at(1));
+					setup_board_size(size, size);
+					input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", std::to_string(size) }));
+					input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", std::to_string(size) }));
 					input_queue.push(Message(MessageType::START_PROGRAM));
 				}
 				else
@@ -280,7 +272,7 @@ namespace ag
 			for (int r = 0; r < board.rows(); r++)
 				for (int c = 0; c < board.cols(); c++)
 					if (isForbidden(board, Move(r, c, Sign::CROSS)))
-						response += add_leading_zero(c) + add_leading_zero(r);
+						response += ag::zfill(c, 2) + ag::zfill(r, 2);
 			output_queue.push(Message(MessageType::PLAIN_STRING, response));
 		}
 		else
@@ -316,6 +308,7 @@ namespace ag
 
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 //		input_queue.push(Message(MessageType::START_SEARCH, "balance " + std::to_string(n)));
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	/*
 	 * hashtable
@@ -367,34 +360,33 @@ namespace ag
 		{
 		}
 
-		list_of_moves.clear(); // TODO not sure if I need to clear the list of moves by myself or the GUI will send appropriate yxboard command
 		input_queue.push(Message(MessageType::STOP_SEARCH));
-		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
+		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves)); // current board position will be set by yxboard command before swap2 commands
 		input_queue.push(Message(MessageType::START_SEARCH, "swap2"));
 	}
 	void YixinBoardProtocol::yxsoosorv(InputListener &listener)
 	{
 		const std::string line = listener.getLine();
-		opening_soosorv = true;
-		if (line == "yxsoosorvstep1")
-		{
-		}
-		if (line == "yxsoosorvstep2")
-		{
-		}
-		if (line == "yxsoosorvstep3")
-		{
-		}
-		if (line == "yxsoosorvstep4")
-		{
-		}
-		if (line == "yxsoosorvstep5")
-		{
-		}
-		if (line == "yxsoosorvstep6")
-		{
-		}
-
+//		opening_soosorv = true;
+//		if (line == "yxsoosorvstep1")
+//		{
+//		}
+//		if (line == "yxsoosorvstep2")
+//		{
+//		}
+//		if (line == "yxsoosorvstep3")
+//		{
+//		}
+//		if (line == "yxsoosorvstep4")
+//		{
+//		}
+//		if (line == "yxsoosorvstep5")
+//		{
+//		}
+//		if (line == "yxsoosorvstep6")
+//		{
+//		}
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	/*
 	 * search
@@ -423,21 +415,33 @@ namespace ag
 	}
 	void YixinBoardProtocol::yxblockpathreset(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxblockpathundo(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxblockpath(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxblockreset(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxblockundo(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxsearchdefend(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	/*
 	 * database
@@ -447,12 +451,14 @@ namespace ag
 		listener.consumeLine("yxsetdatabase");
 		std::string path = listener.getLine();
 		// sets path to the database
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxquerydatabaseall(InputListener &listener)
 	{
 		listener.consumeLine("yxquerydatabaseall");
 		list_of_moves = parse_list_of_moves(listener, "done");
 		// seek for board state in the database
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxquerydatabaseone(InputListener &listener)
 	{
@@ -460,18 +466,24 @@ namespace ag
 		list_of_moves = parse_list_of_moves(listener, "done");
 		// seek for board state in the database
 		// TODO how is this different from the above version ???
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxeditlabeldatabase(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxedittvddatabase(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxdeletedatabaseone(InputListener &listener)
 	{
 		listener.consumeLine("yxdeletedatabaseone");
 		list_of_moves = parse_list_of_moves(listener, "done");
 		// deletes entry for given board state from the database
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxdeletedatabaseall(InputListener &listener)
 	{
@@ -505,37 +517,48 @@ namespace ag
 		}
 		// deletes multiple entries for given board state from the database
 		list_of_moves = parse_list_of_moves(listener, "done"); // TODO why do we pass this ???
-
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxsetbestmovedatabase(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxclearbestmovedatabase(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxdbtopos(InputListener &listener)
 	{
 		listener.consumeLine("yxdbtopos");
 		std::string path = listener.getLine();
 		// saves database as pos (probably the format Xa1Ob5 etc.
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxdbtotxt(InputListener &listener)
 	{
 		listener.consumeLine("yxdbtotxt");
 		std::string path = listener.getLine();
 		// saves the database as text
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxtxttodb(InputListener &listener)
 	{
 		listener.consumeLine("yxtxttodb");
 		std::string path = listener.getLine();
 		//loads the database from text representation
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxdbcheck(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 	void YixinBoardProtocol::yxdbfix(InputListener &listener)
 	{
+		listener.consumeLine();
+		output_queue.push(Message(MessageType::ERROR, "Unsupported command"));
 	}
 
 } /* namespace ag */

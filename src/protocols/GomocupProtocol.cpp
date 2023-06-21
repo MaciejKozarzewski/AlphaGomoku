@@ -108,6 +108,11 @@ namespace ag
 			if (playedMoves[i].row == move.row and playedMoves[i].col == move.col)
 				throw ProtocolRuntimeException("Spot " + moveToString(move) + " is already occupied");
 	}
+	void GomocupProtocol::setup_board_size(int rows, int columns) noexcept
+	{
+		this->rows = rows;
+		this->columns = columns;
+	}
 	std::string GomocupProtocol::parse_search_summary(const SearchSummary &summary) const
 	{
 		if (summary.node.getVisits() == 0)
@@ -335,16 +340,16 @@ namespace ag
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		input_queue.push(Message(MessageType::START_PROGRAM));
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(1) }));
-		const int size = square(std::stoi(tmp.at(1)));
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "draw_after", std::to_string(size) }));
+		const int size = std::stoi(tmp.at(1));
 
-		if (std::stoi(tmp.at(1)) == 15 or std::stoi(tmp.at(1)) == 20)
+		input_queue.push(Message(MessageType::START_PROGRAM));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", std::to_string(size) }));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", std::to_string(size) }));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "draw_after", std::to_string(square(size)) }));
+
+		if (size == 15 or size == 20)
 		{
-			rows = std::stoi(tmp.at(1));
-			columns = std::stoi(tmp.at(1));
+			setup_board_size(size, size);
 			output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 		}
 		else
@@ -361,15 +366,22 @@ namespace ag
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		if (std::stoi(tmp.at(0)) == std::stoi(tmp.at(1))) // actually a square board
+		const int tmp_rows = std::stoi(tmp.at(1));
+		const int tmp_cols = std::stoi(tmp.at(0));
+
+		if (tmp_rows == tmp_cols) // actually a square board
 		{
-			rows = std::stoi(tmp.at(1));
-			columns = std::stoi(tmp.at(0));
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", tmp.at(1) }));
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", tmp.at(0) }));
-			const int size = std::stoi(tmp.at(1)) * std::stoi(tmp.at(0));
-			input_queue.push(Message(MessageType::SET_OPTION, Option { "draw_after", std::to_string(size) }));
-			input_queue.push(Message(MessageType::START_PROGRAM));
+			const int size = tmp_rows;
+			if (size == 15 or size == 20)
+			{
+				setup_board_size(size, size);
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", std::to_string(size) }));
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", std::to_string(size) }));
+				input_queue.push(Message(MessageType::SET_OPTION, Option { "draw_after", std::to_string(square(size)) }));
+				input_queue.push(Message(MessageType::START_PROGRAM));
+			}
+			else
+				output_queue.push(Message(MessageType::ERROR, "Only 15x15 or 20x20 boards are supported"));
 		}
 		else
 			output_queue.push(Message(MessageType::ERROR, "Rectangular boards are not supported"));

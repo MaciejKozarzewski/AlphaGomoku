@@ -30,6 +30,7 @@ namespace ag
 			Sign get_sign_to_move() const noexcept;
 			void add_new_move(Move move);
 			void check_move_validity(Move move, const std::vector<Move> &playedMoves) const;
+			void setup_board_size(int rows, int columns) noexcept;
 			std::string parse_search_summary(const SearchSummary &summary) const;
 			std::vector<Move> parse_list_of_moves(InputListener &listener, const std::string &ending) const;
 			std::vector<Move> parse_ordered_moves(InputListener &listener, const std::string &ending) const;
