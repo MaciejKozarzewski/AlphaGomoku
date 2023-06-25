@@ -66,6 +66,11 @@ namespace ag
 			version();
 			return false;
 		}
+		if (list_devices)
+		{
+			print_devices();
+			return false;
+		}
 		if (run_configuration)
 		{
 			configure();
@@ -210,6 +215,8 @@ namespace ag
 		{	this->display_help = true;});
 		argument_parser.addArgument("--version", "-v").help("display version information and exit").action([this]()
 		{	this->display_version = true;});
+		argument_parser.addArgument("--list-devices").help("detect and list all devices that can be used, then exit").action([this]()
+		{	this->list_devices = true;});
 		argument_parser.addArgument("--load-config").help("load configuration file named <value> with path relative to the executable. "
 				"If this option is not specified, program will load file \"config.json\".").action([this](const std::string &arg)
 		{	this ->name_of_config_file = arg;});
@@ -240,6 +247,11 @@ namespace ag
 			if (cmd == "version")
 			{
 				version();
+				is_recognized_command = true;
+			}
+			if (cmd == "list-devices")
+			{
+				print_devices();
 				is_recognized_command = true;
 			}
 			if (cmd == "benchmark")
@@ -286,6 +298,11 @@ namespace ag
 		result += ProgramInfo::build() + '\n';
 		result += ProgramInfo::license() + '\n';
 		result += "For more information visit " + ProgramInfo::website() + '\n';
+		output_sender.send(result);
+	}
+	void ProgramManager::print_devices() const
+	{
+		const std::string result = "Detected following devices:\n" + ml::Device::hardwareInfo();
 		output_sender.send(result);
 	}
 	void ProgramManager::benchmark() const

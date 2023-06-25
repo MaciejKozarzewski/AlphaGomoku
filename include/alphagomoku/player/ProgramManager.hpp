@@ -59,6 +59,7 @@ namespace ag
 
 			bool display_help = false;
 			bool display_version = false;
+			bool list_devices = false;
 			bool run_benchmark = false;
 			bool run_configuration = false;
 			bool run_selfcheck = false;
@@ -78,6 +79,7 @@ namespace ag
 			void process_pre_launch_commands();
 			void help() const;
 			void version() const;
+			void print_devices() const;
 			void benchmark() const;
 			void configure();
 			void selfcheck() const;
