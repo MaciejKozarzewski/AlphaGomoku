@@ -3,9 +3,9 @@ project(AlphaGomoku VERSION 5.6.0 DESCRIPTION "Alpha zero for the game of Gomoku
 
 option(BUILD_TESTING "Build unit tests?" ON)
 option(BUILD_WITH_OPENBLAS "Build with OpenBlas support" OFF)
-option(BUILD_WITH_CUDA "Build with CUDA support" OFF)
+option(BUILD_WITH_CUDA "Build with CUDA support" ON)
 option(BUILD_WITH_CUDNN "Build with CUDNN support" OFF)
-set(MINML_BACKEND_PATH "C:/Users/mk/cpp-workspace/minml/" CACHE STRING "Path to ml backend library" FORCE)
+set(MINML_BACKEND_PATH "/home/maciek/cpp_workspace/minml/" CACHE STRING "Path to ml backend library" FORCE)
 set(CMAKE_DEBUG_POSTFIX "_d" CACHE STRING "Choose debug postfix" FORCE)
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose build type" FORCE)
 
@@ -68,12 +68,12 @@ endif()
 
 target_link_libraries(${LibName} PUBLIC z pthread)
 
-# find_package(OpenMP)
-# if(OpenMP_CXX_FOUND)
-# 	target_link_libraries(${LibName} PUBLIC OpenMP::OpenMP_CXX)
-# else()
-# 	message(FATAL_ERROR "no OpenMP")
-# endif()
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+	target_link_libraries(${LibName} PUBLIC OpenMP::OpenMP_CXX)
+else()
+	message(FATAL_ERROR "no OpenMP")
+endif()
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_WITH_OPENBLAS)
 	target_compile_definitions(${LibName} PRIVATE USE_OPENBLAS=1)
