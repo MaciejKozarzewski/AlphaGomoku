@@ -318,10 +318,10 @@ namespace ag
 		{
 //			TimerGuard tg(stats.refresh);
 
+//			current_depth = 0;
 			current_depth = calc.getCurrentDepth();
 
 			added_features.clear();
-
 			if (calc.getSignToMove() == Sign::CROSS)
 				added_features.push_back(0);
 
@@ -340,6 +340,7 @@ namespace ag
 					added_features.push_back(1 + 16 * i + 14 + static_cast<int>(calc.getBoard()[i]) - 1);
 
 			refresh_function(weights.layer_0, get_current_accumulator(), added_features);
+			added_features.clear();
 //			for (int i = 0; i < accumulator.size(); i++)
 //				std::cout << accumulator.data()[i] << ' ';
 //			std::cout << '\n';
@@ -352,7 +353,7 @@ namespace ag
 			current_depth = calc.getCurrentDepth();
 			if (is_accumulator_ready)
 				return;
-
+//
 			added_features.clear();
 			removed_features.clear();
 			if (calc.getSignToMove() == Sign::CROSS)
@@ -404,6 +405,43 @@ namespace ag
 		float InferenceNNUE::forward()
 		{
 //			TimerGuard tg(stats.forward);
+
+//			std::cout << "added   : ";
+//			for (size_t i = 0; i < added_features.size(); i++)
+//				std::cout << added_features[i] << ' ';
+//			std::cout << '\n' << "removed : ";
+//			for (size_t i = 0; i < removed_features.size(); i++)
+//				std::cout << removed_features[i] << ' ';
+//			std::cout << '\n';
+
+//			size_t i = 0;
+//			while (i < added_features.size())
+//			{
+//				bool found_duplicate = false;
+//				for (size_t j = 0; j < removed_features.size(); j++)
+//					if (added_features[i] == removed_features[j])
+//					{ // found an element that appears in both lists
+//						added_features.erase(added_features.begin() + i);
+//						removed_features.erase(removed_features.begin() + j);
+//						found_duplicate = true;
+//						break;
+//					}
+//				if (not found_duplicate)
+//					i++;
+//			}
+
+//			std::cout << "added   : ";
+//			for (size_t i = 0; i < added_features.size(); i++)
+//				std::cout << added_features[i] << ' ';
+//			std::cout << '\n' << "removed : ";
+//			for (size_t i = 0; i < removed_features.size(); i++)
+//				std::cout << removed_features[i] << ' ';
+//			std::cout << '\n' << '\n';
+
+//			update_function(weights.layer_0, get_previous_accumulator(), get_current_accumulator(), removed_features, added_features);
+//			added_features.clear();
+//			removed_features.clear();
+
 			return forward_function(get_current_accumulator(), weights.layer_1, weights.fp32_layers);
 		}
 		void InferenceNNUE::print_stats() const
@@ -440,11 +478,13 @@ namespace ag
 		Accumulator<int16_t>& InferenceNNUE::get_current_accumulator()
 		{
 			return accumulator_stack[current_depth];
+//			return accumulator_stack[0];
 		}
 		Accumulator<int16_t>& InferenceNNUE::get_previous_accumulator()
 		{
 			assert(current_depth > 0);
 			return accumulator_stack[current_depth - 1];
+//			return accumulator_stack[0];
 		}
 		int InferenceNNUE::get_row_index(Location loc) const noexcept
 		{

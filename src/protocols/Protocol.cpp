@@ -80,7 +80,7 @@ namespace ag
 	std::string InputListener::read_line_from_stream()
 	{
 		std::string result;
-		getline(*input_stream, result);
+		std::getline(*input_stream, result);
 		if (result.back() == '\r') // remove '\r' character from the end, if exists
 			result.pop_back();
 		if (not case_sensitive)

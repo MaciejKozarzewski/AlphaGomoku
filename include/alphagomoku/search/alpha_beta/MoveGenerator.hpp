@@ -73,6 +73,7 @@ namespace ag
 			TimedStat m_loss_in_4;
 			TimedStat m_win_in_5;
 			TimedStat m_loss_in_6;
+			TimedStat m_win_in_7;
 			TimedStat m_forbidden_moves;
 			TimedStat m_mark_neighborhood;
 			TimedStat m_remaining_moves;

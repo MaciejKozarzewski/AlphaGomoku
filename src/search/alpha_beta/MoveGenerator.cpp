@@ -154,6 +154,7 @@ namespace ag
 			m_loss_in_4("defend_loss_in_4       "),
 			m_win_in_5("try_win_in_5           "),
 			m_loss_in_6("defend_loss_in_6       "),
+			m_win_in_7("try_win_in_7           "),
 			m_forbidden_moves("mark_forbidden_moves   "),
 			m_mark_neighborhood("mark_neighborhood      "),
 			m_remaining_moves("create_remaining_moves ")
@@ -205,8 +206,8 @@ namespace ag
 				result = try_win_in_5();
 			if (result.must_continue and distance_to_draw >= 6)
 				result = defend_loss_in_6();
-			if (result.must_continue and distance_to_draw >= 7)
-				result = try_win_in_7();
+//			if (result.must_continue and distance_to_draw >= 7)
+//				result = try_win_in_7();
 			if (result.must_continue and distance_to_draw >= 3)
 				add_own_half_open_fours();
 		}
@@ -786,13 +787,13 @@ namespace ag
 					for (Direction dir = 0; dir < 4; dir++)
 					{
 						const ReducedPattern raw_pattern = pattern_calculator.getReducedPatternAt(iter->row, iter->col, dir);
-						// the version below produces more moves than the exact solution but is much faster
 						if (count_signs(get_own_sign(), raw_pattern) >= 2)
 						{ // if there are at least 2 our stones we can possibly create half open 3, so we mark all 9 moves in this line
 							for (int i = -4; i <= 4; i++)
 								if (is_spot_empty(i, raw_pattern))
 									add_move<EXCLUDE_DUPLICATE>(shiftInDirection(dir, i, *iter));
 						}
+						// the version above produces more moves than the exact solution below but is much faster
 
 //						for (int i = -4; i <= 4; i++)
 //							if (is_spot_empty(i, raw_pattern))
@@ -854,7 +855,7 @@ namespace ag
 	}
 	MoveGenerator::Result MoveGenerator::try_win_in_7()
 	{
-		//		TimerGuard tg(m_win_in_5);
+//		TimerGuard tg(m_win_in_7);
 		assert(actions->baseline_score == Score());
 		assert(actions->must_defend == false && actions->has_initiative == false);
 
@@ -866,13 +867,11 @@ namespace ag
 		if (not is_anything_forbidden_for(get_own_sign()))
 		{ // in renju, for cross (black) player it is possible that in 3x3 fork some open 3 can't be converted to a four because they will be forbidden for some reason
 		  // but it is too complicated to solve statically, so we check only for circle (white) player
-			const int half_open_4_count = get_opponent_threats(ThreatType::HALF_OPEN_4).size();
-			assert(half_open_4_count > 0); // if it is zero, then it should have been handled earlier
-			if (half_open_4_count <= 2)
-			{ // opponent has no four to make
+			if (get_opponent_threats(ThreatType::HALF_OPEN_4).size() <= 2)
+			{ // opponent has at most two fours to make
 				const LocationList &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
 				if (own_fork_3x3.size() > 0)
-				{ // it happens quite often (approximately 1 in 150 positions)
+				{ // it happens quite often (approximately 1 in 115 positions)
 					total_hits.increment();
 //					add_moves<EXCLUDE_DUPLICATE>(own_fork_3x3, Score::win_in(7));
 //					return Result::canStopNow(Score::win_in(7));
