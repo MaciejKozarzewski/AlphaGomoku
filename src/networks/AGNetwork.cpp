@@ -211,11 +211,6 @@ namespace ag
 		ml::DataType new_type = ml::DataType::FLOAT32;
 		if (graph.device().supportsType(ml::DataType::FLOAT16))
 			new_type = ml::DataType::FLOAT16;
-		else
-		{
-			if (graph.device().supportsType(ml::DataType::BFLOAT16) and graph.device().isCPU()) // on gpus bf16 can be slower than fp16 (and has worse accuracy)
-				new_type = ml::DataType::BFLOAT16;
-		}
 		if (new_type != ml::DataType::FLOAT32)
 		{
 			graph.convertTo(new_type);
