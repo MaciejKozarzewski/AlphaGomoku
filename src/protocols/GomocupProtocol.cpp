@@ -379,6 +379,7 @@ namespace ag
 				input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", std::to_string(size) }));
 				input_queue.push(Message(MessageType::SET_OPTION, Option { "draw_after", std::to_string(square(size)) }));
 				input_queue.push(Message(MessageType::START_PROGRAM));
+				output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 			}
 			else
 				output_queue.push(Message(MessageType::ERROR, "Only 15x15 or 20x20 boards are supported"));
