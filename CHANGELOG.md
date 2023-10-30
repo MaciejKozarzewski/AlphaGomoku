@@ -2,29 +2,46 @@
 # Change Log
 All notable changes to this project will be documented in this file.
  
-## [Unreleased] - 2022-05-26
+## [Unreleased] - 
 ### Added
 ### Changed
 ### Fixed
 
-## [5.6.1] - 2022-06-??
+## [5.7.0] - 2023-10-30
+Bugfixes and speed improvements.
+
+### Added
+- New command line option for listing available devices.
+- Added fp16 support for Ivy Bridge CPUs.
+- New fused gemm+bias+relu kernels for CPU.
+- Support for avx512.
+
+### Changed
+- Removed support for bf16 data type.
+- Reimplemented Winograd transforms in assembly.
+
+### Fixed
+- Fixed Yixinboard protocol implementation.
+- On Windows, zlib is linked statically to mitigate problems when running in Yixinboard.
+
+## [5.6.1] - 2023-06-19
 
 ### Added
 - Added self-check utility.
 
 ### Changed
--  Improved automatic fonfiguration.
+- Improved automatic fonfiguration.
 
 ### Fixed
 - Fixed several SIGILL errors in the ML backend.
-- Fixed typo in Yisinboard protocol implementation.
+- Fixed typo in Yixinboard protocol implementation.
 - Removed unnecessary logging from search threads.
 
-## [5.6.0] - 2022-06-12
+## [5.6.0] - 2023-06-12
  
 ### Added
 - Added support for Renju and Caro rule.
-- Added some support for Yixin protocol.
+- Added some support for Yixin protocol (WIP).
 - Added possibility to support more opening rules (WIP).
 - Search with GPU uses double buffering to improve performance (on my machine up to 20% faster for 1 thread/GPU, 10% for 2 threads/GPU).
 - Added more architectures of the main neural network.
@@ -33,7 +50,6 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Reduced memory consumption of MCTS by about 8% (on average).
 - Solver turned into alpha-beta search.
-- Solver now keeps its entire tree in memory (surprisingly almost no benefit).
 - Final move selection is based on Lower Confidence Bound (LCB) rather than some heuristic formula.
 - Tuned search parameters.
  
