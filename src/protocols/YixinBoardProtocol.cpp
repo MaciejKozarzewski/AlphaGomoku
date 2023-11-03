@@ -285,6 +285,7 @@ namespace ag
 				for (int c = 0; c < board.cols(); c++)
 					if (isForbidden(board, Move(r, c, Sign::CROSS)))
 						response += ag::zfill(c, 2) + ag::zfill(r, 2);
+			response += '.';
 			output_queue.push(Message(MessageType::PLAIN_STRING, response));
 		}
 	}
