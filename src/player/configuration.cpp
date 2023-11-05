@@ -29,12 +29,12 @@ namespace
 		result["conv_networks"]["standard"] = "standard_conv_8x128.bin";
 		result["conv_networks"]["renju"] = "renju_conv_8x128.bin";
 		result["conv_networks"]["caro5"] = "caro5_conv_8x128.bin";
-		result["conv_networks"]["caro6"] = "";
+		result["conv_networks"]["caro6"] = "caro6_conv_8x128.bin";
 
-		result["nnue_networks"]["freestyle"] = "freestyle_nnue_64x16x16x1.bin";
-		result["nnue_networks"]["standard"] = "standard_nnue_64x16x16x1.bin";
-		result["nnue_networks"]["renju"] = "renju_nnue_64x16x16x1.bin";
-		result["nnue_networks"]["caro5"] = "caro5_nnue_64x16x16x1.bin";
+		result["nnue_networks"]["freestyle"] = "";
+		result["nnue_networks"]["standard"] = "";
+		result["nnue_networks"]["renju"] = "";
+		result["nnue_networks"]["caro5"] = "";
 		result["nnue_networks"]["caro6"] = "";
 
 		result["use_symmetries"] = true;
