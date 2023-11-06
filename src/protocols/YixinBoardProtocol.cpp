@@ -19,7 +19,7 @@ namespace
 {
 	std::string move_yx_encoding(ag::Move m)
 	{
-		return std::to_string(m.col) + " " + std::to_string(m.row);
+		return std::to_string(m.row) + " " + std::to_string(m.col);
 	}
 	void consume_list_of_moves(ag::InputListener &listener, const std::string &ending)
 	{
@@ -38,6 +38,7 @@ namespace ag
 	YixinBoardProtocol::YixinBoardProtocol(MessageQueue &queueIN, MessageQueue &queueOUT) :
 			GomocupProtocol(queueIN, queueOUT)
 	{
+		transpose_coords = false;
 		// @formatter:off
 		registerOutputProcessor(MessageType::BEST_MOVE, [this](OutputSender &sender) { this->best_move(sender);});
 
@@ -50,6 +51,8 @@ namespace ag
 		registerInputProcessor("info thread_num",	[this](InputListener &listener) { this->info_thread_num(listener);});
 		registerInputProcessor("info nbest_sym",	[this](InputListener &listener) { this->info_nbest_sym(listener);});
 		registerInputProcessor("info checkmate",	[this](InputListener &listener) { this->info_checkmate(listener);});
+		registerInputProcessor("info hash_size",	[this](InputListener &listener) { this->info_hash_size(listener);});
+		registerInputProcessor("info thread_split_depth",[this](InputListener &listener) { this->info_thread_split_depth(listener);});
 		registerInputProcessor("info rule",			[this](InputListener &listener) { this->info_rule(listener);});
 		registerInputProcessor("info show_detail",	[this](InputListener &listener) { this->info_show_detail(listener);});
 
@@ -140,27 +143,30 @@ namespace ag
 				}
 			}
 			opening_swap2 = false;
+			return;
 		}
 		if (opening_soosorv)
 		{
-
+			return;
 		}
 		if (msg.holdsMove()) // used to return the best move
 		{
 			assert(msg.getMove().sign == get_sign_to_move());
-			sender.send(moveToString(msg.getMove()));
+			sender.send(move_to_string(msg.getMove()));
 			list_of_moves.push_back(msg.getMove());
+			return;
 		}
 		if (msg.holdsListOfMoves()) // used to return multiple moves (for example an opening)
-		{
+		{ // TODO not sure it this is use anywhere within YixinBoard protocol
 			std::string str;
 			for (size_t i = 0; i < msg.getListOfMoves().size(); i++)
 			{
 				if (i != 0)
 					str += ' ';
-				str += moveToString(msg.getListOfMoves().at(i));
+				str += move_to_string(msg.getListOfMoves().at(i));
 			}
 			sender.send(str);
+			return;
 		}
 	}
 
@@ -178,8 +184,9 @@ namespace ag
 	}
 	void YixinBoardProtocol::info_caution_factor(InputListener &listener)
 	{
-		const int cf = 4 - std::stoi(extract_command_data(listener, "info caution_factor")); // value must be inverted as in AG higher values correspond to more aggressive style
-		input_queue.push(Message(MessageType::SET_OPTION, Option { "style", std::to_string(cf) }));
+		listener.consumeLine();
+//		const int cf = 4 - std::stoi(extract_command_data(listener, "info caution_factor")); // value must be inverted as in AG higher values correspond to more aggressive style
+//		input_queue.push(Message(MessageType::SET_OPTION, Option { "style", std::to_string(cf) }));
 	}
 	void YixinBoardProtocol::info_pondering(InputListener &listener)
 	{
@@ -200,6 +207,20 @@ namespace ag
 	void YixinBoardProtocol::info_checkmate(InputListener &listener)
 	{
 		search_type = std::stoi(extract_command_data(listener, "info checkmate"));
+	}
+	void YixinBoardProtocol::info_hash_size(InputListener &listener)
+	{
+		const int hash_size = std::stoi(extract_command_data(listener, "info hash_size"));
+		if (hash_size < 256)
+			output_queue.push(Message(MessageType::INFO_MESSAGE, "Minimum value of 'hash_size' is 8 (256MB)"));
+
+		const uint64_t max_memory = std::max(256, hash_size); // [MB]
+		output_queue.push(Message(MessageType::INFO_MESSAGE, "Using " + std::to_string(max_memory) + "MB of memory"));
+		input_queue.push(Message(MessageType::SET_OPTION, Option { "max_memory", std::to_string(max_memory * 1024 * 1024) }));
+	}
+	void YixinBoardProtocol::info_thread_split_depth(InputListener &listener)
+	{
+		listener.consumeLine(); // this option does not make sense in MCTS
 	}
 	void YixinBoardProtocol::info_rule(InputListener &listener)
 	{
@@ -296,7 +317,7 @@ namespace ag
 		if (tmp.size() != 3u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		int n;
+		int n = 0;
 		if (tmp.at(1) == "one")
 			n = 1;
 		else
@@ -363,12 +384,38 @@ namespace ag
 		opening_swap2 = true;
 		if (line == "yxswap2step1")
 		{
+			list_of_moves.clear(); // YixinBoard may not send board command before starting new swap2 game
+//			yxswap2step1
+//			93452477751 : Answered : MESSAGE SWAP2 MOVE1 3 7
+//			93452477765 : Answered : MESSAGE SWAP2 MOVE2 6 7
+//			93452477768 : Answered : MESSAGE SWAP2 MOVE3 8 7
 		}
 		if (line == "yxswap2step2")
 		{
+//			93846343762 : Received : yxboard
+//			93846343766 : Received : 7,6,2
+//			93846343771 : Received : 6,7,1
+//			93846343775 : Received : 5,6,2
+//			93846343779 : Received : done
+//			93846343785 : Received : yxswap2step2
+//			93853002978 : Answered : MESSAGE SWAP2 MOVE4 6 9
+//			93853002995 : Answered : MESSAGE SWAP2 MOVE5 8 8
+
+//			94311848364 : Answered : MESSAGE SWAP2 SWAP1 YES
 		}
 		if (line == "yxswap2step3")
 		{
+//			94074673973 : Received : yxboard
+//			94074673977 : Received : 5,5,2
+//			94074673981 : Received : 8,7,1
+//			94074673985 : Received : 9,8,2
+//			94074673989 : Received : 7,6,1
+//			94074673993 : Received : 6,5,2
+//			94074673997 : Received : done
+//			94074674002 : Received : yxswap2step3
+
+//			94079443542 : Answered : MESSAGE SWAP2 SWAP2 YES
+//			94191989713 : Answered : MESSAGE SWAP2 SWAP2 NO
 		}
 
 		input_queue.push(Message(MessageType::STOP_SEARCH));
@@ -378,25 +425,34 @@ namespace ag
 	void YixinBoardProtocol::yxsoosorv(InputListener &listener)
 	{
 		const std::string line = listener.getLine();
-//		opening_soosorv = true;
-//		if (line == "yxsoosorvstep1")
-//		{
-//		}
-//		if (line == "yxsoosorvstep2")
-//		{
-//		}
-//		if (line == "yxsoosorvstep3")
-//		{
-//		}
-//		if (line == "yxsoosorvstep4")
-//		{
-//		}
-//		if (line == "yxsoosorvstep5")
-//		{
-//		}
-//		if (line == "yxsoosorvstep6")
-//		{
-//		}
+		opening_soosorv = true;
+		if (line == "yxsoosorvstep1")
+		{
+//			96750807944 : Received : yxsoosorvstep1
+//			96750808033 : Answered : MESSAGE SOOSORV MOVE1 7 7
+//			96750808049 : Answered : MESSAGE SOOSORV MOVE2 6 7
+//			96750808052 : Answered : MESSAGE SOOSORV MOVE3 5 7
+		}
+		if (line == "yxsoosorvstep2")
+		{
+		}
+		if (line == "yxsoosorvstep3")
+		{
+//			96754877762 : Received : yxsoosorvstep3
+//			96754877779 : Received : 7,7
+//			96754877781 : Received : 6,7
+//			96754877783 : Received : 5,7
+//			96754877784 : Received : done
+		}
+		if (line == "yxsoosorvstep4")
+		{
+		}
+		if (line == "yxsoosorvstep5")
+		{
+		}
+		if (line == "yxsoosorvstep6")
+		{
+		}
 		output_queue.push(Message(MessageType::ERROR, "Unsupported command 'yxsoosorv'"));
 	}
 	/*
@@ -416,8 +472,11 @@ namespace ag
 	{
 		// this is a good command, but it should be used to print description of all INFO commands supported by the engine
 		listener.consumeLine("yxshowinfo");
-		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_THREAD " + std::to_string(ml::Device::numberOfCpuCores())));
-		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_HASH_SIZED 20")); // in MCTS engine there is no hash size so we can return anything here
+		const int max_thread_num = ml::Device::numberOfCpuCores();
+		const int max_memory = 20;
+
+		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_THREAD_NUM " + std::to_string(max_thread_num)));
+		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_HASH_SIZED " + std::to_string(max_memory)));
 	}
 	void YixinBoardProtocol::yxprintfeature(InputListener &listener)
 	{
