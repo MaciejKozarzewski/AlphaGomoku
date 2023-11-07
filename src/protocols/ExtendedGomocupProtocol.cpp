@@ -76,12 +76,12 @@ namespace ag
 			assert(msg.getMove().sign == get_sign_to_move());
 			if (is_in_analysis_mode)
 			{
-				sender.send("SUGGEST " + moveToString(msg.getMove()));
+				sender.send("SUGGEST " + move_to_string(msg.getMove()));
 				expects_play_command = true;
 			}
 			else
 			{
-				sender.send(moveToString(msg.getMove()));
+				sender.send(move_to_string(msg.getMove()));
 				list_of_moves.push_back(msg.getMove());
 			}
 		}
@@ -92,7 +92,7 @@ namespace ag
 			{
 				if (i != 0)
 					str += ' ';
-				str += moveToString(msg.getListOfMoves().at(i));
+				str += move_to_string(msg.getListOfMoves().at(i));
 			}
 			sender.send(str);
 		}
@@ -105,7 +105,7 @@ namespace ag
 		const std::vector<std::string> tmp = split(extract_command_data(listener, "info evaluate"), ' ');
 		std::vector<Move> path;
 		for (size_t i = 0; i < tmp.size(); i++)
-			path.push_back(moveFromString(tmp.at(i), Sign::NONE));
+			path.push_back(move_from_string(tmp.at(i), Sign::NONE));
 		input_queue.push(Message(MessageType::INFO_MESSAGE, path));
 	}
 	void ExtendedGomocupProtocol::info_rule(InputListener &listener)
@@ -181,7 +181,7 @@ namespace ag
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
+		const Move new_move = move_from_string(tmp.at(1), get_sign_to_move());
 		add_new_move(new_move);
 		expects_play_command = false;
 		output_queue.push(Message(MessageType::PLAIN_STRING, tmp.at(1)));
@@ -236,7 +236,7 @@ namespace ag
 			for (int r = 0; r < board.rows(); r++)
 				for (int c = 0; c < board.cols(); c++)
 					if (isForbidden(board, Move(r, c, Sign::CROSS)))
-						response += " " + moveToString(Move(r, c));
+						response += " " + move_to_string(Move(r, c));
 			output_queue.push(Message(MessageType::PLAIN_STRING, response));
 		}
 		else

@@ -57,8 +57,6 @@ namespace ag
 
 	std::string zfill(int value, int length);
 	std::string sfill(int value, int length, bool isSigned);
-	std::string moveToString(const ag::Move &m);
-	ag::Move moveFromString(const std::string &str, ag::Sign sign);
 	bool startsWith(const std::string &line, const std::string &prefix);
 	std::vector<std::string> split(const std::string &str, char delimiter);
 	void toLowerCase(std::string &s);

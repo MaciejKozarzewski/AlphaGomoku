@@ -197,24 +197,7 @@ namespace ag
 			result = ' ' + result;
 		return result;
 	}
-	std::string moveToString(const ag::Move &m)
-	{
-		// coordinates in Gomocup protocol are inverted relative to those used internally here
-		return std::to_string(m.col) + "," + std::to_string(m.row);
-	}
-	ag::Move moveFromString(const std::string &str, ag::Sign sign)
-	{
-		std::vector<std::string> tmp = split(str, ',');
-		if (tmp.size() != 2u)
-			throw std::runtime_error("Incorrect move '" + str + "' was passed");
 
-		// coordinates in Gomocup protocol are inverted relative to those used internally here
-		int row = std::stoi(tmp[1]);
-		int col = std::stoi(tmp[0]);
-		if (row < 0 or row > 128 or col < 0 or col > 128)
-			throw std::logic_error("Invalid move '" + str + "'");
-		return ag::Move(row, col, sign);
-	}
 	bool startsWith(const std::string &line, const std::string &prefix)
 	{
 		if (prefix.length() > line.length())
@@ -224,7 +207,7 @@ namespace ag
 			if (prefix.length() == line.length())
 				return line == prefix;
 			else
-				return line.substr(0, prefix.length()) == prefix;
+				return std::equal(prefix.begin(), prefix.end(), line.begin());
 		}
 	}
 	std::vector<std::string> split(const std::string &str, char delimiter)

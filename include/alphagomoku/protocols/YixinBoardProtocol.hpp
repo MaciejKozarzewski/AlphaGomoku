@@ -40,6 +40,8 @@ namespace ag
 			void info_thread_num(InputListener &listener);
 			void info_nbest_sym(InputListener &listener);
 			void info_checkmate(InputListener &listener);
+			void info_hash_size(InputListener &listener);
+			void info_thread_split_depth(InputListener &listener);
 			void info_rule(InputListener &listener);
 			void info_show_detail(InputListener &listener);
 

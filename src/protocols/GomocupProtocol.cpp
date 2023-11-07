@@ -31,6 +31,14 @@ namespace
 				break;
 		return str.substr(start, stop - start);
 	}
+	ag::Move create_move(int row, int column, bool transpose) noexcept
+	{
+		return transpose ? ag::Move(column, row) : ag::Move(row, column);
+	}
+	ag::Move create_move(int row, int column, ag::Sign s, bool transpose) noexcept
+	{
+		return transpose ? ag::Move(s, column, row) : ag::Move(s, row, column);
+	}
 }
 
 namespace ag
@@ -79,6 +87,28 @@ namespace ag
 	/*
 	 * private
 	 */
+	std::string GomocupProtocol::move_to_string(const ag::Move &m) const
+	{
+		if (transpose_coords)
+			return std::to_string(m.col) + "," + std::to_string(m.row);
+		else
+			return std::to_string(m.row) + "," + std::to_string(m.col);
+	}
+	ag::Move GomocupProtocol::move_from_string(const std::string &str, ag::Sign sign) const
+	{
+		std::vector<std::string> tmp = split(str, ',');
+		if (tmp.size() < 2u)
+			throw std::runtime_error("Incorrect move '" + str + "' was passed");
+
+		const int row = std::stoi(tmp[0]);
+		const int col = std::stoi(tmp[1]);
+		if (row < 0 or row >= 128 or col < 0 or col >= 128)
+			throw std::logic_error("Invalid move '" + str + "'");
+		if (transpose_coords)
+			return ag::Move(col, row, sign);
+		else
+			return ag::Move(row, col, sign);
+	}
 	std::string GomocupProtocol::extract_command_data(InputListener &listener, const std::string &command) const
 	{
 		std::string line = listener.getLine();
@@ -103,10 +133,10 @@ namespace ag
 	{
 		if (move.row < 0 or move.row >= rows or move.col < 0 or move.col >= columns)
 			throw ProtocolRuntimeException(
-					"Move " + moveToString(move) + " is outside of " + std::to_string(rows) + "x" + std::to_string(columns) + " board");
+					"Move " + move_to_string(move) + " is outside of " + std::to_string(rows) + "x" + std::to_string(columns) + " board");
 		for (size_t i = 0; i < playedMoves.size(); i++)
 			if (playedMoves[i].row == move.row and playedMoves[i].col == move.col)
-				throw ProtocolRuntimeException("Spot " + moveToString(move) + " is already occupied");
+				throw ProtocolRuntimeException("Spot " + move_to_string(move) + " is already occupied");
 	}
 	void GomocupProtocol::setup_board_size(int rows, int columns) noexcept
 	{
@@ -154,14 +184,14 @@ namespace ag
 		std::vector<Move> opp_moves;
 		while (true)
 		{
-			std::string line = listener.getLine();
+			const std::string line = listener.getLine();
 			if (line == ending)
 				break;
 			std::vector<std::string> tmp = split(line, ',');
 			if (tmp.size() != 3u)
 				throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-			Move m(std::stoi(tmp.at(1)), std::stoi(tmp.at(0)));
+			const Move m = move_from_string(line, Sign::NONE);
 			check_move_validity(m, own_moves);
 			check_move_validity(m, opp_moves);
 
@@ -196,12 +226,12 @@ namespace ag
 				{	m.sign = Sign::CROSS;});
 			}
 			else
-				throw ProtocolRuntimeException("Invalid position - too many stones either color");
+				throw ProtocolRuntimeException("Invalid position - too many stones of either color");
 		}
 
 		std::vector<Move> result;
 		if (own_moves.size() != opp_moves.size())
-		{
+		{ // move one own move to the result list, so in the next loop both lists have the same lengths
 			result.push_back(opp_moves.front());
 			opp_moves.erase(opp_moves.begin());
 		}
@@ -218,14 +248,14 @@ namespace ag
 		Sign sign_to_move = Sign::CROSS;
 		while (true)
 		{
-			std::string line = listener.getLine();
+			const std::string line = listener.getLine();
 			if (line == ending)
 				break;
 			std::vector<std::string> tmp = split(line, ',');
 			if (tmp.size() != 2u)
 				throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-			Move m(std::stoi(tmp.at(1)), std::stoi(tmp.at(0)), sign_to_move);
+			const Move m = move_from_string(line, Sign::NONE);
 			check_move_validity(m, result);
 			result.push_back(m);
 			sign_to_move = invertSign(sign_to_move);
@@ -241,7 +271,7 @@ namespace ag
 		if (msg.holdsMove()) // used to return the best move
 		{
 			assert(msg.getMove().sign == get_sign_to_move());
-			sender.send(moveToString(msg.getMove()));
+			sender.send(move_to_string(msg.getMove()));
 			list_of_moves.push_back(msg.getMove());
 		}
 	}
@@ -326,7 +356,7 @@ namespace ag
 	}
 	void GomocupProtocol::info_evaluate(InputListener &listener)
 	{
-		const Move m = moveFromString(extract_command_data(listener, "info evaluate"), Sign::NONE);
+		const Move m = move_from_string(extract_command_data(listener, "info evaluate"), Sign::NONE);
 		input_queue.push(Message(MessageType::INFO_MESSAGE, std::vector<Move>( { m })));
 	}
 	void GomocupProtocol::info_folder(InputListener &listener)
@@ -416,7 +446,7 @@ namespace ag
 		if (tmp.size() != 2u)
 			throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-		const Move new_move = moveFromString(tmp.at(1), get_sign_to_move());
+		const Move new_move = move_from_string(tmp.at(1), get_sign_to_move());
 		add_new_move(new_move);
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::SET_POSITION, list_of_moves));
@@ -435,9 +465,9 @@ namespace ag
 		else
 		{
 			const Move last_move = list_of_moves.back();
-			const Move move_to_takeback = moveFromString(tmp.at(1), last_move.sign);
+			const Move move_to_takeback = move_from_string(tmp.at(1), last_move.sign);
 			if (last_move != move_to_takeback)
-				output_queue.push(Message(MessageType::ERROR, "Can undo only the last move which is " + moveToString(last_move)));
+				output_queue.push(Message(MessageType::ERROR, "Can undo only the last move which is " + move_to_string(last_move)));
 			else
 			{
 				list_of_moves.pop_back();

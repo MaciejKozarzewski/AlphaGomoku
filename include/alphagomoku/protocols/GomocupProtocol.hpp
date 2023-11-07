@@ -19,6 +19,7 @@ namespace ag
 			std::vector<Move> list_of_moves;
 			int rows = 0;
 			int columns = 0;
+			bool transpose_coords = true;
 
 		public:
 			GomocupProtocol(MessageQueue &queueIN, MessageQueue &queueOUT);
@@ -26,6 +27,9 @@ namespace ag
 			virtual void reset();
 			virtual ProtocolType getType() const noexcept;
 		protected:
+			std::string move_to_string(const Move &m) const;
+			Move move_from_string(const std::string &str, Sign s) const;
+
 			std::string extract_command_data(InputListener &listener, const std::string &command) const;
 			Sign get_sign_to_move() const noexcept;
 			void add_new_move(Move move);
