@@ -267,7 +267,7 @@ namespace ag
 		const Message msg = output_queue.pop();
 		if (msg.holdsString())
 			sender.send("MESSAGE " + msg.getString());
-		if (msg.holdsSearchSummary() and msg.getSearchSummary().node.getVisits() > 0)
+		if (msg.holdsSearchSummary())
 			sender.send("MESSAGE " + parse_search_summary(msg.getSearchSummary()));
 	}
 	void GomocupProtocol::about_engine(OutputSender &sender)
