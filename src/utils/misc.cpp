@@ -231,4 +231,21 @@ namespace ag
 		{	return std::tolower(c);});
 	}
 
+	std::string format_percents(double x)
+	{
+		int tmp = static_cast<int>(1000 * x);
+		return std::to_string(tmp / 10) + '.' + std::to_string(tmp % 10);
+	}
+	std::string trim(const std::string &str)
+	{
+		size_t start = 0, stop = str.length();
+		for (; start < str.length(); start++)
+			if (str[start] != ' ')
+				break;
+		for (; stop > 0; stop--)
+			if (str[stop - 1] != ' ')
+				break;
+		return str.substr(start, stop - start);
+	}
+
 } /* namespace ag */

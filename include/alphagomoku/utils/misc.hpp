@@ -61,6 +61,9 @@ namespace ag
 	std::vector<std::string> split(const std::string &str, char delimiter);
 	void toLowerCase(std::string &s);
 
+	std::string format_percents(double x);
+	std::string trim(const std::string &str);
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_UTILS_MISC_HPP_ */
