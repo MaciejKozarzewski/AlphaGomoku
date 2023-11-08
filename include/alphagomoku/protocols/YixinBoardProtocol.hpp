@@ -10,9 +10,10 @@
 
 #include <alphagomoku/protocols/GomocupProtocol.hpp>
 
+#include <future>
+
 namespace ag
 {
-
 	class YixinBoardProtocol: public GomocupProtocol
 	{
 		private:
@@ -23,13 +24,23 @@ namespace ag
 			int search_type = 0;
 			int nbest = 0;
 
+			std::vector<Move> losing_moves;
+			Move previous_best_move;
+			mutable std::mutex rm_mutex;
+			std::future<void> rm_future;
+			double wait_time = 0.1; // in seconds
+			bool is_running = false;
+			bool waiting_for_first_info = false;
+
 		public:
 			YixinBoardProtocol(MessageQueue &queueIN, MessageQueue &queueOUT);
+			~YixinBoardProtocol();
 
 			void reset();
 			ProtocolType getType() const noexcept;
 		private:
 			void best_move(OutputSender &sender);
+			void info_message(OutputSender &sender);
 
 			void info_max_depth(InputListener &listener);
 			void info_max_node(InputListener &listener);
@@ -46,6 +57,9 @@ namespace ag
 			void info_show_detail(InputListener &listener);
 
 			void start(InputListener &listener);
+			void begin(InputListener &listener);
+			void board(InputListener &listener);
+			void turn(InputListener &listener);
 			void yxboard(InputListener &listener);
 			void yxstop(InputListener &listener);
 			void yxshowforbid(InputListener &listener);
@@ -93,6 +107,11 @@ namespace ag
 			void yxtxttodb(InputListener &listener);
 			void yxdbcheck(InputListener &listener);
 			void yxdbfix(InputListener &listener);
+
+			bool is_realtime_handler_running() const noexcept;
+			void start_realtime_handler();
+			void stop_realtime_handler();
+			void process_realtime_info(const SearchSummary &summary, OutputSender &sender);
 	};
 
 } /* namespace ag */

@@ -6,6 +6,7 @@
  */
 
 #include <alphagomoku/protocols/YixinBoardProtocol.hpp>
+#include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/misc.hpp>
@@ -20,6 +21,10 @@ namespace
 	std::string move_yx_encoding(ag::Move m)
 	{
 		return std::to_string(m.row) + " " + std::to_string(m.col);
+	}
+	std::string move_yx_text(ag::Move m, int boardSize)
+	{
+		return static_cast<char>(static_cast<int>('A') + m.col) + std::to_string(boardSize - m.row);
 	}
 	void consume_list_of_moves(ag::InputListener &listener, const std::string &ending)
 	{
@@ -40,7 +45,8 @@ namespace ag
 	{
 		transpose_coords = false;
 		// @formatter:off
-		registerOutputProcessor(MessageType::BEST_MOVE, [this](OutputSender &sender) { this->best_move(sender);});
+		registerOutputProcessor(MessageType::BEST_MOVE, 	[this](OutputSender &sender) { this->best_move(sender);});
+		registerOutputProcessor(MessageType::INFO_MESSAGE,	[this](OutputSender &sender) { this->info_message(sender);});
 
 		registerInputProcessor("info max_depth", 	[this](InputListener &listener) { this->info_max_depth(listener);});
 		registerInputProcessor("info max_node",		[this](InputListener &listener) { this->info_max_node(listener);});
@@ -57,6 +63,9 @@ namespace ag
 		registerInputProcessor("info show_detail",	[this](InputListener &listener) { this->info_show_detail(listener);});
 
 		registerInputProcessor("start",		   [this](InputListener &listener) { this->start(listener);});
+		registerInputProcessor("begin",		   [this](InputListener &listener) { this->begin(listener);});
+		registerInputProcessor("board",		   [this](InputListener &listener) { this->board(listener);});
+		registerInputProcessor("turn",		   [this](InputListener &listener) { this->turn(listener);});
 		registerInputProcessor("yxboard",	   [this](InputListener &listener) { this->yxboard(listener);});
 		registerInputProcessor("yxstop",	   [this](InputListener &listener) { this->yxstop(listener);});
 		registerInputProcessor("yxshowforbid", [this](InputListener &listener) { this->yxshowforbid(listener);});
@@ -98,6 +107,10 @@ namespace ag
 		registerInputProcessor("yxdbfix",				[this](InputListener &listener) { this->yxdbfix(listener);});
 // @formatter:on
 	}
+	YixinBoardProtocol::~YixinBoardProtocol()
+	{
+		stop_realtime_handler();
+	}
 	void YixinBoardProtocol::reset()
 	{
 		GomocupProtocol::reset();
@@ -111,6 +124,8 @@ namespace ag
 	 */
 	void YixinBoardProtocol::best_move(OutputSender &sender)
 	{
+		stop_realtime_handler();
+
 		const Message msg = output_queue.pop();
 		if (opening_swap2)
 		{
@@ -167,6 +182,50 @@ namespace ag
 			}
 			sender.send(str);
 			return;
+		}
+	}
+	void YixinBoardProtocol::info_message(OutputSender &sender)
+	{
+		const Message msg = output_queue.pop();
+		if (msg.holdsString())
+			sender.send("MESSAGE " + msg.getString());
+		if (msg.holdsSearchSummary())
+		{
+			const SearchSummary &summary = msg.getSearchSummary();
+			if (summary.principal_variation.size() == 0)
+				process_realtime_info(summary, sender);
+			else
+			{
+				if (summary.node.getVisits() > 0)
+				{
+					std::string info = "Depth: 1-" + std::to_string(summary.principal_variation.size());
+					info += " | Time: " + std::to_string((int) (1000 * summary.time_used)) + "MS";
+					info += " | Node: " + std::to_string(summary.number_of_nodes);
+					sender.send("MESSAGE " + info);
+
+					if (summary.time_used > 0.0)
+						info = "Speed: " + std::to_string((int) (summary.number_of_nodes / summary.time_used));
+					else
+						info = "Speed: 0";
+					switch (summary.node.getScore().getProvenValue())
+					{
+						case ProvenValue::UNKNOWN:
+							info += " | Evaluation: " + format_percents(summary.node.getExpectation());
+							break;
+						case ProvenValue::LOSS:
+						case ProvenValue::DRAW:
+						case ProvenValue::WIN:
+							info += " | Evaluation: " + trim(summary.node.getScore().toFormattedString());
+							break;
+					}
+					sender.send("MESSAGE " + info);
+
+					info = "Bestline:";
+					for (size_t i = 0; i < summary.principal_variation.size(); i++)
+						info += " [" + move_yx_text(summary.principal_variation[i], rows) + "]";
+					sender.send("MESSAGE " + info);
+				}
+			}
 		}
 	}
 
@@ -283,6 +342,21 @@ namespace ag
 		else
 			output_queue.push(Message(MessageType::ERROR, "Only 15x15 or 20x20 boards are supported"));
 	}
+	void YixinBoardProtocol::begin(InputListener &listener)
+	{
+		GomocupProtocol::begin(listener);
+		start_realtime_handler();
+	}
+	void YixinBoardProtocol::board(InputListener &listener)
+	{
+		GomocupProtocol::board(listener);
+		start_realtime_handler();
+	}
+	void YixinBoardProtocol::turn(InputListener &listener)
+	{
+		GomocupProtocol::turn(listener);
+		start_realtime_handler();
+	}
 	void YixinBoardProtocol::yxboard(InputListener &listener)
 	{
 		listener.consumeLine("yxboard");
@@ -305,7 +379,7 @@ namespace ag
 			for (int r = 0; r < board.rows(); r++)
 				for (int c = 0; c < board.cols(); c++)
 					if (isForbidden(board, Move(r, c, Sign::CROSS)))
-						response += ag::zfill(c, 2) + ag::zfill(r, 2);
+						response += ag::zfill(r, 2) + ag::zfill(c, 2);
 			response += '.';
 			output_queue.push(Message(MessageType::PLAIN_STRING, response));
 		}
@@ -330,6 +404,7 @@ namespace ag
 		// TODO what to do with tmp[2] ???
 		input_queue.push(Message(MessageType::STOP_SEARCH));
 		input_queue.push(Message(MessageType::START_SEARCH, "balance " + std::to_string(n)));
+		start_realtime_handler();
 	}
 	void YixinBoardProtocol::yxnbest(InputListener &listener)
 	{
@@ -384,7 +459,7 @@ namespace ag
 		opening_swap2 = true;
 		if (line == "yxswap2step1")
 		{
-			list_of_moves.clear(); // YixinBoard may not send board command before starting new swap2 game
+			list_of_moves.clear(); // YixinBoard may not send 'board' command before starting new swap2 game
 //			yxswap2step1
 //			93452477751 : Answered : MESSAGE SWAP2 MOVE1 3 7
 //			93452477765 : Answered : MESSAGE SWAP2 MOVE2 6 7
@@ -473,10 +548,10 @@ namespace ag
 		// this is a good command, but it should be used to print description of all INFO commands supported by the engine
 		listener.consumeLine("yxshowinfo");
 		const int max_thread_num = ml::Device::numberOfCpuCores();
-		const int max_memory = 20;
+		const int max_hash_size = 20;
 
 		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_THREAD_NUM " + std::to_string(max_thread_num)));
-		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_HASH_SIZED " + std::to_string(max_memory)));
+		output_queue.push(Message(MessageType::INFO_MESSAGE, "INFO MAX_HASH_SIZE " + std::to_string(max_hash_size)));
 	}
 	void YixinBoardProtocol::yxprintfeature(InputListener &listener)
 	{
@@ -629,6 +704,94 @@ namespace ag
 	{
 		listener.consumeLine();
 		output_queue.push(Message(MessageType::ERROR, "Unsupported command 'yxdbfix'"));
+	}
+
+	bool YixinBoardProtocol::is_realtime_handler_running() const noexcept
+	{
+		std::lock_guard<std::mutex> lock(rm_mutex);
+		return is_running;
+	}
+	void YixinBoardProtocol::start_realtime_handler()
+	{
+		if (not show_realtime_info)
+			return;
+		stop_realtime_handler();
+
+		waiting_for_first_info = true;
+		losing_moves.clear();
+		previous_best_move = Move();
+		{ /* artificial scope for lock */
+			std::lock_guard<std::mutex> lock(rm_mutex);
+			is_running = true;
+		}
+
+		rm_future = std::async(std::launch::async, [&]()
+		{
+			try
+			{
+				while (is_realtime_handler_running())
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1000 * wait_time)));
+					if(is_realtime_handler_running())
+					{
+						input_queue.push(Message(MessageType::INFO_MESSAGE, std::vector<Move>()));
+					}
+				}
+			}
+			catch(std::exception &e)
+			{
+				ag::Logger::write(std::string("Realtime message handler encountered exception: ") + e.what());
+			}
+		});
+	}
+	void YixinBoardProtocol::stop_realtime_handler()
+	{
+		waiting_for_first_info = false;
+		{ /* artificial scope for lock */
+			std::lock_guard<std::mutex> lock(rm_mutex);
+			is_running = false;
+		}
+
+		if (rm_future.valid())
+			rm_future.wait();
+	}
+	void YixinBoardProtocol::process_realtime_info(const SearchSummary &summary, OutputSender &sender)
+	{
+		if (summary.node.numberOfEdges() == 0 or not is_realtime_handler_running())
+			return;
+
+		if (waiting_for_first_info)
+		{
+			sender.send("MESSAGE REALTIME REFRESH");
+			for (auto edge = summary.node.begin(); edge < summary.node.end(); edge++)
+			{
+				const Move m = edge->getMove();
+				sender.send("MESSAGE REALTIME POS " + move_to_string(m));
+				sender.send("MESSAGE REALTIME DONE " + move_to_string(m));
+			}
+			waiting_for_first_info = false;
+		}
+
+		for (auto edge = summary.node.begin(); edge < summary.node.end(); edge++)
+			if (edge->getProvenValue() == ProvenValue::LOSS)
+			{
+				const Move m = edge->getMove();
+				if (std::find(losing_moves.begin(), losing_moves.end(), m) == losing_moves.end())
+				{ // found new losing move
+					sender.send("MESSAGE REALTIME LOSE " + move_to_string(m));
+					losing_moves.push_back(m);
+				}
+			}
+
+		EdgeSelectorConfig config;
+		config.exploration_constant = 0.2f;
+		LCBSelector selector(config);
+		const Move best_move = selector.select(&summary.node)->getMove();
+		if (best_move != previous_best_move)
+		{
+			sender.send("MESSAGE REALTIME BEST " + move_to_string(best_move));
+			previous_best_move = best_move;
+		}
 	}
 
 } /* namespace ag */
