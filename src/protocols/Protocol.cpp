@@ -137,27 +137,27 @@ namespace ag
 	{
 		return type;
 	}
-	GameConfig Message::getGameConfig() const
+	const GameConfig& Message::getGameConfig() const
 	{
 		return std::get<GameConfig>(data);
 	}
-	std::vector<Move> Message::getListOfMoves() const
+	const std::vector<Move>& Message::getListOfMoves() const
 	{
 		return std::get<std::vector<Move>>(data);
 	}
-	Option Message::getOption() const
+	const Option& Message::getOption() const
 	{
 		return std::get<Option>(data);
 	}
-	Move Message::getMove() const
+	const Move& Message::getMove() const
 	{
 		return std::get<Move>(data);
 	}
-	std::string Message::getString() const
+	const std::string& Message::getString() const
 	{
 		return std::get<std::string>(data);
 	}
-	SearchSummary Message::getSearchSummary() const
+	const SearchSummary& Message::getSearchSummary() const
 	{
 		return std::get<SearchSummary>(data);
 	}

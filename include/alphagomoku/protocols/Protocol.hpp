@@ -101,6 +101,27 @@ namespace ag
 			std::vector<Move> principal_variation;
 			double time_used = 0.0;
 			int number_of_nodes = 0;
+
+			SearchSummary() = default;
+			SearchSummary(const SearchSummary &other) :
+					node(other.node),
+					principal_variation(other.principal_variation),
+					time_used(other.time_used),
+					number_of_nodes(other.number_of_nodes)
+			{
+				copyEdgeInfo(this->node, other.node);
+			}
+			SearchSummary(SearchSummary &&other) noexcept = default;
+			SearchSummary& operator=(const SearchSummary &other)
+			{
+				this->node = other.node;
+				copyEdgeInfo(this->node, other.node);
+				this->principal_variation = other.principal_variation;
+				this->time_used = other.time_used;
+				this->number_of_nodes = other.number_of_nodes;
+				return *this;
+			}
+			SearchSummary& operator=(SearchSummary &&other) noexcept = default;
 	};
 
 	/**
@@ -148,12 +169,12 @@ namespace ag
 			bool holdsSearchSummary() const noexcept;
 
 			MessageType getType() const noexcept;
-			GameConfig getGameConfig() const;
-			std::vector<Move> getListOfMoves() const;
-			Option getOption() const;
-			Move getMove() const;
-			std::string getString() const;
-			SearchSummary getSearchSummary() const;
+			const GameConfig& getGameConfig() const;
+			const std::vector<Move>& getListOfMoves() const;
+			const Option& getOption() const;
+			const Move& getMove() const;
+			const std::string& getString() const;
+			const SearchSummary& getSearchSummary() const;
 
 			std::string info() const;
 	};
