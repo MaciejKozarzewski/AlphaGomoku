@@ -220,7 +220,7 @@ namespace ag
 			{
 				set_flag<is_fully_expanded>(true);
 			}
-			void createEdges(int number) noexcept
+			void createEdges(int number)
 			{
 				assert(0 <= number && number < std::numeric_limits<int16_t>::max());
 				if (isOwning() and number != number_of_edges)
@@ -290,7 +290,7 @@ namespace ag
 				sign_to_move = s;
 			}
 
-			void removeEdge(int index)
+			void removeEdge(int index) noexcept
 			{
 				assert(isOwning()); // removing edges of non-owning nodes (in the tree) might not be the best idea, even if it's correctly implemented (which I'm not sure)
 				assert(0 <= index && index < number_of_edges);
@@ -301,6 +301,8 @@ namespace ag
 			std::string toString() const;
 			void sortEdges() const;
 	};
+
+	void copyEdgeInfo(Node &dst, const Node &src);
 
 } /* namespace ag */
 

@@ -384,9 +384,7 @@ namespace ag
 		else
 		{
 			Node result(*node);
-			result.createEdges(node->numberOfEdges());
-			for (int i = 0; i < node->numberOfEdges(); i++)
-				result.getEdge(i) = node->getEdge(i).copyInfo();
+			copyEdgeInfo(result, *node);
 			return result;
 		}
 	}

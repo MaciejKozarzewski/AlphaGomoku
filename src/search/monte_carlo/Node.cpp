@@ -57,5 +57,12 @@ namespace ag
 		std::sort(this->begin(), this->end(), comp);
 	}
 
+	void copyEdgeInfo(Node &dst, const Node &src)
+	{
+		dst.createEdges(src.numberOfEdges());
+		for (int i = 0; i < src.numberOfEdges(); i++)
+			dst.getEdge(i) = src.getEdge(i).copyInfo();
+	}
+
 } /* namespace ag */
 
