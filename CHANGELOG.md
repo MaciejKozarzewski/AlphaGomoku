@@ -7,6 +7,26 @@ All notable changes to this project will be documented in this file.
 ### Changed
 ### Fixed
 
+## [5.7.1] - 2023-11-08
+Better YixinBoard support.
+
+### Added
+- In YixinBoard the amount of memory is controlled by 'max_hash_size' parameter (memory = pow(2, max_hash_size) [in MB]). Minimal accepted value is 8 (256MB), max value is 20 (1TB).
+- Added realtime info processing in YixinBoard. Messages 'POS' are used to indicate moves that are being considered by the search (followed by 'DONE' to change color to yellow). Messages 'LOSE' indicate provably losing moves. Messages 'BEST' indicate current best move. Messages are sent every 100ms, but only if anything changed since last time.
+
+### Changed
+- When using YixinBoard, move coordinates are no longer internally transposed to match with the logfile printing.
+- Parameter 'caution_factor' is ignored (it will be removed from the algorithm in the future).
+- Parameter 'thread_split_depth' is ignored (it does not make sense in monte-carlo search).
+- Final info message (right before returning a move) is now formatted in the YixinBoard style.
+
+### Fixed
+- Fixed printing forbidden moves in YixinBoard.
+- Fixed swap2 openings.
+- Fixed missing paths in default configuration file.
+- Fixed setting number of threads in YixinBoard.
+
+
 ## [5.7.0] - 2023-10-30
 Bugfixes and speed improvements.
 
