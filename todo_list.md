@@ -29,7 +29,6 @@ IMPORTANT:	Must be done at the same time as reducing bit-width of Score from 16 
 
 ## patterns
 - maybe it is possible to optimize defensive move table (unlikely, low priority)?
-- add extra detector for half open 3.
 
 ## player
 - more controllers for different opening rules (nice to have).
@@ -44,7 +43,6 @@ IMPORTANT:	Must be done at the same time as reducing bit-width of Score from 16 
 ## search-ab
 - investigate why the alpha-beta search does not benefit from cutoffs ??? <- TOP PRIORITY
 - maybe optimize move generator (some already done, rest is unlikely).
-- maybe add 'defend_loss_in_6()' to move generator (potentially 6% of positions can be affected).
 - reduce Score range to -1000/+1000 to save 4 bits (easy, need to ensure compatibility with old dataset format).
 
 ## search-mcts

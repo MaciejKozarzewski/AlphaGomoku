@@ -12,6 +12,7 @@
 #include <minml/layers/Add.hpp>
 #include <minml/layers/BatchNormalization.hpp>
 #include <minml/layers/GlobalBroadcastHW.hpp>
+#include <minml/layers/GlobalPooling.hpp>
 #include <minml/layers/Softmax.hpp>
 
 namespace ag
@@ -27,9 +28,10 @@ namespace ag
 	ml::GraphNodeID createBroadcastingBlock(ml::Graph &graph, ml::GraphNodeID x)
 	{
 		return graph.add(ml::GlobalBroadcastHW("relu"), x);
-//		auto y = graph.add(ml::GlobalBroadcastHW(), x);
-//		x = graph.add(ml::Add("relu"), { x, y });
-//		return x;
+	}
+	ml::GraphNodeID createPoolingBlock(ml::Graph &graph, ml::GraphNodeID x)
+	{
+		return graph.add(ml::GlobalPooling("relu"), x);
 	}
 
 	ml::GraphNodeID createResidualBlock(ml::Graph &graph, ml::GraphNodeID x, int filters)

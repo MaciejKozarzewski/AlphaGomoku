@@ -354,6 +354,7 @@ namespace ag
 		static const BottleneckPV bottleneck_pv;
 		static const BottleneckPVraw bottleneck_pv_raw;
 		static const BottleneckBroadcastPVraw bottleneck_broadcast_pv_raw;
+		static const BottleneckPoolingPVraw bottleneck_pooling_pv_raw;
 		static const BottleneckPVQ bottleneck_pvq;
 		static const ResnetPVQraw resnet_pvq_raw;
 		static const ResnetOld resnet_old;
@@ -374,6 +375,8 @@ namespace ag
 			return std::make_unique<BottleneckPVraw>();
 		if (architecture == bottleneck_broadcast_pv_raw.name())
 			return std::make_unique<BottleneckBroadcastPVraw>();
+		if (architecture == bottleneck_pooling_pv_raw.name())
+			return std::make_unique<BottleneckPoolingPVraw>();
 		if (architecture == bottleneck_pvq.name())
 			return std::make_unique<BottleneckPVQ>();
 		if (architecture == resnet_pvq_raw.name())
