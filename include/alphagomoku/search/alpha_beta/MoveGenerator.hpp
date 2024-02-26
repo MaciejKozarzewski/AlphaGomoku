@@ -28,11 +28,11 @@ namespace ag
 {
 	enum class MoveGeneratorMode
 	{
-		BASIC,
-		THREATS,
-		OPTIMAL,
-		REDUCED,
-		LEGAL
+		BASIC, // only check game end conditions (win or draw)
+		THREATS, // generate VCF threats
+		OPTIMAL, // generate optimal list of non-losing moves
+		REDUCED, // generate only local neighborhood of existing stones
+		LEGAL // generate all legal moves
 	};
 
 	class MoveGenerator
@@ -98,7 +98,6 @@ namespace ag
 			Result defend_loss_in_4();
 			Result try_win_in_5();
 			Result defend_loss_in_6();
-			Result try_win_in_7();
 			Score add_own_4x3_forks();
 			void add_own_half_open_fours();
 			Score try_solve_own_fork_4x3(Location move);
@@ -118,6 +117,7 @@ namespace ag
 			const LocationList& get_copy_of(const LocationList &list);
 			bool is_move_valid(Move m) const noexcept;
 			bool is_possible(Score s) const noexcept;
+			int number_of_available_fours_for(Sign sign) const noexcept;
 	};
 
 } /* namespace ag */
