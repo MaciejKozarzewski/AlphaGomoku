@@ -85,7 +85,7 @@ namespace ag
 			tasks_list_buffer_0(gameOptions, searchOptions.max_batch_size),
 			tasks_list_buffer_1(gameOptions, searchOptions.max_batch_size),
 			solver(gameOptions, searchOptions.tss_config),
-//			ab_search(gameOptions, MoveGeneratorMode::OPTIMAL),
+			ab_search(gameOptions, MoveGeneratorMode::OPTIMAL),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{
@@ -168,9 +168,10 @@ namespace ag
 	void Search::solve()
 	{
 		stats.solve.startTimer();
+		ab_search.setNodeLimit(search_config.tss_config.max_positions);
 		for (int i = 0; i < get_buffer().storedElements(); i++)
-			solver.solve(get_buffer().get(i), static_cast<TssMode>(search_config.tss_config.mode), search_config.tss_config.max_positions);
-//			ab_search.solve(get_buffer().get(i), 100, search_config.tss_config.max_positions);
+//			solver.solve(get_buffer().get(i), static_cast<TssMode>(search_config.tss_config.mode), search_config.tss_config.max_positions);
+			ab_search.solve(get_buffer().get(i));
 		stats.solve.stopTimer(get_buffer().storedElements());
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
@@ -204,9 +205,24 @@ namespace ag
 	}
 	void Search::expand(Tree &tree)
 	{
+//		static std::vector<int> histogram(51);
+//		static int next_hist = 1000;
+//
+//		if (tree.getSimulationCount() >= next_hist)
+//		{
+//			for (size_t i = 0; i < histogram.size(); i++)
+//				std::cout << histogram[i] << ' ';
+//			std::cout << '\n';
+//			next_hist *= 2;
+//		}
+
 		stats.expand.startTimer();
 		for (int i = 0; i < get_buffer().storedElements(); i++)
 		{
+//			Value tmp = get_buffer().get(i).getValue();
+//			if (get_buffer().get(i).getSignToMove() != tree.getSignToMove())
+//				tmp.invert();
+//			histogram[static_cast<int>(tmp.getExpectation() * 50.0)]++;
 			const ExpandOutcome out = tree.expand(get_buffer().get(i));
 			stats.nb_wasted_expansions += static_cast<uint64_t>(out == ExpandOutcome::ALREADY_EXPANDED);
 		}

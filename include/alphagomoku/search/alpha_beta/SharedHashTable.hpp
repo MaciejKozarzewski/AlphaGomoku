@@ -173,13 +173,13 @@ namespace ag
 
 				Bucket &bucket = m_hashtable[get_index_of(hash)];
 				// first check if this position is already stored in the bucket
-//				if (value.score().isProven() or value.bound() == Bound::EXACT) // but only if the new score is proven or exact
-//					for (size_t i = 0; i < bucket.size(); i++)
-//						if (bucket[i].key_matches(hash))
-//						{
-//							bucket[i] = new_entry;
-//							return;
-//						}
+				if (value.score().isProven() or value.bound() == Bound::EXACT) // but only if the new score is proven or exact
+					for (size_t i = 0; i < bucket.size(); i++)
+						if (bucket[i].key_matches(hash))
+						{
+							bucket[i] = new_entry;
+							return;
+						}
 
 				// now find the least valuable entry to replace
 				int idx = 0;
@@ -187,12 +187,6 @@ namespace ag
 					if (get_value_of(bucket[i]) < get_value_of(bucket[idx]))
 						idx = i;
 				bucket[idx] = new_entry;
-
-//				Entry *found = &bucket[0]; // first entry is the 'always replace' one
-//				for (size_t i = 1; i < bucket.size(); i++)
-//					if (get_value_of(bucket[i]) < get_value_of(*found))
-//						found = &bucket[i];
-//				*found = new_entry;
 			}
 			void prefetch(const HashKey128 &hash) const noexcept
 			{

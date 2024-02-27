@@ -29,12 +29,14 @@ namespace ag
 	class AlphaBetaSearch
 	{
 		private:
-			ActionStack generator_stack;
-
 			ActionStack action_stack;
 
-			int max_positions = 0; // maximum number of positions that will be searched
-			int position_counter = 0;
+			// search limits
+			int max_depth = 100;
+			int max_nodes = 1000;
+			double max_time = std::numeric_limits<double>::max();
+			int node_counter = 0;
+			double start_time = 0.0;
 			MoveGeneratorMode movegen_mode;
 
 			GameConfig game_config;
@@ -47,14 +49,17 @@ namespace ag
 
 			size_t total_positions = 0;
 			size_t total_calls = 0;
-			std::vector<std::pair<Move, int>> move_updates;
 			TimedStat total_time;
 		public:
 			AlphaBetaSearch(const GameConfig &gameConfig, MoveGeneratorMode mode);
 			void increaseGeneration();
 			void loadWeights(const nnue::NNUEWeights &weights);
-			int solve(SearchTask &task, int maxDepth, int maxPositions);
+			int solve(SearchTask &task);
 			void print_stats() const;
+
+			void setDepthLimit(int depth) noexcept;
+			void setNodeLimit(int nodes) noexcept;
+			void setTimeLimit(double time) noexcept;
 		private:
 			Score recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions);
 			bool is_move_legal(Move m) const noexcept;

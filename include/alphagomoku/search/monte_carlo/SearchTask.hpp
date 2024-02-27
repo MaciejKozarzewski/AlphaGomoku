@@ -52,6 +52,7 @@ namespace ag
 
 			GameConfig game_config;
 			Sign sign_to_move = Sign::NONE;
+			bool must_defend = false;
 			bool was_processed_by_network = false; /**< flag indicating whether the task has been evaluated by neural network and can be used for edge generation */
 			bool was_processed_by_solver = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
 		public:
@@ -141,7 +142,7 @@ namespace ag
 			}
 			bool mustDefend() const noexcept
 			{
-				return defensive_moves.size() > 0;
+				return must_defend;
 			}
 			const NNInputFeatures& getFeatures() const noexcept
 			{
@@ -192,6 +193,10 @@ namespace ag
 			void markAsProcessedBySolver() noexcept
 			{
 				was_processed_by_solver = true;
+			}
+			void markAsDefensive() noexcept
+			{
+				must_defend = true;
 			}
 
 			void setValue(Value v) noexcept

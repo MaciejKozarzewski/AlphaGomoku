@@ -19,14 +19,14 @@ namespace ag
 {
 	struct Action
 	{
-			uint32_t offset = 0;
+			int32_t offset = -1;
 			Move move;
 			Score score;
-			uint16_t size = 0;
+			int16_t size = 0;
 			Action() noexcept = default;
 			void init(Move m, Score s) noexcept
 			{
-				offset = 0;
+				offset = -1;
 				move = m;
 				score = s;
 				size = 0;
@@ -207,7 +207,7 @@ namespace ag
 			ActionList create_from_actions(ActionList &parent, int index) noexcept
 			{
 				Action &a = parent[index];
-				if (a.offset == 0)
+				if (a.offset == -1)
 				{
 					assert(a.size == 0);
 					a.offset = m_offset;

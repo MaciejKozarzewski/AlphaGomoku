@@ -51,7 +51,6 @@ namespace ag
 {
 
 	AlphaBetaSearch::AlphaBetaSearch(const GameConfig &gameConfig, MoveGeneratorMode mode) :
-			generator_stack(gameConfig.rows * gameConfig.cols + 10),
 			action_stack(get_max_nodes(gameConfig)),
 			movegen_mode(mode),
 			game_config(gameConfig),
@@ -70,31 +69,34 @@ namespace ag
 	{
 		inference_nnue = nnue::InferenceNNUE(game_config, weights);
 	}
-	int AlphaBetaSearch::solve(SearchTask &task, int maxDepth, int maxPositions)
+	int AlphaBetaSearch::solve(SearchTask &task)
 	{
 		TimerGuard tg(total_time);
 
-		max_positions = maxPositions;
-		const size_t stack_size = game_config.rows * game_config.cols * maxPositions;
+		start_time = getTime();
+
+		const size_t stack_size = game_config.rows * game_config.cols * max_nodes;
 		if (action_stack.size() < stack_size)
 			action_stack = ActionStack(stack_size);
 
 		pattern_calculator.setBoard(task.getBoard(), task.getSignToMove());
 		task.getFeatures().encode(pattern_calculator);
-		inference_nnue.refresh(pattern_calculator);
+//		inference_nnue.refresh(pattern_calculator);
 
-		position_counter = 0;
-		move_updates.clear();
+		node_counter = 0;
 
 		ActionList actions = action_stack.create_root();
 		Score result;
 		hash_key = shared_table.getHashFunction().getHash(task.getBoard()); // set up hash key
-		for (int depth = 0; depth <= maxDepth; depth += 1)
+		for (int depth = 0; depth <= max_nodes; depth += 2)
 		{ // iterative deepening loop
 			double t0 = getTime();
-			result = recursive_solve(depth, Score::minus_infinity(), Score::plus_infinity(), actions);
-			std::cout << "depth=" << depth << ", nodes=" << position_counter << ", score=" << result << ", time=" << (getTime() - t0) << "s\n";
+			const size_t stack_offset = action_stack.offset();
+			result = recursive_solve(depth, Score::min_value(), Score::max_value(), actions);
+			std::cout << "max depth=" << depth << ", nodes=" << node_counter << ", stack offset=" << action_stack.offset() << ", score=" << result
+					<< ", time=" << (getTime() - t0) << "s\n";
 //			actions.print();
+//			std::cout << '\n';
 
 			/*
 			 * We can stop the search if:
@@ -102,8 +104,10 @@ namespace ag
 			 * - we have proven score, or
 			 * - we have exceeded the max number of nodes, or
 			 * - no new nodes were added to the tree
+			 * - there is no time left
 			 */
-			if (result.isProven() or position_counter >= max_positions)
+			if (actions.isEmpty() or result.isProven() or node_counter >= max_nodes or action_stack.offset() == stack_offset
+					or (getTime() - start_time) >= max_time)
 				break;
 		}
 		for (auto iter = actions.begin(); iter < actions.end(); iter++)
@@ -112,33 +116,34 @@ namespace ag
 			task.getActionScores().at(m.row, m.col) = iter->score;
 			if (task.getActionScores().at(m.row, m.col).isProven())
 				task.getActionValues().at(m.row, m.col) = task.getActionScores().at(m.row, m.col).convertToValue();
-			if (actions.must_defend)
-				task.addDefensiveMove(m);
+			task.addDefensiveMove(m);
 		}
 		task.setScore(result);
 		if (task.getScore().isProven())
 			task.setValue(task.getScore().convertToValue());
+		if (actions.must_defend)
+			task.markAsDefensive();
 		task.markAsProcessedBySolver();
 
 //		if (result.score.getEval() ==  Score::min_value())
 //		if (task.getScore().getEval() == Score::min_value())
 //		{
-//		std::cout << result.toString() << " at " << position_counter << '\n';
-//		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
-//		pattern_calculator.print();
-//		pattern_calculator.printAllThreats();
-//		pattern_calculator.printForbiddenMoves();
-//		std::sort(actions.begin(), actions.end());
-//		actions.print();
+		std::cout << result.toString() << " at " << node_counter << '\n';
+		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
+		pattern_calculator.print();
+		pattern_calculator.printAllThreats();
+		pattern_calculator.printForbiddenMoves();
+		std::sort(actions.begin(), actions.end());
+		actions.print();
 //		std::cout << task.toString();
 //		std::cout << "\n---------------------------------------------\n";
 //		exit(-1);
 //		}
-		total_positions += position_counter;
+		total_positions += node_counter;
 		total_calls++;
 
 //		print_stats();
-		return position_counter;
+		return node_counter;
 	}
 	void AlphaBetaSearch::print_stats() const
 	{
@@ -147,6 +152,18 @@ namespace ag
 		std::cout << "total positions = " << total_positions << " : " << total_positions / total_calls << "\n";
 		std::cout << "SharedHashTable load factor = " << shared_table.loadFactor(true) << '\n';
 		inference_nnue.print_stats();
+	}
+	void AlphaBetaSearch::setDepthLimit(int depth) noexcept
+	{
+		max_depth = depth;
+	}
+	void AlphaBetaSearch::setNodeLimit(int nodes) noexcept
+	{
+		max_nodes = nodes;
+	}
+	void AlphaBetaSearch::setTimeLimit(double time) noexcept
+	{
+		max_time = time;
 	}
 	/*
 	 * private
@@ -159,40 +176,39 @@ namespace ag
 		assert(beta <= Score::plus_infinity());
 
 		Move best_move;
-//		{ // lookup to the shared hash table
-//			const SharedTableData tt_entry = shared_table.seek(hash_key);
-//			const Bound tt_bound = tt_entry.bound();
-//
-//			if (tt_bound != Bound::NONE) //  and is_move_legal(tt_entry.move()))
-//			{ // there is some information stored in this entry
-//				best_move = tt_entry.move();
-//				if (not actions.isRoot())
-//				{ // we must not terminate search at root with just one best action on hash table hit, as the other modules may require full list of actions
-//					const Score tt_score = tt_entry.score();
-//					if (tt_entry.score().isProven())
-//						return tt_score;
-//					if (tt_entry.depth() >= depthRemaining
-//							and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
-//									or (tt_bound == Bound::UPPER and tt_score <= alpha)))
-//						return tt_score;
-//				}
-//			}
-//		}
+		{ // lookup to the shared hash table
+			const SharedTableData tt_entry = shared_table.seek(hash_key);
+			const Bound tt_bound = tt_entry.bound();
 
-		position_counter++;
+			if (tt_bound != Bound::NONE) //  and is_move_legal(tt_entry.move()))
+			{ // there is some information stored in this entry
+				best_move = tt_entry.move();
+				if (not actions.isRoot())
+				{ // we must not terminate search at root with just one best action on hash table hit, as the other modules may require full list of actions
+					const Score tt_score = tt_entry.score();
+					if (tt_entry.score().isProven())
+						return tt_score;
+					if (tt_entry.depth() >= depthRemaining
+							and ((tt_bound == Bound::EXACT) or (tt_bound == Bound::LOWER and tt_score >= beta)
+									or (tt_bound == Bound::UPPER and tt_score <= alpha)))
+						return tt_score;
+				}
+			}
+		}
 
-//		if (not actions.isRoot() and not actions.performed_pattern_update)
-//		{
-//			pattern_calculator.addMove(actions.last_move);
-//			actions.performed_pattern_update = true;
-//		}
-//		std::cout << "last tutaj\n";
+		node_counter++;
+
+		if (not actions.isRoot() and not actions.performed_pattern_update)
+		{
+			pattern_calculator.addMove(actions.last_move);
+			actions.performed_pattern_update = true;
+		}
 
 		if (actions.isEmpty())
 		{
-//			std::cout << "generating\n";
 			actions.clear();
-			const Score static_score = move_generator.generate(actions, movegen_mode);
+			const MoveGeneratorMode mode = actions.isRoot() ? MoveGeneratorMode::OPTIMAL : MoveGeneratorMode::THREATS;
+			const Score static_score = move_generator.generate(actions, mode);
 			action_stack.increment(actions.size() + 1);
 
 			if (static_score.isProven())
@@ -205,7 +221,6 @@ namespace ag
 
 		const Score original_alpha = alpha;
 		Score best_score = Score::minus_infinity();
-		int moves_checked = 0;
 		for (int i = 0; i < actions.size(); i++)
 		{
 			// apply move ordering by selecting best action from the remaining ones
@@ -220,94 +235,51 @@ namespace ag
 				std::swap(actions[i], actions[idx]);
 			}
 
-//			if (depthRemaining == 2)
-//				std::cout << "\nchecking action " << i << "/" << actions.size() << " : " << actions[i].move.text() << " with alpha=" << alpha
-//						<< ", beta=" << beta << '\n';
-
-			if (actions[i].score.isUnproven() and position_counter < max_positions)
+			if (actions[i].score.isUnproven() and node_counter < max_nodes and (getTime() - start_time) < max_time)
 			{
-				// construct next ply action list
-				ActionList next_ply_actions = action_stack.create_from_actions(actions, i);
 				const Move move = actions[i].move;
-
 				shared_table.getHashFunction().updateHash(hash_key, move);
 				shared_table.prefetch(hash_key);
 
-				if (pattern_calculator.signAt(move.row, move.col) != Sign::NONE)
-				{
-					pattern_calculator.print();
-					pattern_calculator.printAllThreats();
-					actions.print();
-				}
-
-				pattern_calculator.addMove(move);
-				inference_nnue.update(pattern_calculator);
+				// construct next ply action list
+				ActionList next_ply_actions = action_stack.create_from_actions(actions, i);
 
 				actions[i].score = invert_up(recursive_solve(depthRemaining - 1, invert_down(beta), invert_down(alpha), next_ply_actions));
-//				actions[i].size = next_ply_actions.size();
 
-//				if (i == 0)
-//					actions[i].score = invert_up(recursive_solve(depthRemaining - 1, invert_down(beta), invert_down(alpha), next_ply_actions));
-//				else
-//				{
-//					actions[i].score = invert_up(recursive_solve(depthRemaining - 1, invert_down(alpha) - 1, invert_down(alpha), next_ply_actions));
-//					if (actions[i].score > alpha)
-//						actions[i].score = invert_up(recursive_solve(depthRemaining - 1, invert_down(beta), invert_down(alpha), next_ply_actions));
-//				}
-
-//				if (next_ply_actions.performed_pattern_update)
+				if (next_ply_actions.performed_pattern_update)
 				{
 					pattern_calculator.undoMove(move);
-					inference_nnue.update(pattern_calculator);
+//					inference_nnue.update(pattern_calculator);
 				}
 				shared_table.getHashFunction().updateHash(hash_key, move);
 			}
+			best_score = std::max(best_score, actions[i].score);
 
-//			const std::string tab = (depthRemaining == 1) ? "\t" : "";
-//
-//			std::cout << tab << depthRemaining << " : action " << i << "/" << actions.size() << " : " << actions[i].move.text() << " : Q="
-//					<< actions[i].score << "(" << toString(actions[i].bound) << "), best=" << best_score << " : alpha=" << alpha << ", beta=" << beta
-//					<< "\n";
-
-			if (actions[i].score > best_score)
-			{
-				best_score = actions[i].score;
-				best_move = actions[i].move;
-				if (not actions.isRoot())
-				{ // we want to have exact scores at root
-					if (best_score >= beta) // or best_score.isWin())
-					{
-//						std::cout << tab << "beta cutoff : " << best_score << " >= " << beta << "\n";
-						break;// fail-soft beta-cutoff
-					}
-					if (actions[i].score > alpha)
-					{
-//						std::cout << tab << "raising alpha : " << alpha << " -> " << actions[i].score << "\n";
-						alpha = actions[i].score;
-					}
-				}
-			}
-			moves_checked++;
+			alpha = std::max(alpha, actions[i].score);
+			if (actions[i].score >= beta or actions[i].score.isWin())
+				break;
 		}
-//		if (best_score.isLoss() and (moves_checked < actions.size() or not actions.is_fully_expanded))
-//			best_score = evaluate();
-//
-		{ // insert new data to the hash table
-			Bound tt_bound = Bound::NONE;
-			if (best_score <= original_alpha)
-				tt_bound = Bound::UPPER;
-			else
-			{
-				if (best_score >= beta)
-					tt_bound = Bound::LOWER;
-				else
-					tt_bound = Bound::EXACT;
-			}
-			const SharedTableData entry(tt_bound, depthRemaining, best_score, best_move);
-			shared_table.insert(hash_key, entry);
-		}
-
+		// if either
+		//  - no actions were generated, or
+		//  - all actions are losing but the state is not fully expanded (we cannot prove a loss)
+		// we need to override the score with something, for example with evaluation
+		if (actions.size() == 0 or (best_score.isLoss() and not actions.is_fully_expanded))
+			best_score = evaluate();
 		assert(best_score != Score::minus_infinity());
+
+		Bound tt_bound = Bound::NONE;
+		if (best_score <= original_alpha)
+			tt_bound = Bound::UPPER;
+		else
+		{
+			if (best_score >= beta)
+				tt_bound = Bound::LOWER;
+			else
+				tt_bound = Bound::EXACT;
+		}
+		const SharedTableData entry(tt_bound, depthRemaining, best_score, best_move);
+		shared_table.insert(hash_key, entry);
+
 		return best_score;
 	}
 	bool AlphaBetaSearch::is_move_legal(Move m) const noexcept
@@ -319,22 +291,22 @@ namespace ag
 	{
 //		return Score();
 
-		return Score(static_cast<int>(2000 * inference_nnue.forward() - 1000));
+//		return Score(static_cast<int>(2000 * inference_nnue.forward() - 1000));
 
-//		const Sign own_sign = pattern_calculator.getSignToMove();
-//		const Sign opponent_sign = invertSign(own_sign);
-//		const int worst_threat = static_cast<int>(ThreatType::OPEN_3);
-//		const int best_threat = static_cast<int>(ThreatType::FIVE);
-//
-//		static const std::array<int, 10> own_values = { 0, 0, 19, 49, 76, 170, 33, 159, 252, 0 };
-//		static const std::array<int, 10> opp_values = { 0, 0, -1, -50, -45, -135, -14, -154, -496, 0 };
-//		int result = 12;
-//		for (int i = worst_threat; i <= best_threat; i++)
-//		{
-//			result += own_values[i] * pattern_calculator.getThreatHistogram(own_sign).numberOf(static_cast<ThreatType>(i));
-//			result += opp_values[i] * pattern_calculator.getThreatHistogram(opponent_sign).numberOf(static_cast<ThreatType>(i));
-//		}
-//		return Score(std::max(-1000, std::min(1000, result)));
+		const Sign own_sign = pattern_calculator.getSignToMove();
+		const Sign opponent_sign = invertSign(own_sign);
+		const int worst_threat = static_cast<int>(ThreatType::OPEN_3);
+		const int best_threat = static_cast<int>(ThreatType::FIVE);
+
+		static const std::array<int, 10> own_values = { 0, 0, 19, 49, 76, 170, 33, 159, 252, 0 };
+		static const std::array<int, 10> opp_values = { 0, 0, -1, -50, -45, -135, -14, -154, -496, 0 };
+		int result = 12;
+		for (int i = worst_threat; i <= best_threat; i++)
+		{
+			result += own_values[i] * pattern_calculator.getThreatHistogram(own_sign).numberOf(static_cast<ThreatType>(i));
+			result += opp_values[i] * pattern_calculator.getThreatHistogram(opponent_sign).numberOf(static_cast<ThreatType>(i));
+		}
+		return Score(std::max(-1000, std::min(1000, result)));
 	}
 
 } /* namespace ag */

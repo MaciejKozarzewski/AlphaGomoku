@@ -155,7 +155,7 @@ namespace ag
 //		std::cout << m_loss_in_4.toString() << '\n';
 //		std::cout << m_win_in_5.toString() << '\n';
 //		std::cout << m_loss_in_6.toString() << '\n';
-//		std::cout << m_win_in_7.toString() << '\n';
+		std::cout << m_win_in_7.toString() << '\n';
 //		std::cout << m_forbidden_moves.toString() << '\n';
 //		std::cout << m_mark_neighborhood.toString() << '\n';
 //		std::cout << m_remaining_moves.toString() << '\n';
@@ -189,6 +189,8 @@ namespace ag
 				result = try_win_in_5();
 			if (result.must_continue and distance_to_draw >= 6)
 				result = defend_loss_in_6();
+//			if (result.must_continue and distance_to_draw >= 7)
+//				result = try_win_in_7();
 			if (result.must_continue and distance_to_draw >= 3)
 				add_own_half_open_fours();
 		}
@@ -827,6 +829,69 @@ namespace ag
 		}
 		else
 			return Result::mustContinue();
+	}
+	MoveGenerator::Result MoveGenerator::try_win_in_7()
+	{
+		TimerGuard tg(m_win_in_7);
+		assert(actions->baseline_score == Score());
+		assert(actions->must_defend == false && actions->has_initiative == false);
+
+		static ScopedCounter total_calls("total calls");
+		static ScopedCounter total_hits4("total hits4");
+		static ScopedCounter total_hits3("total hits3");
+		static ScopedCounter total_hits2("total hits2");
+		static ScopedCounter total_hits1("total hits1");
+
+		total_calls.increment();
+
+		if (get_opponent_threats(ThreatType::FORK_4x3).size() > 0)
+			return Result::mustContinue();
+
+		const LocationList &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
+		if (own_fork_3x3.size() == 0)
+			return Result::mustContinue();
+
+		if (game_config.rules != GameRules::RENJU)
+		{ // in renju, for cross (black) player it is possible that in 3x3 fork some open 3 can't be converted to a four because they will be forbidden for some reason
+		  // but it is too complicated to solve statically
+			const LocationList &opp_half_open_4 = get_opponent_threats(ThreatType::HALF_OPEN_4);
+
+			// there are several conditions to be met, checking them from the least costly one
+			total_hits1.increment();
+			DefensiveMoves defensive_moves;
+			for (auto move = opp_half_open_4.begin(); move < opp_half_open_4.end(); move++)
+			{
+				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
+				const Direction direction = group.findDirectionOf(PatternType::HALF_OPEN_4);
+				const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
+
+				defensive_moves.get_intersection_with(tmp);
+				if (defensive_moves.is_empty())
+					return Result::mustContinue(); // there are several not related half-open fours
+			}
+
+			total_hits2.increment();
+			// then check if there are no half-open threes
+			for (auto move = opp_half_open_4.begin(); move < opp_half_open_4.end(); move++)
+				for (Direction dir = 0; dir < 4; dir++)
+					if (pattern_calculator.isHalfOpenThreeAt(move->row, move->col, dir, get_opponent_sign()))
+						return Result::mustContinue();
+
+//			pattern_calculator.print();
+//			pattern_calculator.printAllThreats();
+//			exit(0);
+
+//			bool found_free_fork = true;
+//			for (auto move = own_fork_3x3.begin(); move < own_fork_3x3.end(); move++)
+//			{
+//			}
+//			total_hits3.increment();
+//			if (found_free_fork)
+//				return Result::canStopNow(Score::win_in(7));
+//			else
+				return Result::mustContinue();
+		}
+		return Result::mustContinue();
 	}
 	Score MoveGenerator::add_own_4x3_forks()
 	{

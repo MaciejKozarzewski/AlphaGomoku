@@ -98,6 +98,7 @@ namespace ag
 			Result defend_loss_in_4();
 			Result try_win_in_5();
 			Result defend_loss_in_6();
+			Result try_win_in_7();
 			Score add_own_4x3_forks();
 			void add_own_half_open_fours();
 			Score try_solve_own_fork_4x3(Location move);
