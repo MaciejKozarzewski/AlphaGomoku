@@ -58,7 +58,10 @@ namespace
 				for (int i = 0; i < json["batch"].size(); i++)
 				{
 					batch_size.push_back(json["batch"][i].getInt());
-					speed.push_back(json["samples"][i].getDouble() / json["time"][i].getDouble());
+					if (json.hasKey("speed"))
+						speed.push_back(json["speed"][i].getDouble()); // new format from version 5.8.0
+					else
+						speed.push_back(json["samples"][i].getDouble() / json["time"][i].getDouble()); // old format used for versions before 5.8.0
 				}
 			}
 			void print() const

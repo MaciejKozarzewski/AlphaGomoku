@@ -47,6 +47,18 @@ namespace ag
 			void generate(SearchTask &task) const;
 	};
 
+	class UnifiedGenerator: public EdgeGenerator
+	{
+		private:
+			const int max_edges;
+			const float expansion_threshold;
+			const bool force_expand_root;
+		public:
+			UnifiedGenerator(int maxEdges, float expansionThreshold, bool forceExpandRoot = false);
+			std::unique_ptr<EdgeGenerator> clone() const;
+			void generate(SearchTask &task) const;
+	};
+
 	/**
 	 * \brief Generator that adds all edges.
 	 */

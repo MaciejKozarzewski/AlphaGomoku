@@ -222,6 +222,52 @@ namespace ag
 		assert(task.getEdges().size() > 0);
 	}
 
+	UnifiedGenerator::UnifiedGenerator(int maxEdges, float expansionThreshold, bool forceExpandRoot) :
+			max_edges(maxEdges),
+			expansion_threshold(expansionThreshold),
+			force_expand_root(forceExpandRoot)
+	{
+	}
+	std::unique_ptr<EdgeGenerator> UnifiedGenerator::clone() const
+	{
+		return std::make_unique<UnifiedGenerator>(max_edges, expansion_threshold, force_expand_root);
+	}
+	void UnifiedGenerator::generate(SearchTask &task) const
+	{
+		assert(task.isReady());
+
+		if (not task.wasProcessedBySolver())
+		{
+			for (int row = 0; row < task.getBoard().rows(); row++)
+				for (int col = 0; col < task.getBoard().cols(); col++)
+					if (task.getBoard().at(row, col) == Sign::NONE)
+						task.addEdge(Move(row, col, task.getSignToMove()));
+		}
+		initialize_edges(task);
+		if (not task.wasProcessedBySolver())
+			check_terminal_conditions(task);
+		const bool expand_fully = (task.getRelativeDepth() == 0 and force_expand_root);
+		if (not expand_fully) // do not prune root if such option is turned on
+			prune_weak_moves(task, max_edges, expansion_threshold);
+		renormalize_policy(task.getEdges());
+
+		if (task.getEdges().size() == 0) // TODO remove this later
+		{
+			std::cout << "---no-moves-generated---\n";
+			std::cout << task.toString() << '\n';
+			for (int i = 0; i < 15; i++)
+			{
+				for (int j = 0; j < 15; j++)
+					std::cout << task.getPolicy().at(i, j) << ' ';
+				std::cout << '\n';
+			}
+			std::cout << Board::toString(matrix<Sign>(15, 15), task.getPolicy());
+			exit(-1);
+		}
+
+		assert(task.getEdges().size() > 0);
+	}
+
 	BalancedGenerator::BalancedGenerator(int balanceDepth, const EdgeGenerator &baseGenerator) :
 			balance_depth(balanceDepth),
 			base_generator(baseGenerator.clone())

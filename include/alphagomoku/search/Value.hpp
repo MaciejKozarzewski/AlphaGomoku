@@ -55,11 +55,11 @@ namespace ag
 			{
 				return std::to_string(win_rate) + " : " + std::to_string(draw_rate) + " : " + std::to_string(loss_rate());
 			}
-			friend bool operator ==(const Value &lhs, const Value &rhs) noexcept
+			friend bool operator==(const Value &lhs, const Value &rhs) noexcept
 			{
 				return lhs.win_rate == rhs.win_rate and lhs.draw_rate == rhs.draw_rate;
 			}
-			friend bool operator !=(const Value &lhs, const Value &rhs) noexcept
+			friend bool operator!=(const Value &lhs, const Value &rhs) noexcept
 			{
 				return lhs.win_rate != rhs.win_rate or lhs.draw_rate != rhs.draw_rate;
 			}

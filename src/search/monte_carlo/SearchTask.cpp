@@ -41,7 +41,9 @@ namespace ag
 		value = Value();
 		clear_or_reallocate(action_scores, board);
 		score = Score();
+		final_node = nullptr;
 		sign_to_move = signToMove;
+		must_defend = false;
 		was_processed_by_network = false;
 		was_processed_by_solver = false;
 	}

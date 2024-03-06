@@ -36,7 +36,7 @@ namespace
 			}
 			ActionList operator()(MoveGeneratorMode mode)
 			{
-				ActionList result = action_stack.create_root();
+				ActionList result(action_stack);
 				move_generator.generate(result, mode);
 				return result;
 			}

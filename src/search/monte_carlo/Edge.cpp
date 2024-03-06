@@ -27,7 +27,7 @@ namespace ag
 	Edge Edge::copyInfo() const noexcept
 	{
 		Edge result(*this);
-		result.node = nullptr;
+//		result.node = nullptr;
 		return result;
 	}
 } /* namespace ag */

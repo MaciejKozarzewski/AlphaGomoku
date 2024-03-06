@@ -48,7 +48,7 @@ namespace ag
 		const MCTSConfig &mcts_config = search.getConfig().mcts_config;
 		std::unique_ptr<EdgeSelector> tmp = EdgeSelector::create(mcts_config.edge_selector_config);
 		tree.setEdgeSelector(*tmp);
-		tree.setEdgeGenerator(BaseGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
+		tree.setEdgeGenerator(UnifiedGenerator(mcts_config.max_children, mcts_config.policy_expansion_threshold));
 	}
 	void Player::selectSolveEvaluate()
 	{

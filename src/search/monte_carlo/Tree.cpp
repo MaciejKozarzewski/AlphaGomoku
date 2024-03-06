@@ -21,80 +21,116 @@ namespace
 	void print_node(const Node *node, const int max_depth, bool sort, int top_n, int prefix);
 	void print_edge(const Edge &edge, const int max_depth, bool sort, int top_n, bool is_last, int prefix)
 	{
-		for (int i = 0; i < prefix; i++)
-			std::cout << "|     ";
-		if (is_last)
-			std::cout << "└──" << edge.toString() << '\n';
-		else
-			std::cout << "├──" << edge.toString() << '\n';
-
-		if (edge.getNode() != nullptr)
-		{
-			for (int i = 0; i < prefix; i++)
-				std::cout << "|     ";
-			std::cout << "|  └──";
-			print_node(edge.getNode(), max_depth, sort, top_n, prefix + 1);
-		}
+//		for (int i = 0; i < prefix; i++)
+//			std::cout << "|     ";
+//		if (is_last)
+//			std::cout << "└──" << edge.toString() << '\n';
+//		else
+//			std::cout << "├──" << edge.toString() << '\n';
+//
+//		if (edge.getNode() != nullptr)
+//		{
+//			for (int i = 0; i < prefix; i++)
+//				std::cout << "|     ";
+//			std::cout << "|  └──";
+//			print_node(edge.getNode(), max_depth, sort, top_n, prefix + 1);
+//		}
 	}
 	void print_node(const Node *node, const int max_depth, bool sort, int top_n, int prefix)
 	{
-		if (node == nullptr)
-			return;
-		if (max_depth != -1 and node->getDepth() <= max_depth)
-		{
-			if (sort)
-				node->sortEdges();
-
-			std::cout << node->toString() << '\n';
-			if (top_n == -1 || 2 * top_n >= node->numberOfEdges())
-			{
-				for (int i = 0; i < node->numberOfEdges(); i++)
-					print_edge(node->getEdge(i), max_depth, sort, top_n, i == (node->numberOfEdges() - 1), prefix);
-			}
-			else
-			{
-				for (int i = 0; i < top_n; i++)
-					print_edge(node->getEdge(i), max_depth, sort, top_n, false, prefix);
-				for (int i = 0; i < prefix; i++)
-					std::cout << "|     ";
-				std::cout << "├──... (" << (node->numberOfEdges() - 2 * top_n) << " edges skipped)\n";
-				for (int i = node->numberOfEdges() - top_n; i < node->numberOfEdges(); i++)
-					print_edge(node->getEdge(i), max_depth, sort, top_n, i == (node->numberOfEdges() - 1), prefix);
-			}
-		}
-		else
-		{
-			std::cout << "... (subtree skipped)\n";
-			for (int i = 0; i < prefix; i++)
-				std::cout << "|     ";
-			std::cout << '\n';
-			return;
-		}
+//		if (node == nullptr)
+//			return;
+//		if (max_depth != -1 and node->getDepth() <= max_depth)
+//		{
+//			if (sort)
+//				node->sortEdges();
+//
+//			std::cout << node->toString() << '\n';
+//			if (top_n == -1 || 2 * top_n >= node->numberOfEdges())
+//			{
+//				for (int i = 0; i < node->numberOfEdges(); i++)
+//					print_edge(node->getEdge(i), max_depth, sort, top_n, i == (node->numberOfEdges() - 1), prefix);
+//			}
+//			else
+//			{
+//				for (int i = 0; i < top_n; i++)
+//					print_edge(node->getEdge(i), max_depth, sort, top_n, false, prefix);
+//				for (int i = 0; i < prefix; i++)
+//					std::cout << "|     ";
+//				std::cout << "├──... (" << (node->numberOfEdges() - 2 * top_n) << " edges skipped)\n";
+//				for (int i = node->numberOfEdges() - top_n; i < node->numberOfEdges(); i++)
+//					print_edge(node->getEdge(i), max_depth, sort, top_n, i == (node->numberOfEdges() - 1), prefix);
+//			}
+//		}
+//		else
+//		{
+//			std::cout << "... (subtree skipped)\n";
+//			for (int i = 0; i < prefix; i++)
+//				std::cout << "|     ";
+//			std::cout << '\n';
+//			return;
+//		}
 	}
 
-	bool has_information_leak(const Edge *edge, float leak_threshold) noexcept
+//	bool has_information_leak(const Edge *edge, float leak_threshold) noexcept
+//	{
+//		assert(edge != nullptr);
+//		assert(leak_threshold >= 0.0f);
+//		if (edge->isLeaf() or leak_threshold >= 1.0f)
+//			return false;
+//		Score tmp = edge->getNode()->getScore();
+//		tmp.increaseDistance();
+//		if (edge->getScore() != -tmp)
+//			return true;
+//		if ((edge->getValue() - edge->getNode()->getValue().getInverted()).abs() > leak_threshold)
+//			return true;
+//		return false;
+//	}
+	bool has_score_leak(const Edge *edge, const Node *node) noexcept
+	{
+		assert(edge != nullptr);
+		if (node == nullptr)
+			return false;
+		return edge->getScore() != invert_up(node->getScore());
+	}
+	bool has_value_leak(const Edge *edge, const Node *node, float leak_threshold) noexcept
 	{
 		assert(edge != nullptr);
 		assert(leak_threshold >= 0.0f);
-		if (edge->isLeaf() or leak_threshold >= 1.0f)
+		if (node == nullptr or leak_threshold >= 1.0f)
 			return false;
-		Score tmp = edge->getNode()->getScore();
+		const Value diff = edge->getValue() - node->getValue().getInverted();
+		return diff.abs() > leak_threshold;
+	}
+	bool has_information_leak(const Edge *edge, const Node *node, float leak_threshold) noexcept
+	{
+		assert(edge != nullptr);
+		assert(leak_threshold >= 0.0f);
+		if (node == nullptr or leak_threshold >= 1.0f)
+			return false;
+		Score tmp = node->getScore();
 		tmp.increaseDistance();
 		if (edge->getScore() != -tmp)
 			return true;
-		if ((edge->getValue() - edge->getNode()->getValue().getInverted()).abs() > leak_threshold)
+		if ((edge->getValue() - node->getValue().getInverted()).abs() > leak_threshold)
 			return true;
 		return false;
 	}
-	void update_score(Edge *edge) noexcept
+//	void update_score(Edge *edge) noexcept
+//	{
+//		assert(edge != nullptr);
+//		if (not edge->isLeaf())
+//		{
+//			Score tmp = -(edge->getNode()->getScore());
+//			tmp.increaseDistance();
+//			edge->setScore(tmp);
+//		}
+//	}
+	void update_score(Edge *edge, const Node *node) noexcept
 	{
 		assert(edge != nullptr);
-		if (not edge->isLeaf())
-		{
-			Score tmp = -(edge->getNode()->getScore());
-			tmp.increaseDistance();
-			edge->setScore(tmp);
-		}
+		if (node != nullptr)
+			edge->setScore(invert_up(node->getScore()));
 	}
 	void update_score(Node *node) noexcept
 	{
@@ -107,6 +143,13 @@ namespace
 
 		if (node->isFullyExpanded() or result.isWin() or result.isUnproven())
 			node->setScore(result);
+	}
+	Node* get_next_node(const SearchTask &task, int idx) noexcept
+	{
+		if (idx == (task.visitedPathLength() - 1))
+			return task.getFinalNode();
+		else
+			return task.getPair(idx + 1).node;
 	}
 }
 
@@ -226,21 +269,44 @@ namespace ag
 			node->increaseVirtualLoss();
 			edge->increaseVirtualLoss();
 
-			node = edge->getNode();
-			if (node == nullptr)
-			{ // edge appears to be a leaf
-				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
-				if (node != nullptr)
-					edge->setNode(node); // if found in the cache it means that there is simply a missing connection, link that edge to the found node
-				// if not found in the cache it means that the edge is really a leaf
+			node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
+			task.setFinalNode(node);
+
+			if (has_score_leak(edge, node))
+			{
+				correctScoreLeak(task);
+				cancelVirtualLoss(task);
+				task.set(base_board, sign_to_move);
+				node = root_node;
+			}
+			else
+			{
+				if (has_value_leak(edge, node, config.information_leak_threshold))
+				{
+					task.setFinalNode(node);
+					task.markAsProcessedByNetwork();
+					return SelectOutcome::INFORMATION_LEAK;
+				}
 			}
 
-			if (has_information_leak(edge, config.information_leak_threshold))
-				return SelectOutcome::INFORMATION_LEAK;
+//			node = edge->getNode();
+//			if (node == nullptr)
+//			{ // edge appears to be a leaf
+//				node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
+//				if (node != nullptr)
+//					edge->setNode(node); // if found in the cache it means that there is simply a missing connection, link that edge to the found node
+//				// if not found in the cache it means that the edge is really a leaf
+//			}
+
+//			if (has_information_leak(edge, node, config.information_leak_threshold))
+//			{
+//				task.setFinalNode(node);
+//				return SelectOutcome::INFORMATION_LEAK;
+//			}
 		}
 		max_depth = std::max((int) max_depth, task.visitedPathLength());
 		if (task.visitedPathLength() > 0 and task.getLastEdge()->isProven())
-			return SelectOutcome::REACHED_PROVEN_STATE;
+			return SelectOutcome::REACHED_PROVEN_EDGE;
 		else
 			return SelectOutcome::REACHED_LEAF;
 	}
@@ -267,10 +333,9 @@ namespace ag
 			if (task.mustDefend() or (node_to_add->numberOfEdges() + node_to_add->getDepth()) == task.getBoard().size())
 				node_to_add->markAsFullyExpanded();
 			update_score(node_to_add);
+			task.setFinalNode(node_to_add);
 
-			if (task.visitedPathLength() > 0)
-				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
-			else
+			if (task.visitedPathLength() == 0)
 			{
 				root_node = node_to_add; // if no pairs were visited, it means that the tree is empty and we have to assign the root node
 				root_node->markAsRoot();
@@ -280,11 +345,12 @@ namespace ag
 		}
 		else
 		{ // this can happen if the same state was encountered from different paths
+			task.setFinalNode(node_to_add);
 			if (task.visitedPathLength() > 0) // in a rare case it could be that the root node has already been expanded by some other thread
 			{ // but if not
-				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
-				if (has_information_leak(task.getLastEdge(), config.information_leak_threshold))
-					correctInformationLeak(task);
+//				task.getLastEdge()->setNode(node_to_add); // make last visited edge point to the newly added node
+//				if (has_information_leak(task.getLastEdge(), node_to_add, config.information_leak_threshold))
+//					correctInformationLeak(task);
 			}
 			return ExpandOutcome::ALREADY_EXPANDED;
 		}
@@ -292,29 +358,77 @@ namespace ag
 	void Tree::backup(const SearchTask &task)
 	{
 		assert(task.isReady());
-		const Value value = task.getValue();
-		for (int i = 0; i < task.visitedPathLength(); i++)
-		{
-			NodeEdgePair pair = task.getPair(i);
-			if (pair.edge->getMove().sign == task.getSignToMove())
-			{
-				pair.node->updateValue(value);
-				pair.edge->updateValue(value);
-			}
-			else
-			{
-				pair.node->updateValue(value.getInverted());
-				pair.edge->updateValue(value.getInverted());
-			}
-			pair.node->decreaseVirtualLoss();
-			pair.edge->decreaseVirtualLoss();
-		}
+//		{
+//			const Value value = task.getValue();
+//			for (int i = 0; i < task.visitedPathLength(); i++)
+//			{
+//				NodeEdgePair pair = task.getPair(i);
+//				if (pair.edge->getMove().sign == task.getSignToMove())
+//				{
+//					pair.node->updateValue(value);
+//					pair.edge->updateValue(value);
+//				}
+//				else
+//				{
+//					pair.node->updateValue(value.getInverted());
+//					pair.edge->updateValue(value.getInverted());
+//				}
+//				pair.node->decreaseVirtualLoss();
+//				pair.edge->decreaseVirtualLoss();
+//			}
+//
+//			for (int i = task.visitedPathLength() - 1; i >= 0; i--)
+//			{
+//				NodeEdgePair pair = task.getPair(i);
+//				Node *next_node = (i == (task.visitedPathLength() - 1)) ? task.getFinalNode() : task.getPair(i + 1).node;
+//
+//				update_score(pair.edge, next_node);
+////				update_score(pair.edge);
+//				update_score(pair.node);
+//			}
+//		}
+
+		Value value = task.getValue();
 		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
 		{
 			NodeEdgePair pair = task.getPair(i);
-			update_score(pair.edge);
+			Node *next_node = get_next_node(task, i);
+			if (has_value_leak(pair.edge, next_node, config.information_leak_threshold))
+			{
+				const Value current_edge_value = pair.edge->getValue();
+				const Value target_edge_value = next_node->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
+
+				Value correction = (target_edge_value - current_edge_value) * pair.edge->getVisits() + target_edge_value;
+
+				const float scale = 1.0f / std::max(1.0f, std::abs(correction.win_rate) + std::abs(correction.draw_rate));
+				value = correction * scale;
+
+//				if (not correction.isValid())
+//				{
+//				std::cout << "Found leak\n" << pair.edge->toString() << "\n" << next_node->toString() << '\n';
+//				std::cout << "Correction = " << correction.toString() << '\n';
+//				std::cout << "scale = " << scale << '\n';
+//				std::cout << "Scaled = " << value.toString() << "\n\n";
+//				}
+
+//				correction.win_rate = std::max(-1.0f, std::min(1.0f, correction.win_rate));
+//				correction.draw_rate = std::max(-1.0f, std::min(1.0f, correction.draw_rate));
+//				value = correction;
+			}
+
+//			std::cout << "value = " << value.toString() << '\n';
+//			std::cout << "updating " << pair.node->toString() << " and " << pair.edge->toString() << '\n';
+
+			pair.node->updateValue(value);
+			pair.edge->updateValue(value);
+			update_score(pair.edge, next_node);
 			update_score(pair.node);
+
+			value = value.getInverted();
+			pair.node->decreaseVirtualLoss();
+			pair.edge->decreaseVirtualLoss();
 		}
+
 		evaluation = root_node->getExpectation();
 	}
 	void Tree::correctInformationLeak(const SearchTask &task)
@@ -322,16 +436,23 @@ namespace ag
 		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
 		{
 			NodeEdgePair pair = task.getPair(i);
-			if (has_information_leak(pair.edge, config.information_leak_threshold))
+			Node *next_node = (i == (task.visitedPathLength() - 1)) ? task.getFinalNode() : task.getPair(i + 1).node;
+			if (has_information_leak(pair.edge, next_node, config.information_leak_threshold))
 			{
 				const Value current_edge_value = pair.edge->getValue();
-				const Value target_edge_value = pair.edge->getNode()->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
+				const Value target_edge_value = next_node->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
 
-				const Value correction = (target_edge_value - current_edge_value) * pair.edge->getVisits() + target_edge_value;
+//				const Value correction = (target_edge_value - current_edge_value) * pair.edge->getVisits() + target_edge_value;
+//				pair.edge->updateValue(correction);
+//				pair.node->updateValue(correction);
 
-				pair.edge->updateValue(correction);
-				pair.node->updateValue(correction);
-				update_score(pair.edge);
+				assert(pair.node->getVisits() != 0);
+				const float scale = static_cast<float>(pair.edge->getVisits()) / static_cast<float>(pair.node->getVisits());
+				const Value target_node_value = pair.node->getValue() + (target_edge_value - current_edge_value) * scale;
+
+				pair.edge->setValue(target_edge_value);
+				pair.node->setValue(target_node_value);
+				update_score(pair.edge, next_node);
 				update_score(pair.node);
 			}
 			else
@@ -366,27 +487,47 @@ namespace ag
 	}
 	Node Tree::getInfo(const std::vector<Move> &moves) const
 	{
-		size_t counter = 0;
-		Node *node = root_node;
-		while (node != nullptr and counter < moves.size())
+		matrix<Sign> tmp_board = getBoard();
+		Sign s = sign_to_move;
+		for (auto move = moves.begin(); move < moves.end(); move++)
 		{
-			const Move seeked_move = moves[counter];
-			auto iter = std::find_if(node->begin(), node->end(), [seeked_move](const Edge &edge)
-			{	return edge.getMove().row == seeked_move.row and edge.getMove().col == seeked_move.col;});
-			if (iter == node->end())
-				return Node(); // no such edge within the tree
+			if (tmp_board.at(move->row, move->col) == Sign::NONE)
+				tmp_board.at(move->row, move->col) = s;
 			else
-				node = iter->getNode();
-			counter++;
+				return Node();
+			s = invertSign(s);
 		}
+		Node *node = node_cache.seek(tmp_board, s); // try to find board state in cache
 		if (node == nullptr)
-			return Node(); // not even a single node was found
+			return Node();
 		else
 		{
 			Node result(*node);
 			copyEdgeInfo(result, *node);
 			return result;
 		}
+
+//		size_t counter = 0;
+//		Node *node = root_node;
+//		while (node != nullptr and counter < moves.size())
+//		{
+//			const Move seeked_move = moves[counter];
+//			auto iter = std::find_if(node->begin(), node->end(), [seeked_move](const Edge &edge)
+//			{	return edge.getMove().row == seeked_move.row and edge.getMove().col == seeked_move.col;});
+//			if (iter == node->end())
+//				return Node(); // no such edge within the tree
+//			else
+//				node = iter->getNode();
+//			counter++;
+//		}
+//		if (node == nullptr)
+//			return Node(); // not even a single node was found
+//		else
+//		{
+//			Node result(*node);
+//			copyEdgeInfo(result, *node);
+//			return result;
+//		}
 	}
 	void Tree::clearNodeCacheStats() noexcept
 	{
@@ -396,6 +537,23 @@ namespace ag
 	{
 		return node_cache.getStats();
 	}
-
+	/*
+	 * private
+	 */
+	void Tree::correctScoreLeak(const SearchTask &task) noexcept
+	{
+		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
+		{
+			NodeEdgePair pair = task.getPair(i);
+			Node *next_node = get_next_node(task, i);
+			if (has_score_leak(pair.edge, next_node))
+			{
+				update_score(pair.edge, next_node);
+				update_score(pair.node);
+			}
+			else
+				break;
+		}
+	}
 } /* namespace ag */
 

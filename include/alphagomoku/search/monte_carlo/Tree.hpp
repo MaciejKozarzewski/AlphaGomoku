@@ -34,7 +34,7 @@ namespace ag
 	enum class SelectOutcome
 	{
 		REACHED_LEAF,
-		REACHED_PROVEN_STATE,
+		REACHED_PROVEN_EDGE,
 		INFORMATION_LEAK
 	};
 	enum class ExpandOutcome
@@ -96,6 +96,8 @@ namespace ag
 			Node getInfo(const std::vector<Move> &moves) const;
 			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
+		private:
+			void correctScoreLeak(const SearchTask &task) noexcept;
 	};
 
 	class TreeLock

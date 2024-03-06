@@ -18,16 +18,10 @@
 
 namespace ag
 {
-	class Node;
-} /* namespace ag */
-
-namespace ag
-{
 
 	class Edge
 	{
 		private:
-			Node *node = nullptr; // non-owning
 			float policy_prior = 0.0f;
 			Value value;
 			int32_t visits = 0;
@@ -42,14 +36,6 @@ namespace ag
 			{
 			}
 
-			bool isLeaf() const noexcept
-			{
-				return node == nullptr;
-			}
-			Node* getNode() const noexcept
-			{
-				return node;
-			}
 			float getPolicyPrior() const noexcept
 			{
 				return policy_prior;
@@ -99,11 +85,6 @@ namespace ag
 				return virtual_loss;
 			}
 
-			void setNode(Node *ptr) noexcept
-			{
-				assert(ptr != nullptr);
-				node = ptr;
-			}
 			void setPolicyPrior(float p) noexcept
 			{
 				policy_prior = p;
@@ -118,7 +99,8 @@ namespace ag
 				visits++;
 				const float tmp = 1.0f / static_cast<float>(visits);
 				value += (eval - value) * tmp;
-				value.clipToBounds();
+//				value.clipToBounds();
+				assert(value.isValid());
 			}
 			void setMove(Move m) noexcept
 			{

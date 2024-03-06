@@ -89,8 +89,7 @@ namespace
 			if (total_samples == 0)
 				return Json(); // network inference didn't work for some reason (most likely out of memory)
 			result["batch"][i] = batch_sizes()[i];
-			result["samples"][i] = total_samples;
-			result["time"][i] = total_time / threads.size();
+			result["speed"][i] = total_samples / (total_time / threads.size());
 		}
 		return result;
 	}

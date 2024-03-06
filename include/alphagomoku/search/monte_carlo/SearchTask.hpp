@@ -50,6 +50,7 @@ namespace ag
 			matrix<Score> action_scores; /**< matrix of action scores returned from solver */
 			Score score; /**< whole position score computed by solver */
 
+			Node *final_node = nullptr;
 			GameConfig game_config;
 			Sign sign_to_move = Sign::NONE;
 			bool must_defend = false;
@@ -94,6 +95,10 @@ namespace ag
 					return nullptr;
 				else
 					return visited_path.back().edge;
+			}
+			Node* getFinalNode() const noexcept
+			{
+				return final_node;
 			}
 
 			const std::vector<Edge>& getEdges() const noexcept
@@ -186,6 +191,10 @@ namespace ag
 			}
 
 			void append(Node *node, Edge *edge);
+			void setFinalNode(Node *node) noexcept
+			{
+				this->final_node = node;
+			}
 			void markAsProcessedByNetwork() noexcept
 			{
 				was_processed_by_network = true;

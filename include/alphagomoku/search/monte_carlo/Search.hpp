@@ -61,7 +61,7 @@ namespace ag
 			SearchTaskList tasks_list_buffer_1;
 
 			ThreatSpaceSearch solver;
-//			AlphaBetaSearch ab_search;
+			AlphaBetaSearch ab_search;
 
 			GameConfig game_config;
 			SearchConfig search_config;

@@ -21,7 +21,7 @@ namespace
 				return edge.getVisits() + edge.getExpectation() + 0.001 * edge.getPolicyPrior();
 			}
 	};
-	std::string flags_to_string(uint16_t flags)
+	[[maybe_unused]] std::string flags_to_string(uint16_t flags)
 	{
 		std::string result;
 		result += std::to_string((flags & 1u) != 0);

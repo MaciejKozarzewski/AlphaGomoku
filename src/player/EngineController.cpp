@@ -23,9 +23,9 @@ namespace
 	{
 		return EdgeSelector::create(settings.getSearchConfig().mcts_config.edge_selector_config);
 	}
-	BaseGenerator get_base_generator(const EngineSettings &settings)
+	UnifiedGenerator get_base_generator(const EngineSettings &settings)
 	{
-		return BaseGenerator(settings.getSearchConfig().mcts_config.max_children, settings.getSearchConfig().mcts_config.policy_expansion_threshold);
+		return UnifiedGenerator(settings.getSearchConfig().mcts_config.max_children, settings.getSearchConfig().mcts_config.policy_expansion_threshold);
 	}
 }
 

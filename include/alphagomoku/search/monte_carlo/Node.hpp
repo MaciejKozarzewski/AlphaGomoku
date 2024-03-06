@@ -256,7 +256,8 @@ namespace ag
 				visits++;
 				const float tmp = 1.0f / static_cast<float>(visits);
 				value += (eval - value) * tmp;
-				value.clipToBounds();
+//				value.clipToBounds();
+				assert(value.isValid());
 			}
 			void setScore(Score s) noexcept
 			{
