@@ -161,7 +161,7 @@ namespace ag
 		search_mode = mode;
 		position_counter = 0;
 
-		ActionList actions = action_stack.create_root();
+		ActionList actions(action_stack);
 		Score result;
 		switch (mode)
 		{
@@ -210,15 +210,16 @@ namespace ag
 		{
 			const Move m(iter->move);
 			task.getActionScores().at(m.row, m.col) = iter->score;
-			if (iter->score.isProven())
-				task.getActionValues().at(m.row, m.col) = convertScoreToValue(iter->score); // FIXME in the future this should be handled elsewhere
-			if (actions.must_defend)
-				task.addDefensiveMove(m);
+			if (task.getActionScores().at(m.row, m.col).isProven())
+				task.getActionValues().at(m.row, m.col) = task.getActionScores().at(m.row, m.col).convertToValue();
+			task.addEdge(m);
 		}
 
 		task.setScore(result);
-		if (result.isProven())
-			task.setValue(convertScoreToValue(result));
+		if (task.getScore().isProven())
+			task.setValue(task.getScore().convertToValue());
+		if (actions.must_defend)
+			task.markAsDefensive();
 		task.markAsProcessedBySolver();
 
 //		if (result.score.getEval() ==  Score::min_value())
@@ -368,7 +369,6 @@ namespace ag
 //			TimerGuard tg(stats.move_generation);
 			const GeneratorMode mode = actions.isRoot() ? GeneratorMode::REDUCED : GeneratorMode::VCF;
 			const Score static_score = threat_generator.generate(actions, mode);
-			action_stack.increment(actions.size());
 			if (static_score.isProven())
 				return static_score;
 
@@ -407,7 +407,7 @@ namespace ag
 				shared_table.prefetch(hash_key);
 				pattern_calculator.addMove(move);
 
-				ActionList next_ply_actions = action_stack.create_from_actions(actions, i);
+				ActionList next_ply_actions(action_stack, actions, i);
 
 				Score tmp = -recursive_solve(depthRemaining - 1, -beta, -alpha, next_ply_actions);
 				tmp.increaseDistance();

@@ -37,7 +37,6 @@ namespace ag
 			double max_time = std::numeric_limits<double>::max();
 			int node_counter = 0;
 			double start_time = 0.0;
-			MoveGeneratorMode movegen_mode;
 
 			GameConfig game_config;
 			PatternCalculator pattern_calculator;
@@ -51,7 +50,7 @@ namespace ag
 			size_t total_calls = 0;
 			TimedStat total_time;
 		public:
-			AlphaBetaSearch(const GameConfig &gameConfig, MoveGeneratorMode mode);
+			AlphaBetaSearch(const GameConfig &gameConfig);
 			void increaseGeneration();
 			void loadWeights(const nnue::NNUEWeights &weights);
 			int solve(SearchTask &task);

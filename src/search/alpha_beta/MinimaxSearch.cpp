@@ -51,25 +51,25 @@ namespace ag
 		generator_mode = gen_mode;
 		pattern_calculator.setBoard(task.getBoard(), task.getSignToMove());
 
-		ActionList actions = action_stack.create_root();
-
-//		double t0 = getTime();
-		Score result = recursive_solve(depth, actions);
-//		std::cout << "depth " << depth << " : " << result << " : " << (getTime() - t0) << "s\n";
-
-//		std::sort(actions.begin(), actions.end());
-//		actions.print(); // TODO remove this later
-
-		task.getActionScores().fill(Score::min_value());
-		for (auto iter = actions.begin(); iter < actions.end(); iter++)
-		{
-			const Move m(iter->move);
-			task.getActionScores().at(m.row, m.col) = iter->score;
-			if (actions.must_defend)
-				task.addDefensiveMove(m);
-		}
-		task.setScore(result);
-		task.markAsProcessedBySolver();
+//		ActionList actions = action_stack.create_root();
+//
+////		double t0 = getTime();
+//		Score result = recursive_solve(depth, actions);
+////		std::cout << "depth " << depth << " : " << result << " : " << (getTime() - t0) << "s\n";
+//
+////		std::sort(actions.begin(), actions.end());
+////		actions.print(); // TODO remove this later
+//
+//		task.getActionScores().fill(Score::min_value());
+//		for (auto iter = actions.begin(); iter < actions.end(); iter++)
+//		{
+//			const Move m(iter->move);
+//			task.getActionScores().at(m.row, m.col) = iter->score;
+//			if (actions.must_defend)
+//				task.addDefensiveMove(m);
+//		}
+//		task.setScore(result);
+//		task.markAsProcessedBySolver();
 	}
 	/*
 	 * private
@@ -78,39 +78,40 @@ namespace ag
 	{
 		assert(depthRemaining >= 0);
 
-		actions.clear();
-		Score static_score = move_generator.generate(actions, generator_mode);
-		action_stack.increment(actions.size() + 1);
-		if (static_score.isProven())
-		{
-			if (not actions.isRoot())
-				action_stack.decrement(actions.size() + 1);
-			return static_score;
-		}
-
-		if (depthRemaining == 0)
-		{
-			if (not actions.isRoot())
-				action_stack.decrement(actions.size() + 1);
-			return evaluate();
-		}
-
-		Score score = Score::min_value();
-		for (int i = 0; i < actions.size(); i++)
-		{
-			ActionList next_ply_actions = action_stack.create_from_actions(actions, i);
-			const Move move = actions[i].move;
-			pattern_calculator.addMove(move);
-			actions[i].score = invert_up(recursive_solve(depthRemaining - 1, next_ply_actions));
-			pattern_calculator.undoMove(move);
-
-			score = std::max(score, actions[i].score);
-			if (score.isWin())
-				break;
-		}
-		if (not actions.isRoot())
-			action_stack.decrement(actions.size() + 1);
-		return score;
+//		actions.clear();
+//		Score static_score = move_generator.generate(actions, generator_mode);
+//		action_stack.increment(actions.size() + 1);
+//		if (static_score.isProven())
+//		{
+//			if (not actions.isRoot())
+//				action_stack.decrement(actions.size() + 1);
+//			return static_score;
+//		}
+//
+//		if (depthRemaining == 0)
+//		{
+//			if (not actions.isRoot())
+//				action_stack.decrement(actions.size() + 1);
+//			return evaluate();
+//		}
+//
+//		std::sort(actions.begin(), actions.end());
+//		Score score = Score::min_value();
+//		for (int i = 0; i < actions.size(); i++)
+//		{
+//			ActionList next_ply_actions = action_stack.create_from_actions(actions, i);
+//			const Move move = actions[i].move;
+//			pattern_calculator.addMove(move);
+//			actions[i].score = invert_up(recursive_solve(depthRemaining - 1, next_ply_actions));
+//			pattern_calculator.undoMove(move);
+//
+//			score = std::max(score, actions[i].score);
+//			if (score.isWin())
+//				break;
+//		}
+//		if (not actions.isRoot())
+//			action_stack.decrement(actions.size() + 1);
+//		return score;
 
 //		if (actions.isEmpty())
 //		{
@@ -146,7 +147,7 @@ namespace ag
 	}
 	Score MinimaxSearch::evaluate()
 	{
-		return Score(randInt(-10, 11) + randInt(-10, 11) + randInt(-10, 11));
+		return Score(); //randInt(-10, 11) + randInt(-10, 11) + randInt(-10, 11));
 
 //		const Sign own_sign = pattern_calculator.getSignToMove();
 //		const Sign opponent_sign = invertSign(own_sign);

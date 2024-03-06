@@ -50,16 +50,15 @@ namespace
 namespace ag
 {
 
-	AlphaBetaSearch::AlphaBetaSearch(const GameConfig &gameConfig, MoveGeneratorMode mode) :
+	AlphaBetaSearch::AlphaBetaSearch(const GameConfig &gameConfig) :
 			action_stack(get_max_nodes(gameConfig)),
-			movegen_mode(mode),
 			game_config(gameConfig),
 			pattern_calculator(gameConfig),
 			move_generator(gameConfig, pattern_calculator),
 			shared_table(gameConfig.rows, gameConfig.cols, 4 * 1024 * 1024),
 			total_time("total_time")
 	{
-		loadWeights(nnue::NNUEWeights("/home/maciek/Desktop/AlphaGomoku560/networks/standard_nnue_64x16x16x1.bin"));
+//		loadWeights(nnue::NNUEWeights("/home/maciek/Desktop/AlphaGomoku560/networks/standard_nnue_64x16x16x1.bin"));
 	}
 	void AlphaBetaSearch::increaseGeneration()
 	{
@@ -75,26 +74,22 @@ namespace ag
 
 		start_time = getTime();
 
-		const size_t stack_size = game_config.rows * game_config.cols * max_nodes;
-		if (action_stack.size() < stack_size)
-			action_stack = ActionStack(stack_size);
-
 		pattern_calculator.setBoard(task.getBoard(), task.getSignToMove());
 		task.getFeatures().encode(pattern_calculator);
 //		inference_nnue.refresh(pattern_calculator);
 
 		node_counter = 0;
 
-		ActionList actions = action_stack.create_root();
+		ActionList actions(action_stack);
 		Score result;
 		hash_key = shared_table.getHashFunction().getHash(task.getBoard()); // set up hash key
-		for (int depth = 0; depth <= max_nodes; depth += 2)
+		for (int depth = 0; depth <= max_depth; depth += 4)
 		{ // iterative deepening loop
-			double t0 = getTime();
-			const size_t stack_offset = action_stack.offset();
+//			double t0 = getTime();
+			const size_t max_stack_offset = action_stack.max_offset();
 			result = recursive_solve(depth, Score::min_value(), Score::max_value(), actions);
-			std::cout << "max depth=" << depth << ", nodes=" << node_counter << ", stack offset=" << action_stack.offset() << ", score=" << result
-					<< ", time=" << (getTime() - t0) << "s\n";
+//			std::cout << "max depth=" << depth << ", nodes=" << node_counter << ", stack offset=" << action_stack.max_offset() << ", score=" << result
+//					<< ", time=" << (getTime() - t0) << "s\n\n\n\n";
 //			actions.print();
 //			std::cout << '\n';
 
@@ -106,7 +101,7 @@ namespace ag
 			 * - no new nodes were added to the tree
 			 * - there is no time left
 			 */
-			if (actions.isEmpty() or result.isProven() or node_counter >= max_nodes or action_stack.offset() == stack_offset
+			if (actions.isEmpty() or result.isProven() or node_counter >= max_nodes or action_stack.max_offset() == max_stack_offset
 					or (getTime() - start_time) >= max_time)
 				break;
 		}
@@ -116,7 +111,7 @@ namespace ag
 			task.getActionScores().at(m.row, m.col) = iter->score;
 			if (task.getActionScores().at(m.row, m.col).isProven())
 				task.getActionValues().at(m.row, m.col) = task.getActionScores().at(m.row, m.col).convertToValue();
-			task.addDefensiveMove(m);
+			task.addEdge(m);
 		}
 		task.setScore(result);
 		if (task.getScore().isProven())
@@ -128,13 +123,13 @@ namespace ag
 //		if (result.score.getEval() ==  Score::min_value())
 //		if (task.getScore().getEval() == Score::min_value())
 //		{
-		std::cout << result.toString() << " at " << node_counter << '\n';
-		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
-		pattern_calculator.print();
-		pattern_calculator.printAllThreats();
-		pattern_calculator.printForbiddenMoves();
-		std::sort(actions.begin(), actions.end());
-		actions.print();
+//		std::cout << result.toString() << " at " << node_counter << '\n';
+//		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
+//		pattern_calculator.print();
+//		pattern_calculator.printAllThreats();
+//		pattern_calculator.printForbiddenMoves();
+//		std::sort(actions.begin(), actions.end());
+//		actions.print();
 //		std::cout << task.toString();
 //		std::cout << "\n---------------------------------------------\n";
 //		exit(-1);
@@ -170,7 +165,6 @@ namespace ag
 	 */
 	Score AlphaBetaSearch::recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions)
 	{
-		assert(depthRemaining >= 0);
 		assert(Score::minus_infinity() <= alpha);
 		assert(alpha < beta);
 		assert(beta <= Score::plus_infinity());
@@ -198,18 +192,24 @@ namespace ag
 
 		node_counter++;
 
-		if (not actions.isRoot() and not actions.performed_pattern_update)
-		{
-			pattern_calculator.addMove(actions.last_move);
-			actions.performed_pattern_update = true;
-		}
+//		if (not actions.isRoot() and not actions.performed_pattern_update)
+//		{
+//			pattern_calculator.addMove(actions.last_move);
+//			actions.performed_pattern_update = true;
+//		}
+
+//		pattern_calculator.print(actions.last_move);
+//		pattern_calculator.printAllThreats();
+//		std::cout << "Depth remaining = " << depthRemaining << '\n';
+//		std::cout << "Actions before (stack offset = " << action_stack.offset() << ")\n";
+//		actions.print();
 
 		if (actions.isEmpty())
 		{
-			actions.clear();
 			const MoveGeneratorMode mode = actions.isRoot() ? MoveGeneratorMode::OPTIMAL : MoveGeneratorMode::THREATS;
 			const Score static_score = move_generator.generate(actions, mode);
-			action_stack.increment(actions.size() + 1);
+//			std::cout << "Actions generated (stack offset = " << action_stack.offset() << ")\n";
+//			actions.print();
 
 			if (static_score.isProven())
 				return static_score;
@@ -242,15 +242,27 @@ namespace ag
 				shared_table.prefetch(hash_key);
 
 				// construct next ply action list
-				ActionList next_ply_actions = action_stack.create_from_actions(actions, i);
+				ActionList next_ply_actions(action_stack, actions, i);
 
-				actions[i].score = invert_up(recursive_solve(depthRemaining - 1, invert_down(beta), invert_down(alpha), next_ply_actions));
+				const Score new_alpha = invert_down(alpha);
+				const Score new_beta = invert_down(beta);
 
-				if (next_ply_actions.performed_pattern_update)
-				{
-					pattern_calculator.undoMove(move);
+				pattern_calculator.addMove(move);
+//				if (i == 0)
+					actions[i].score = invert_up(recursive_solve(depthRemaining - 1, new_beta, new_alpha, next_ply_actions));
+//				else
+//				{
+//					actions[i].score = invert_up(recursive_solve(depthRemaining - 1, new_alpha - 1, new_alpha, next_ply_actions));
+//					if (actions[i].score > alpha)
+//						actions[i].score = invert_up(recursive_solve(depthRemaining - 1, new_beta, new_alpha, next_ply_actions));
+//				}
+				pattern_calculator.undoMove(move);
+
+//				if (next_ply_actions.performed_pattern_update)
+//				{
+//					pattern_calculator.undoMove(move);
 //					inference_nnue.update(pattern_calculator);
-				}
+//				}
 				shared_table.getHashFunction().updateHash(hash_key, move);
 			}
 			best_score = std::max(best_score, actions[i].score);
