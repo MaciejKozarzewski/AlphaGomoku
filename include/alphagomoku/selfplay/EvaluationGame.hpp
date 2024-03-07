@@ -47,7 +47,7 @@ namespace ag
 			void selectSolveEvaluate();
 			void expandBackup();
 			bool isSearchOver();
-			ThreatSpaceSearch& getSolver() noexcept;
+			AlphaBetaSearch& getSolver() noexcept;
 			NNEvaluator& getNNEvaluator() noexcept;
 			void scheduleSingleTask(SearchTask &task);
 			Move getMove() const noexcept;

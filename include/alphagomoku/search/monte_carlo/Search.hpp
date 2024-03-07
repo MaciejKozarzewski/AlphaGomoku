@@ -11,7 +11,6 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/Game.hpp>
 #include <alphagomoku/search/monte_carlo/SearchTask.hpp>
-#include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
 #include <alphagomoku/search/alpha_beta/AlphaBetaSearch.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
@@ -60,7 +59,6 @@ namespace ag
 			SearchTaskList tasks_list_buffer_0;
 			SearchTaskList tasks_list_buffer_1;
 
-			ThreatSpaceSearch solver;
 			AlphaBetaSearch ab_search;
 
 			GameConfig game_config;
@@ -80,7 +78,7 @@ namespace ag
 
 			int64_t getMemory() const noexcept;
 			const SearchConfig& getConfig() const noexcept;
-			ThreatSpaceSearch& getSolver() noexcept;
+			AlphaBetaSearch& getSolver() noexcept;
 			void clearStats() noexcept;
 			SearchStats getStats() const noexcept;
 

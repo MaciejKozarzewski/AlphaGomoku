@@ -52,9 +52,11 @@ namespace ag
 		public:
 			AlphaBetaSearch(const GameConfig &gameConfig);
 			void increaseGeneration();
+			void clear();
 			void loadWeights(const nnue::NNUEWeights &weights);
 			int solve(SearchTask &task);
 			void print_stats() const;
+			int64_t getMemory() const noexcept;
 
 			void setDepthLimit(int depth) noexcept;
 			void setNodeLimit(int nodes) noexcept;

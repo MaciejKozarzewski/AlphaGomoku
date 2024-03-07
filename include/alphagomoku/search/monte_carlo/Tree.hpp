@@ -86,7 +86,6 @@ namespace ag
 			void generateEdges(SearchTask &task) const;
 			ExpandOutcome expand(SearchTask &task);
 			void backup(const SearchTask &task);
-			void correctInformationLeak(const SearchTask &task);
 			void cancelVirtualLoss(const SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 

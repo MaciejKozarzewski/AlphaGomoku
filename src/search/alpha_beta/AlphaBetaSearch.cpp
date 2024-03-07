@@ -64,6 +64,10 @@ namespace ag
 	{
 		shared_table.increaseGeneration();
 	}
+	void AlphaBetaSearch::clear()
+	{
+		shared_table.clear();
+	}
 	void AlphaBetaSearch::loadWeights(const nnue::NNUEWeights &weights)
 	{
 		inference_nnue = nnue::InferenceNNUE(game_config, weights);
@@ -147,6 +151,10 @@ namespace ag
 		std::cout << "total positions = " << total_positions << " : " << total_positions / total_calls << "\n";
 		std::cout << "SharedHashTable load factor = " << shared_table.loadFactor(true) << '\n';
 		inference_nnue.print_stats();
+	}
+	int64_t AlphaBetaSearch::getMemory() const noexcept
+	{
+		return action_stack.size() * sizeof(Action);
 	}
 	void AlphaBetaSearch::setDepthLimit(int depth) noexcept
 	{
@@ -249,7 +257,7 @@ namespace ag
 
 				pattern_calculator.addMove(move);
 //				if (i == 0)
-					actions[i].score = invert_up(recursive_solve(depthRemaining - 1, new_beta, new_alpha, next_ply_actions));
+				actions[i].score = invert_up(recursive_solve(depthRemaining - 1, new_beta, new_alpha, next_ply_actions));
 //				else
 //				{
 //					actions[i].score = invert_up(recursive_solve(depthRemaining - 1, new_alpha - 1, new_alpha, next_ply_actions));

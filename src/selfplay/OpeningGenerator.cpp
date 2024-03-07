@@ -7,7 +7,7 @@
 
 #include <alphagomoku/selfplay/OpeningGenerator.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
-#include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
+#include <alphagomoku/search/alpha_beta/AlphaBetaSearch.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
 namespace ag
@@ -18,7 +18,7 @@ namespace ag
 			average_length(averageLength)
 	{
 	}
-	OpeningGenerator::Status OpeningGenerator::generate(size_t batchSize, NNEvaluator &evaluator, ThreatSpaceSearch &solver)
+	OpeningGenerator::Status OpeningGenerator::generate(size_t batchSize, NNEvaluator &evaluator, AlphaBetaSearch &solver)
 	{
 		if (batchSize != workspace.size())
 		{
@@ -62,7 +62,8 @@ namespace ag
 					const Sign sign_to_move = (iter->moves.size() == 0) ? Sign::CROSS : invertSign(iter->moves.back().sign);
 					iter->task.set(board, sign_to_move);
 
-					solver.solve(iter->task, TssMode::RECURSIVE, 1000);
+					solver.setNodeLimit(1000);
+					solver.solve(iter->task);
 					if (not iter->task.getScore().isProven())
 					{
 						evaluator.addToQueue(iter->task);

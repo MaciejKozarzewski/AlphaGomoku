@@ -102,7 +102,7 @@ namespace ag
 		else
 			return false;
 	}
-	ThreatSpaceSearch& Player::getSolver() noexcept
+	AlphaBetaSearch& Player::getSolver() noexcept
 	{
 		return search.getSolver();
 	}

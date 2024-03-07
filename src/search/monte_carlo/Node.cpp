@@ -61,7 +61,7 @@ namespace ag
 	{
 		dst.createEdges(src.numberOfEdges());
 		for (int i = 0; i < src.numberOfEdges(); i++)
-			dst.getEdge(i) = src.getEdge(i).copyInfo();
+			dst.getEdge(i) = src.getEdge(i);
 	}
 
 } /* namespace ag */

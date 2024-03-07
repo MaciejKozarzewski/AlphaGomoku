@@ -14,7 +14,7 @@
 namespace ag
 {
 	class NNEvaluator;
-	class ThreatSpaceSearch;
+	class AlphaBetaSearch;
 }
 
 namespace ag
@@ -59,7 +59,7 @@ namespace ag
 			 * \brief Performs single step of opening generation.
 			 * Reads completed requests from NNEvaluator, processes them and schedules more if necessary.
 			 */
-			Status generate(size_t batchSize, NNEvaluator &evaluator, ThreatSpaceSearch &solver);
+			Status generate(size_t batchSize, NNEvaluator &evaluator, AlphaBetaSearch &solver);
 			/*
 			 * \brief Returns one generated opening.
 			 */

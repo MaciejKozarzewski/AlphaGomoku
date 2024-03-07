@@ -99,8 +99,7 @@ namespace ag
 				visits++;
 				const float tmp = 1.0f / static_cast<float>(visits);
 				value += (eval - value) * tmp;
-//				value.clipToBounds();
-				assert(value.isValid());
+				value.clipToBounds();
 			}
 			void setMove(Move m) noexcept
 			{
@@ -130,7 +129,6 @@ namespace ag
 			}
 
 			std::string toString() const;
-			Edge copyInfo() const noexcept;
 	};
 
 	template<class Op>
