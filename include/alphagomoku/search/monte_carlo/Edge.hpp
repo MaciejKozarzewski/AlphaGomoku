@@ -56,9 +56,9 @@ namespace ag
 			{
 				return value;
 			}
-			float getExpectation(float styleFactor = 0.5f) const noexcept
+			float getExpectation() const noexcept
 			{
-				return getValue().getExpectation(styleFactor);
+				return getValue().getExpectation();
 			}
 			int getVisits() const noexcept
 			{

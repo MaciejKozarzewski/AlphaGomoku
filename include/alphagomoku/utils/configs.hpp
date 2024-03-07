@@ -72,7 +72,6 @@ namespace ag
 					static constexpr float noise_weight = 0.0f;
 					static constexpr float exploration_constant = 1.25f;
 					static constexpr float exploration_exponent = 0.5f;
-					static constexpr float style_factor = 0.5f;
 			};
 		public:
 			std::string policy = "puct"; // allowed values are: 'puct', 'uct', 'max_value', 'max_policy', 'max_visit', 'min_visit,' 'best'
@@ -81,7 +80,6 @@ namespace ag
 			float noise_weight = Defaults::noise_weight; // only relevant if noise_type != 'none'
 			float exploration_constant = Defaults::exploration_constant;
 			float exploration_exponent = Defaults::exploration_exponent;
-			float style_factor = Defaults::style_factor;
 
 			EdgeSelectorConfig() = default;
 			EdgeSelectorConfig(const Json &cfg);

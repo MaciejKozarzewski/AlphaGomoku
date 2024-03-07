@@ -32,15 +32,13 @@ namespace
 	struct PUCT_q_head
 	{
 			const float parent_sqrt_visit;
-			const float style_factor;
-			PUCT_q_head(const Node *parent, float explorationConstant, float explorationExponent, float styleFactor) noexcept :
-					parent_sqrt_visit(explorationConstant * std::pow(parent->getVisits() + parent->getVirtualLoss(), explorationExponent)),
-					style_factor(styleFactor)
+			PUCT_q_head(const Node *parent, float explorationConstant, float explorationExponent) noexcept :
+					parent_sqrt_visit(explorationConstant * std::pow(parent->getVisits() + parent->getVirtualLoss(), explorationExponent))
 			{
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
 			{
-				const float Q = edge.getExpectation(style_factor);
+				const float Q = edge.getExpectation();
 				const float U = externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());
 				return Q * getVirtualLoss(edge) + U;
 			}
@@ -48,37 +46,33 @@ namespace
 	struct PUCT
 	{
 			const float parent_sqrt_visit;
-			const float style_factor;
 			const float initial_Q;
-			PUCT(const Node *parent, float explorationConstant, float explorationExponent, float styleFactor, float initialQ) noexcept :
+			PUCT(const Node *parent, float explorationConstant, float explorationExponent, float initialQ) noexcept :
 					parent_sqrt_visit(explorationConstant * std::pow(parent->getVisits() + parent->getVirtualLoss(), explorationExponent)),
-					style_factor(styleFactor),
 					initial_Q(initialQ)
 			{
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
 			{
-				const float Q = (edge.getVisits() > 0) ? edge.getExpectation(style_factor) : initial_Q;
+				const float Q = (edge.getVisits() > 0) ? edge.getExpectation() : initial_Q;
 				const float U = externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());
 				return Q * getVirtualLoss(edge) + U;
 			}
 	};
-	struct UCT
+	struct UCB
 	{
 			const float exploration_constant;
 			const float parent_log_visit;
-			const float style_factor;
 			const float initial_Q;
-			UCT(const Node *parent, float explorationConstant, float styleFactor, float initialQ) noexcept :
+			UCB(const Node *parent, float explorationConstant, float styleFactor, float initialQ) noexcept :
 					exploration_constant(explorationConstant),
 					parent_log_visit(std::log(parent->getVisits() + parent->getVirtualLoss())),
-					style_factor(styleFactor),
 					initial_Q(initialQ)
 			{
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
 			{
-				const float Q = (edge.getVisits() > 0) ? edge.getExpectation(style_factor) : initial_Q;
+				const float Q = (edge.getVisits() > 0) ? edge.getExpectation() : initial_Q;
 				const float U = exploration_constant * std::sqrt(parent_log_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss()));
 				const float P = externalPrior / (1.0f + edge.getVisits() + edge.getVirtualLoss());
 				return Q * getVirtualLoss(edge) + U + P;
@@ -88,13 +82,11 @@ namespace
 	{
 			const float exploration_constant;
 			const float parent_log_visit;
-			const float style_factor;
 			const float initial_Q;
-			LCB(const Node *parent, float explorationConstant, float styleFactor) noexcept :
+			LCB(const Node *parent, float explorationConstant) noexcept :
 					exploration_constant(explorationConstant),
 					parent_log_visit(std::log(parent->getVisits() + parent->getVirtualLoss())),
-					style_factor(styleFactor),
-					initial_Q(parent->getExpectation(styleFactor))
+					initial_Q(parent->getExpectation())
 			{
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
@@ -107,7 +99,7 @@ namespace
 					case ProvenValue::UNKNOWN:
 					default:
 					{
-						const float Q = (edge.getVisits() > 0) ? edge.getExpectation(style_factor) : initial_Q;
+						const float Q = (edge.getVisits() > 0) ? edge.getExpectation() : initial_Q;
 						const float U = exploration_constant * std::sqrt(parent_log_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss()));
 						return Q * getVirtualLoss(edge) - U;
 					}
@@ -118,11 +110,6 @@ namespace
 	};
 	struct MaxValue
 	{
-			const float style_factor;
-			MaxValue(float styleFactor) noexcept :
-					style_factor(styleFactor)
-			{
-			}
 			float operator()(const Edge &edge, float) const noexcept
 			{
 				switch (edge.getProvenValue())
@@ -133,7 +120,7 @@ namespace
 						return Value::draw().getExpectation();
 					default:
 					case ProvenValue::UNKNOWN:
-						return edge.getExpectation(style_factor);
+						return edge.getExpectation();
 					case ProvenValue::WIN:
 						return +1000.0f - edge.getScore().getDistance();
 				}
@@ -163,10 +150,8 @@ namespace
 	struct BestEdge
 	{
 			const int parent_visits;
-			const float style_factor;
-			BestEdge(const Node *parent, float styleFactor) noexcept :
-					parent_visits(parent->getVisits()),
-					style_factor(styleFactor)
+			BestEdge(const Node *parent) noexcept :
+					parent_visits(parent->getVisits())
 			{
 			}
 			float operator()(const Edge &edge, float) const noexcept
@@ -178,7 +163,7 @@ namespace
 					default:
 					case ProvenValue::DRAW:
 					case ProvenValue::UNKNOWN:
-						return edge.getVisits() + edge.getExpectation(style_factor) * parent_visits + 0.001f * edge.getPolicyPrior();
+						return edge.getVisits() + edge.getExpectation() * parent_visits + 0.001f * edge.getPolicyPrior();
 					case ProvenValue::WIN:
 						return +1.0e8f - edge.getScore().getDistance();
 				}
@@ -289,8 +274,7 @@ namespace ag
 			noise_type(config.noise_type),
 			noise_weight((config.noise_type == "none") ? 0.0f : config.noise_weight),
 			exploration_constant(config.exploration_constant),
-			exploration_exponent(config.exploration_exponent),
-			style_factor(config.style_factor)
+			exploration_exponent(config.exploration_exponent)
 	{
 	}
 	std::unique_ptr<EdgeSelector> PUCTSelector::clone() const
@@ -302,7 +286,6 @@ namespace ag
 		config.noise_weight = noise_weight;
 		config.exploration_constant = exploration_constant;
 		config.exploration_exponent = exploration_exponent;
-		config.style_factor = style_factor;
 		return std::make_unique<PUCTSelector>(config);
 	}
 	Edge* PUCTSelector::select(const Node *node) noexcept
@@ -321,11 +304,10 @@ namespace ag
 		}
 
 		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
-//		const float c_puct = exploration_constant;
 
 		if (init_to == "q_head")
 		{
-			const PUCT_q_head op(node, c_puct, exploration_exponent, style_factor);
+			const PUCT_q_head op(node, c_puct, exploration_exponent);
 			if (use_noise)
 				return find_best_edge_impl<PUCT_q_head, true>(node, op, noisy_policy);
 			else
@@ -335,7 +317,7 @@ namespace ag
 		{
 			float initial_q = 0.0f; // the default is 'init to loss'
 			if (init_to == "parent")
-				initial_q = node->getValue().getExpectation(style_factor);
+				initial_q = node->getValue().getExpectation();
 			else
 			{
 				if (init_to == "draw")
@@ -343,7 +325,7 @@ namespace ag
 				else
 					initial_q = 0.0f;
 			}
-			const PUCT op(node, c_puct, exploration_exponent, style_factor, initial_q);
+			const PUCT op(node, c_puct, exploration_exponent, initial_q);
 			if (use_noise)
 				return find_best_edge_impl<PUCT, true>(node, op, noisy_policy);
 			else
@@ -352,8 +334,7 @@ namespace ag
 	}
 
 	LCBSelector::LCBSelector(const EdgeSelectorConfig &config) :
-			exploration_constant(config.exploration_constant),
-			style_factor(config.style_factor)
+			exploration_constant(config.exploration_constant)
 	{
 	}
 	std::unique_ptr<EdgeSelector> LCBSelector::clone() const
@@ -361,7 +342,6 @@ namespace ag
 		EdgeSelectorConfig config;
 		config.policy = "lcb";
 		config.exploration_constant = exploration_constant;
-		config.style_factor = style_factor;
 		return std::make_unique<LCBSelector>(config);
 	}
 	Edge* LCBSelector::select(const Node *node) noexcept
@@ -369,7 +349,7 @@ namespace ag
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
 
-		const LCB op(node, exploration_constant, style_factor);
+		const LCB op(node, exploration_constant);
 		return find_best_edge<LCB>(node, op);
 	}
 
@@ -398,21 +378,19 @@ namespace ag
 		}
 	}
 
-	MaxValueSelector::MaxValueSelector(float styleFactor) noexcept :
-			style_factor(styleFactor)
+	MaxValueSelector::MaxValueSelector() noexcept
 	{
 	}
-	MaxValueSelector::MaxValueSelector(const EdgeSelectorConfig &config) :
-			style_factor(config.style_factor)
+	MaxValueSelector::MaxValueSelector(const EdgeSelectorConfig &config)
 	{
 	}
 	std::unique_ptr<EdgeSelector> MaxValueSelector::clone() const
 	{
-		return std::make_unique<MaxValueSelector>(style_factor);
+		return std::make_unique<MaxValueSelector>();
 	}
 	Edge* MaxValueSelector::select(const Node *node) noexcept
 	{
-		const MaxValue op(style_factor);
+		const MaxValue op;
 		return find_best_edge(node, op);
 	}
 
@@ -443,23 +421,21 @@ namespace ag
 		return find_best_edge(node, MinVisit());
 	}
 
-	BestEdgeSelector::BestEdgeSelector(float styleFactor) :
-			style_factor(styleFactor)
+	BestEdgeSelector::BestEdgeSelector()
 	{
 	}
-	BestEdgeSelector::BestEdgeSelector(const EdgeSelectorConfig &config) :
-			style_factor(config.style_factor)
+	BestEdgeSelector::BestEdgeSelector(const EdgeSelectorConfig &config)
 	{
 	}
 	std::unique_ptr<EdgeSelector> BestEdgeSelector::clone() const
 	{
-		return std::make_unique<BestEdgeSelector>(style_factor);
+		return std::make_unique<BestEdgeSelector>();
 	}
 	Edge* BestEdgeSelector::select(const Node *node) noexcept
 	{
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
-		const BestEdge op(node, style_factor);
+		const BestEdge op(node);
 		return find_best_edge(node, op);
 	}
 

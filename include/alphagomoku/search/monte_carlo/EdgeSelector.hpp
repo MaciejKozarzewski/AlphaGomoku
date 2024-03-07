@@ -53,7 +53,6 @@ namespace ag
 			const float noise_weight;
 			const float exploration_constant; /**< controls the level of exploration */
 			const float exploration_exponent;
-			const float style_factor; /**< used to determine what to optimize during search */
 		public:
 			PUCTSelector(const EdgeSelectorConfig &config);
 			std::unique_ptr<EdgeSelector> clone() const;
@@ -67,7 +66,6 @@ namespace ag
 	{
 		private:
 			const float exploration_constant; /**< controls the level of exploration */
-			const float style_factor; /**< used to determine what to optimize during search */
 		public:
 			LCBSelector(const EdgeSelectorConfig &config);
 			std::unique_ptr<EdgeSelector> clone() const;
@@ -94,10 +92,8 @@ namespace ag
 	 */
 	class MaxValueSelector: public EdgeSelector
 	{
-		private:
-			const float style_factor; /**< used to determine what to optimize during search */
 		public:
-			MaxValueSelector(float styleFactor = 0.5f) noexcept;
+			MaxValueSelector() noexcept;
 			MaxValueSelector(const EdgeSelectorConfig &config);
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
@@ -130,10 +126,8 @@ namespace ag
 	 */
 	class BestEdgeSelector: public EdgeSelector
 	{
-		private:
-			const float style_factor; /**< used to determine what to optimize during search */
 		public:
-			BestEdgeSelector(float styleFactor = 0.5f);
+			BestEdgeSelector();
 			BestEdgeSelector(const EdgeSelectorConfig &config);
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;

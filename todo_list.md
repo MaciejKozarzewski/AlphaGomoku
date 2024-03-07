@@ -24,8 +24,7 @@ IMPORTANT:	Must be done at the same time as reducing bit-width of Score from 16 
 
 ## networks
 - maybe implement nnue ops in assembly (after settling with final architecture)?
-- check if input features provide any improvement or not. If not, remove the support for them (potential speedup).
-- Add SE-block (potential elo gain).
+- check if input features provide any improvement or not. If not, remove support for them (potential speedup).
 
 ## patterns
 - maybe it is possible to optimize defensive move table (unlikely, low priority)?
@@ -48,12 +47,11 @@ IMPORTANT:	Must be done at the same time as reducing bit-width of Score from 16 
 ## search-mcts
 - if the 'style' parameter is removed, Edge can only store expectation values, this leaves 4 bytes for something else.
 - Move could be compressed to save another 2 bytes.
-- Pointer to the Node can be removed at the cost of 2x slowdown of select phase (maybe irrelevant, needs testing).
 - Datatype used for inference can be made parametrizable in the config (easy, but nice to have).
 - check Thompson sampling at root or at all levels (virtual loss would then not be necessary - 2 free bytes). <- a lot of research required
 
 ## selfplay
-- refactor Evaluation so that different Players can be used. <- TOP PRIORITY (required for a-b search testing)
+- refactor Evaluation so that different Players can be used.
 
 ## utils
 - nothing to be done here

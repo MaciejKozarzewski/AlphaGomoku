@@ -171,11 +171,6 @@ namespace ag
 					max_memory = value;
 				return (max_memory >= tmp) ? SetOptionOutcome::SUCCESS : SetOptionOutcome::SUCCESS_BUT_REALLOCATE_ENGINE;
 			}
-			if (option.name == "style")
-			{
-				search_config.mcts_config.edge_selector_config.style_factor = 0.25f * std::stoi(option.value);
-				return SetOptionOutcome::SUCCESS;
-			}
 
 			if (option.name == "analysis_mode")
 			{

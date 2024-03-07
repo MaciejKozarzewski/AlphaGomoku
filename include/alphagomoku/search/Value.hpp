@@ -38,10 +38,9 @@ namespace ag
 			{
 				return 1.0f - (win_rate + draw_rate);
 			}
-			float getExpectation(float w = 0.5f) const noexcept
+			float getExpectation() const noexcept
 			{
-				assert(0.0f <= w && w <= 1.0f);
-				return win_rate + w * draw_rate;
+				return win_rate + 0.5f * draw_rate;
 			}
 			Value getInverted() const noexcept
 			{
