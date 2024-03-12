@@ -13,6 +13,7 @@
 #include <alphagomoku/game/Move.hpp>
 
 #include <cinttypes>
+#include <cstring>
 #include <string>
 #include <cassert>
 
@@ -22,6 +23,10 @@ namespace ag
 	class Edge
 	{
 		private:
+			static constexpr int nb_bins = 10;
+			int histogram[nb_bins];
+			float variance = 0.0f;
+
 			float policy_prior = 0.0f;
 			Value value;
 			int32_t visits = 0;
@@ -30,10 +35,14 @@ namespace ag
 			int16_t virtual_loss = 0;
 		public:
 
-			Edge() noexcept = default;
+			Edge() noexcept
+			{
+				std::memset(histogram, 0, sizeof(int) * nb_bins);
+			}
 			Edge(Move m) noexcept :
 					move(m)
 			{
+				std::memset(histogram, 0, sizeof(int) * nb_bins);
 			}
 
 			float getPolicyPrior() const noexcept
@@ -55,6 +64,11 @@ namespace ag
 			Value getValue() const noexcept
 			{
 				return value;
+			}
+			float getVariance() const noexcept
+			{
+				assert(getVisits() >= 2);
+				return variance / static_cast<float>(getVisits() - 1);
 			}
 			float getExpectation() const noexcept
 			{
@@ -98,8 +112,11 @@ namespace ag
 			{
 				visits++;
 				const float tmp = 1.0f / static_cast<float>(visits);
+				const float delta = eval.getExpectation() - value.getExpectation();
+
 				value += (eval - value) * tmp;
 				value.clipToBounds();
+				variance += delta * (eval.getExpectation() - value.getExpectation());
 			}
 			void setMove(Move m) noexcept
 			{
@@ -129,6 +146,8 @@ namespace ag
 			}
 
 			std::string toString() const;
+			float sampleFromDistribution() const noexcept;
+			void updateDistribution(Value eval) noexcept;
 	};
 
 	template<class Op>

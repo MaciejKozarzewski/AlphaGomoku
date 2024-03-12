@@ -25,6 +25,8 @@ namespace ag
 	uint64_t randLong();
 	bool randBool();
 
+	float randBeta(float alpha, float beta);
+
 	/*
 	 * \brief Calculates Gaussian cumulative distribution function.
 	 */

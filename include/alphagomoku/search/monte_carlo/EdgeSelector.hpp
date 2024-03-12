@@ -42,7 +42,58 @@ namespace ag
 	};
 
 	/**
-	 * @brief PUCT edge selector that optimizes P(win) + styleFactor * P(draw).
+	 * @brief Edge selector based on Thompson sampling.
+	 */
+	class ThompsonSelector: public EdgeSelector
+	{
+		private:
+			std::vector<float> noisy_policy;
+			const std::string init_to;
+			const std::string noise_type;
+			const float noise_weight;
+			const float exploration_constant; /**< controls the level of exploration */
+		public:
+			ThompsonSelector(const EdgeSelectorConfig &config);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+
+	/**
+	 * @brief Edge selector based on KL-UCB sampling.
+	 */
+	class KLUCBSelector: public EdgeSelector
+	{
+		private:
+			std::vector<float> noisy_policy;
+			const std::string init_to;
+			const std::string noise_type;
+			const float noise_weight;
+			const float exploration_constant; /**< controls the level of exploration */
+		public:
+			KLUCBSelector(const EdgeSelectorConfig &config);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+
+	/**
+	 * @brief Edge selector based on Bayes-UCB sampling.
+	 */
+	class BayesUCBSelector: public EdgeSelector
+	{
+		private:
+			std::vector<float> noisy_policy;
+			const std::string init_to;
+			const std::string noise_type;
+			const float noise_weight;
+			const float exploration_constant; /**< controls the level of exploration */
+		public:
+			BayesUCBSelector(const EdgeSelectorConfig &config);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+
+	/**
+	 * @brief PUCT edge selector that optimizes P(win) + 0.5 * P(draw).
 	 */
 	class PUCTSelector: public EdgeSelector
 	{
@@ -55,6 +106,36 @@ namespace ag
 			const float exploration_exponent;
 		public:
 			PUCTSelector(const EdgeSelectorConfig &config);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+
+	/**
+	 * @brief PUCT edge selector that optimizes P(win) + 0.5 * P(draw).
+	 */
+	class PUCTfpuSelector: public EdgeSelector
+	{
+		private:
+			std::vector<float> noisy_policy;
+			const std::string init_to;
+			const std::string noise_type;
+			const float noise_weight;
+			const float exploration_constant; /**< controls the level of exploration */
+		public:
+			PUCTfpuSelector(const EdgeSelectorConfig &config);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+
+	/**
+	 * @brief Upper Confidence Bound edge selector.
+	 */
+	class UCBSelector: public EdgeSelector
+	{
+		private:
+			const float exploration_constant; /**< controls the level of exploration */
+		public:
+			UCBSelector(const EdgeSelectorConfig &config);
 			std::unique_ptr<EdgeSelector> clone() const;
 			Edge* select(const Node *node) noexcept;
 	};

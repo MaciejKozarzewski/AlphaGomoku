@@ -86,6 +86,7 @@ namespace ag
 			void generateEdges(SearchTask &task) const;
 			ExpandOutcome expand(SearchTask &task);
 			void backup(const SearchTask &task);
+			void correctInformationLeak(const SearchTask &task);
 			void cancelVirtualLoss(const SearchTask &task) noexcept;
 			void printSubtree(int depth = -1, bool sort = false, int top_n = -1) const;
 
@@ -95,8 +96,6 @@ namespace ag
 			Node getInfo(const std::vector<Move> &moves) const;
 			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
-		private:
-			void correctScoreLeak(const SearchTask &task) noexcept;
 	};
 
 	class TreeLock

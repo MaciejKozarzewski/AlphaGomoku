@@ -28,6 +28,7 @@ namespace ag
 
 			Edge *edges = nullptr; // may be owning or not
 			Value value;
+			float variance = 0.0f;
 			int32_t visits = 0;
 			Score score;
 			int16_t number_of_edges = 0;
@@ -51,6 +52,7 @@ namespace ag
 			Node(const Node &other) noexcept :
 					edges(nullptr),
 					value(other.value),
+					variance(other.variance),
 					visits(other.visits),
 					score(other.score),
 					number_of_edges(0),
@@ -64,6 +66,7 @@ namespace ag
 			Node(Node &&other) noexcept :
 					edges(other.edges),
 					value(other.value),
+					variance(other.variance),
 					visits(other.visits),
 					score(other.score),
 					number_of_edges(other.number_of_edges),
@@ -80,6 +83,7 @@ namespace ag
 			{
 				edges = nullptr;
 				value = other.value;
+				variance = other.variance;
 				visits = other.visits;
 				score = other.score;
 				number_of_edges = 0;
@@ -94,6 +98,7 @@ namespace ag
 			{
 				std::swap(this->edges, other.edges);
 				std::swap(this->value, other.value);
+				std::swap(this->variance, other.variance);
 				std::swap(this->visits, other.visits);
 				std::swap(this->score, other.score);
 				std::swap(this->number_of_edges, other.number_of_edges);
@@ -175,6 +180,11 @@ namespace ag
 			{
 				return value;
 			}
+			float getVariance() const noexcept
+			{
+				assert(getVisits() >= 2);
+				return variance / static_cast<float>(getVisits() - 1);
+			}
 			float getExpectation() const noexcept
 			{
 				return getValue().getExpectation();
@@ -255,8 +265,11 @@ namespace ag
 			{
 				visits++;
 				const float tmp = 1.0f / static_cast<float>(visits);
+				const float delta = eval.getExpectation() - value.getExpectation();
+
 				value += (eval - value) * tmp;
 				value.clipToBounds();
+				variance += delta * (eval.getExpectation() - value.getExpectation());
 			}
 			void setScore(Score s) noexcept
 			{

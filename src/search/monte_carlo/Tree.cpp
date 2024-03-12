@@ -72,19 +72,14 @@ namespace
 //		}
 	}
 
-	bool has_score_leak(const Edge *edge, const Node *node) noexcept
-	{
-		assert(edge != nullptr);
-		if (node == nullptr)
-			return false;
-		return edge->getScore() != invert_up(node->getScore());
-	}
-	bool has_value_leak(const Edge *edge, const Node *node, float leak_threshold) noexcept
+	bool has_information_leak(const Edge *edge, const Node *node, float leak_threshold) noexcept
 	{
 		assert(edge != nullptr);
 		assert(leak_threshold >= 0.0f);
 		if (node == nullptr or leak_threshold >= 1.0f)
 			return false;
+		if (edge->getScore() != invert_up(node->getScore()))
+			return true;
 		const Value diff = edge->getValue() - node->getValue().getInverted();
 		return diff.abs() > leak_threshold;
 	}
@@ -235,18 +230,8 @@ namespace ag
 			node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
 			task.setFinalNode(node);
 
-			if (has_value_leak(edge, node, config.information_leak_threshold))
-			{
-				task.markAsProcessedByNetwork();
+			if (has_information_leak(edge, node, config.information_leak_threshold))
 				return SelectOutcome::INFORMATION_LEAK;
-			}
-			if (has_score_leak(edge, node))
-			{
-				correctScoreLeak(task);
-				cancelVirtualLoss(task);
-				task.set(base_board, sign_to_move); // start over
-				node = root_node;
-			}
 		}
 		max_depth = std::max((int) max_depth, task.visitedPathLength());
 		if (task.visitedPathLength() > 0 and task.getLastEdge()->isProven())
@@ -290,6 +275,11 @@ namespace ag
 		else
 		{ // this can happen if the same state was encountered from different paths
 			task.setFinalNode(node_to_add);
+			if (task.visitedPathLength() > 0) // in a rare case it could be that the root node has already been expanded by some other thread
+			{ // but if not
+				if (has_information_leak(task.getLastEdge(), node_to_add, config.information_leak_threshold))
+					correctInformationLeak(task);
+			}
 			return ExpandOutcome::ALREADY_EXPANDED;
 		}
 	}
@@ -302,27 +292,66 @@ namespace ag
 		{
 			NodeEdgePair pair = task.getPair(i);
 			Node *next_node = get_next_node(task, i);
-			if (next_node != nullptr)
-			{
-				const Value current_edge_value = pair.edge->getValue();
-				const Value target_edge_value = next_node->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
-				value = (target_edge_value - current_edge_value) * pair.edge->getVisits() + target_edge_value;
-
-				const float scale = 1.0f / std::max(1.0f, std::abs(value.win_rate) + std::abs(value.draw_rate));
-				value *= scale;
-			}
+//			if (next_node != nullptr)
+//			if (has_value_leak(pair.edge, next_node, 1.0e-6f))
+//			{
+//				const Value current_edge_value = pair.edge->getValue();
+//				const Value target_edge_value = next_node->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
+//
+//				assert(pair.node->getVisits() != 0);
+//				const float scale = static_cast<float>(pair.edge->getVisits()) / static_cast<float>(pair.node->getVisits());
+//				const Value target_node_value = pair.node->getValue() + (target_edge_value - current_edge_value) * scale;
+//
+//				pair.edge->setValue(target_edge_value);
+//				pair.node->setValue(target_node_value);
+//
+////				value = (target_edge_value - current_edge_value) * pair.edge->getVisits() + target_edge_value;
+////
+////				const float scale = 1.0f / std::max(1.0f, std::abs(value.win_rate) + std::abs(value.draw_rate));
+////				value *= scale;
+//			}
+			if (pair.node->getSignToMove() == task.getSignToMove())
+				value = task.getValue();
+			else
+				value = task.getValue().getInverted();
 
 			pair.node->updateValue(value);
 			pair.edge->updateValue(value);
+			pair.edge->updateDistribution(value);
 			update_score(pair.edge, next_node);
 			update_score(pair.node);
 
-			value = value.getInverted();
+//			value = value.getInverted();
 			pair.node->decreaseVirtualLoss();
 			pair.edge->decreaseVirtualLoss();
 		}
 
 		evaluation = root_node->getExpectation();
+	}
+	void Tree::correctInformationLeak(const SearchTask &task)
+	{
+//		std::cout << "\n\nFound leak\n";
+		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
+		{
+			NodeEdgePair pair = task.getPair(i);
+			Node *next_node = get_next_node(task, i);
+			const Value current_edge_value = pair.edge->getValue();
+			const Value target_edge_value = next_node->getValue().getInverted(); // edge Q should be equal to (1 - node Q)
+
+			assert(pair.node->getVisits() != 0);
+			const float scale = static_cast<float>(pair.edge->getVisits()) / static_cast<float>(pair.node->getVisits());
+			const Value target_node_value = pair.node->getValue() + (target_edge_value - current_edge_value) * scale;
+
+//			std::cout << pair.edge->toString() << " vs " << next_node->toString() << '\n';
+//			std::cout << "Edge " << current_edge_value.toString() << " -> " << target_edge_value.toString() << '\n';
+//			std::cout << "scale = " << scale << '\n';
+//			std::cout << "Node " << pair.node->toString() << " -> " << target_node_value.toString() << '\n' << '\n';
+
+			pair.edge->setValue(target_edge_value);
+			pair.node->setValue(target_node_value);
+			update_score(pair.edge, next_node);
+			update_score(pair.node);
+		}
 	}
 	void Tree::cancelVirtualLoss(const SearchTask &task) noexcept
 	{
@@ -379,24 +408,6 @@ namespace ag
 	NodeCacheStats Tree::getNodeCacheStats() const noexcept
 	{
 		return node_cache.getStats();
-	}
-	/*
-	 * private
-	 */
-	void Tree::correctScoreLeak(const SearchTask &task) noexcept
-	{
-		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
-		{
-			NodeEdgePair pair = task.getPair(i);
-			Node *next_node = get_next_node(task, i);
-			if (has_score_leak(pair.edge, next_node))
-			{
-				update_score(pair.edge, next_node);
-				update_score(pair.node);
-			}
-			else
-				break;
-		}
 	}
 } /* namespace ag */
 

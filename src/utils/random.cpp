@@ -69,6 +69,15 @@ namespace ag
 		return static_cast<bool>(int32_generator() & 1);
 	}
 
+	float randBeta(float alpha, float beta)
+	{
+		std::gamma_distribution<float> x_gamma(alpha);
+		std::gamma_distribution<float> y_gamma(beta);
+		const float X = x_gamma(int32_generator);
+		const float Y = y_gamma(int32_generator);
+		return X / (X + Y);
+	}
+
 	std::vector<int> permutation(int length)
 	{
 		std::vector<int> result(length);
