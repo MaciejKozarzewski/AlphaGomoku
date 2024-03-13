@@ -229,6 +229,8 @@ namespace ag
 
 			node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
 			task.setFinalNode(node);
+			if (node == nullptr)
+				edge->markAsBeingExpanded();
 
 			if (has_information_leak(edge, node, config.information_leak_threshold))
 				return SelectOutcome::INFORMATION_LEAK;
@@ -317,13 +319,14 @@ namespace ag
 
 			pair.node->updateValue(value);
 			pair.edge->updateValue(value);
-			pair.edge->updateDistribution(value);
+//			pair.edge->updateDistribution(value);
 			update_score(pair.edge, next_node);
 			update_score(pair.node);
 
 //			value = value.getInverted();
 			pair.node->decreaseVirtualLoss();
 			pair.edge->decreaseVirtualLoss();
+			pair.edge->clearFlags();
 		}
 
 		evaluation = root_node->getExpectation();

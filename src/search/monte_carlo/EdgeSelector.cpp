@@ -351,9 +351,29 @@ namespace
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
 			{
-				const float Q = (edge.getVisits() > 0) ? edge.getExpectation() : initial_Q;
+				switch (edge.getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return -1000.0f + edge.getScore().getDistance();
+					case ProvenValue::DRAW:
+						return Value::draw().getExpectation();
+					default:
+					case ProvenValue::UNKNOWN:
+						break;
+					case ProvenValue::WIN:
+						return +1000.0f - edge.getScore().getDistance();
+				}
+
+				float Q = initial_Q;
+				if (edge.isBeingExpanded())
+					Q = -1000.0f;
+				else
+				{
+					if (edge.getVisits() > 0)
+						Q = edge.getExpectation() * getVirtualLoss(edge);
+				}
 				const float U = externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());
-				return Q * getVirtualLoss(edge) + U;
+				return Q + U;
 			}
 	};
 	struct UCB

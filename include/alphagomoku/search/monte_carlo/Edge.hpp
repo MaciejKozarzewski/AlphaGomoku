@@ -22,27 +22,36 @@ namespace ag
 
 	class Edge
 	{
-		private:
-			static constexpr int nb_bins = 10;
-			int histogram[nb_bins];
-			float variance = 0.0f;
+			static constexpr uint16_t is_being_expanded = 0x8000u;
+
+//			static constexpr int nb_bins = 10;
+//			int histogram[nb_bins];
+//			float variance = 0.0f;
 
 			float policy_prior = 0.0f;
 			Value value;
 			int32_t visits = 0;
 			Move move;
 			Score score;
-			int16_t virtual_loss = 0;
-		public:
+			uint16_t flag_and_virtual_loss = 0u;
 
+			void set_flag(bool b) noexcept
+			{
+				flag_and_virtual_loss = b ? (flag_and_virtual_loss | is_being_expanded) : (flag_and_virtual_loss & (~is_being_expanded));
+			}
+			void set_virtual_loss(int vl) noexcept
+			{
+				flag_and_virtual_loss = (flag_and_virtual_loss & is_being_expanded) | (vl & (~is_being_expanded));
+			}
+		public:
 			Edge() noexcept
 			{
-				std::memset(histogram, 0, sizeof(int) * nb_bins);
+//				std::memset(histogram, 0, sizeof(int) * nb_bins);
 			}
 			Edge(Move m) noexcept :
 					move(m)
 			{
-				std::memset(histogram, 0, sizeof(int) * nb_bins);
+//				std::memset(histogram, 0, sizeof(int) * nb_bins);
 			}
 
 			float getPolicyPrior() const noexcept
@@ -67,8 +76,9 @@ namespace ag
 			}
 			float getVariance() const noexcept
 			{
-				assert(getVisits() >= 2);
-				return variance / static_cast<float>(getVisits() - 1);
+//				assert(getVisits() >= 2);
+//				return variance / static_cast<float>(getVisits() - 1);
+				return 0.0;
 			}
 			float getExpectation() const noexcept
 			{
@@ -96,7 +106,11 @@ namespace ag
 			}
 			int getVirtualLoss() const noexcept
 			{
-				return virtual_loss;
+				return flag_and_virtual_loss & 0x7FFFu;
+			}
+			bool isBeingExpanded() const noexcept
+			{
+				return flag_and_virtual_loss & is_being_expanded;
 			}
 
 			void setPolicyPrior(float p) noexcept
@@ -112,11 +126,11 @@ namespace ag
 			{
 				visits++;
 				const float tmp = 1.0f / static_cast<float>(visits);
-				const float delta = eval.getExpectation() - value.getExpectation();
+//				const float delta = eval.getExpectation() - value.getExpectation();
 
 				value += (eval - value) * tmp;
 				value.clipToBounds();
-				variance += delta * (eval.getExpectation() - value.getExpectation());
+//				variance += delta * (eval.getExpectation() - value.getExpectation());
 			}
 			void setMove(Move m) noexcept
 			{
@@ -132,17 +146,25 @@ namespace ag
 			}
 			void increaseVirtualLoss() noexcept
 			{
-				assert(virtual_loss < std::numeric_limits<int16_t>::max());
-				virtual_loss += 1;
+				assert(getVirtualLoss() < 32768u);
+				set_virtual_loss(getVirtualLoss() + 1);
 			}
 			void decreaseVirtualLoss() noexcept
 			{
-				assert(virtual_loss > 0);
-				virtual_loss -= 1;
+				assert(getVirtualLoss() > 0);
+				set_virtual_loss(getVirtualLoss() - 1);
 			}
 			void clearVirtualLoss() noexcept
 			{
-				virtual_loss = 0;
+				set_virtual_loss(0);
+			}
+			void clearFlags() noexcept
+			{
+				set_flag(false);
+			}
+			void markAsBeingExpanded() noexcept
+			{
+				set_flag(true);
 			}
 
 			std::string toString() const;

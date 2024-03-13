@@ -38,9 +38,9 @@ namespace ag
 			uint16_t flags = 0; // from least significant bit: is_owning, is_root, is_fully_expanded
 
 			template<uint16_t F>
-			void set_flag(bool value) noexcept
+			void set_flag(bool b) noexcept
 			{
-				flags = value ? (flags | F) : (flags & (~F));
+				flags = b ? (flags | F) : (flags & (~F));
 			}
 			template<uint16_t F>
 			bool get_flag() const noexcept

@@ -20,10 +20,11 @@ namespace ag
 			result += " ";
 		result += " : S=" + getScore().toFormattedString();
 		result += " : Q=" + getValue().toString();
-		result += " (" + std::to_string(getExpectation()) + " +/- " + std::to_string(getVisits() >= 2 ? getVariance() : 0.0f) + ")";
+//		result += " (" + std::to_string(getExpectation()) + " +/- " + std::to_string(getVisits() >= 2 ? getVariance() : 0.0f) + ")";
 		result += " : Visits=" + std::to_string(getVisits());
 #ifndef NDEBUG
 		result += " (" + std::to_string(getVirtualLoss()) + ")";
+		result += " : flags=" + std::to_string(static_cast<int>(isBeingExpanded()));
 #endif
 		result += " : P=" + std::to_string(getPolicyPrior());
 		return result;
@@ -96,8 +97,8 @@ namespace ag
 	}
 	void Edge::updateDistribution(Value eval) noexcept
 	{
-		const int idx = eval.getExpectation() * nb_bins;
-		histogram[std::max(0, std::min(nb_bins - 1, idx))]++;
+//		const int idx = eval.getExpectation() * nb_bins;
+//		histogram[std::max(0, std::min(nb_bins - 1, idx))]++;
 	}
 } /* namespace ag */
 
