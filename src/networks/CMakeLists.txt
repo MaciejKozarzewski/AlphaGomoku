@@ -4,7 +4,8 @@ target_sources(${LibName} PRIVATE 	nnue_ops/def_ops.cpp
 									blocks.cpp
 									networks.cpp
 									NNInputFeatures.cpp
-									NNUE.cpp)
+									NNUE.cpp
+									perf_stats.cpp)
 									
 add_library(sse41_nnue OBJECT nnue_ops/sse41_ops.cpp)
 target_compile_options(sse41_nnue PRIVATE -msse4.1)
