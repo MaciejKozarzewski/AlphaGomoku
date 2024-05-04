@@ -12,15 +12,14 @@
 
 #include <cinttypes>
 #include <vector>
-#include <map>
 #include <mutex>
 
 class Json;
 namespace ag
 {
 	struct Option;
+	struct GameConfig;
 	class Move;
-	enum class GameRules;
 } /* namespace ag */
 
 namespace ag
@@ -39,8 +38,8 @@ namespace ag
 			static constexpr int max_int_value = std::numeric_limits<int>::max();
 
 			mutable std::mutex mutex;
-			std::map<GameRules, std::string> path_to_conv_networks;
-			std::map<GameRules, std::string> path_to_nnue_networks;
+			std::vector<std::pair<GameConfig, std::string>> path_to_conv_networks;
+			std::vector<std::pair<GameConfig, std::string>> path_to_nnue_networks;
 			std::vector<std::vector<Move>> swap2_openings;
 
 			GameConfig game_config;

@@ -49,6 +49,24 @@ namespace
 			return result;
 		}
 	}
+
+	bool are_configs_equal(const ag::GameConfig &lhs, const ag::GameConfig &rhs) noexcept
+	{
+		return lhs.rules == rhs.rules and lhs.rows == rhs.rows and lhs.cols == rhs.cols;
+	}
+
+	void add_path(std::vector<std::pair<ag::GameConfig, std::string>> &vec, ag::GameRules rules, int boardSize, const std::string &path)
+	{
+		const ag::GameConfig cfg(rules, boardSize);
+		vec.emplace_back(cfg, path);
+	}
+	std::string get_path(const std::vector<std::pair<ag::GameConfig, std::string>> &vec, ag::GameConfig cfg)
+	{
+		for (auto iter = vec.begin(); iter < vec.end(); iter++)
+			if (are_configs_equal(iter->first, cfg))
+				return iter->second;
+		return std::string();
+	}
 }
 
 namespace ag
@@ -64,17 +82,24 @@ namespace ag
 		for (int i = 0; i < device_configuration.size(); i++)
 			device_configs.push_back(DeviceConfig(device_configuration[i]));
 
-		path_to_conv_networks.insert( { GameRules::FREESTYLE, config["conv_networks"]["freestyle"].getString() });
-		path_to_conv_networks.insert( { GameRules::STANDARD, config["conv_networks"]["standard"].getString() });
-		path_to_conv_networks.insert( { GameRules::RENJU, config["conv_networks"]["renju"].getString() });
-		path_to_conv_networks.insert( { GameRules::CARO5, config["conv_networks"]["caro5"].getString() });
-		path_to_conv_networks.insert( { GameRules::CARO6, config["conv_networks"]["caro6"].getString() });
+		add_path(path_to_conv_networks, GameRules::FREESTYLE, 20, config["conv_networks"]["freestyle"].getString());
+		add_path(path_to_conv_networks, GameRules::FREESTYLE, 15, config["conv_networks"]["freestyle"].getString());
+		add_path(path_to_conv_networks, GameRules::STANDARD, 15, config["conv_networks"]["standard"].getString());
+		add_path(path_to_conv_networks, GameRules::RENJU, 15, config["conv_networks"]["renju"].getString());
+		add_path(path_to_conv_networks, GameRules::CARO5, 15, config["conv_networks"]["caro5"].getString());
+		add_path(path_to_conv_networks, GameRules::CARO6, 15, config["conv_networks"]["caro6"].getString());
 
-		path_to_nnue_networks.insert( { GameRules::FREESTYLE, config["nnue_networks"]["freestyle"].getString() });
-		path_to_nnue_networks.insert( { GameRules::STANDARD, config["nnue_networks"]["standard"].getString() });
-		path_to_nnue_networks.insert( { GameRules::RENJU, config["nnue_networks"]["renju"].getString() });
-		path_to_nnue_networks.insert( { GameRules::CARO5, config["nnue_networks"]["caro5"].getString() });
-		path_to_nnue_networks.insert( { GameRules::CARO6, config["nnue_networks"]["caro6"].getString() });
+//		path_to_conv_networks.insert( { GameRules::FREESTYLE, config["conv_networks"]["freestyle"].getString() });
+//		path_to_conv_networks.insert( { GameRules::STANDARD, config["conv_networks"]["standard"].getString() });
+//		path_to_conv_networks.insert( { GameRules::RENJU, config["conv_networks"]["renju"].getString() });
+//		path_to_conv_networks.insert( { GameRules::CARO5, config["conv_networks"]["caro5"].getString() });
+//		path_to_conv_networks.insert( { GameRules::CARO6, config["conv_networks"]["caro6"].getString() });
+//
+//		path_to_nnue_networks.insert( { GameRules::FREESTYLE, config["nnue_networks"]["freestyle"].getString() });
+//		path_to_nnue_networks.insert( { GameRules::STANDARD, config["nnue_networks"]["standard"].getString() });
+//		path_to_nnue_networks.insert( { GameRules::RENJU, config["nnue_networks"]["renju"].getString() });
+//		path_to_nnue_networks.insert( { GameRules::CARO5, config["nnue_networks"]["caro5"].getString() });
+//		path_to_nnue_networks.insert( { GameRules::CARO6, config["nnue_networks"]["caro6"].getString() });
 	}
 	SetOptionOutcome EngineSettings::setOption(const Option &option) noexcept
 	{
@@ -208,11 +233,12 @@ namespace ag
 
 	std::string EngineSettings::getPathToConvNetwork() const
 	{
-		return path_to_conv_networks.find(game_config.rules)->second;
+		return get_path(path_to_conv_networks, game_config);
+//		return path_to_conv_networks.find(game_config.rules)->second;
 	}
 	std::string EngineSettings::getPathToNnueNetwork() const
 	{
-		return path_to_nnue_networks.find(game_config.rules)->second;
+		return ""; // path_to_nnue_networks.find(game_config.rules)->second;
 	}
 	const std::vector<std::vector<Move>>& EngineSettings::getSwap2Openings() const
 	{

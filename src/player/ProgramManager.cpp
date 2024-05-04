@@ -31,6 +31,11 @@ namespace
 #elif __linux__
 	const std::string path_separator = "/";
 #endif
+
+	bool board_size_equal_to(const ag::GameConfig &cfg, int size) noexcept
+	{
+		return cfg.rows == size and cfg.cols == size;
+	}
 }
 
 namespace ag
@@ -404,7 +409,7 @@ namespace ag
 		config["swap2_openings_file"] = launch_path + config["swap2_openings_file"].getString();
 		launch_path += "networks" + path_separator;
 
-		static const std::array<std::string, 5> tmp = { "freestyle", "standard", "renju", "caro5", "caro6" };
+		static const std::array<std::string, 6> tmp = { "freestyle", "freestyle_15", "standard", "renju", "caro5", "caro6" };
 		for (auto iter = tmp.begin(); iter < tmp.end(); iter++)
 		{
 			config["conv_networks"][*iter] = launch_path + config["conv_networks"][*iter].getString();
@@ -529,12 +534,12 @@ namespace ag
 		switch (cfg.rules)
 		{
 			case GameRules::FREESTYLE:
-				return cfg.rows == 20 and cfg.cols == 20;
+				return board_size_equal_to(cfg, 20) or board_size_equal_to(cfg, 15);
 			case GameRules::STANDARD:
 			case GameRules::RENJU:
 			case GameRules::CARO5:
 			case GameRules::CARO6:
-				return cfg.rows == 15 and cfg.cols == 15;
+				return board_size_equal_to(cfg, 15);
 			default:
 				return false;
 		}

@@ -26,12 +26,14 @@ namespace
 		result["swap2_openings_file"] = "swap2_openings.json";
 
 		result["conv_networks"]["freestyle"] = "freestyle_conv_8x128.bin";
+		result["conv_networks"]["freestyle_15"] = "freestyle_conv_8x128_15x15.bin";
 		result["conv_networks"]["standard"] = "standard_conv_8x128.bin";
 		result["conv_networks"]["renju"] = "renju_conv_8x128.bin";
 		result["conv_networks"]["caro5"] = "caro5_conv_8x128.bin";
 		result["conv_networks"]["caro6"] = "caro6_conv_8x128.bin";
 
 		result["nnue_networks"]["freestyle"] = "";
+		result["nnue_networks"]["freestyle_15"] = "";
 		result["nnue_networks"]["standard"] = "";
 		result["nnue_networks"]["renju"] = "";
 		result["nnue_networks"]["caro5"] = "";
