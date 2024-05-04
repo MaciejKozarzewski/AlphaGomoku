@@ -118,6 +118,7 @@ namespace ag
 	 */
 	void SearchThread::serial_run(NNEvaluator &evaluator)
 	{
+		double time_per_sample = 0.01;
 		while (true)
 		{
 			{ /* artificial scope for lock */
@@ -126,9 +127,9 @@ namespace ag
 				search.setBatchSize(batch_size);
 				search.select(tree);
 			}
-			search.solve();
+			search.solve(getTime() + 0.1 * search.getBatchSize() * time_per_sample);
 			search.scheduleToNN(evaluator);
-			const SpeedSummary info = evaluator.evaluateGraph();
+			time_per_sample = evaluator.evaluateGraph();
 
 			search.generateEdges(tree); // this step doesn't require locking the tree
 			{ /* artificial scope for lock */
@@ -138,7 +139,6 @@ namespace ag
 				if (isStopConditionFulfilled())
 					break;
 			}
-			search.tune();
 			std::lock_guard lock(search_mutex);
 			if (is_running == false)
 				break;
@@ -147,6 +147,7 @@ namespace ag
 	void SearchThread::asynchronous_run(NNEvaluator &evaluator)
 	{
 		search.useBuffer(0);
+		double end_time = getTime() + 0.1;
 		while (true)
 		{
 			search.generateEdges(tree); // this step doesn't require locking the tree
@@ -156,17 +157,17 @@ namespace ag
 				search.backup(tree);
 				if (isStopConditionFulfilled())
 					break;
+
 				const int batch_size = get_batch_size(tree.getSimulationCount(), search.getConfig().max_batch_size);
 				search.setBatchSize(batch_size);
 				search.select(tree);
 			}
-			search.solve();
+			search.solve(end_time);
 			search.scheduleToNN(evaluator);
-			const SpeedSummary info = evaluator.asyncEvaluateGraphJoin();
-			evaluator.asyncEvaluateGraphLaunch();
+			evaluator.asyncEvaluateGraphJoin();
+			end_time = evaluator.asyncEvaluateGraphLaunch();
 			search.switchBuffer();
 
-			search.tune();
 			std::lock_guard lock(search_mutex);
 			if (is_running == false)
 				break;

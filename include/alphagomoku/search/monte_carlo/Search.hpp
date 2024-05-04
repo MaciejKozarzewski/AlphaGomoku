@@ -56,8 +56,7 @@ namespace ag
 	class Search
 	{
 		private:
-			SearchTaskList tasks_list_buffer_0;
-			SearchTaskList tasks_list_buffer_1;
+			SearchTaskList tasks_list_buffer[2];
 
 			AlphaBetaSearch ab_search;
 
@@ -65,12 +64,6 @@ namespace ag
 			SearchConfig search_config;
 			SearchStats stats;
 
-			struct TuningPoint
-			{
-					double time = 0.0;
-					uint64_t node_count = 0;
-			};
-			TuningPoint last_tuning_point;
 			int current_task_buffer = 0;
 		public:
 			static constexpr int maximum_number_of_simulations = 16777216;
@@ -84,18 +77,18 @@ namespace ag
 
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
 			void select(Tree &tree, int maxSimulations = maximum_number_of_simulations);
-			void solve();
+			void solve(double endTime = -1.0);
 			void scheduleToNN(NNEvaluator &evaluator);
 			bool areTasksReady() const noexcept;
 			void generateEdges(const Tree &tree);
 			void expand(Tree &tree);
 			void backup(Tree &tree);
 			void cleanup(Tree &tree);
-			void tune();
 
 			void useBuffer(int index) noexcept;
 			void switchBuffer() noexcept;
 			void setBatchSize(int batchSize) noexcept;
+			int getBatchSize() const noexcept;
 		private:
 			const SearchTaskList& get_buffer() const noexcept;
 			SearchTaskList& get_buffer() noexcept;

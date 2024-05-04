@@ -17,6 +17,7 @@
 #include <minml/graph/graph_optimizers.hpp>
 #include <minml/core/Device.hpp>
 #include <minml/core/Context.hpp>
+#include <minml/core/Event.hpp>
 #include <minml/core/Shape.hpp>
 #include <minml/core/Tensor.hpp>
 #include <minml/core/math.hpp>
@@ -30,28 +31,15 @@
 
 namespace
 {
-	int get_index(std::initializer_list<int> idx, const ml::Tensor &t)
-	{
-		assert(idx.size() <= static_cast<size_t>(t.rank()));
-		int result = 0;
-		for (size_t i = 0; i < idx.size(); i++)
-		{
-			const int tmp = idx.begin()[i];
-			assert(tmp >= 0 && tmp < t.dim(i));
-			result += tmp * t.stride(i);
-		}
-		return result;
-	}
-
 	void* get_pointer(ml::Tensor &src, std::initializer_list<int> idx)
 	{
 		assert(src.device().isCPU());
-		return reinterpret_cast<uint8_t*>(src.data()) + ml::sizeOf(src.dtype()) * get_index(idx, src);
+		return reinterpret_cast<uint8_t*>(src.data()) + ml::sizeOf(src.dtype()) * src.getIndexOf(idx);
 	}
 	const void* get_pointer(const ml::Tensor &src, std::initializer_list<int> idx)
 	{
 		assert(src.device().isCPU());
-		return reinterpret_cast<const uint8_t*>(src.data()) + ml::sizeOf(src.dtype()) * get_index(idx, src);
+		return reinterpret_cast<const uint8_t*>(src.data()) + ml::sizeOf(src.dtype()) * src.getIndexOf(idx);
 	}
 
 	ml::Shape get_encoding_shape(const ml::Shape &input_shape)
@@ -110,34 +98,35 @@ namespace ag
 	{
 		assert(index >= 0 && index < getBatchSize());
 
-		std::memcpy(get_pointer(*input_on_cpu, { index }), features.data(), features.sizeInBytes());
+		std::memcpy(get_pointer(*input_on_cpu, { index, 0, 0, 0 }), features.data(), features.sizeInBytes());
 	}
 	void AGNetwork::packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value)
 	{
 		assert(index >= 0 && index < getBatchSize());
 
-		std::memcpy(get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { index }), policy.data(), policy.sizeInBytes());
+		std::memcpy(get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { index, 0, 0, 0 }), policy.data(), policy.sizeInBytes());
 
 		const float3 tmp = to_float3(value);
-		std::memcpy(get_pointer(targets_on_cpu.at(VALUE_OUTPUT_INDEX), { index }), &tmp, sizeof(tmp));
+		std::memcpy(get_pointer(targets_on_cpu.at(VALUE_OUTPUT_INDEX), { index, 0 }), &tmp, sizeof(tmp));
 
 		if (targets_on_cpu.size() == 3)
 		{
 			workspace.resize(game_config.rows * game_config.cols);
 			for (int i = 0; i < actionValues.size(); i++)
 				workspace[i] = to_float3(actionValues[i]);
-			std::memcpy(get_pointer(targets_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX), { index }), workspace.data(), sizeof(float3) * workspace.size());
+			std::memcpy(get_pointer(targets_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX), { index, 0, 0, 0 }), workspace.data(),
+					sizeof(float3) * workspace.size());
 		}
 	}
 	void AGNetwork::unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const
 	{
 		assert(index >= 0 && index < getBatchSize());
 
-		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { index }),
+		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { index, 0, 0, 0 }),
 				outputs_on_cpu.at(POLICY_OUTPUT_INDEX).dtype(), policy.size());
 
 		float3 tmp;
-		ml::convertType(context_on_cpu, &tmp, ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(VALUE_OUTPUT_INDEX), { index }),
+		ml::convertType(context_on_cpu, &tmp, ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(VALUE_OUTPUT_INDEX), { index, 0 }),
 				outputs_on_cpu.at(VALUE_OUTPUT_INDEX).dtype(), 3);
 		value = from_float3(tmp);
 
@@ -145,7 +134,7 @@ namespace ag
 		{
 			workspace.resize(game_config.rows * game_config.cols);
 			ml::convertType(context_on_cpu, workspace.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX), {
-					index }), outputs_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX).dtype(), 3 * workspace.size());
+					index, 0, 0, 0 }), outputs_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX).dtype(), 3 * workspace.size());
 			for (int i = 0; i < actionValues.size(); i++)
 				actionValues[i] = from_float3(workspace[i]);
 		}
@@ -287,6 +276,10 @@ namespace ag
 			outputs_on_cpu.clear();
 			targets_on_cpu.clear();
 		}
+	}
+	ml::Event AGNetwork::addEvent() const
+	{
+		return graph.context().createEvent();
 	}
 	/*
 	 * private

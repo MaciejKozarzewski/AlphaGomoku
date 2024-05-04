@@ -57,6 +57,7 @@ namespace ag
 			bool was_processed_by_network = false; /**< flag indicating whether the task has been evaluated by neural network and can be used for edge generation */
 			bool was_processed_by_solver = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
 		public:
+			SearchTask() noexcept = default;
 			SearchTask(GameConfig config);
 			const GameConfig& getConfig() const noexcept
 			{
@@ -229,6 +230,7 @@ namespace ag
 			int stored_elements = 0;
 			int max_size = 0;
 		public:
+			SearchTaskList() noexcept = default;
 			SearchTaskList(GameConfig config, size_t maxSize) noexcept :
 					game_config(config)
 			{

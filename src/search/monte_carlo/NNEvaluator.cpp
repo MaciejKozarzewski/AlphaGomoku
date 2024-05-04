@@ -28,9 +28,7 @@ namespace ag
 {
 	NNEvaluatorStats::NNEvaluatorStats() :
 			pack("pack   "),
-			launch("launch "),
 			compute("compute"),
-			wait("wait   "),
 			unpack("unpack ")
 	{
 	}
@@ -40,9 +38,7 @@ namespace ag
 		result += "total samples = " + std::to_string(batch_sizes) + '\n';
 		result += "avg batch size = " + std::to_string(static_cast<double>(batch_sizes) / compute.getTotalCount()) + '\n';
 		result += pack.toString() + '\n';
-		result += launch.toString() + '\n';
 		result += compute.toString() + '\n';
-		result += wait.toString() + '\n';
 		result += unpack.toString() + '\n';
 		return result;
 	}
@@ -50,9 +46,7 @@ namespace ag
 	{
 		this->batch_sizes += other.batch_sizes;
 		this->pack += other.pack;
-		this->launch += other.launch;
 		this->compute += other.compute;
-		this->wait += other.wait;
 		this->unpack += other.unpack;
 		return *this;
 	}
@@ -60,22 +54,21 @@ namespace ag
 	{
 		this->batch_sizes /= i;
 		this->pack /= i;
-		this->launch /= i;
 		this->compute /= i;
-		this->wait /= i;
 		this->unpack /= i;
 		return *this;
 	}
 
+	/*
+	 * NNEvaluator
+	 */
 	NNEvaluator::NNEvaluator(const DeviceConfig &cfg) :
-			device(cfg.device),
-			batch_size(cfg.batch_size),
-			omp_threads(cfg.omp_threads)
+			config(cfg)
 	{
 	}
 	bool NNEvaluator::isOnGPU() const noexcept
 	{
-		return device.isCUDA();
+		return config.device.isCUDA() or config.device.isOPENCL();
 	}
 	void NNEvaluator::clearStats() noexcept
 	{
@@ -104,9 +97,10 @@ namespace ag
 	void NNEvaluator::loadGraph(const std::string &path)
 	{
 		network = loadAGNetwork(path);
-		get_network().setBatchSize(batch_size);
-		get_network().moveTo(device);
+		get_network().setBatchSize(config.batch_size);
+		get_network().moveTo(config.device);
 		get_network().convertToHalfFloats();
+		get_network().forward(1);
 		available_symmetries = 4 + 4 * static_cast<int>(is_square(get_network().getInputShape()));
 	}
 	void NNEvaluator::unloadGraph()
@@ -125,12 +119,11 @@ namespace ag
 		assert(abs(symmetry) <= available_symmetries);
 		waiting_queue.push_back( { &task, symmetry });
 	}
-	SpeedSummary NNEvaluator::evaluateGraph()
+	double NNEvaluator::evaluateGraph()
 	{
 		if (not get_network().isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
-		ml::Device::cpu().setNumberOfThreads(omp_threads);
-		SpeedSummary result;
+		ml::Device::cpu().setNumberOfThreads(config.omp_threads);
 		while (waiting_queue.size() > 0)
 		{
 			const int batch_size = std::min(static_cast<int>(waiting_queue.size()), get_network().getBatchSize());
@@ -144,24 +137,28 @@ namespace ag
 				pack_to_network();
 
 				stats.compute.startTimer();
+				PerfEvents ev(batch_size);
+				perf_estimator.addToQueue(ev);
+
+				ev.start = get_network().addEvent();
 				get_network().forward(batch_size);
+				ev.end = get_network().addEvent();
 				stats.compute.stopTimer();
-				result.batch_size += batch_size;
-				result.compute_time += stats.compute.getLastTime();
 
 				unpack_from_network();
 				in_progress_queue.clear();
+				perf_estimator.updateTimePerSample(ev);
 			}
 		}
-		return result;
+		return perf_estimator.getTimePerSample();
 	}
-	void NNEvaluator::asyncEvaluateGraphLaunch()
+	double NNEvaluator::asyncEvaluateGraphLaunch()
 	{
 		if (not get_network().isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		if (not in_progress_queue.empty())
 			throw std::logic_error("some tasks are already being processed");
-		ml::Device::cpu().setNumberOfThreads(omp_threads);
+		ml::Device::cpu().setNumberOfThreads(config.omp_threads);
 		const int batch_size = std::min(static_cast<int>(waiting_queue.size()), get_network().getBatchSize());
 		if (batch_size > 0)
 		{
@@ -170,31 +167,36 @@ namespace ag
 
 			pack_to_network();
 
-			stats.launch.startTimer();
+			perf_events.emplace_back(batch_size);
+			perf_estimator.addToQueue(perf_events.back());
+
+			perf_events.back().start = get_network().addEvent();
 			get_network().asyncForwardLaunch(batch_size);
-			stats.launch.stopTimer();
+			perf_events.back().end = get_network().addEvent();
+
 			stats.compute.startTimer();
 		}
+		return perf_estimator.getEstimatedEndTime();
 	}
-	SpeedSummary NNEvaluator::asyncEvaluateGraphJoin()
+	void NNEvaluator::asyncEvaluateGraphJoin()
 	{
 		if (not get_network().isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
-		ml::Device::cpu().setNumberOfThreads(omp_threads);
+		ml::Device::cpu().setNumberOfThreads(config.omp_threads);
 		const int batch_size = in_progress_queue.size();
 		assert(batch_size <= get_network().getBatchSize());
 		if (batch_size > 0)
 		{
-			stats.wait.startTimer();
 			get_network().asyncForwardJoin();
-			stats.wait.stopTimer();
 			stats.compute.stopTimer();
 			stats.batch_sizes += batch_size; // statistics
 
 			unpack_from_network();
 			in_progress_queue.clear();
+
+			perf_estimator.updateTimePerSample(perf_events.back());
+			perf_events.pop_back();
 		}
-		return SpeedSummary( { batch_size, stats.compute.getLastTime(), stats.wait.getLastTime() });
 	}
 	/*
 	 * private

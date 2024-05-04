@@ -82,12 +82,12 @@ namespace ag
 	}
 
 	Search::Search(const GameConfig &gameOptions, const SearchConfig &searchOptions) :
-			tasks_list_buffer_0(gameOptions, searchOptions.max_batch_size),
-			tasks_list_buffer_1(gameOptions, searchOptions.max_batch_size),
 			ab_search(gameOptions),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{
+		for (int i = 0; i < 2; i++)
+			tasks_list_buffer[i] = SearchTaskList(gameOptions, searchOptions.max_batch_size);
 	}
 	int64_t Search::getMemory() const noexcept
 	{
@@ -104,14 +104,10 @@ namespace ag
 	void Search::clearStats() noexcept
 	{
 		stats = SearchStats();
-//		ab_search.clearStats();
-		last_tuning_point.time = getTime();
-		last_tuning_point.node_count = stats.nb_node_count;
 	}
 	SearchStats Search::getStats() const noexcept
 	{
-//		solver.print_stats();
-//		ab_search.print_stats();
+		ab_search.print_stats();
 		return stats;
 	}
 	void Search::setBoard(const matrix<Sign> &board, Sign signToMove)
@@ -164,12 +160,29 @@ namespace ag
 				break;
 		}
 	}
-	void Search::solve()
+	void Search::solve(double endTime)
 	{
 		stats.solve.startTimer();
-		ab_search.setNodeLimit(search_config.tss_config.max_positions);
+		ab_search.setDepthLimit(100);
+		if (endTime < 0.0)
+		{
+			ab_search.setTimeLimit(std::numeric_limits<double>::max());
+			ab_search.setNodeLimit(search_config.tss_config.max_positions);
+		}
+		else
+			ab_search.setNodeLimit(10000);
+
 		for (int i = 0; i < get_buffer().storedElements(); i++)
+		{
+			if (endTime >= 0.0)
+			{
+				std::cout << i << "/" << getBatchSize() << ", time = " << 1.0e6 * (endTime - getTime()) / (getBatchSize() - i) << "us ("
+						<< 1.0e6 * (endTime - getTime()) << "us)\n";
+				ab_search.setTimeLimit((endTime - getTime()) / (getBatchSize() - i));
+			}
+
 			ab_search.solve(get_buffer().get(i));
+		}
 		stats.solve.stopTimer(get_buffer().storedElements());
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
@@ -180,7 +193,7 @@ namespace ag
 			const bool is_root = get_buffer().get(i).visitedPathLength() == 0;
 			const bool is_proven = get_buffer().get(i).getScore().isProven();
 			if (is_root or not is_proven)
-			{ // schedule only those tasks that haven't already been solved by the solver or if it's a root node
+			{ // schedule only those tasks that haven't already been solved by the solver unless it's a root node
 				stats.nb_network_evaluations++;
 				evaluator.addToQueue(get_buffer().get(i));
 			}
@@ -230,22 +243,6 @@ namespace ag
 			get_buffer().clear();
 		}
 	}
-	void Search::tune()
-	{
-		const double elapsed_time = getTime() - last_tuning_point.time;
-		const int64_t evaluated_nodes = stats.nb_node_count - last_tuning_point.node_count;
-		if (elapsed_time >= 0.5 or evaluated_nodes >= 1000)
-		{
-//			ts_search.print_stats();
-			const double speed = evaluated_nodes / elapsed_time;
-//			std::cout << speed << '\n';
-//			if (stats.nb_node_count > 1)
-//				vcf_solver.tune(speed);
-//				ts_search.tune(speed);
-			last_tuning_point.time = getTime();
-			last_tuning_point.node_count = stats.nb_node_count;
-		}
-	}
 	void Search::useBuffer(int index) noexcept
 	{
 		assert(index == 0 || index == 1);
@@ -259,16 +256,22 @@ namespace ag
 	{
 		get_buffer().resize(batchSize);
 	}
+	int Search::getBatchSize() const noexcept
+	{
+		return get_buffer().storedElements();
+	}
 	/*
 	 * private
 	 */
 	const SearchTaskList& Search::get_buffer() const noexcept
 	{
-		return (current_task_buffer == 0) ? tasks_list_buffer_0 : tasks_list_buffer_1;
+		assert(current_task_buffer == 0 || current_task_buffer == 1);
+		return tasks_list_buffer[current_task_buffer];
 	}
 	SearchTaskList& Search::get_buffer() noexcept
 	{
-		return (current_task_buffer == 0) ? tasks_list_buffer_0 : tasks_list_buffer_1;
+		assert(current_task_buffer == 0 || current_task_buffer == 1);
+		return tasks_list_buffer[current_task_buffer];
 	}
 	bool Search::is_duplicate(const SearchTask &task) const noexcept
 	{

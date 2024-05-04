@@ -9,6 +9,7 @@
 #define ALPHAGOMOKU_SEARCH_MONTE_CARLO_NNEVALUATOR_HPP_
 
 #include <alphagomoku/networks/AGNetwork.hpp>
+#include <alphagomoku/networks/perf_stats.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 
 #include <string>
@@ -28,22 +29,13 @@ namespace ag
 		public:
 			uint64_t batch_sizes = 0;
 			TimedStat pack;
-			TimedStat launch;
 			TimedStat compute;
-			TimedStat wait;
 			TimedStat unpack;
 
 			NNEvaluatorStats();
 			std::string toString() const;
 			NNEvaluatorStats& operator+=(const NNEvaluatorStats &other) noexcept;
 			NNEvaluatorStats& operator/=(int i) noexcept;
-	};
-
-	struct SpeedSummary
-	{
-			int batch_size = 0;
-			double compute_time = 0.0;
-			double wait_time = 0.0;
 	};
 
 	class NNEvaluator
@@ -55,16 +47,16 @@ namespace ag
 					int symmetry = 0;
 			};
 
+			std::vector<PerfEvents> perf_events;
 			std::vector<TaskData> waiting_queue;
 			std::vector<TaskData> in_progress_queue;
 			std::unique_ptr<AGNetwork> network;
 
+			PerfEstimator perf_estimator;
 			NNEvaluatorStats stats;
 			bool use_symmetries = false;
 			int available_symmetries = 1;
-			ml::Device device;
-			int batch_size;
-			int omp_threads;
+			DeviceConfig config;
 		public:
 			NNEvaluator(const DeviceConfig &cfg);
 
@@ -80,9 +72,9 @@ namespace ag
 			void unloadGraph();
 			void addToQueue(SearchTask &task);
 			void addToQueue(SearchTask &task, int symmetry);
-			SpeedSummary evaluateGraph();
-			void asyncEvaluateGraphLaunch();
-			SpeedSummary asyncEvaluateGraphJoin();
+			double evaluateGraph();
+			double asyncEvaluateGraphLaunch();
+			void asyncEvaluateGraphJoin();
 		private:
 			AGNetwork& get_network();
 			const AGNetwork& get_network() const;

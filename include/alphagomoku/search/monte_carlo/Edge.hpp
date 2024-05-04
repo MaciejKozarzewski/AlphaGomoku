@@ -146,7 +146,7 @@ namespace ag
 			}
 			void increaseVirtualLoss() noexcept
 			{
-				assert(getVirtualLoss() < 32768u);
+				assert(getVirtualLoss() < 32768);
 				set_virtual_loss(getVirtualLoss() + 1);
 			}
 			void decreaseVirtualLoss() noexcept

@@ -113,7 +113,7 @@ namespace ag
 	{
 		ag::augment(*this, mode);
 
-		// now we have to shuffle bits 8-11, 12-15, 20-23, 24-17 because their values depend on directions
+		// now we have to shuffle bits 8-11, 12-15, 20-23, 24-17 because their values depend on direction
 		switch (mode)
 		{
 			case 0:

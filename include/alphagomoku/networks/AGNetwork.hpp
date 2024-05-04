@@ -104,6 +104,7 @@ namespace ag
 
 			virtual int getBatchSize() const noexcept;
 			virtual void setBatchSize(int batchSize);
+			ml::Event addEvent() const;
 		protected:
 			virtual void pack_input_to_graph(int batchSize);
 			virtual PatternCalculator& get_pattern_calculator();
