@@ -45,7 +45,6 @@
 #include <alphagomoku/search/alpha_beta/MoveGenerator.hpp>
 #include <alphagomoku/search/alpha_beta/MinimaxSearch.hpp>
 #include <alphagomoku/search/alpha_beta/AlphaBetaSearch.hpp>
-#include <alphagomoku/search/vcf_search/VCFSearch.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
@@ -705,9 +704,6 @@ void test_proven_positions(int pos)
 	AlphaBetaSearch ab_search(game_config);
 	ab_search.loadWeights(nnue::NNUEWeights("/home/maciek/Desktop/AlphaGomoku560/networks/standard_nnue_64x16x16x1.bin"));
 	ab_search.setNodeLimit(pos);
-
-	VCFSearch vcf_search(game_config);
-	vcf_search.setNodeLimit(pos);
 
 	TSSConfig tss_config;
 	ThreatSpaceSearch ts_search(game_config, tss_config);
@@ -2060,7 +2056,7 @@ void test_search()
 // @formatter:on
 //	sign_to_move = Sign::CIRCLE;
 
-//// @formatter:off
+// @formatter:off
 //	board = Board::fromString(
 //			/*         a b c d e f g h i j k l m n o        */
 //			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
@@ -2097,7 +2093,7 @@ void test_search()
 //			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
 //			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
 //			/*         a b c d e f g h i j k l m n o        */);
-//// @formatter:on
+// @formatter:on
 //	sign_to_move = Sign::CROSS;
 
 //	ThreatSpaceSearch ts_search(game_config, search_config.tss_config);
@@ -2124,11 +2120,15 @@ void test_search()
 //	search_config.mcts_config.edge_selector_config.noise_type = "none";
 //	search_config.mcts_config.edge_selector_config.noise_weight = 1.0f;
 
+//	search_config.mcts_config.edge_selector_config.init_to = "loss";
 	tree.setEdgeSelector(PUCTSelector(search_config.mcts_config.edge_selector_config));
+//	tree.setEdgeSelector(ThompsonSelector(search_config.mcts_config.edge_selector_config));
+//	tree.setEdgeSelector(KLUCBSelector(search_config.mcts_config.edge_selector_config));
 	tree.setEdgeGenerator(UnifiedGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold, true));
 //	tree.setEdgeGenerator(UnifiedGenerator(true));
 
 	int next_step = 0;
+	double time_per_sample = 0.1;
 	for (int j = 0; j <= 10000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
@@ -2137,14 +2137,13 @@ void test_search()
 			next_step += 1000;
 		}
 		search.select(tree, 10000);
-		search.solve();
+		search.solve(getTime() + 0.5 * search.getBatchSize() * time_per_sample);
 		search.scheduleToNN(nn_evaluator);
-		nn_evaluator.evaluateGraph();
+		time_per_sample = nn_evaluator.evaluateGraph();
 
 		search.generateEdges(tree);
 		search.expand(tree);
 		search.backup(tree);
-//		search.tune();
 
 //		std::cout << "\n\n\n";
 //		tree.printSubtree(10, true, 5);
@@ -2416,12 +2415,10 @@ void test_evaluate()
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 1.25f;
 //	manager.setFirstPlayer(cfg, "./old_6x64f.bin", "old_6x64f");
 
-	cfg.simulations = 1000;
-	cfg.search_config.tss_config.mode = 0;
-//	cfg.search_config.tss_config.max_positions = 500;
-//	cfg.search_config.tss_config.mode = 1;
-//	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.75;
-	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku571/networks/standard_conv_8x128.bin", "tss");
+	cfg.simulations = 100;
+	cfg.search_config.mcts_config.edge_selector_config.init_to = "parent";
+	cfg.search_config.mcts_config.edge_selector_config.policy = "puct";
+	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku571/networks/standard_conv_8x128.bin", "puct_init_parent");
 
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 1.25;
 //	cfg.search_config.mcts_config.edge_selector_config.init_to = "q_head";
@@ -2430,9 +2427,11 @@ void test_evaluate()
 //	cfg.search_config.tss_config.mode = 1;
 //	manager.setSecondPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku571/networks/standard_conv_8x128.bin", "ab");
 
-	cfg.search_config.tss_config.mode = 2;
-	cfg.search_config.tss_config.hash_table_size *= 2;
-	manager.setSecondPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku571/networks/standard_conv_8x128.bin", "vcf_v2");
+//	cfg.search_config.tss_config.mode = 2;
+//	cfg.search_config.tss_config.hash_table_size *= 2;
+	cfg.search_config.mcts_config.edge_selector_config.init_to = "loss";
+	cfg.search_config.mcts_config.edge_selector_config.policy = "puct";
+	manager.setSecondPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku571/networks/standard_conv_8x128.bin", "puct_150_init_loss");
 
 //	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/sl_btl_brd_pv_8x128s/checkpoint/network_261_opt.bin", "broadcast_261");
 //	cfg.final_selector.exploration_constant = 1.25f;
@@ -2446,12 +2445,12 @@ void test_evaluate()
 //	manager.setSecondPlayer(cfg, "./old_6x64s.bin", "tss1");
 
 	const double start = getTime();
-	manager.generate(1000);
+	manager.generate(4000);
 	const double stop = getTime();
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file("/home/maciek/alphagomoku/new_runs_2024/cmp_solvers.pgn", std::ios::out | std::ios::app);
+	std::ofstream file("/home/maciek/alphagomoku/new_runs_2024/puct_100.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 
@@ -3467,8 +3466,8 @@ namespace evaluation
 
 int main(int argc, char *argv[])
 {
-//	std::cout << "BEGIN" << std::endl;
-//	std::cout << ml::Device::hardwareInfo() << '\n';
+	std::cout << "BEGIN" << std::endl;
+	std::cout << ml::Device::hardwareInfo() << '\n';
 //	return 0;
 
 	if (false)

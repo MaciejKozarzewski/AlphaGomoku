@@ -107,7 +107,7 @@ namespace ag
 	}
 	SearchStats Search::getStats() const noexcept
 	{
-		ab_search.print_stats();
+//		ab_search.print_stats();
 		return stats;
 	}
 	void Search::setBoard(const matrix<Sign> &board, Sign signToMove)
@@ -176,8 +176,8 @@ namespace ag
 		{
 			if (endTime >= 0.0)
 			{
-				std::cout << i << "/" << getBatchSize() << ", time = " << 1.0e6 * (endTime - getTime()) / (getBatchSize() - i) << "us ("
-						<< 1.0e6 * (endTime - getTime()) << "us)\n";
+//				std::cout << i << "/" << getBatchSize() << ", time = " << 1.0e6 * (endTime - getTime()) / (getBatchSize() - i) << "us ("
+//						<< 1.0e6 * (endTime - getTime()) << "us)\n";
 				ab_search.setTimeLimit((endTime - getTime()) / (getBatchSize() - i));
 			}
 
