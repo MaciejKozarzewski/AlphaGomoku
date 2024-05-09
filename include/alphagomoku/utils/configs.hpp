@@ -92,7 +92,7 @@ namespace ag
 			struct Defaults
 			{
 					static constexpr int max_children = std::numeric_limits<int>::max();
-					static constexpr float policy_expansion_threshold = 0.0f;
+					static constexpr float policy_expansion_threshold = 1.0e-4f;
 			};
 		public:
 			EdgeSelectorConfig edge_selector_config;

@@ -83,7 +83,7 @@ namespace ag
 			device_configs.push_back(DeviceConfig(device_configuration[i]));
 
 		add_path(path_to_conv_networks, GameRules::FREESTYLE, 20, config["conv_networks"]["freestyle"].getString());
-		add_path(path_to_conv_networks, GameRules::FREESTYLE, 15, config["conv_networks"]["freestyle"].getString());
+		add_path(path_to_conv_networks, GameRules::FREESTYLE, 15, config["conv_networks"]["freestyle_15"].getString());
 		add_path(path_to_conv_networks, GameRules::STANDARD, 15, config["conv_networks"]["standard"].getString());
 		add_path(path_to_conv_networks, GameRules::RENJU, 15, config["conv_networks"]["renju"].getString());
 		add_path(path_to_conv_networks, GameRules::CARO5, 15, config["conv_networks"]["caro5"].getString());
