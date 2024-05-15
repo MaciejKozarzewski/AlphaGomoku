@@ -29,8 +29,6 @@
 #  include <windows.h>
 #endif
 
-#define CHECK_ERROR(x, msg) if ((x) == -1) { std::cerr << (msg) << std::endl; exit(1); }
-
 namespace
 {
 	using namespace ag;
@@ -41,7 +39,7 @@ namespace
 			std::ostream &_outf;
 		public:
 			explicit Redirect(std::ostream &stream) :
-					_coutbuf(std::cout.rdbuf()),   // save original rdbuf
+					_coutbuf(std::cout.rdbuf()), // save original rdbuf
 					_outf(stream)
 			{
 				std::cout.rdbuf(_outf.rdbuf()); // replace cout's rdbuf with the file's rdbuf
@@ -53,24 +51,33 @@ namespace
 			}
 	};
 
+	void check_error(int ec, const char *msg)
+	{
+		if (ec == -1)
+		{
+			std::cerr << msg << std::endl;
+			exit(1);
+		}
+	}
+
 	bool run_and_redirect_stream(std::ostream &stream, std::function<void()> func)
 	{
 #if defined(__linux__)
 		int fd[2] = { 0, 0 }; /* pipe ends */
 		int tmp = pipe(fd);
-		CHECK_ERROR(tmp, "Failed to create pipes");
+		check_error(tmp, "Failed to create pipes");
 
 		const pid_t pid = fork();
-		CHECK_ERROR(pid, "Failed to create subprocess");
+		check_error(pid, "Failed to create subprocess");
 
 		if (pid == 0)
 		{
 			tmp = dup2(fd[1], 1);
-			CHECK_ERROR(tmp, "Failed to dup2() in child");
+			check_error(tmp, "Failed to dup2() in child");
 			tmp = close(fd[0]);
-			CHECK_ERROR(tmp, "Failed to close pipe[0] in child");
+			check_error(tmp, "Failed to close pipe[0] in child");
 			tmp = close(fd[1]);
-			CHECK_ERROR(tmp, "Failed to close pipe[1] in child");
+			check_error(tmp, "Failed to close pipe[1] in child");
 
 			func();
 			exit(0);
@@ -78,7 +85,7 @@ namespace
 		else
 		{
 			tmp = close(fd[1]);
-			CHECK_ERROR(tmp, "Failed to close pipe[1] in parent");
+			check_error(tmp, "Failed to close pipe[1] in parent");
 
 			char buffer[1025];
 			for (;;)
@@ -91,7 +98,7 @@ namespace
 			}
 
 			tmp = close(fd[0]);
-			CHECK_ERROR(tmp, "Failed to close pipe[0] in parent");
+			check_error(tmp, "Failed to close pipe[0] in parent");
 
 			int status;
 			waitpid(pid, &status, 0);
@@ -104,7 +111,6 @@ namespace
 		return true;
 #endif
 	}
-
 
 	class PrintAndSave
 	{
@@ -128,6 +134,8 @@ namespace
 		std::vector<ml::Device> devices = { ml::Device::cpu() };
 		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
 			devices.push_back(ml::Device::cuda(i));
+		for (int i = 0; i < ml::Device::numberOfOpenCLDevices(); i++)
+			devices.push_back(ml::Device::opencl(i));
 
 		for (size_t i = 0; i < devices.size(); i++)
 		{
@@ -236,7 +244,6 @@ namespace ag
 			const Json config = fl.getJson();
 			if (config["version"].getString() != ProgramInfo::version())
 				printer.write("You are using outdated version of the configuration file.");
-
 
 		} catch (std::exception &e)
 		{
