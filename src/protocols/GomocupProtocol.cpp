@@ -227,7 +227,7 @@ namespace ag
 			if (tmp.size() != 2u)
 				throw ProtocolRuntimeException("Incorrect command '" + line + "' was passed");
 
-			const Move m = move_from_string(line, Sign::NONE);
+			const Move m = move_from_string(line, sign_to_move);
 			check_move_validity(m, result);
 			result.push_back(m);
 			sign_to_move = invertSign(sign_to_move);
