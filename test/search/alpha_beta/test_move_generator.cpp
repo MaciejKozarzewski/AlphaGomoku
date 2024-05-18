@@ -673,7 +673,7 @@ namespace ag
 
 		MoveGenWrapper movegen_freestyle(GameRules::FREESTYLE, board, Sign::CROSS);
 		const ActionList actions1 = movegen_freestyle(MoveGeneratorMode::OPTIMAL);
-		EXPECT_TRUE(actions1.must_defend);
+		EXPECT_FALSE(actions1.must_defend);
 		EXPECT_TRUE(actions1.has_initiative);
 		EXPECT_GE(actions1.size(), 5);
 		EXPECT_TRUE(actions1.contains(Move("Xg2")));
@@ -1188,7 +1188,7 @@ namespace ag
 // @formatter:on
 		MoveGenWrapper movegen(GameRules::FREESTYLE, board, Sign::CIRCLE);
 		const ActionList actions = movegen(MoveGeneratorMode::OPTIMAL);
-		EXPECT_TRUE(actions.must_defend);
+		EXPECT_FALSE(actions.must_defend);
 		EXPECT_TRUE(actions.has_initiative);
 		EXPECT_GE(actions.size(), 1);
 		EXPECT_TRUE(actions.contains(Move("Ok8")));

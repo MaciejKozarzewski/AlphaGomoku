@@ -194,8 +194,6 @@ namespace ag
 			if (result.must_continue and distance_to_draw >= 3)
 				add_own_half_open_fours();
 		}
-		if (result.must_continue and is_anything_forbidden_for(get_own_sign()))
-			mark_forbidden_moves();
 		if (result.must_continue and mode >= MoveGeneratorMode::OPTIMAL)
 		{
 			if (mode == MoveGeneratorMode::OPTIMAL)
@@ -217,6 +215,8 @@ namespace ag
 			const BitMask2D<uint32_t, 32> mask = (mode <= MoveGeneratorMode::REDUCED) ? mark_neighborhood() : pattern_calculator.getLegalMovesMask();
 			create_remaining_moves(mask);
 		}
+		if (is_anything_forbidden_for(get_own_sign()))
+			mark_forbidden_moves();
 
 		actions.is_fully_expanded = actions.must_defend or mode >= MoveGeneratorMode::OPTIMAL;
 
@@ -386,29 +386,15 @@ namespace ag
 		actions->baseline_score = Score::loss_in(2);
 
 		DefensiveMoves defensive_moves;
-		if (is_caro_rule(game_config.rules))
-		{ // in caro rule it is possible to refute several threats of five with a single move
-			for (auto move = opponent_fives.begin(); move < opponent_fives.end(); move++)
-			{ // loop over threats of five to find a set of moves that refute them all
-				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
-				const Direction direction = group.findDirectionOf(PatternType::FIVE);
-				const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
+		for (auto move = opponent_fives.begin(); move < opponent_fives.end(); move++)
+		{ // loop over threats of five to find a set of moves that refute them all
+			const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
+			const Direction direction = group.findDirectionOf(PatternType::FIVE);
+			const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 
-				defensive_moves.get_intersection_with(tmp);
-				if (defensive_moves.is_empty())
-				{ // surprisingly not common (approximately 1 in 3000 positions)
-					add_moves<EXCLUDE_DUPLICATE>(opponent_fives, Score::loss_in(2)); // we must always produce some moves, even if the threat is not refutable
-					return Result::canStopNow(Score::loss_in(2));
-				}
-			}
-		}
-		else
-		{ // for rules other than caro the defensive move to a five is at the same spot as the five itself
-		  // this branch is ~3.6x faster than the general solution above
-			if (opponent_fives.size() == 1)
-				defensive_moves.get_intersection_with(ShortVector<Location, 6>( { opponent_fives[0] }));
-			else
-			{ // 2 or more fives are not refutable
+			defensive_moves.get_intersection_with(tmp);
+			if (defensive_moves.is_empty())
+			{ // surprisingly not common (approximately 1 in 3000 positions)
 				add_moves<EXCLUDE_DUPLICATE>(opponent_fives, Score::loss_in(2)); // we must always produce some moves, even if the threat is not refutable
 				return Result::canStopNow(Score::loss_in(2));
 			}
