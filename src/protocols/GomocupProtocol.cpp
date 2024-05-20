@@ -13,6 +13,31 @@
 
 #include <cassert>
 
+namespace
+{
+	using namespace ag;
+
+	template<typename T>
+	std::string get_evaluation_string(const T &x)
+	{
+		std::string result;
+		switch (x.getScore().getProvenValue())
+		{
+			case ProvenValue::UNKNOWN:
+				result += "ev " + format_percents(x.getExpectation());
+				break;
+			case ProvenValue::LOSS:
+			case ProvenValue::DRAW:
+			case ProvenValue::WIN:
+				result += "ev " + trim(x.getScore().toFormattedString());
+				break;
+		}
+		result += " winrate " + format_percents(x.getWinRate());
+		result += " drawrate " + format_percents(x.getDrawRate());
+		return result;
+	}
+}
+
 namespace ag
 {
 
@@ -115,26 +140,19 @@ namespace ag
 		this->rows = rows;
 		this->columns = columns;
 	}
-	std::string GomocupProtocol::parse_search_summary(const SearchSummary &summary) const
+	std::string GomocupProtocol::parse_search_summary(const SearchSummary &summary)
 	{
+		search_info = summary.node;
+		copyEdgeInfo(search_info, summary.node);
+
 		if (summary.node.getVisits() == 0)
 			return "";
+
 		std::string result;
 		if (summary.principal_variation.size() > 0)
 			result += "depth 1-" + std::to_string(summary.principal_variation.size());
-		switch (summary.node.getScore().getProvenValue())
-		{
-			case ProvenValue::UNKNOWN:
-				result += " ev " + format_percents(summary.node.getExpectation());
-				break;
-			case ProvenValue::LOSS:
-			case ProvenValue::DRAW:
-			case ProvenValue::WIN:
-				result += " ev " + trim(summary.node.getScore().toFormattedString());
-				break;
-		}
-		result += " winrate " + format_percents(summary.node.getWinRate());
-		result += " drawrate " + format_percents(summary.node.getDrawRate());
+
+		result += " " + get_evaluation_string(summary.node);
 
 		result += " n " + std::to_string(summary.number_of_nodes);
 		if (summary.time_used > 0.0)
@@ -329,7 +347,14 @@ namespace ag
 	void GomocupProtocol::info_evaluate(InputListener &listener)
 	{
 		const Move m = move_from_string(extract_command_data(listener, "info evaluate"), Sign::NONE);
-		input_queue.push(Message(MessageType::INFO_MESSAGE, std::vector<Move>( { m })));
+		std::string result;
+		for (auto edge = search_info.begin(); edge < search_info.end(); edge++)
+			if (edge->getMove().location() == m.location())
+			{
+				result = get_evaluation_string(*edge);
+				break;
+			}
+		output_queue.push(Message(MessageType::INFO_MESSAGE, result));
 	}
 	void GomocupProtocol::info_folder(InputListener &listener)
 	{

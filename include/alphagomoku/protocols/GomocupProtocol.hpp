@@ -17,6 +17,7 @@ namespace ag
 	{
 		protected:
 			std::vector<Move> list_of_moves;
+			Node search_info;
 			int rows = 0;
 			int columns = 0;
 			bool transpose_coords = true;
@@ -35,7 +36,7 @@ namespace ag
 			void add_new_move(Move move);
 			void check_move_validity(Move move, const std::vector<Move> &playedMoves) const;
 			void setup_board_size(int rows, int columns) noexcept;
-			std::string parse_search_summary(const SearchSummary &summary) const;
+			std::string parse_search_summary(const SearchSummary &summary);
 			std::vector<Move> parse_list_of_moves(InputListener &listener, const std::string &ending) const;
 			std::vector<Move> parse_ordered_moves(InputListener &listener, const std::string &ending) const;
 			/*
