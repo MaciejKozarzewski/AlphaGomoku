@@ -147,6 +147,8 @@ namespace ag
 
 				unpack_from_network();
 				in_progress_queue.clear();
+
+				ev.end.synchronize();
 				perf_estimator.updateTimePerSample(ev);
 			}
 		}
@@ -194,6 +196,7 @@ namespace ag
 			unpack_from_network();
 			in_progress_queue.clear();
 
+			perf_events.back().end.synchronize();
 			perf_estimator.updateTimePerSample(perf_events.back());
 			perf_events.pop_back();
 		}

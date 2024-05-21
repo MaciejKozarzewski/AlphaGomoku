@@ -30,7 +30,8 @@ namespace ag
 	}
 	double PerfEvents::getTime() const noexcept
 	{
-		assert(isStarted() && isFinished());
+		assert(isStarted());
+		assert(isFinished());
 		return ml::Event::getElapsedTime(start, end);
 	}
 
