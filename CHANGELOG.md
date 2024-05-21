@@ -7,6 +7,24 @@ All notable changes to this project will be documented in this file.
 ### Changed
 ### Fixed
 
+## [5.8.1] - 2024-05-22
+This is the version that played in Gomocup 2024 with bugfixes.
+
+### Added
+- added OpenCL backend.
+- new network for freestyle rule on 15x15 board.
+
+### Changed
+- MCTS now tracks the speed of computations on GPU so it can better plan the time for alpha-beta search.
+- reduced memory usage by about 20% (on average).
+- style_factor parameter was removed.
+
+### Fixed
+- Fixed bugs in move generator in caro and renju rules.
+- Fixed bug in "SWAP2BOARD" command.
+- Fixed "INFO evaluate" command in Gomocup protocol.
+
+
 ## [5.7.1] - 2023-11-08
 Better YixinBoard support.
 
