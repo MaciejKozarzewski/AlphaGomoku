@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.14)  20 MAY 2024 22:19
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.14)  21 MAY 2024 00:34
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**protocols.tex
-(./protocols.tex
+**user_manual.tex
+(./user_manual.tex
 LaTeX2e <2021-11-15> patch level 1
 L3 programming layer <2022-01-21>
 (/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
@@ -246,127 +246,252 @@ Package: enumitem 2019/06/20 v3.9 Customized lists
 \enit@count@id=\count281
 \enitdp@description=\count282
 )
+(/usr/share/texlive/texmf-dist/tex/latex/listings/listings.sty
+\lst@mode=\count283
+\lst@gtempboxa=\box53
+\lst@token=\toks25
+\lst@length=\count284
+\lst@currlwidth=\dimen153
+\lst@column=\count285
+\lst@pos=\count286
+\lst@lostspace=\dimen154
+\lst@width=\dimen155
+\lst@newlines=\count287
+\lst@lineno=\count288
+\lst@maxwidth=\dimen156
+
+(/usr/share/texlive/texmf-dist/tex/latex/listings/lstmisc.sty
+File: lstmisc.sty 2020/03/24 1.8d (Carsten Heinz)
+\c@lstnumber=\count289
+\lst@skipnumbers=\count290
+\lst@framebox=\box54
+)
+(/usr/share/texlive/texmf-dist/tex/latex/listings/listings.cfg
+File: listings.cfg 2020/03/24 1.8d listings configuration
+))
+Package: listings 2020/03/24 1.8d (Carsten Heinz)
+
 (/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2022-01-12 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count283
-\l__pdf_internal_box=\box53
+\l__color_backend_stack_int=\count291
+\l__pdf_internal_box=\box55
 )
-(./protocols.aux)
-\openout1 = `protocols.aux'.
+(./user_manual.aux)
+\openout1 = `user_manual.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 12.
-LaTeX Font Info:    ... okay on input line 12.
-Package hyperref Info: Link coloring OFF on input line 12.
- (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 13.
+LaTeX Font Info:    ... okay on input line 13.
+Package hyperref Info: Link coloring OFF on input line 13.
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2021-04-02 v2.47 Cross-referencing by name of section
+
 (/usr/share/texlive/texmf-dist/tex/latex/refcount/refcount.sty
 Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
 )
 (/usr/share/texlive/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
 Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 )
-\c@section@level=\count284
+\c@section@level=\count292
 )
-LaTeX Info: Redefining \ref on input line 12.
-LaTeX Info: Redefining \pageref on input line 12.
-LaTeX Info: Redefining \nameref on input line 12.
+LaTeX Info: Redefining \ref on input line 13.
+LaTeX Info: Redefining \pageref on input line 13.
+LaTeX Info: Redefining \nameref on input line 13.
 
-(./protocols.out) (./protocols.out)
+(./user_manual.out) (./user_manual.out)
 \@outlinefile=\write3
-\openout3 = `protocols.out'.
+\openout3 = `user_manual.out'.
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 14.
+\c@lstlisting=\count293
+LaTeX Font Info:    Trying to load font information for U+msa on input line 15.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 14.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 15.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) (./protocols.toc
+) (./user_manual.toc
 [1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] [3])
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}])
 \tf@toc=\write4
-\openout4 = `protocols.toc'.
+\openout4 = `user_manual.toc'.
 
- [4]
-Underfull \hbox (badness 10000) in paragraph at lines 42--46
-
+ [2]
+Overfull \hbox (24.15128pt too wide) in paragraph at lines 21--22
+\OT1/cmr/m/n/12 For up-dates visit []https://github.com/MaciejKozarzewski/Alpha
+Gomoku/releases[] 
  []
 
-[5] [6]
-Overfull \hbox (11.7987pt too wide) in paragraph at lines 122--123
-[]\OT1/cmr/m/n/12 freestyle caro rule (OXXXXXO is not a win, but OXXXXXXO
+[3]
+Overfull \hbox (62.69669pt too wide) in paragraph at lines 47--48
+[][]\OT1/cmr/m/n/12 https://docs.nvidia.com/cuda/cuda-installation-guide-micros
+oft-windows/index.html[] 
  []
 
-[7] [8]
-Underfull \hbox (badness 10000) in paragraph at lines 190--191
-
+[4] [5]
+Overfull \hbox (3.0751pt too wide) in paragraph at lines 78--79
+\OT1/cmr/m/n/12 the ver-sion of the AG. For-mat is "ma-jor.minor.revision" (for
+ ex-am-ple "5.8.1"). 
  []
 
-[9]
-Underfull \hbox (badness 10000) in paragraph at lines 204--206
-
+[6] [7]
+Overfull \hbox (4.474pt too wide) in paragraph at lines 138--139
+[]\OT1/cmr/m/n/12 : In-tel(R) Core(TM) i7-4790 CPU @ 3.60GHz : 8 x AVX2 with 32
+033MB
  []
 
-[10] [11] [12] [13] [14]
-Underfull \hbox (badness 10000) in paragraph at lines 361--364
-
+[8] [9] [10]
+Overfull \hbox (5.25568pt too wide) in paragraph at lines 244--244
+[]\OT1/cmtt/m/n/8 CROSS  (17,16) : Xq17 : S= W21 : Q=0.983135 : 0.000009 : 0.01
+6855 : Visits=13324 : P=0.013671[] 
  []
 
-[15] [16] [17] [18] [19]
-Overfull \hbox (59.51987pt too wide) in paragraph at lines 512--517
-\OT1/cmr/m/n/12 The en-gine an-swers with a sin-gle move at the cen-ter of the 
-board i.e. (width/2),(height/2)
+[11]
+Overfull \hbox (5.25568pt too wide) in paragraph at lines 299--299
+[]\OT1/cmtt/m/n/8 CROSS  (17,16) : Xq17 : S= W21 : Q=0.983135 : 0.000009 : 0.01
+6855 : Visits=13324 : P=0.013671[] 
  []
 
-[20] [21] [22] [23] [24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34]
-[35] [36] (./protocols.aux)
-Package rerunfilecheck Info: File `protocols.out' has not changed.
-(rerunfilecheck)             Checksum: 03A2345D2F917FE1DC401542441D97E0;15698.
+
+Overfull \hbox (1.00562pt too wide) in paragraph at lines 299--299
+[]\OT1/cmtt/m/n/8 CIRCLE (15,16) : Oq15 : S= L18 : Q=0.012740 : 0.000005 : 0.98
+7255 : Visits=8301 : P=0.878230[] 
+ []
+
+
+Overfull \hbox (1.00562pt too wide) in paragraph at lines 299--299
+[]\OT1/cmtt/m/n/8 CROSS  (17,15) : Xp17 : S= W17 : Q=0.994129 : 0.000003 : 0.00
+5869 : Visits=8094 : P=0.519155[] 
+ []
+
+
+Overfull \hbox (1.00562pt too wide) in paragraph at lines 299--299
+[]\OT1/cmtt/m/n/8 CIRCLE (18,16) : Oq18 : S= L16 : Q=0.005850 : 0.000003 : 0.99
+4147 : Visits=8093 : P=1.000000[] 
+ []
+
+
+Overfull \hbox (1.00562pt too wide) in paragraph at lines 299--299
+[]\OT1/cmtt/m/n/8 CROSS  (17,14) : Xo17 : S= W15 : Q=0.999934 : 0.000000 : 0.00
+0066 : Visits=7782 : P=0.466217[] 
+ []
+
+
+Overfull \hbox (1.00562pt too wide) in paragraph at lines 299--299
+[]\OT1/cmtt/m/n/8 CIRCLE (17,13) : On17 : S= L14 : Q=0.000000 : 0.000000 : 1.00
+0000 : Visits=1695 : P=0.218040[] 
+ []
+
+
+Overfull \hbox (1.00562pt too wide) in paragraph at lines 299--299
+[]\OT1/cmtt/m/n/8 CROSS  (16,13) : Xn16 : S= W13 : Q=1.000000 : 0.000000 : 0.00
+0000 : Visits=1694 : P=1.000000[] 
+ []
+
+
+Overfull \hbox (94.50696pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 avg batch size = 2.025522 // this is the average number of po
+sitions evaluated by the neural network in each step.[] 
+ []
+
+
+Overfull \hbox (18.00586pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 pack    = 0.001443s : 431 : 3.347564 us // this is the time o
+f packing the data to network input[] 
+ []
+
+[12]
+Overfull \hbox (39.25616pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 unpack  = 0.002133s : 431 : 4.948260 us // this is the time o
+f unpacking the data from network output[] 
+ []
+
+
+Overfull \hbox (86.00684pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 nb_duplicate_nodes     = 0 // in parallel MCTS it can happen 
+that the same node will be evaluated more than once[] 
+ []
+
+
+Overfull \hbox (1.00562pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 nb_information_leaks   = 218 // number of mismatch of evaluat
+ion between graph edge and node[] 
+ []
+
+
+Overfull \hbox (56.25641pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 schedule = 0.001101s : 965 : 1.141347 us // time used to sche
+dule positions for neural network evaluation[] 
+ []
+
+
+Overfull \hbox (22.25592pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 generate = 0.005064s : 965 : 5.247358 us // time used to gene
+rate legal actions for each position[] 
+ []
+
+
+Overfull \hbox (1.00562pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 seek     = 0.084930s : 201805 : 0.420850 us // time used for 
+seeking an element in the cache[] 
+ []
+
+
+Overfull \hbox (30.75604pt too wide) in paragraph at lines 341--341
+[]\OT1/cmtt/m/n/8 cleanup  = 0.048654s : 17 : 2.862006 ms // time used for cach
+e cleanup (after each position change)[] 
+ []
+
+[13] [14]
+Overfull \hbox (86.39507pt too wide) in paragraph at lines 373--374
+\OT1/cmr/m/n/12 Then cre-ate the is-sue on github []https://github.com/MaciejKo
+zarzewski/AlphaGomoku/issues[]
+ []
+
+[15] [16] [17] [18] [19] (./user_manual.aux)
+Package rerunfilecheck Info: File `user_manual.out' has not changed.
+(rerunfilecheck)             Checksum: 09F018366E1A3F479B03D0933753356E;7010.
  ) 
 Here is how much of TeX's memory you used:
- 9220 strings out of 478287
- 143254 string characters out of 5849289
- 439592 words of memory out of 5000000
- 27164 multiletter control sequences out of 15000+600000
- 478875 words of font info for 65 fonts, out of 8000000 for 9000
+ 10356 strings out of 478287
+ 158918 string characters out of 5849289
+ 471473 words of memory out of 5000000
+ 28382 multiletter control sequences out of 15000+600000
+ 478696 words of font info for 65 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 60i,6n,63p,657b,444s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 60i,6n,63p,422b,505s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/share/texli
 ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/tex
-mf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dis
-t/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts
-/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/
-public/amsfonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/
-amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts
-/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cm
-ti12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.p
-fb></usr/share/texmf/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on protocols.pdf (36 pages, 186714 bytes).
+mf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts/
+type1/public/amsfonts/cm/cmtt12.pfb></usr/share/texlive/texmf-dist/fonts/type1/
+public/amsfonts/cm/cmtt8.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm
+1200.pfb>
+Output written on user_manual.pdf (19 pages, 110001 bytes).
 PDF statistics:
- 874 PDF objects out of 1000 (max. 8388607)
- 807 compressed objects within 9 object streams
- 163 named destinations out of 1000 (max. 500000)
- 937 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 361 PDF objects out of 1000 (max. 8388607)
+ 324 compressed objects within 4 object streams
+ 69 named destinations out of 1000 (max. 500000)
+ 321 words of extra memory for PDF output out of 10000 (max. 10000000)
 

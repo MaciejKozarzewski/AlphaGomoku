@@ -20,7 +20,7 @@ This document describes the details of how protocols are implemented in AlphaGom
 
 \newpage
 \section{Gomocup Protocol}
-Here are listed all Gomocup protocol \cite{newprotocol} commands that are implemented in AG with description how they work in this particular program.
+Here are listed all Gomocup protocol \cite{newprotocol} commands that are implemented in AG with description of how they work in this particular program.
 
 The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [C],[R] or C,R.
 
@@ -39,7 +39,7 @@ Upon receiving this command, engine sets the board size.
 
 \subsection{TURN [C],[R]}
 \label{cmd_turn}
-This command is implemented exactly like in the protocol description. If \texttt{TURN} command is sent as the first one after \texttt{START}, engine will behave like if it received:\\
+This command is implemented exactly like in the protocol description. If \texttt{TURN [C],[R]} command is sent as the first one after \texttt{START}, engine will behave like if it received:\\
 \texttt{BOARD} \\
 \texttt{[C],[R],2} \\
 \texttt{DONE}\\
@@ -65,7 +65,7 @@ This command is implemented exactly like in the protocol description.
 \label{cmd_info}
 In theory AG can react to the change of any parameters even during search (except \texttt{rule} which must be specified before any search starts), but no guarantees are made if some contradictory values are sent. If anything goes wrong the error description might be found in the logfile.
 
-\textbf{Note:} Official protocol description states that \textit{"The manager does not read messages from the brain when sending INFO command."} \cite{newprotocol}. This is why it was suggested that engine should wait with reponse to the \texttt{INFO} command until actual match is started. However AG responses immediately if an invalid \texttt{INFO} command was sent, assuming that this output is buffered and will eventually reach the manager when it will switch to reading messages.
+\textbf{Note:} Official protocol description states that \textit{"The manager does not read messages from the brain when sending INFO command."} \cite{newprotocol}. This is why it was suggested that engine should wait with reponse to the \texttt{INFO} command until actual match is started. However AG responses immediately if an invalid \texttt{INFO} command was sent, assuming that the output is buffered and will eventually reach the manager when it will switch to reading messages.
 
 \subsubsection{INFO timeout{\_}turn [x]}
 \label{cmd_info_timeout_turn}
@@ -105,7 +105,7 @@ Sets the memory limit in bytes.
 
 \textbf{Note:} If the memory limit is too low, AG may stop the search when it runs out of memory.
 
-\textbf{Note:} This setting can be increased freely at any time. But lowering memory limit is only possible when the search is not running and will mean re-creating entire search tree from scratch.
+\textbf{Note:} This setting can be increased at any time. But lowering memory limit is only possible when the search is not running and will mean re-creating entire search tree from scratch.
 
 \subsubsection{INFO game{\_}type [x]}
 \label{cmd_info_game_type}
@@ -115,10 +115,12 @@ Sets the memory limit in bytes.
 \label{cmd_info_rule}
 Specifies the rules used for the game. A bitmask that can have several possible values:
 \begin{enumerate}[leftmargin=7.5em]
-	\item[\text{$[x]=0$}]{five or more wins - freestyle rule. Supported only for 20x20 board.}
+	\item[\text{$[x]=0$}]{five or more wins - freestyle rule. Supported only for 20x20 and 15x15 board.}
 	\item[\text{$[x]=1$}]{exactly five wins - standard rule. Supported only for 15x15 board.}
 	\item[\text{$[x]=2$}]{continuous game - not supported.}
-	\item[\text{$[x]=4$}]{renju rule. Currently not implemented.}
+	\item[\text{$[x]=4$}]{renju rule. Supported only for 15x15 board.}
+	\item[\text{$[x]=8$}]{freestyle caro rule (OXXXXXO is not a win, but OXXXXXXO is). Supported only for 15x15 board.}
+	\item[\text{$[x]=9$}]{standard caro rule (OXXXXXO is not a win, OXXXXXXO is not a win too). Supported only for 15x15 board.}
 \end{enumerate}
 
 \textbf{Note:} This setting cannot be changed during the search.
@@ -190,11 +192,11 @@ Currently the only \texttt{MESSAGE} AG sends by itself, is the summary of the se
 \item[\textbf{depth [x]-[y]}]{the minimal [x] and maximal [y] depth of the search.
 
 \textbf{Note:} Minimal is always 1 and maximal is taken as the length of principal variation.}
-\item[\textbf{ev [x]}]{is the expectation outcome in {\%} (probability of $P_{win} + \frac{1}{2}P_{draw}$) or proven value - (U)nknown, (L)oss, (D)raw, (W)in.}
+\item[\textbf{ev [x]}]{is the expectation outcome in {\%} (probability of $P_{win} + \frac{1}{2}P_{draw}$) or proven value - (L)oss, (D)raw, (W)in. with number representing number of moves to this outcome (for example W3 is a win in 3 moves)}
 \item[\textbf{winrate [x]}]{is the probability of winning the game in {\%}}
 \item[\textbf{drawrate [x]}]{is the probability of drawing the game in {\%}}
 \item[\textbf{n [x]}]{is the number of evaluated nodes.}
-\item[\textbf{n/s [x]}]{is the number of evaluated nodes per second (including cache hits).}
+\item[\textbf{n/s [x]}]{is the number of evaluated nodes per second.}
 \item[\textbf{tm [x]}]{is the time used for this turn (in milliseconds).}
 \item[\textbf{pv [x1] [x2] ...}]{is the principal variation.}
 \end{enumerate}
@@ -252,12 +254,7 @@ If path specified in the command does not exist in the tree for any reason, the 
 
 \textbf{Note:} Sending excessive amounts of \texttt{INFO evaluate} commands during the search is discouraged as it can degrade engine performance.
 
-\subsubsection{INFO rule [x]}
-\label{cmd_exinfo_rule}
-In addition to the possible values in base Gomocup protocol, one more new value is allowed:
-\begin{enumerate}[leftmargin=7.5em]
-	\item[\text{$[x]=8$}]{caro rule (OXXXXXO is not a win). Currently not implemented.}
-	\end{enumerate}
+\textbf{Note:} This commands returns information about moves from the perspective of the player to move. After a move has been returned from the search, AG internally switches to the opponent color so \texttt{INFO evaluate} command will not return information about moves in the previous board state.
 
 \subsubsection{INFO analysis{\_}mode [x]}
 Controls how engine responds to the \texttt{BEGIN}, \texttt{BOARD} and \texttt{TURN} commands. The allowed values are:
@@ -279,18 +276,6 @@ Sets maximum number of nodes. If \text{$[x]<=0$} the number of nodes is unlimite
 \subsubsection{INFO time{\_}increment [x]}
 Sets amount of time that is added after each move (see Fischer time controls \cite{fischer}). Must not be negative.
 
-\subsubsection{INFO style [x]}
-Controls the style of the search. Allowed values are:
-\begin{enumerate}[leftmargin=7.5em]
-	\item[\text{$[x]=0$}]{defensive - AG will try to maximize the probability of not losing, $P_{win} + P_{draw}$.}
-	\item[\text{$[x]=1$}]{AG will try to maximize $P_{win} + \frac{3}{4}P_{draw}$.}
-	\item[\text{$[x]=2$}]{classic - AG will try to maximize the expectation outcome, $P_{win} + \frac{1}{2}P_{draw}$.
-	
-	\textbf{Note:} In general, this is the strongest setting.}
-	\item[\text{$[x]=3$}]{AG will try to maximize $P_{win} + \frac{1}{4}P_{draw}$.}
-	\item[\text{$[x]=4$}]{offensive - AG will try to maximize the probability of winning, $P_{win}$.}
-\end{enumerate}
-
 \subsubsection{INFO auto{\_}pondering [x]}
 Toggles the automatic pondering after each move. This command overrides the value of "auto{\_}pondering" loaded from the configuration file. Allowed values are:
 \begin{enumerate}[leftmargin=7.5em]
@@ -303,7 +288,7 @@ Toggles the automatic pondering after each move. This command overrides the valu
 \textbf{Note:} Pondering is never started automatically if \texttt{INFO analysis{\_}mode} is set to 1.
 
 \subsubsection{INFO protocol{\_}lag [x]}
-Sets the estimated protocol overhead i.e. the time difference between sending the message by the engine and receiving it by the GUI (and in the opposite direction). Must not be negative.
+Sets the estimated protocol overhead i.e. the time difference (in milliseconds) between sending the message by the engine and receiving it by the GUI (and in the opposite direction). Must not be negative.
 
 \subsubsection{INFO thread{\_}num [x]}
 Sets maximum nuber of threads an engine can use. This command overrides the value of "thread{\_}num" loaded from the configuration file. Must be greater than 0. 
@@ -317,7 +302,6 @@ Some parameters have default values so the engine works even if no \texttt{INFO}
 \item{\textbf{max{\_}depth } = 2147483647 (effectively no limit)}
 \item{\textbf{max{\_}nodes} = 2147483647 (effectively no limit)}
 \item{\textbf{time{\_}increment} = 0 ("sudden death" \cite{suddendeath} type time controls)}
-\item{\textbf{style} = 2 (classic)}
 \item{\textbf{auto{\_}pondering} = as loaded from configuration file}
 \item{\textbf{protocol{\_}lag} \text{$ \approx 400$} (0.4s - varies from version to version)}
 \item{\textbf{thread{\_}num} = as loaded from configuration file}
@@ -351,8 +335,6 @@ will order the engine to find two moves that balance this 3-stone position. Valu
 
 \subsection{SHOWFORBID}
 \label{cmd_showforbid}
-\textbf{Note:} Currently not implemented in AG.
-
 This command is similar to the \texttt{BOARD} command but instead of searching for the best move, it returns all forbidden moves according to renju rule. The engine will respond with \texttt{FORBID} followed by the list of moves separated by spaces. For example\\
 \texttt{SHOWFORBID}\\
 \texttt{[C1],[R1],[S1]} \\
@@ -934,7 +916,7 @@ After the opening stage, the stones on the board will be treated as an opening f
 
 \newpage
 \section{YixinBoard Protocol}
-This protocol implements all commands from the base Gomocup protocol. Additionally it introduces new commands. Sometimes extends how the original ones work.
+This protocol implements all commands from the base Gomocup protocol with modifications used by YixinBoard GUI \cite{yixinboard}.
 
 The move format is assumed to be \texttt{[column],[row]}, often abbreviated by [C],[R].
 
@@ -960,9 +942,9 @@ In addition to the keys described in the original Gomocup protocol, also the fol
 \label{cmd_yxinfo_rule}
 Specifies the rules used for the game. A bitmask that can have several possible values:
 \begin{enumerate}[leftmargin=7.5em]
-	\item[\text{$[x]=0$}]{five or more wins - freestyle rule. Supported only for 20x20 board.}
+	\item[\text{$[x]=0$}]{five or more wins - freestyle rule. Supported only for 20x20 or 15x15 board.}
 	\item[\text{$[x]=1$}]{exactly five wins - standard rule. Supported only for 15x15 board.}
-	\item[\text{$[x]=2$}]{renju rule. Currently not implemented.}
+	\item[\text{$[x]=2$}]{renju rule.}
 \end{enumerate}
 
 \textbf{Note:} This setting cannot be changed during the search.
@@ -993,18 +975,6 @@ Sets amount of time that is added after each move (see Fischer time controls \ci
 
 \textbf{Note:} Must not be negative.
 
-\subsubsection{INFO caution{\_}factor [x]}
-Controls the style of the search. Allowed values are:
-\begin{enumerate}[leftmargin=7.5em]
-	\item[\text{$[x]=4$}]{defensive - AG will try to maximize the probability of not losing, $P_{win} + P_{draw}$.}
-	\item[\text{$[x]=3$}]{AG will try to maximize $P_{win} + \frac{3}{4}P_{draw}$.}
-	\item[\text{$[x]=2$}]{classic - AG will try to maximize the expectation outcome, $P_{win} + \frac{1}{2}P_{draw}$.
-	
-	\textbf{Note:} In general, this is the strongest setting.}
-	\item[\text{$[x]=1$}]{AG will try to maximize $P_{win} + \frac{1}{4}P_{draw}$.}
-	\item[\text{$[x]=0$}]{offensive - AG will try to maximize the probability of winning, $P_{win}$.}
-\end{enumerate}
-
 \subsubsection{INFO pondering [x]}
 Toggles the automatic pondering after each move. This command overrides the value of "auto{\_}pondering" loaded from the configuration file. Allowed values are:
 \begin{enumerate}[leftmargin=7.5em]
@@ -1032,6 +1002,16 @@ Sets maximum nuber of threads an engine can use. This command overrides the valu
 
 \textbf{Note:} If number of threads is changed during the search, AG would not adjust its number of threads until the search ends.
 
+\subsubsection{INFO hash{\_}size [x]}
+Sets maximum amount of memory an engine can use.
+
+\subsubsection{INFO show{\_}detail [x]}
+Toggles sending real-time information about search progress by the engine. Allowed values are:
+\begin{enumerate}[leftmargin=7.5em]
+	\item[\text{$[x]=0$}]{real-time info is not sent}
+	\item[\text{$[x]=1$}]{real-time info is being sent}
+\end{enumerate}
+
 \subsubsection{Default values}
 Some parameters have default values so the engine works even if no \texttt{INFO} was sent:
 \begin{itemize}
@@ -1040,11 +1020,12 @@ Some parameters have default values so the engine works even if no \texttt{INFO}
 \item{\textbf{max{\_}depth } = 2147483647 (effectively no limit)}
 \item{\textbf{max{\_}nodes} = 2147483647 (effectively no limit)}
 \item{\textbf{time{\_}increment} = 0 ("sudden death" \cite{suddendeath} type time controls)}
-\item{\textbf{caution{\_}factor} = 2 (classic)}
 \item{\textbf{pondering} = as loaded from configuration file}
 \item{\textbf{nbest{\_}sym} = 0}
 \item{\textbf{checkmate} = 0 (global search)}
 \item{\textbf{thread{\_}num} = as loaded from configuration file}
+\item{\textbf{hash{\_}size} = 256 (256MB)}
+\item{\textbf{show{\_}detail} = 0 (no real-time info)}
 \end{itemize}
 
 \subsection{yxhashclear}
@@ -1083,7 +1064,7 @@ Petr Laštovička, \href{http://petr.lastovicka.sweb.cz/protocl2en.htm}{New Gomo
 Kai Sun, Tianyi Hao, \href{https://gomocup.org/news/experimental-tournament-update-2020/}{[Updated on 4/10] Experimental Tournament}
 
 \bibitem{fischer}
-\href{https://en.wikipedia.org/wiki/Time_control#Increment_and_delay_methods}{Time control - Wikipedia}
+\href{https://en.wikipedia.org/wiki/Time_control#Increment_and_delay_methods}{Fischer time control - Wikipedia}
 
 \bibitem{suddendeath}
 \href{https://en.wikipedia.org/wiki/Time_control#Sudden_death}{Time control - Wikipedia}
@@ -1093,6 +1074,7 @@ Kai Sun, Tianyi Hao, \href{https://gomocup.org/news/experimental-tournament-upda
 
 \bibitem{renju_opening_rules}
 \href{https://www.renju.net/rule/}{Renju opening rules}
+
 \bibitem{gomoku_opening_rules}
 \href{http://gomokuworld.com/gomoku/2}{Gomoku opening rules}
 

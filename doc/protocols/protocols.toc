@@ -12,13 +12,13 @@
 \contentsline {subsubsection}{\numberline {2.5.5}INFO game{\_}type [x]}{7}{subsubsection.2.5.5}%
 \contentsline {subsubsection}{\numberline {2.5.6}INFO rule [x]}{7}{subsubsection.2.5.6}%
 \contentsline {subsubsection}{\numberline {2.5.7}INFO evaluate [C],[R]}{7}{subsubsection.2.5.7}%
-\contentsline {subsubsection}{\numberline {2.5.8}INFO folder [x]}{7}{subsubsection.2.5.8}%
+\contentsline {subsubsection}{\numberline {2.5.8}INFO folder [x]}{8}{subsubsection.2.5.8}%
 \contentsline {subsubsection}{\numberline {2.5.9}Default values}{8}{subsubsection.2.5.9}%
 \contentsline {subsection}{\numberline {2.6}END}{8}{subsection.2.6}%
 \contentsline {subsection}{\numberline {2.7}ABOUT}{8}{subsection.2.7}%
 \contentsline {subsection}{\numberline {2.8}RECTSTART [width],[height]}{8}{subsection.2.8}%
 \contentsline {subsection}{\numberline {2.9}RESTART}{8}{subsection.2.9}%
-\contentsline {subsection}{\numberline {2.10}TAKEBACK [C],[R]}{8}{subsection.2.10}%
+\contentsline {subsection}{\numberline {2.10}TAKEBACK [C],[R]}{9}{subsection.2.10}%
 \contentsline {subsection}{\numberline {2.11}UNKNOWN [error message]}{9}{subsection.2.11}%
 \contentsline {subsection}{\numberline {2.12}ERROR [error message]}{9}{subsection.2.12}%
 \contentsline {subsection}{\numberline {2.13}MESSAGE [message]}{9}{subsection.2.13}%
@@ -28,91 +28,90 @@
 \contentsline {subsection}{\numberline {3.2}PLAY [C],[R]}{11}{subsection.3.2}%
 \contentsline {subsection}{\numberline {3.3}Additional INFO keys}{11}{subsection.3.3}%
 \contentsline {subsubsection}{\numberline {3.3.1}INFO evaluate [C1],[R1] [C2],[R2] ...}{11}{subsubsection.3.3.1}%
-\contentsline {subsubsection}{\numberline {3.3.2}INFO rule [x]}{12}{subsubsection.3.3.2}%
-\contentsline {subsubsection}{\numberline {3.3.3}INFO analysis{\_}mode [x]}{12}{subsubsection.3.3.3}%
-\contentsline {subsubsection}{\numberline {3.3.4}INFO max{\_}depth [x]}{12}{subsubsection.3.3.4}%
-\contentsline {subsubsection}{\numberline {3.3.5}INFO max{\_}node [x]}{12}{subsubsection.3.3.5}%
-\contentsline {subsubsection}{\numberline {3.3.6}INFO time{\_}increment [x]}{12}{subsubsection.3.3.6}%
-\contentsline {subsubsection}{\numberline {3.3.7}INFO style [x]}{13}{subsubsection.3.3.7}%
-\contentsline {subsubsection}{\numberline {3.3.8}INFO auto{\_}pondering [x]}{13}{subsubsection.3.3.8}%
-\contentsline {subsubsection}{\numberline {3.3.9}INFO protocol{\_}lag [x]}{13}{subsubsection.3.3.9}%
-\contentsline {subsubsection}{\numberline {3.3.10}INFO thread{\_}num [x]}{13}{subsubsection.3.3.10}%
-\contentsline {subsubsection}{\numberline {3.3.11}Default values}{14}{subsubsection.3.3.11}%
+\contentsline {subsubsection}{\numberline {3.3.2}INFO analysis{\_}mode [x]}{12}{subsubsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.3.3}INFO max{\_}depth [x]}{12}{subsubsection.3.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.4}INFO max{\_}node [x]}{12}{subsubsection.3.3.4}%
+\contentsline {subsubsection}{\numberline {3.3.5}INFO time{\_}increment [x]}{12}{subsubsection.3.3.5}%
+\contentsline {subsubsection}{\numberline {3.3.6}INFO auto{\_}pondering [x]}{12}{subsubsection.3.3.6}%
+\contentsline {subsubsection}{\numberline {3.3.7}INFO protocol{\_}lag [x]}{13}{subsubsection.3.3.7}%
+\contentsline {subsubsection}{\numberline {3.3.8}INFO thread{\_}num [x]}{13}{subsubsection.3.3.8}%
+\contentsline {subsubsection}{\numberline {3.3.9}Default values}{13}{subsubsection.3.3.9}%
 \contentsline {subsection}{\numberline {3.4}PONDER [value]}{14}{subsection.3.4}%
 \contentsline {subsection}{\numberline {3.5}STOP}{14}{subsection.3.5}%
 \contentsline {subsection}{\numberline {3.6}BALANCE [n]}{14}{subsection.3.6}%
-\contentsline {subsection}{\numberline {3.7}SHOWFORBID}{15}{subsection.3.7}%
+\contentsline {subsection}{\numberline {3.7}SHOWFORBID}{14}{subsection.3.7}%
 \contentsline {subsection}{\numberline {3.8}CLEARHASH}{15}{subsection.3.8}%
-\contentsline {subsection}{\numberline {3.9}PROTOCOLVERSION}{16}{subsection.3.9}%
-\contentsline {subsection}{\numberline {3.10}SWAP1STBOARD}{17}{subsection.3.10}%
-\contentsline {subsubsection}{\numberline {3.10.1}Case 1}{17}{subsubsection.3.10.1}%
-\contentsline {subsubsection}{\numberline {3.10.2}Case 2}{17}{subsubsection.3.10.2}%
-\contentsline {subsection}{\numberline {3.11}SWAPBOARD}{17}{subsection.3.11}%
-\contentsline {subsubsection}{\numberline {3.11.1}Case 1}{17}{subsubsection.3.11.1}%
-\contentsline {subsubsection}{\numberline {3.11.2}Case 2}{18}{subsubsection.3.11.2}%
-\contentsline {subsection}{\numberline {3.12}SWAP2BOARD}{18}{subsection.3.12}%
-\contentsline {subsubsection}{\numberline {3.12.1}Case 1}{18}{subsubsection.3.12.1}%
-\contentsline {subsubsection}{\numberline {3.12.2}Case 2}{18}{subsubsection.3.12.2}%
-\contentsline {subsubsection}{\numberline {3.12.3}Case 3}{19}{subsubsection.3.12.3}%
-\contentsline {subsection}{\numberline {3.13}SWAP5}{19}{subsection.3.13}%
-\contentsline {subsubsection}{\numberline {3.13.1}SWAP5STEP1}{20}{subsubsection.3.13.1}%
-\contentsline {subsubsection}{\numberline {3.13.2}SWAP5STEP2}{20}{subsubsection.3.13.2}%
-\contentsline {subsubsection}{\numberline {3.13.3}SWAP5STEP3}{20}{subsubsection.3.13.3}%
-\contentsline {subsection}{\numberline {3.14}PROBOARD}{21}{subsection.3.14}%
-\contentsline {subsubsection}{\numberline {3.14.1}Case 1}{21}{subsubsection.3.14.1}%
-\contentsline {subsubsection}{\numberline {3.14.2}Case 2}{21}{subsubsection.3.14.2}%
-\contentsline {subsubsection}{\numberline {3.14.3}Case 3}{21}{subsubsection.3.14.3}%
-\contentsline {subsection}{\numberline {3.15}LONGPROBOARD}{22}{subsection.3.15}%
-\contentsline {subsection}{\numberline {3.16}RIF}{22}{subsection.3.16}%
-\contentsline {subsubsection}{\numberline {3.16.1}RIFSTEP1}{22}{subsubsection.3.16.1}%
-\contentsline {subsubsection}{\numberline {3.16.2}RIFSTEP2}{22}{subsubsection.3.16.2}%
-\contentsline {subsubsection}{\numberline {3.16.3}RIFSTEP3}{22}{subsubsection.3.16.3}%
-\contentsline {subsubsection}{\numberline {3.16.4}RIFSTEP4}{23}{subsubsection.3.16.4}%
-\contentsline {subsubsection}{\numberline {3.16.5}RIFSTEP5}{23}{subsubsection.3.16.5}%
-\contentsline {subsection}{\numberline {3.17}YAMAGUCHI}{23}{subsection.3.17}%
-\contentsline {subsubsection}{\numberline {3.17.1}YAMAGUCHISTEP1}{24}{subsubsection.3.17.1}%
-\contentsline {subsubsection}{\numberline {3.17.2}YAMAGUCHISTEP2}{24}{subsubsection.3.17.2}%
-\contentsline {subsubsection}{\numberline {3.17.3}YAMAGUCHISTEP3}{24}{subsubsection.3.17.3}%
-\contentsline {subsubsection}{\numberline {3.17.4}YAMAGUCHISTEP4}{24}{subsubsection.3.17.4}%
-\contentsline {subsubsection}{\numberline {3.17.5}YAMAGUCHISTEP5}{25}{subsubsection.3.17.5}%
-\contentsline {subsection}{\numberline {3.18}SOOSYRV}{25}{subsection.3.18}%
-\contentsline {subsubsection}{\numberline {3.18.1}SOOSYRVSTEP1}{25}{subsubsection.3.18.1}%
-\contentsline {subsubsection}{\numberline {3.18.2}SOOSYRVSTEP2}{26}{subsubsection.3.18.2}%
-\contentsline {subsubsection}{\numberline {3.18.3}SOOSYRVSTEP3}{26}{subsubsection.3.18.3}%
-\contentsline {subsubsection}{\numberline {3.18.4}SOOSYRVSTEP4}{26}{subsubsection.3.18.4}%
-\contentsline {subsubsection}{\numberline {3.18.5}SOOSYRVSTEP5}{27}{subsubsection.3.18.5}%
-\contentsline {subsubsection}{\numberline {3.18.6}SOOSYRVSTEP6}{27}{subsubsection.3.18.6}%
-\contentsline {subsection}{\numberline {3.19}TARAGUCHI}{28}{subsection.3.19}%
-\contentsline {subsubsection}{\numberline {3.19.1}TARAGUCHISTEP1}{28}{subsubsection.3.19.1}%
-\contentsline {subsubsection}{\numberline {3.19.2}TARAGUCHISTEP2}{28}{subsubsection.3.19.2}%
-\contentsline {subsubsection}{\numberline {3.19.3}TARAGUCHISTEP3}{28}{subsubsection.3.19.3}%
-\contentsline {subsubsection}{\numberline {3.19.4}TARAGUCHISTEP4}{29}{subsubsection.3.19.4}%
-\contentsline {subsection}{\numberline {3.20}SAKATA}{29}{subsection.3.20}%
-\contentsline {subsubsection}{\numberline {3.20.1}SAKATASTEP1}{29}{subsubsection.3.20.1}%
-\contentsline {subsubsection}{\numberline {3.20.2}SAKATASTEP2}{30}{subsubsection.3.20.2}%
-\contentsline {subsubsection}{\numberline {3.20.3}SAKATASTEP3}{30}{subsubsection.3.20.3}%
-\contentsline {subsection}{\numberline {3.21}TARANNIKOV}{30}{subsection.3.21}%
-\contentsline {subsubsection}{\numberline {3.21.1}TARANNIKOVSTEP1}{30}{subsubsection.3.21.1}%
-\contentsline {subsubsection}{\numberline {3.21.2}TARANNIKOVSTEP2}{31}{subsubsection.3.21.2}%
-\contentsline {subsection}{\numberline {3.22}LIANHUAN}{31}{subsection.3.22}%
-\contentsline {subsubsection}{\numberline {3.22.1}LIANHUANSTEP1}{31}{subsubsection.3.22.1}%
-\contentsline {subsubsection}{\numberline {3.22.2}LIANHUANSTEP2}{32}{subsubsection.3.22.2}%
-\contentsline {section}{\numberline {4}YixinBoard Protocol}{33}{section.4}%
-\contentsline {subsection}{\numberline {4.1}start [x] or start [C],[R]}{33}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}yxboard}{33}{subsection.4.2}%
-\contentsline {subsection}{\numberline {4.3}Additional INFO keys}{33}{subsection.4.3}%
-\contentsline {subsubsection}{\numberline {4.3.1}INFO rule [x]}{33}{subsubsection.4.3.1}%
-\contentsline {subsubsection}{\numberline {4.3.2}INFO usedatabase [x]}{34}{subsubsection.4.3.2}%
-\contentsline {subsubsection}{\numberline {4.3.3}INFO max{\_}depth [x]}{34}{subsubsection.4.3.3}%
-\contentsline {subsubsection}{\numberline {4.3.4}INFO max{\_}node [x]}{34}{subsubsection.4.3.4}%
-\contentsline {subsubsection}{\numberline {4.3.5}INFO time{\_}increment [x]}{34}{subsubsection.4.3.5}%
-\contentsline {subsubsection}{\numberline {4.3.6}INFO caution{\_}factor [x]}{34}{subsubsection.4.3.6}%
-\contentsline {subsubsection}{\numberline {4.3.7}INFO pondering [x]}{35}{subsubsection.4.3.7}%
-\contentsline {subsubsection}{\numberline {4.3.8}INFO nbest{\_}sym [x]}{35}{subsubsection.4.3.8}%
-\contentsline {subsubsection}{\numberline {4.3.9}INFO checkmate [x]}{35}{subsubsection.4.3.9}%
-\contentsline {subsubsection}{\numberline {4.3.10}INFO thread{\_}num [x]}{35}{subsubsection.4.3.10}%
-\contentsline {subsubsection}{\numberline {4.3.11}Default values}{35}{subsubsection.4.3.11}%
-\contentsline {subsection}{\numberline {4.4}yxhashclear}{36}{subsection.4.4}%
-\contentsline {subsection}{\numberline {4.5}yxhashdump}{36}{subsection.4.5}%
-\contentsline {subsection}{\numberline {4.6}yxhashload}{36}{subsection.4.6}%
-\contentsline {subsection}{\numberline {4.7}yxshowhashusage}{37}{subsection.4.7}%
+\contentsline {subsection}{\numberline {3.9}PROTOCOLVERSION}{15}{subsection.3.9}%
+\contentsline {subsection}{\numberline {3.10}SWAP1STBOARD}{16}{subsection.3.10}%
+\contentsline {subsubsection}{\numberline {3.10.1}Case 1}{16}{subsubsection.3.10.1}%
+\contentsline {subsubsection}{\numberline {3.10.2}Case 2}{16}{subsubsection.3.10.2}%
+\contentsline {subsection}{\numberline {3.11}SWAPBOARD}{16}{subsection.3.11}%
+\contentsline {subsubsection}{\numberline {3.11.1}Case 1}{16}{subsubsection.3.11.1}%
+\contentsline {subsubsection}{\numberline {3.11.2}Case 2}{17}{subsubsection.3.11.2}%
+\contentsline {subsection}{\numberline {3.12}SWAP2BOARD}{17}{subsection.3.12}%
+\contentsline {subsubsection}{\numberline {3.12.1}Case 1}{17}{subsubsection.3.12.1}%
+\contentsline {subsubsection}{\numberline {3.12.2}Case 2}{17}{subsubsection.3.12.2}%
+\contentsline {subsubsection}{\numberline {3.12.3}Case 3}{18}{subsubsection.3.12.3}%
+\contentsline {subsection}{\numberline {3.13}SWAP5}{18}{subsection.3.13}%
+\contentsline {subsubsection}{\numberline {3.13.1}SWAP5STEP1}{19}{subsubsection.3.13.1}%
+\contentsline {subsubsection}{\numberline {3.13.2}SWAP5STEP2}{19}{subsubsection.3.13.2}%
+\contentsline {subsubsection}{\numberline {3.13.3}SWAP5STEP3}{19}{subsubsection.3.13.3}%
+\contentsline {subsection}{\numberline {3.14}PROBOARD}{20}{subsection.3.14}%
+\contentsline {subsubsection}{\numberline {3.14.1}Case 1}{20}{subsubsection.3.14.1}%
+\contentsline {subsubsection}{\numberline {3.14.2}Case 2}{20}{subsubsection.3.14.2}%
+\contentsline {subsubsection}{\numberline {3.14.3}Case 3}{20}{subsubsection.3.14.3}%
+\contentsline {subsection}{\numberline {3.15}LONGPROBOARD}{21}{subsection.3.15}%
+\contentsline {subsection}{\numberline {3.16}RIF}{21}{subsection.3.16}%
+\contentsline {subsubsection}{\numberline {3.16.1}RIFSTEP1}{21}{subsubsection.3.16.1}%
+\contentsline {subsubsection}{\numberline {3.16.2}RIFSTEP2}{21}{subsubsection.3.16.2}%
+\contentsline {subsubsection}{\numberline {3.16.3}RIFSTEP3}{21}{subsubsection.3.16.3}%
+\contentsline {subsubsection}{\numberline {3.16.4}RIFSTEP4}{22}{subsubsection.3.16.4}%
+\contentsline {subsubsection}{\numberline {3.16.5}RIFSTEP5}{22}{subsubsection.3.16.5}%
+\contentsline {subsection}{\numberline {3.17}YAMAGUCHI}{22}{subsection.3.17}%
+\contentsline {subsubsection}{\numberline {3.17.1}YAMAGUCHISTEP1}{23}{subsubsection.3.17.1}%
+\contentsline {subsubsection}{\numberline {3.17.2}YAMAGUCHISTEP2}{23}{subsubsection.3.17.2}%
+\contentsline {subsubsection}{\numberline {3.17.3}YAMAGUCHISTEP3}{23}{subsubsection.3.17.3}%
+\contentsline {subsubsection}{\numberline {3.17.4}YAMAGUCHISTEP4}{23}{subsubsection.3.17.4}%
+\contentsline {subsubsection}{\numberline {3.17.5}YAMAGUCHISTEP5}{24}{subsubsection.3.17.5}%
+\contentsline {subsection}{\numberline {3.18}SOOSYRV}{24}{subsection.3.18}%
+\contentsline {subsubsection}{\numberline {3.18.1}SOOSYRVSTEP1}{24}{subsubsection.3.18.1}%
+\contentsline {subsubsection}{\numberline {3.18.2}SOOSYRVSTEP2}{25}{subsubsection.3.18.2}%
+\contentsline {subsubsection}{\numberline {3.18.3}SOOSYRVSTEP3}{25}{subsubsection.3.18.3}%
+\contentsline {subsubsection}{\numberline {3.18.4}SOOSYRVSTEP4}{25}{subsubsection.3.18.4}%
+\contentsline {subsubsection}{\numberline {3.18.5}SOOSYRVSTEP5}{26}{subsubsection.3.18.5}%
+\contentsline {subsubsection}{\numberline {3.18.6}SOOSYRVSTEP6}{26}{subsubsection.3.18.6}%
+\contentsline {subsection}{\numberline {3.19}TARAGUCHI}{27}{subsection.3.19}%
+\contentsline {subsubsection}{\numberline {3.19.1}TARAGUCHISTEP1}{27}{subsubsection.3.19.1}%
+\contentsline {subsubsection}{\numberline {3.19.2}TARAGUCHISTEP2}{27}{subsubsection.3.19.2}%
+\contentsline {subsubsection}{\numberline {3.19.3}TARAGUCHISTEP3}{27}{subsubsection.3.19.3}%
+\contentsline {subsubsection}{\numberline {3.19.4}TARAGUCHISTEP4}{28}{subsubsection.3.19.4}%
+\contentsline {subsection}{\numberline {3.20}SAKATA}{28}{subsection.3.20}%
+\contentsline {subsubsection}{\numberline {3.20.1}SAKATASTEP1}{28}{subsubsection.3.20.1}%
+\contentsline {subsubsection}{\numberline {3.20.2}SAKATASTEP2}{29}{subsubsection.3.20.2}%
+\contentsline {subsubsection}{\numberline {3.20.3}SAKATASTEP3}{29}{subsubsection.3.20.3}%
+\contentsline {subsection}{\numberline {3.21}TARANNIKOV}{29}{subsection.3.21}%
+\contentsline {subsubsection}{\numberline {3.21.1}TARANNIKOVSTEP1}{29}{subsubsection.3.21.1}%
+\contentsline {subsubsection}{\numberline {3.21.2}TARANNIKOVSTEP2}{30}{subsubsection.3.21.2}%
+\contentsline {subsection}{\numberline {3.22}LIANHUAN}{30}{subsection.3.22}%
+\contentsline {subsubsection}{\numberline {3.22.1}LIANHUANSTEP1}{30}{subsubsection.3.22.1}%
+\contentsline {subsubsection}{\numberline {3.22.2}LIANHUANSTEP2}{31}{subsubsection.3.22.2}%
+\contentsline {section}{\numberline {4}YixinBoard Protocol}{32}{section.4}%
+\contentsline {subsection}{\numberline {4.1}start [x] or start [C],[R]}{32}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}yxboard}{32}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Additional INFO keys}{32}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}INFO rule [x]}{32}{subsubsection.4.3.1}%
+\contentsline {subsubsection}{\numberline {4.3.2}INFO usedatabase [x]}{33}{subsubsection.4.3.2}%
+\contentsline {subsubsection}{\numberline {4.3.3}INFO max{\_}depth [x]}{33}{subsubsection.4.3.3}%
+\contentsline {subsubsection}{\numberline {4.3.4}INFO max{\_}node [x]}{33}{subsubsection.4.3.4}%
+\contentsline {subsubsection}{\numberline {4.3.5}INFO time{\_}increment [x]}{33}{subsubsection.4.3.5}%
+\contentsline {subsubsection}{\numberline {4.3.6}INFO pondering [x]}{33}{subsubsection.4.3.6}%
+\contentsline {subsubsection}{\numberline {4.3.7}INFO nbest{\_}sym [x]}{34}{subsubsection.4.3.7}%
+\contentsline {subsubsection}{\numberline {4.3.8}INFO checkmate [x]}{34}{subsubsection.4.3.8}%
+\contentsline {subsubsection}{\numberline {4.3.9}INFO thread{\_}num [x]}{34}{subsubsection.4.3.9}%
+\contentsline {subsubsection}{\numberline {4.3.10}INFO hash{\_}size [x]}{34}{subsubsection.4.3.10}%
+\contentsline {subsubsection}{\numberline {4.3.11}INFO show{\_}detail [x]}{34}{subsubsection.4.3.11}%
+\contentsline {subsubsection}{\numberline {4.3.12}Default values}{34}{subsubsection.4.3.12}%
+\contentsline {subsection}{\numberline {4.4}yxhashclear}{35}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}yxhashdump}{35}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}yxhashload}{35}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}yxshowhashusage}{36}{subsection.4.7}%
