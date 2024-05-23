@@ -12,6 +12,24 @@
 
 namespace ag
 {
+	TEST(TestBoard, is_full)
+	{
+		matrix<Sign> board(9, 11);
+		EXPECT_FALSE(Board::isFull(board));
+		board.fill(Sign::CROSS);
+		EXPECT_TRUE(Board::isFull(board));
+		board.at(4, 5) = Sign::NONE;
+		EXPECT_FALSE(Board::isFull(board));
+	}
+	TEST(TestBoard, is_empty)
+	{
+		matrix<Sign> board(9, 11);
+		EXPECT_TRUE(Board::isEmpty(board));
+		board.at(4, 5) = Sign::CROSS;
+		EXPECT_FALSE(Board::isEmpty(board));
+		board.fill(Sign::CROSS);
+		EXPECT_FALSE(Board::isEmpty(board));
+	}
 	TEST(TestBoard, empty_from_string)
 	{
 // @formatter:off

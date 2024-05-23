@@ -13,25 +13,6 @@
 namespace ag
 {
 
-	TEST(TestMisc, isBoardFull)
-	{
-		matrix<Sign> board(9, 11);
-		EXPECT_FALSE(Board::isFull(board));
-		board.fill(Sign::CROSS);
-		EXPECT_TRUE(Board::isFull(board));
-		board.at(4, 5) = Sign::NONE;
-		EXPECT_FALSE(Board::isFull(board));
-	}
-	TEST(TestMisc, isBoardEmpty)
-	{
-		matrix<Sign> board(9, 11);
-		EXPECT_TRUE(Board::isEmpty(board));
-		board.at(4, 5) = Sign::CROSS;
-		EXPECT_FALSE(Board::isEmpty(board));
-		board.fill(Sign::CROSS);
-		EXPECT_FALSE(Board::isEmpty(board));
-	}
-
 	TEST(TestMisc, split)
 	{
 		std::string line = "INFO max_memory 83886080";

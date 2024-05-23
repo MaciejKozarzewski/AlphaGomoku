@@ -16,6 +16,8 @@ add_executable(${TestName}	test_launcher.cpp
 				search/monte_carlo/test_NodeCache.cpp
 				search/monte_carlo/test_SearchTask.cpp
 				search/monte_carlo/test_Tree.cpp
+				search/test_Score.cpp
+				search/test_ZobristHashing.cpp
 				utils/test_ArgumentParser.cpp
 				utils/test_augmentations.cpp
 				utils/test_configs.cpp

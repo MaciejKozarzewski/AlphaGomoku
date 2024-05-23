@@ -69,10 +69,6 @@ namespace
 	{
 		return pt == PatternType::HALF_OPEN_4 or pt == PatternType::OPEN_4 or pt == PatternType::DOUBLE_4;
 	}
-	bool is_caro_rule(GameRules rule) noexcept
-	{
-		return rule == GameRules::CARO5 or rule == GameRules::CARO6;
-	}
 
 	struct PatternWrapper
 	{
@@ -1133,6 +1129,7 @@ namespace ag
 			uint32_t tmp = mask[row] & (~moves[row]); // exclude moves that have already been added (stored in 'moves')
 			for (int col = 0; col < game_config.cols; col++, tmp >>= 1)
 				actions->add(Move(get_own_sign(), row, col), s, tmp & 1);
+			moves[row] |= mask[row]; // update bitmask of added moves
 		}
 	}
 

@@ -9,15 +9,55 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/game/rules.hpp>
+#include <alphagomoku/patterns/PatternCalculator.hpp>
 
 #include <gtest/gtest.h>
 
+namespace
+{
+	using namespace ag;
+
+	class TestRenju: public ::testing::Test
+	{
+		protected:
+			PatternCalculator calc;
+			matrix<Sign> board;
+
+			TestRenju() :
+					calc(GameConfig(GameRules::RENJU, 15, 15))
+			{
+			}
+			void set_board(const std::string &str)
+			{
+				board = Board::fromString(str);
+				calc.setBoard(board, Sign::CROSS);
+			}
+			void add_move(Move move)
+			{
+				Board::putMove(board, move);
+				calc.addMove(move);
+			}
+			void undo_move(Move move)
+			{
+				Board::undoMove(board, move);
+				calc.undoMove(move);
+			}
+			bool is_forbidden(Move move)
+			{
+				const bool tmp1 = isForbidden(board, move);
+				const bool tmp2 = calc.isForbidden(move.sign, move.row, move.col);
+				EXPECT_EQ(tmp1, tmp2);
+				return tmp1;
+			}
+	};
+}
+
 namespace ag
 {
-	TEST(TestRenju, WinIn1)
+	TEST_F(TestRenju, WinIn1)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" ! _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -37,16 +77,16 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
+		EXPECT_FALSE(is_forbidden(Move("Xa0")));
 		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
 
-		EXPECT_FALSE(isForbidden(board, Move("Xa5")));
+		EXPECT_FALSE(is_forbidden(Move("Xa5")));
 		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CROSS_WIN);
 	}
-	TEST(TestRenju, Overline)
+	TEST_F(TestRenju, Overline)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" ! _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -66,16 +106,16 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
+		EXPECT_FALSE(is_forbidden(Move("Xa0")));
 		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
 
-		EXPECT_TRUE(isForbidden(board, Move("Xa5")));
+		EXPECT_TRUE(is_forbidden(Move("Xa5")));
 		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CIRCLE_WIN);
 	}
-	TEST(TestRenju, WinInsideOverline)
+	TEST_F(TestRenju, WinInsideOverline)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" ! _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" X _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -95,16 +135,17 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xa0")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xa0")));
 		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa0")), GameOutcome::CROSS_WIN);
 
-		EXPECT_FALSE(isForbidden(board, Move("Xa5")));
+		EXPECT_FALSE(is_forbidden(Move("Xa5")));
 		EXPECT_EQ(getOutcome(GameRules::RENJU, board, Move("Xa5")), GameOutcome::CROSS_WIN);
 	}
-	TEST(TestRenju, FourAndFour)
+	TEST_F(TestRenju, FourAndFour)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ X ! _ X X _\n" /*  0 */
 					/*  1 */" _ _ X ! X X O _ _ _ _ _ _ _ _\n" /*  1 */
@@ -124,17 +165,18 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_TRUE(isForbidden(board, Move("Xk0")));
-		EXPECT_TRUE(isForbidden(board, Move("Xd1")));
-		EXPECT_TRUE(isForbidden(board, Move("Xk4")));
-		EXPECT_TRUE(isForbidden(board, Move("Xa9")));
-		EXPECT_TRUE(isForbidden(board, Move("Xi9")));
-		EXPECT_TRUE(isForbidden(board, Move("Xj14")));
+
+		EXPECT_TRUE(is_forbidden(Move("Xk0")));
+		EXPECT_TRUE(is_forbidden(Move("Xd1")));
+		EXPECT_TRUE(is_forbidden(Move("Xk4")));
+		EXPECT_TRUE(is_forbidden(Move("Xa9")));
+		EXPECT_TRUE(is_forbidden(Move("Xi9")));
+		EXPECT_TRUE(is_forbidden(Move("Xj14")));
 	}
-	TEST(TestRenju, FourAndFreeThree)
+	TEST_F(TestRenju, FourAndFreeThree)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ ! _ _ _ _ O _ X ! X _ O\n" /*  1 */
@@ -154,16 +196,17 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xd1")));
-		EXPECT_FALSE(isForbidden(board, Move("Xl1")));
-		EXPECT_FALSE(isForbidden(board, Move("Xh6")));
-		EXPECT_FALSE(isForbidden(board, Move("Xc12")));
-		EXPECT_FALSE(isForbidden(board, Move("Xj12")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xd1")));
+		EXPECT_FALSE(is_forbidden(Move("Xl1")));
+		EXPECT_FALSE(is_forbidden(Move("Xh6")));
+		EXPECT_FALSE(is_forbidden(Move("Xc12")));
+		EXPECT_FALSE(is_forbidden(Move("Xj12")));
 	}
-	TEST(TestRenju, ThreeAndThree)
+	TEST_F(TestRenju, ThreeAndThree)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -183,16 +226,17 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xd2")));
-		EXPECT_TRUE(isForbidden(board, Move("Xm2")));
-		EXPECT_TRUE(isForbidden(board, Move("Xh6")));
-		EXPECT_TRUE(isForbidden(board, Move("Xe12")));
-		EXPECT_TRUE(isForbidden(board, Move("Xk13")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xd2")));
+		EXPECT_TRUE(is_forbidden(Move("Xm2")));
+		EXPECT_TRUE(is_forbidden(Move("Xh6")));
+		EXPECT_TRUE(is_forbidden(Move("Xe12")));
+		EXPECT_TRUE(is_forbidden(Move("Xk13")));
 	}
-	TEST(TestRenju, DeadThree)
+	TEST_F(TestRenju, DeadThree)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -212,12 +256,13 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xj5")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xj5")));
 	}
-	TEST(TestRenju, ForbiddenPatterns)
+	TEST_F(TestRenju, ForbiddenPatterns)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X\n" /*  1 */
@@ -237,15 +282,16 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xn2")));
-		EXPECT_FALSE(isForbidden(board, Move("Xd3")));
-		EXPECT_TRUE(isForbidden(board, Move("Xd11")));
-		EXPECT_TRUE(isForbidden(board, Move("Xl12")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xn2")));
+		EXPECT_FALSE(is_forbidden(Move("Xd3")));
+		EXPECT_TRUE(is_forbidden(Move("Xd11")));
+		EXPECT_TRUE(is_forbidden(Move("Xl12")));
 	}
-	TEST(TestRenju, TwoDeathEnds)
+	TEST_F(TestRenju, TwoDeathEnds)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -265,12 +311,13 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xj6")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xj6")));
 	}
-	TEST(TestRenju, ChainedForbidden)
+	TEST_F(TestRenju, ChainedForbidden)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -290,23 +337,24 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_TRUE(isForbidden(board, Move("Xd5")));
-		EXPECT_TRUE(isForbidden(board, Move("Xl5")));
-		EXPECT_TRUE(isForbidden(board, Move("Xe6")));
-		EXPECT_TRUE(isForbidden(board, Move("Xk6")));
-		EXPECT_TRUE(isForbidden(board, Move("Xh9")));
-		EXPECT_TRUE(isForbidden(board, Move("Xf12")));
-		EXPECT_FALSE(isForbidden(board, Move("Xh12")));
-		EXPECT_TRUE(isForbidden(board, Move("Xj12")));
-		EXPECT_TRUE(isForbidden(board, Move("Xh13")));
 
-		Board::undoMove(board, Move("Oe3"));
-		EXPECT_TRUE(isForbidden(board, Move("Xh12")));
+		EXPECT_TRUE(is_forbidden(Move("Xd5")));
+		EXPECT_TRUE(is_forbidden(Move("Xl5")));
+		EXPECT_TRUE(is_forbidden(Move("Xe6")));
+		EXPECT_TRUE(is_forbidden(Move("Xk6")));
+		EXPECT_TRUE(is_forbidden(Move("Xh9")));
+		EXPECT_TRUE(is_forbidden(Move("Xf12")));
+		EXPECT_FALSE(is_forbidden(Move("Xh12")));
+		EXPECT_TRUE(is_forbidden(Move("Xj12")));
+		EXPECT_TRUE(is_forbidden(Move("Xh13")));
+
+		undo_move(Move("Oe3"));
+		EXPECT_TRUE(is_forbidden(Move("Xh12")));
 	}
-	TEST(TestRenju, LegalMove)
+	TEST_F(TestRenju, LegalMove)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -326,12 +374,13 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xh4")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xh4")));
 	}
-	TEST(TestRenju, No33BlockedBy44)
+	TEST_F(TestRenju, No33BlockedBy44)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -351,12 +400,13 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xg7")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xg7")));
 	}
-	TEST(TestRenju, MultipleForks)
+	TEST_F(TestRenju, MultipleForks)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ O X O _\n" /*  0 */
 					/*  1 */" _ X _ _ _ _ _ _ _ _ X O X O X\n" /*  1 */
@@ -376,15 +426,16 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_TRUE(isForbidden(board, Move("Xd3")));
-		EXPECT_TRUE(isForbidden(board, Move("Xm3")));
-		EXPECT_TRUE(isForbidden(board, Move("Xd10")));
-		EXPECT_TRUE(isForbidden(board, Move("Xm10")));
+
+		EXPECT_TRUE(is_forbidden(Move("Xd3")));
+		EXPECT_TRUE(is_forbidden(Move("Xm3")));
+		EXPECT_TRUE(is_forbidden(Move("Xd10")));
+		EXPECT_TRUE(is_forbidden(Move("Xm10")));
 	}
-	TEST(TestRenju, WinInFork)
+	TEST_F(TestRenju, WinInFork)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ O X O _\n" /*  0 */
 					/*  1 */" _ X _ _ _ _ _ _ _ _ X O X O X\n" /*  1 */
@@ -404,15 +455,16 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xd3")));
-		EXPECT_FALSE(isForbidden(board, Move("Xm3")));
-		EXPECT_FALSE(isForbidden(board, Move("Xd10")));
-		EXPECT_FALSE(isForbidden(board, Move("Xm10")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xd3")));
+		EXPECT_FALSE(is_forbidden(Move("Xm3")));
+		EXPECT_FALSE(is_forbidden(Move("Xd10")));
+		EXPECT_FALSE(is_forbidden(Move("Xm10")));
 	}
-	TEST(TestRenju, ForcedForbidden)
+	TEST_F(TestRenju, ForcedForbidden)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -432,22 +484,23 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_TRUE(isForbidden(board, Move("Xk7")));
 
-		Board::putMove(board, Move("Xk5"));
-		Board::putMove(board, Move("Oi10"));
+		EXPECT_TRUE(is_forbidden(Move("Xk7")));
 
-		EXPECT_FALSE(isForbidden(board, Move("Xk7")));
+		add_move(Move("Xk5"));
+		add_move(Move("Oi10"));
 
-		Board::putMove(board, Move("Xi9"));
-		Board::putMove(board, Move("Om7"));
+		EXPECT_FALSE(is_forbidden(Move("Xk7")));
 
-		EXPECT_TRUE(isForbidden(board, Move("Xk7")));
+		add_move(Move("Xi9"));
+		add_move(Move("Om7"));
+
+		EXPECT_TRUE(is_forbidden(Move("Xk7")));
 	}
-	TEST(TestRenju, ForcedForbiddenOpponent)
+	TEST_F(TestRenju, ForcedForbiddenOpponent)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -467,12 +520,13 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Ok7")));
+
+		EXPECT_FALSE(is_forbidden(Move("Ok7")));
 	}
-	TEST(TestRenju, RemoveForbidden)
+	TEST_F(TestRenju, RemoveForbidden)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -492,17 +546,18 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_TRUE(isForbidden(board, Move("Xh5")));
 
-		Board::putMove(board, Move("Xh3"));
-		Board::putMove(board, Move("Oi2"));
+		EXPECT_TRUE(is_forbidden(Move("Xh5")));
 
-		EXPECT_FALSE(isForbidden(board, Move("Xh5")));
+		add_move(Move("Xh3"));
+		add_move(Move("Oi2"));
+
+		EXPECT_FALSE(is_forbidden(Move("Xh5")));
 	}
-	TEST(TestRenju, Fake433)
+	TEST_F(TestRenju, Fake433)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ X O _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -522,13 +577,14 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_FALSE(isForbidden(board, Move("Xc2")));
-		EXPECT_FALSE(isForbidden(board, Move("Xe6")));
+
+		EXPECT_FALSE(is_forbidden(Move("Xc2")));
+		EXPECT_FALSE(is_forbidden(Move("Xe6")));
 	}
-	TEST(TestRenju, FoulR2225)
+	TEST_F(TestRenju, FoulR2225)
 	{
-		// @formatter:off
-		matrix<Sign> board = Board::fromString(
+// @formatter:off
+		set_board(
 					/*        a b c d e f g h i j k l m n o          */
 					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
@@ -548,19 +604,21 @@ namespace ag
 					/*        a b c d e f g h i j k l m n o          */);
 // @formatter:on
 
-		EXPECT_TRUE(isForbidden(board, Move("Xf8")));
 
-		Board::putMove(board, Move("Xi7"));
+		EXPECT_TRUE(is_forbidden(Move("Xf8")));
 
-		EXPECT_FALSE(isForbidden(board, Move("Xf8")));
+		add_move(Move("Xi7"));
 
-		Board::putMove(board, Move("Og9"));
+		EXPECT_FALSE(is_forbidden(Move("Xf8")));
 
-		EXPECT_TRUE(isForbidden(board, Move("Xf8")));
+		add_move(Move("Og9"));
+
+		EXPECT_TRUE(is_forbidden(Move("Xf8")));
 	}
-//	TEST(TestRenju, Placeholder)
+
+//	TEST_F(TestRenju, Placeholder)
 //	{
-//		// @formatter:off
+//// @formatter:off
 //		Board board(/*        a b c d e f g h i j k l m n o          */
 //					/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
 //					/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
