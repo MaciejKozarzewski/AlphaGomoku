@@ -348,12 +348,15 @@ namespace ag
 	{
 		const Move m = move_from_string(extract_command_data(listener, "info evaluate"), Sign::NONE);
 		std::string result;
-		for (auto edge = search_info.begin(); edge < search_info.end(); edge++)
-			if (edge->getMove().location() == m.location())
-			{
-				result = get_evaluation_string(*edge);
-				break;
-			}
+		if (search_info.numberOfEdges() > 0)
+		{
+			for (auto edge = search_info.begin(); edge < search_info.end(); edge++)
+				if (edge->getMove().location() == m.location())
+				{
+					result = get_evaluation_string(*edge);
+					break;
+				}
+		}
 		output_queue.push(Message(MessageType::INFO_MESSAGE, result));
 	}
 	void GomocupProtocol::info_folder(InputListener &listener)

@@ -115,7 +115,7 @@ namespace ag
 		listener.pushLine("INFO evaluate 0,0");
 		protocol.processInput(listener);
 
-		Message msg = input_queue.pop();
+		Message msg = output_queue.pop();
 		EXPECT_EQ(msg.getType(), MessageType::INFO_MESSAGE);
 	}
 	TEST_F(TestGomocupProtocol, INFO_folder)
