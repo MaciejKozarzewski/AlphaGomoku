@@ -98,15 +98,15 @@ namespace ag
 {
 	Json run_benchmark(const std::string &path_to_network, const OutputSender &output_sender)
 	{
-		const double benchmarking_time = 1.0; /**< how much time is spent on testing speed [s] */
+		const double benchmarking_time = 2.0; /**< how much time is spent on testing speed [s] */
 
 		Json result;
 		result["version"] = ProgramInfo::version();
 		result["devices"][ml::Device::cpu().toString()] = ml::Device::cpu().info();
 		for (int i = 0; i < ml::Device::numberOfCudaDevices(); i++)
 			result["devices"][ml::Device::cuda(i).toString()] = ml::Device::cuda(i).info();
-//		for (int i = 0; i < ml::Device::numberOfOpenCLDevices(); i++) TODO in the future there will be OpenCL devices
-//			result["devices"][ml::Device::opencl(i).toString()] = ml::Device::opencl(i).info();
+		for (int i = 0; i < ml::Device::numberOfOpenCLDevices(); i++)
+			result["devices"][ml::Device::opencl(i).toString()] = ml::Device::opencl(i).info();
 
 		std::vector<HardwareTestConfig> configs_to_test;
 
@@ -121,6 +121,11 @@ namespace ag
 		for (int device_index = 0; device_index < ml::Device::numberOfCudaDevices(); device_index++)
 			for (int search_threads = 1; search_threads <= cpu_cores; search_threads *= 2)
 				configs_to_test.push_back( { ml::Device::cuda(device_index), search_threads, 1 });
+
+		/* create list of OpenCL configurations to test */
+		for (int device_index = 0; device_index < ml::Device::numberOfOpenCLDevices(); device_index++)
+			for (int search_threads = 1; search_threads <= cpu_cores; search_threads *= 2)
+				configs_to_test.push_back({ ml::Device::opencl(device_index), search_threads, 1 });
 
 		const int overhead_time = 2; /**< in seconds */
 		const int estimated_time = ((batch_sizes().size() * benchmarking_time + overhead_time) * configs_to_test.size() + 59.9) / 60.0;
