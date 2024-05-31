@@ -47,11 +47,12 @@ namespace
 	}
 	struct HardwareConfiguration
 	{
-			ml::Device device;
-			int search_threads;
-			int omp_threads;
+			ml::Device device = ml::Device::cpu();
+			int search_threads = 0;
+			int omp_threads = 0;
 			std::vector<int> batch_size;
 			std::vector<float> speed; // [samples / second]
+			HardwareConfiguration() = default;
 			HardwareConfiguration(const Json &json) :
 					device(ml::Device::fromString(json["device"])),
 					search_threads(json["search_threads"].getInt()),
@@ -89,7 +90,7 @@ namespace
 
 	HardwareConfiguration filter_configs(const std::vector<HardwareConfiguration> &configs, ml::Device device, int maxThreads)
 	{
-		size_t index = 0;
+		int index = -1;
 		std::pair<int, float> best_param( { 0, 0.0f });
 		for (size_t i = 0; i < configs.size(); i++)
 			if (configs[i].device == device and configs[i].search_threads <= maxThreads)
@@ -101,7 +102,44 @@ namespace
 					best_param = tmp;
 				}
 			}
-		return configs[index];
+		if (index == -1)
+			return HardwareConfiguration();
+		else
+			return configs[index];
+	}
+
+	struct BestConfig
+	{
+			std::vector<ag::DeviceConfig> device_configs;
+			float speed = 0.0;
+			int max_batch_size = 0;
+			int search_threads = 0;
+	};
+
+	BestConfig pick_config(const BestConfig &cpu, const BestConfig &cuda, const BestConfig &opencl) noexcept
+	{
+		if (cpu.speed >= cuda.speed and cpu.speed >= opencl.speed)
+			return cpu;
+		if (cuda.speed >= cpu.speed and cuda.speed >= opencl.speed)
+			return cuda;
+		if (opencl.speed >= cpu.speed and opencl.speed >= cuda.speed)
+			return opencl;
+		return BestConfig();
+	}
+	void update_config(BestConfig &cfg, const std::vector<HardwareConfiguration> &configs, ml::Device device, int num_threads)
+	{
+		const HardwareConfiguration best_config = filter_configs(configs, device, num_threads);
+		cfg.search_threads += best_config.search_threads;
+		cfg.speed += best_config.getOptimalParams().second;
+		const int batch_size = best_config.getOptimalParams().first;
+		for (int j = 0; j < best_config.search_threads; j++)
+		{
+			ag::DeviceConfig tmp;
+			tmp.batch_size = batch_size;
+			tmp.device = device;
+			cfg.device_configs.push_back(tmp);
+		}
+		cfg.max_batch_size = std::max(cfg.max_batch_size, batch_size);
 	}
 }
 
@@ -120,58 +158,40 @@ namespace ag
 				configs.push_back(HardwareConfiguration(benchmarkResults["tests"][i]));
 
 		const int num_cpu_cores = ml::Device::numberOfCpuCores();
+
+		BestConfig best_cpu_config;
+		update_config(best_cpu_config, configs, ml::Device::cpu(), num_cpu_cores);
+
+		BestConfig best_cuda_config;
 		const int num_cuda_devices = ml::Device::numberOfCudaDevices();
+		for (int i = 0; i < num_cuda_devices; i++)
+		{
+			const int max_threads = std::max(1, (num_cpu_cores - best_cuda_config.search_threads) / (num_cuda_devices - i));
+			update_config(best_cuda_config, configs, ml::Device::cuda(i), max_threads);
+		}
+
+		BestConfig best_opencl_config;
+		const int num_opencl_devices = ml::Device::numberOfOpenCLDevices();
+		for (int i = 0; i < num_opencl_devices; i++)
+		{
+			const int max_threads = std::max(1, (num_cpu_cores - best_opencl_config.search_threads) / (num_opencl_devices - i));
+			update_config(best_opencl_config, configs, ml::Device::opencl(i), max_threads);
+		}
+
+		const BestConfig final_config = pick_config(best_cpu_config, best_cuda_config, best_opencl_config);
 
 		Json result = create_base_config();
-		int search_threads = 0;
-		int max_batch_size = 0;
-		std::vector<DeviceConfig> device_configs;
+
+		result["search_threads"] = final_config.search_threads;
+		result["devices"] = Json(JsonType::Array);
+		for (size_t i = 0; i < final_config.device_configs.size(); i++)
+			result["devices"][i] = final_config.device_configs[i].toJson();
 
 		SearchConfig search_config;
-		if (num_cuda_devices > 0)
-		{
-			for (int i = 0; i < num_cuda_devices; i++)
-			{
-				const int max_threads = std::max(1, (num_cpu_cores - search_threads) / (num_cuda_devices - i));
-				HardwareConfiguration best_config = filter_configs(configs, ml::Device::cuda(i), max_threads);
-				search_threads += best_config.search_threads;
-				for (int j = 0; j < best_config.search_threads; j++)
-				{
-					DeviceConfig tmp;
-					tmp.batch_size = best_config.getOptimalParams().first;
-					tmp.device = ml::Device::cuda(i);
-					device_configs.push_back(tmp);
-					max_batch_size = std::max(max_batch_size, tmp.batch_size);
-				}
-			}
-			search_config.tss_config.max_positions = 500;
-			search_config.tss_config.hash_table_size = 4 * 1024 * 1024;
-		}
-		else
-		{
-			HardwareConfiguration best_config = filter_configs(configs, ml::Device::cpu(), num_cpu_cores);
-			search_threads = best_config.search_threads;
-			DeviceConfig tmp;
-			tmp.batch_size = best_config.getOptimalParams().first;
-			tmp.device = ml::Device::cpu();
-			for (int j = 0; j < best_config.search_threads; j++)
-				device_configs.push_back(tmp);
-
-			max_batch_size = tmp.batch_size;
-
-			search_config.tss_config.max_positions = 1000;
-			search_config.tss_config.hash_table_size = 4 * 1024 * 1024;
-
-		}
-
-		result["search_threads"] = search_threads;
-		result["devices"] = Json(JsonType::Array);
-		for (size_t i = 0; i < device_configs.size(); i++)
-			result["devices"][i] = device_configs[i].toJson();
-
-		search_config.max_batch_size = max_batch_size;
+		search_config.max_batch_size = final_config.max_batch_size;
 		search_config.mcts_config.max_children = 32;
 		search_config.tss_config.mode = 2;
+		search_config.tss_config.hash_table_size = 4 * 1024 * 1024;
 
 		result["search_config"] = search_config.toJson();
 
