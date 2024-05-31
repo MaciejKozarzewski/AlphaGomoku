@@ -7,6 +7,17 @@ All notable changes to this project will be documented in this file.
 ### Changed
 ### Fixed
 
+## [5.8.2] - 2024-05-31
+Few bugfixes.
+
+### Fixed
+- Fixed another bug in move generator.
+- Fixed automatic benchmarking.
+- Fixed automatic configuration.
+- Fixed OpenCL implementation of neural network backend.
+- Fixed selfcheck, mostly for OpenCL version.
+
+
 ## [5.8.1] - 2024-05-22
 This is the version that played in Gomocup 2024 with bugfixes.
 
