@@ -470,8 +470,8 @@ namespace ag
 		  // it is very rare (approximately 1 in 500.000 positions) but we must check this in order to have correct results
 
 			// we must copy as the check for forbidden moves may reorder the elements in the original list
-			const LocationList &opp_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
-			for (auto move = opp_fork_3x3.begin(); move < opp_fork_3x3.end(); move++)
+			const LocationList &own_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
+			for (auto move = own_fork_3x3.begin(); move < own_fork_3x3.end(); move++)
 			{
 				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
 				if (group.contains(PatternType::OPEN_4) and not is_forbidden(get_own_sign(), *move))
@@ -1000,7 +1000,8 @@ namespace ag
 		add_moves<OVERRIDE_DUPLICATE>(get_own_threats(ThreatType::FORK_4x4), Score::loss_in(1));
 
 		// we only need to check 3x3 forks because they are non-trivial
-		const LocationList &own_fork_3x3 = get_own_threats(ThreatType::FORK_3x3);
+		// we must copy as the check for forbidden moves may reorder the elements in the original list
+		const LocationList &own_fork_3x3 = get_copy_of(get_own_threats(ThreatType::FORK_3x3));
 		for (auto move = own_fork_3x3.begin(); move < own_fork_3x3.end(); move++)
 			if (is_forbidden(Sign::CROSS, *move))
 				add_move<OVERRIDE_DUPLICATE>(*move, Score::loss_in(1));

@@ -51,9 +51,11 @@ This is a version that supports both CPU and CUDA-enabled graphic cards (so only
 \textbf{Note:} NVIDIA graphic cards usually support OpenCL, so you can use opencl version as well. However cuda version is slightly faster on CUDA-enabled GPUs.
 
 \subsection{Executable 'pbrain-AlphaGomoku{\_}opencl.exe'}
-This is a version that supports both CPU and OpenCL-enabled graphic cards. However, in order to run this version it is required that CUDA is properly installed on the machine.
+This is a version that supports both CPU and OpenCL-enabled graphic cards. However, in order to run this version it is required that CpenCL is properly installed on the machine.
 
-\textbf{Note:} You need to check how to install OpenCL on your machine as the details vary between different hardware and operating systems.
+\textbf{Note:} Although the OpenCL.dll is included in the package for Windows version, but still you may need to ensure you have proper driver installed, and if you don't then install it yourself. Check how to install OpenCL on your machine as the details vary between different hardware and operating systems.
+
+\textbf{Note:} For Linux version you also need to install \href{https://github.com/CNugteren/CLBlast}{CLBlast} library.
 
 \subsection{File 'user{\_}manual.pdf'}
 This is the text that you are reading right now.

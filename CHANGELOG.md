@@ -7,6 +7,13 @@ All notable changes to this project will be documented in this file.
 ### Changed
 ### Fixed
 
+## [5.8.3] - 2024-??-??
+Renju forbidden move fix.
+
+### Fixed
+- Fixed bug with forbidden moves in renju.
+
+
 ## [5.8.2] - 2024-05-31
 Few bugfixes.
 
