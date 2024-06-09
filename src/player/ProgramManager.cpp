@@ -531,6 +531,7 @@ namespace ag
 	bool ProgramManager::is_game_config_correct() const
 	{
 		const GameConfig cfg = engine_settings->getGameConfig();
+		assert(cfg.draw_after > 0);
 		switch (cfg.rules)
 		{
 			case GameRules::FREESTYLE:

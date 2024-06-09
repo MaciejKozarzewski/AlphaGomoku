@@ -10,6 +10,7 @@
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/utils/Logger.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/version.hpp>
 
 #include <minml/core/Device.hpp>
@@ -244,8 +245,6 @@ namespace ag
 	void YixinBoardProtocol::info_caution_factor(InputListener &listener)
 	{
 		listener.consumeLine();
-//		const int cf = 4 - std::stoi(extract_command_data(listener, "info caution_factor")); // value must be inverted as in AG higher values correspond to more aggressive style
-//		input_queue.push(Message(MessageType::SET_OPTION, Option { "style", std::to_string(cf) }));
 	}
 	void YixinBoardProtocol::info_pondering(InputListener &listener)
 	{
@@ -336,6 +335,7 @@ namespace ag
 			setup_board_size(size, size);
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "rows", std::to_string(size) }));
 			input_queue.push(Message(MessageType::SET_OPTION, Option { "columns", std::to_string(size) }));
+			input_queue.push(Message(MessageType::SET_OPTION, Option { "draw_after", std::to_string(square(size)) }));
 			input_queue.push(Message(MessageType::START_PROGRAM));
 			output_queue.push(Message(MessageType::PLAIN_STRING, "OK"));
 		}
@@ -372,17 +372,17 @@ namespace ag
 	void YixinBoardProtocol::yxshowforbid(InputListener &listener)
 	{
 		listener.consumeLine("yxshowforbid");
+		std::string response = "FORBID ";
 		if (is_renju_rule)
 		{
 			const matrix<Sign> board = Board::fromListOfMoves(rows, columns, list_of_moves);
-			std::string response = "FORBID ";
 			for (int r = 0; r < board.rows(); r++)
 				for (int c = 0; c < board.cols(); c++)
 					if (isForbidden(board, Move(r, c, Sign::CROSS)))
 						response += ag::zfill(r, 2) + ag::zfill(c, 2);
-			response += '.';
-			output_queue.push(Message(MessageType::PLAIN_STRING, response));
 		}
+		response += '.';
+		output_queue.push(Message(MessageType::PLAIN_STRING, response));
 	}
 	void YixinBoardProtocol::yxbalance(InputListener &listener)
 	{
