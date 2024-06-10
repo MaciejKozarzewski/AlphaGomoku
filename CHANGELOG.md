@@ -7,7 +7,14 @@ All notable changes to this project will be documented in this file.
 ### Changed
 ### Fixed
 
-## [5.8.3] - 2024-??-??
+## [5.8.4] - 2024-06-10
+Fixed implementation of YixinBoard protocol.
+
+### Fixed
+- Fixed bug with YixinBoard protocol.
+
+
+## [5.8.3] - 2024-06-08
 Renju forbidden move fix.
 
 ### Fixed

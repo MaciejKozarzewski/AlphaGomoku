@@ -16,7 +16,7 @@ namespace ag
 	{
 			static const int major = 5;
 			static const int minor = 8;
-			static const int revision = 3;
+			static const int revision = 4;
 	};
 
 	class ProgramInfo
