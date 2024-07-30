@@ -12,8 +12,8 @@
 #include <minml/layers/Add.hpp>
 #include <minml/layers/BatchNormalization.hpp>
 #include <minml/layers/GlobalBroadcastHW.hpp>
-#include <minml/layers/GlobalPooling.hpp>
 #include <minml/layers/Softmax.hpp>
+#include <minml/layers/SqueezeAndExcitation.hpp>
 
 namespace ag
 {
@@ -31,7 +31,7 @@ namespace ag
 	}
 	ml::GraphNodeID createPoolingBlock(ml::Graph &graph, ml::GraphNodeID x)
 	{
-		return graph.add(ml::GlobalPooling("relu"), x);
+		return graph.add(ml::SqueezeAndExcitation("relu"), x);
 	}
 
 	ml::GraphNodeID createResidualBlock(ml::Graph &graph, ml::GraphNodeID x, int filters)

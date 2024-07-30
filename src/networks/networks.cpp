@@ -8,6 +8,9 @@
 #include <alphagomoku/networks/networks.hpp>
 #include <alphagomoku/networks/blocks.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
+#include <alphagomoku/networks/AGNetwork.hpp>
+#include <alphagomoku/search/Value.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 
 #include <minml/graph/graph_optimizers.hpp>
 #include <minml/core/Device.hpp>
@@ -15,14 +18,83 @@
 #include <minml/training/Optimizer.hpp>
 #include <minml/training/Regularizer.hpp>
 #include <minml/core/Shape.hpp>
+#include <minml/core/math.hpp>
 
 #include <minml/layers/Conv2D.hpp>
+#include <minml/layers/MLP.hpp>
+#include <minml/layers/MultiHeadAttention.hpp>
+#include <minml/layers/GlobalPooling.hpp>
 #include <minml/layers/Dense.hpp>
 #include <minml/layers/Add.hpp>
 #include <minml/layers/BatchNormalization.hpp>
+#include <minml/layers/LayerNormalization.hpp>
 #include <minml/layers/Softmax.hpp>
 
 #include <string>
+
+namespace
+{
+	void* get_pointer(ml::Tensor &src, std::initializer_list<int> idx)
+	{
+		assert(src.device().isCPU());
+		return reinterpret_cast<uint8_t*>(src.data()) + ml::sizeOf(src.dtype()) * src.getIndexOf(idx);
+	}
+	const void* get_pointer(const ml::Tensor &src, std::initializer_list<int> idx)
+	{
+		assert(src.device().isCPU());
+		return reinterpret_cast<const uint8_t*>(src.data()) + ml::sizeOf(src.dtype()) * src.getIndexOf(idx);
+	}
+
+	ag::float3 to_float3(const ag::Value &value) noexcept
+	{
+		return ag::float3 { value.win_rate, value.draw_rate, value.loss_rate() };
+	}
+	ag::Value from_float3(const ag::float3 &f) noexcept
+	{
+		return ag::Value(f.x, f.y);
+	}
+
+	template<typename T>
+	void space_to_depth(void *dst, const ag::matrix<T> &src, int patch_size)
+	{
+		if (patch_size == 1)
+		{
+			std::memcpy(dst, src.data(), src.sizeInBytes());
+			return;
+		}
+		int counter = 0;
+		for (int i = 0; i < src.rows(); i += patch_size)
+			for (int j = 0; j < src.cols(); j += patch_size)
+				for (int h = 0; h < patch_size; h++)
+					for (int w = 0; w < patch_size; w++)
+					{
+						if ((i + h) < src.rows() and (j + w) < src.cols())
+							reinterpret_cast<T*>(dst)[counter] = src.at(i + h, j + w);
+						else
+							reinterpret_cast<T*>(dst)[counter] = T { };
+						counter++;
+					}
+	}
+	template<typename T>
+	void depth_to_space(ag::matrix<T> &dst, const void *src, int patch_size)
+	{
+		if (patch_size == 1)
+		{
+			std::memcpy(dst.data(), src, dst.sizeInBytes());
+			return;
+		}
+		int counter = 0;
+		for (int i = 0; i < dst.rows(); i += patch_size)
+			for (int j = 0; j < dst.cols(); j += patch_size)
+				for (int h = 0; h < patch_size; h++)
+					for (int w = 0; w < patch_size; w++)
+					{
+						if ((i + h) < dst.rows() and (j + w) < dst.cols())
+							dst.at(i + h, j + w) = reinterpret_cast<const T*>(src)[counter];
+						counter++;
+					}
+	}
+}
 
 namespace ag
 {
@@ -489,6 +561,116 @@ namespace ag
 		graph.addOutput(p);
 
 		auto v = createValueHead(graph, x, filters);
+		graph.addOutput(v);
+
+		graph.init();
+		graph.setOptimizer(ml::Optimizer());
+		if (trainingOptions.l2_regularization != 0.0)
+			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
+	Transformer::Transformer() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string Transformer::name() const
+	{
+		return "Transformer";
+	}
+	void Transformer::packInputData(int index, const NNInputFeatures &features)
+	{
+		assert(index >= 0 && index < getBatchSize());
+		space_to_depth(get_pointer(*input_on_cpu, { index, 0, 0, 0 }), features, patch_size);
+	}
+	void Transformer::packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value)
+	{
+		assert(index >= 0 && index < getBatchSize());
+
+		space_to_depth(get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { index, 0 }), policy, patch_size);
+
+		const float3 tmp = to_float3(value);
+		std::memcpy(get_pointer(targets_on_cpu.at(VALUE_OUTPUT_INDEX), { index, 0 }), &tmp, sizeof(tmp));
+
+//		if (targets_on_cpu.size() == 3)
+//		{
+//			workspace.resize(game_config.rows * game_config.cols);
+//			for (int i = 0; i < actionValues.size(); i++)
+//				workspace[i] = to_float3(actionValues[i]);
+//			space_to_depth(get_pointer(targets_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX), { index, 0, 0, 0 }), workspace, patch_size);
+//		}
+	}
+	void Transformer::unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const
+	{
+		assert(index >= 0 && index < getBatchSize());
+
+		workspace.resize(outputs_on_cpu.at(POLICY_OUTPUT_INDEX).lastDim());
+		ml::convertType(context_on_cpu, workspace.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { index, 0 }),
+				outputs_on_cpu.at(POLICY_OUTPUT_INDEX).dtype(), policy.size());
+		depth_to_space(policy, workspace.data(), patch_size);
+
+		float3 tmp;
+		ml::convertType(context_on_cpu, &tmp, ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(VALUE_OUTPUT_INDEX), { index, 0 }),
+				outputs_on_cpu.at(VALUE_OUTPUT_INDEX).dtype(), 3);
+		value = from_float3(tmp);
+
+//		if (outputs_on_cpu.size() == 3)
+//		{
+//			workspace.resize(game_config.rows * game_config.cols);
+//			ml::convertType(context_on_cpu, workspace.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX), {
+//					index, 0, 0, 0 }), outputs_on_cpu.at(ACTION_VALUES_OUTPUT_INDEX).dtype(), 3 * workspace.size());
+//			for (int i = 0; i < actionValues.size(); i++)
+//				actionValues[i] = from_float3(workspace[i]);
+//		}
+	}
+	/*
+	 * private
+	 */
+	ml::Shape Transformer::get_input_encoding_shape() const
+	{
+		return ml::Shape( { graph.getInputShape()[0], graph.getInputShape()[1], graph.getInputShape()[2], square(patch_size) });
+	}
+	void Transformer::create_network(const TrainingConfig &trainingOptions)
+	{
+		const int height = (game_config.rows + patch_size - 1) / patch_size;
+		const int width = (game_config.cols + patch_size - 1) / patch_size;
+		const int in_channels = 32 * square(patch_size);
+		const int out_channels = square(patch_size);
+
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, height, width, in_channels });
+		const int blocks = trainingOptions.blocks;
+		const int embedding = trainingOptions.filters;
+		const int head_dim = 16;
+		const int pos_encoding_range = std::max(height, width);
+
+		auto x = graph.addInput(input_shape);
+		x = graph.add(ml::Conv2D(embedding, 1, "relu"), x);
+
+		for (int i = 0; i < blocks; i++)
+		{
+			auto y = graph.add(ml::LayerNormalization(), x);
+			y = graph.add(ml::Conv2D(3 * embedding, 1), y);
+			y = graph.add(ml::MultiHeadAttention(embedding / head_dim, pos_encoding_range), y);
+			y = graph.add(ml::Conv2D(embedding, 1), y);
+			x = graph.add(ml::Add(), { x, y });
+
+			y = graph.add(ml::LayerNormalization(), x);
+			y = graph.add(ml::Conv2D(embedding, 1, "relu"), y);
+			y = graph.add(ml::Conv2D(embedding, 1), y);
+			x = graph.add(ml::Add(), { x, y });
+		}
+
+		// policy head
+		auto p = graph.add(ml::Conv2D(256, 1, "relu"), x);
+		p = graph.add(ml::Conv2D(out_channels, 1), p);
+		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
+		graph.addOutput(p);
+
+		// value head
+		auto v = graph.add(ml::GlobalPooling(), x);
+		v = graph.add(ml::Dense(256, "relu"), v);
+		v = graph.add(ml::Dense(3), v);
+		v = graph.add(ml::Softmax( { 1 }), v);
 		graph.addOutput(v);
 
 		graph.init();

@@ -72,7 +72,7 @@ namespace
 	{
 		assert(model.getBatchSize() >= static_cast<int>(targets.size()));
 		assert(batchSize <= static_cast<int>(targets.size()));
-		TrainingDataPack output_data_pack(model.getInputShape()[1], model.getInputShape()[2]);
+		TrainingDataPack output_data_pack(model.getGameConfig().rows, model.getGameConfig().cols);
 		for (int i = 0; i < batchSize; i++)
 		{
 			model.unpackOutput(i, output_data_pack.policy_target, output_data_pack.action_values_target, output_data_pack.value_target);
@@ -80,7 +80,6 @@ namespace
 			model.packTargetData(i, targets[i].policy_target, targets[i].action_values_target, targets[i].value_target);
 		}
 	}
-
 }
 
 namespace ag
@@ -112,8 +111,8 @@ namespace ag
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
 		const int batch_size = model.getInputShape().firstDim();
-		const int rows = model.getInputShape().dim(1);
-		const int cols = model.getInputShape().dim(2);
+		const int rows = model.getGameConfig().rows;
+		const int cols = model.getGameConfig().cols;
 
 		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
 		sampler->init(dataset, batch_size);
@@ -152,8 +151,8 @@ namespace ag
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
 		const int batch_size = model.getInputShape().firstDim();
-		const int rows = model.getInputShape().dim(1);
-		const int cols = model.getInputShape().dim(2);
+		const int rows = model.getGameConfig().rows;
+		const int cols = model.getGameConfig().cols;
 
 		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
 		sampler->init(dataset, batch_size);

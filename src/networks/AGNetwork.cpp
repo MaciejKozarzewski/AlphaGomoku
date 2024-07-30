@@ -42,12 +42,6 @@ namespace
 		return reinterpret_cast<const uint8_t*>(src.data()) + ml::sizeOf(src.dtype()) * src.getIndexOf(idx);
 	}
 
-	ml::Shape get_encoding_shape(const ml::Shape &input_shape)
-	{
-		assert(input_shape.rank() == 4);
-		return ml::Shape( { input_shape[0], input_shape[1], input_shape[2], 1 });
-	}
-
 	ag::float3 to_float3(const ag::Value &value) noexcept
 	{
 		return ag::float3 { value.win_rate, value.draw_rate, value.loss_rate() };
@@ -71,8 +65,8 @@ namespace ag
 		matrix<float> answer(game_config.rows, game_config.cols);
 		for (int b = 0; b < batchSize; b++)
 		{
-			std::memcpy(output.data(), get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { b, 0, 0, 0 }), output.sizeInBytes());
-			std::memcpy(answer.data(), get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { b, 0, 0, 0 }), output.sizeInBytes());
+			std::memcpy(output.data(), get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { b, 0 }), output.sizeInBytes());
+			std::memcpy(answer.data(), get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { b, 0 }), output.sizeInBytes());
 
 			Move correct = pickMove(answer);
 			for (int l = 0; l < top_k; l++)
@@ -104,7 +98,7 @@ namespace ag
 	{
 		assert(index >= 0 && index < getBatchSize());
 
-		std::memcpy(get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { index, 0, 0, 0 }), policy.data(), policy.sizeInBytes());
+		std::memcpy(get_pointer(targets_on_cpu.at(POLICY_OUTPUT_INDEX), { index, 0 }), policy.data(), policy.sizeInBytes());
 
 		const float3 tmp = to_float3(value);
 		std::memcpy(get_pointer(targets_on_cpu.at(VALUE_OUTPUT_INDEX), { index, 0 }), &tmp, sizeof(tmp));
@@ -122,7 +116,7 @@ namespace ag
 	{
 		assert(index >= 0 && index < getBatchSize());
 
-		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { index, 0, 0, 0 }),
+		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(outputs_on_cpu.at(POLICY_OUTPUT_INDEX), { index, 0 }),
 				outputs_on_cpu.at(POLICY_OUTPUT_INDEX).dtype(), policy.size());
 
 		float3 tmp;
@@ -277,6 +271,10 @@ namespace ag
 			targets_on_cpu.clear();
 		}
 	}
+	GameConfig AGNetwork::getGameConfig() const noexcept
+	{
+		return game_config;
+	}
 	ml::Event AGNetwork::addEvent() const
 	{
 		return graph.context().createEvent();
@@ -284,6 +282,10 @@ namespace ag
 	/*
 	 * private
 	 */
+	ml::Shape AGNetwork::get_input_encoding_shape() const
+	{
+		return ml::Shape( { graph.getInputShape()[0], graph.getInputShape()[1], graph.getInputShape()[2], 1 });
+	}
 	void AGNetwork::pack_input_to_graph(int batch_size)
 	{
 		ml::Shape shape = graph.getInputShape();
@@ -309,7 +311,7 @@ namespace ag
 	{
 		const ml::DataType dtype = graph.dtype();
 
-		const ml::Shape encoding_shape = get_encoding_shape(graph.getInputShape());
+		const ml::Shape encoding_shape = get_input_encoding_shape();
 		input_on_cpu = std::make_unique<ml::Tensor>(encoding_shape, ml::DataType::INT32, ml::Device::cpu());
 		if (not graph.device().isCPU())
 			input_on_device = std::make_unique<ml::Tensor>(encoding_shape, ml::DataType::INT32, graph.device());
@@ -351,6 +353,7 @@ namespace ag
 		static const BottleneckPVQ bottleneck_pvq;
 		static const ResnetPVQraw resnet_pvq_raw;
 		static const ResnetOld resnet_old;
+		static const Transformer transformer;
 
 		static const ResnetPVraw_v0 resnet_pv_raw_v0;
 		static const ResnetPVraw_v1 resnet_pv_raw_v1;
@@ -376,6 +379,9 @@ namespace ag
 			return std::make_unique<ResnetPVQraw>();
 		if (architecture == resnet_old.name())
 			return std::make_unique<ResnetOld>();
+		if (architecture == transformer.name())
+			return std::make_unique<Transformer>();
+
 		if (architecture == resnet_pv_raw_v0.name())
 			return std::make_unique<ResnetPVraw_v0>();
 		if (architecture == resnet_pv_raw_v1.name())

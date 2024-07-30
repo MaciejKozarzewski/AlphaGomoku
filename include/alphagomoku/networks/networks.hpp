@@ -127,6 +127,20 @@ namespace ag
 			void create_network(const TrainingConfig &trainingOptions);
 	};
 
+	class Transformer: public AGNetwork
+	{
+			int patch_size = 2;
+		public:
+			Transformer() noexcept;
+			std::string name() const;
+			void packInputData(int index, const NNInputFeatures &features);
+			void packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value);
+			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const;
+		protected:
+			ml::Shape get_input_encoding_shape() const;
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_NETWORKS_NETWORKS_HPP_ */

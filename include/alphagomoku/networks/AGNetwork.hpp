@@ -104,8 +104,10 @@ namespace ag
 
 			virtual int getBatchSize() const noexcept;
 			virtual void setBatchSize(int batchSize);
+			GameConfig getGameConfig() const noexcept;
 			ml::Event addEvent() const;
 		protected:
+			virtual ml::Shape get_input_encoding_shape() const;
 			virtual void pack_input_to_graph(int batchSize);
 			virtual PatternCalculator& get_pattern_calculator();
 			virtual void create_network(const TrainingConfig &trainingOptions) = 0;
