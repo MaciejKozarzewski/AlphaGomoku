@@ -89,7 +89,7 @@ namespace ag
 //				return false;
 //		}
 
-		// if draw probability is higher than some level we proportionally reduce the number of simulations to save time (15-20% speedup)
+// if draw probability is higher than some level we proportionally reduce the number of simulations to save time (15-20% speedup)
 		const Value root_eval = tree.getInfo( { }).getValue();
 		const int sims = get_simulations_for_move(root_eval.draw_rate, simulations, 100);
 
@@ -155,7 +155,8 @@ namespace ag
 	}
 	bool EvaluationGame::prepareOpening()
 	{
-		assert(first_player != nullptr);
+		if (first_player == nullptr)
+			throw std::logic_error("EvaluationGame::prepareOpening() first_player is null");
 
 		if (use_opening)
 		{
@@ -208,6 +209,11 @@ namespace ag
 	}
 	void EvaluationGame::generate(int p)
 	{
+		if (first_player == nullptr)
+			throw std::logic_error("EvaluationGame::generate() first_player is null");
+		if (second_player == nullptr)
+			throw std::logic_error("EvaluationGame::generate() second_player is null");
+
 		if (state == GAME_NOT_STARTED)
 		{
 			first_player->getSolver().clear();
