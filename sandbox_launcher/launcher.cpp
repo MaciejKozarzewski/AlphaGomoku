@@ -64,10 +64,9 @@
 #include <alphagomoku/patterns/Pattern.hpp>
 #include <alphagomoku/networks/NNUE.hpp>
 #include <alphagomoku/utils/bit_utils.hpp>
-#include <alphagomoku/utils/fp8.hpp>
-
 #include <minml/utils/ZipWrapper.hpp>
 #include <alphagomoku/search/alpha_beta/ThreatSpaceSearch.hpp>
+#include <alphagomoku/utils/low_precision.hpp>
 
 #include "minml/core/Device.hpp"
 #include "minml/utils/json.hpp"
@@ -132,7 +131,7 @@ void run_training()
 //	buffer.load("/home/maciek/alphagomoku/new_runs_2023/test_old/valid_buffer/buffer_0.bin");
 	std::cout << dataset.getStats().toString() << '\n';
 
-//	dataset.getBuffer(249).save("/home/maciek/alphagomoku/new_runs/default.bin");
+	dataset.getBuffer(249).save("/home/maciek/alphagomoku/new_runs/buffer_v2.bin");
 	return;
 
 	GameConfig game_config(GameRules::STANDARD, 15);
@@ -2636,7 +2635,7 @@ void prepare_proven_dataset()
 				buffer.getGameData(i).getSample(pack, j);
 				if (pack.minimax_score.isProven())
 				{
-					GameDataStorage tmp(15, 15);
+					GameDataStorage tmp(15, 15, 100);
 					for (int k = 0; k < buffer.getGameData(i).numberOfMoves(); k++)
 						tmp.addMove(buffer.getGameData(i).getMove(k));
 					tmp.addSample(pack);
@@ -2743,211 +2742,114 @@ void test_proven_search(int mcts_nodes, int tss_nodes, bool fast)
 	std::cout << "total visits = " << total_visits << '\n';
 }
 
-void convert_old_network()
+template<typename T>
+double matrix_L1_diff(const matrix<T> &lhs, const matrix<T> &rhs)
 {
-//	FileLoader fl("/home/maciek/Desktop/AlphaGomoku550/networks/freestyle_6x64.bin");
-//	FileLoader fl("/home/maciek/alphagomoku/standard_15x15/checkpoint/network_90_opt.bin");
-	FileLoader fl("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/libml/checkpoint/network_99_opt.bin");
-
-	GameConfig game_config(GameRules::STANDARD, 15);
-	TrainingConfig training_config;
-	training_config.blocks = 6;
-	training_config.filters = 64;
-
-	ResnetOld model;
-	model.init(game_config, training_config);
-	model.optimize();
-	model.getGraph().print();
-
-	Json old_layers = fl.getJson()["layers"];
-	int old_layer_id = 1;
-	int new_layer_id = 1;
-	for (; old_layer_id < 2 + 2 * training_config.blocks; old_layer_id++, new_layer_id++)
-	{ // convolutional blocks
-		ml::Layer &layer = model.getGraph().getNode(new_layer_id).getLayer();
-		assert(old_layers[old_layer_id]["name"].getString() == "Conv2D");
-		layer.getWeights().getParam().unserialize(old_layers[old_layer_id]["weights"]["param"], fl.getBinaryData());
-		layer.getBias().getParam().unserialize(old_layers[old_layer_id]["bias"]["param"], fl.getBinaryData());
-	}
-
-// policy head
-	ml::Layer &layer_p1 = model.getGraph().getNode(new_layer_id).getLayer(); // first Conv2D layer
-	assert(layer_p1.name() == "Conv2D");
-	assert(old_layers[old_layer_id]["name"].getString() == "Conv2D");
-	layer_p1.getWeights().getParam().unserialize(old_layers[old_layer_id]["weights"]["param"], fl.getBinaryData());
-	layer_p1.getBias().getParam().unserialize(old_layers[old_layer_id]["bias"]["param"], fl.getBinaryData());
-	old_layer_id++;
-	new_layer_id++;
-
-	ml::Layer &layer_p2 = model.getGraph().getNode(new_layer_id).getLayer(); // second Conv2D layer
-	assert(layer_p2.name() == "Conv2D");
-	assert(old_layers[old_layer_id]["name"].getString() == "Conv2D");
-	assert(old_layers[old_layer_id + 1]["name"].getString() == "Flatten");
-	layer_p2.getWeights().getParam().unserialize(old_layers[old_layer_id]["weights"]["param"], fl.getBinaryData());
-	old_layer_id += 1 + 1; // this layer + Flatten
-	new_layer_id++;
-
-	ml::Layer &layer_p3 = model.getGraph().getNode(new_layer_id).getLayer(); // final Dense layer
-	assert(layer_p3.name() == "Dense");
-	assert(old_layers[old_layer_id]["name"].getString() == "Affine");
-	assert(old_layers[old_layer_id + 1]["name"].getString() == "Softmax");
-//	ml::Tensor &affine_weights = layer_p3.getWeights().getParam();
-//	affine_weights.zeroall(model.getGraph().context());
-//	for (int i = 0; i < game_config.rows * game_config.cols; i++)
-//		affine_weights.set(1.0f, { i, i }); // creating artificial diagonal unit matrix so only bias will be used
-	layer_p3.getBias().getParam().unserialize(old_layers[old_layer_id]["bias"]["param"], fl.getBinaryData());
-	old_layer_id += 1 + 1;
-	new_layer_id += 1 + 1; // this layer + Softmax
-
-// value head
-	ml::Layer &layer_v1 = model.getGraph().getNode(new_layer_id).getLayer(); // first Conv2D layer
-	assert(layer_v1.name() == "Conv2D");
-	assert(old_layers[old_layer_id]["name"].getString() == "Conv2D");
-	layer_v1.getWeights().getParam().unserialize(old_layers[old_layer_id]["weights"]["param"], fl.getBinaryData());
-	layer_v1.getBias().getParam().unserialize(old_layers[old_layer_id]["bias"]["param"], fl.getBinaryData());
-	old_layer_id += 1 + 1; // this layer + Flatten
-	new_layer_id++;
-
-	ml::Layer &layer_v2 = model.getGraph().getNode(new_layer_id).getLayer(); // first Dense layer
-	assert(layer_v2.name() == "Dense");
-	assert(old_layers[old_layer_id]["name"].getString() == "Dense");
-	layer_v2.getWeights().getParam().unserialize(old_layers[old_layer_id]["weights"]["param"], fl.getBinaryData());
-	layer_v2.getBias().getParam().unserialize(old_layers[old_layer_id]["bias"]["param"], fl.getBinaryData());
-	old_layer_id++;
-	new_layer_id++;
-
-	ml::Layer &layer_v3 = model.getGraph().getNode(new_layer_id).getLayer(); // second Dense layer
-	assert(layer_v3.name() == "Dense");
-	assert(old_layers[old_layer_id]["name"].getString() == "Dense");
-	layer_v3.getWeights().getParam().unserialize(old_layers[old_layer_id]["weights"]["param"], fl.getBinaryData());
-	layer_v3.getBias().getParam().unserialize(old_layers[old_layer_id]["bias"]["param"], fl.getBinaryData());
-//	for (int i = 0; i < layer_v3.getWeights().shape().lastDim(); i++)
-//	{ // swap win and loss outputs as they were inverted in previous version
-//		const float tmp0 = layer_v3.getWeights().getParam().get( { 0, i });
-//		const float tmp2 = layer_v3.getWeights().getParam().get( { 2, i });
-//		layer_v3.getWeights().getParam().set(tmp2, { 0, i });
-//		layer_v3.getWeights().getParam().set(tmp0, { 2, i });
-//	}
-//	// same for biases
-//	const float tmp0 = layer_v3.getBias().getParam().get( { 0 });
-//	const float tmp2 = layer_v3.getBias().getParam().get( { 2 });
-//	layer_v3.getBias().getParam().set(tmp2, { 0 });
-//	layer_v3.getBias().getParam().set(tmp0, { 2 });
-
-	old_layer_id++;
-	new_layer_id++;
-
-	model.saveToFile("/home/maciek/alphagomoku/new_runs_2023/old_runs_2021/libml/libml_99_opt.bin");
+	assert(equalSize(lhs, rhs));
+	double result = 0.0;
+	for (int i = 0; i < lhs.size(); i++)
+		result += std::abs(lhs[i] - rhs[i]) / (1.0e-8 + lhs[i]);
+	return result;
+}
+double matrix_L1_diff(const matrix<Value> &lhs, const matrix<Value> &rhs)
+{
+	assert(equalSize(lhs, rhs));
+	double result = 0.0;
+	for (int i = 0; i < lhs.size(); i++)
+		result += std::abs(lhs[i].win_rate - rhs[i].win_rate) / (1.0e-8 + lhs[i].win_rate)
+				+ std::abs(lhs[i].draw_rate - rhs[i].draw_rate) / (1.0e-8 + lhs[i].draw_rate);
+	return result * 0.5;
 }
 
-void convert_old_buffer(const std::string &src, const std::string &dst)
+void convert_dataset(const std::string &src, const std::string &dst)
 {
-	struct internal_data
+	GameDataBuffer buffer_v100(src);
+	std::cout << buffer_v100.getStats().toString() << '\n';
+
+	const int rows = buffer_v100.getConfig().rows;
+	const int cols = buffer_v100.getConfig().cols;
+
+	SearchDataPack pack_v100(rows, cols);
+	SearchDataPack pack_v200(rows, cols);
+
+	double mean_policy_error = 0.0;
+	double mean_value_error = 0.0;
+	double mean_visit_error = 0.0;
+	int data_count = 0;
+
+	GameDataBuffer buffer_v200;
+	for (int i = 0; i < buffer_v100.numberOfGames(); i++)
 	{
-			uint32_t sign :2;
-			uint32_t pv :2;
-			uint32_t prior :18;
-			uint32_t win :14;
-			uint32_t draw :14;
-			uint32_t loss :14;
-	};
-	auto convert_pv = [](int pv)
-	{
-		switch (pv)
+		const GameDataStorage gds100 = buffer_v100.getGameData(i);
+		GameDataStorage gds200(rows, cols, 200);
+
+		gds200.setOutcome(gds100.getOutcome());
+		for (int j = 0; j < gds100.numberOfMoves(); j++)
+			gds200.addMove(gds100.getMove(j));
+
+		for (int j = 0; j < gds100.numberOfSamples(); j++)
 		{
-			default:
-			case 0:
-			return ProvenValue::UNKNOWN;
-			case 1:
-			return ProvenValue::LOSS;
-			case 2:
-			return ProvenValue::DRAW;
-			case 3:
-			return ProvenValue::WIN;
+			pack_v100.clear();
+			pack_v200.clear();
+			gds100.getSample(pack_v100, j);
+			gds200.addSample(pack_v100);
 		}
-	};
-
-	FileLoader fl(src, true);
-
-	const SerializedObject &so = fl.getBinaryData();
-
-	const int rows = fl.getJson()[0]["rows"].getInt();
-	const int cols = fl.getJson()[0]["cols"].getInt();
-
-	GameConfig cfg(rulesFromString(fl.getJson()[0]["rules"].getString()), rows, cols);
-
-	GameDataBuffer result(cfg);
-
-	size_t size = fl.getJson().size();
-	for (size_t g = 0; g < size; g++)
-	{
-		const Json &game = fl.getJson()[g];
-
-		GameDataStorage gds(game["rows"].getInt(), game["cols"].getInt());
-
-		size_t offset = game["binary_offset"].getLong();
-		size_t nb_of_moves = game["nb_of_moves"].getLong();
-
-		for (size_t i = 0; i < nb_of_moves; i++, offset += sizeof(uint16_t))
-		{
-			const Move m(so.load<uint16_t>(offset));
-			gds.addMove(m);
-		}
-		gds.setOutcome(outcomeFromString(game["outcome"]));
-
-		size_t nb_of_states = game["nb_of_states"].getLong();
-		for (size_t i = 0; i < nb_of_states; i++)
-		{
-			offset += sizeof(int); // rows
-			offset += sizeof(int); // cols
-
-			SearchDataPack pack(rows, cols);
-
-			matrix<internal_data> actions(rows, cols);
-			so.load(actions.data(), offset, actions.sizeInBytes());
-			offset += actions.sizeInBytes();
-
-			float sum_visits = 0.0f;
-			for (int j = 0; j < actions.size(); j++)
-			{
-				pack.board[j] = static_cast<Sign>(actions[j].sign);
-				pack.action_scores[j] = Score(convert_pv(actions[j].pv));
-				pack.visit_count[j] = actions[j].prior;
-				sum_visits += pack.visit_count[j];
-				pack.action_values[j] = Value(actions[j].win / 16383.0f, actions[j].draw / 16383.0f);
-			}
-			for (int j = 0; j < actions.size(); j++)
-				pack.visit_count[j] = static_cast<int>(800.0f / sum_visits * pack.visit_count[j] + 0.5f);
-
-			const float win_rate = so.load<float>(offset);
-			offset += sizeof(float);
-			const float draw_rate = so.load<float>(offset);
-			offset += sizeof(float);
-			offset += sizeof(float); // loss rate
-			pack.minimax_value = Value(win_rate, draw_rate);
-
-			const int tmp = so.load<int>(offset);
-			offset += sizeof(int);
-
-			const ProvenValue proven_value = convert_pv(tmp);
-			pack.minimax_score = Score(proven_value);
-
-			const GameOutcome game_outcome = static_cast<GameOutcome>(so.load<int>(offset));
-			offset += sizeof(int);
-			pack.game_outcome = game_outcome;
-
-			const Move played_move(so.load<uint16_t>(offset));
-			offset += sizeof(uint16_t);
-			pack.played_move = played_move;
-
-			gds.addSample(pack);
-		}
-
-		result.addGameData(gds);
+		buffer_v200.addGameData(gds200);
 	}
 
-	std::cout << result.getStats().toString() << '\n';
-	result.save(dst);
+	std::cout << buffer_v200.getStats().toString() << '\n';
+
+	buffer_v200.save(dst);
+	buffer_v200.clear();
+	buffer_v200.load(dst);
+
+	for (int i = 0; i < buffer_v200.numberOfGames(); i++)
+	{
+		const GameDataStorage gds100 = buffer_v100.getGameData(i);
+		const GameDataStorage gds200 = buffer_v200.getGameData(i);
+
+		for (int j = 0; j < gds200.numberOfSamples(); j++)
+		{
+			pack_v100.clear();
+			pack_v200.clear();
+			gds100.getSample(pack_v100, j);
+			gds200.getSample(pack_v200, j);
+
+//			std::cout << "---OLD-FORMAT---\n";
+//			pack_v100.print();
+//			SearchDataStorage v100;
+//			v100.loadFrom(pack_v100);
+//			v100.print();
+//
+//			std::cout << "---NEW-FORMAT---\n";
+//			pack_v200.print();
+			SearchDataStorage_v2 v200;
+			v200.loadFrom(pack_v200);
+//			v200.print();
+//			std::cout << "\n\n\n";
+//			exit(0);
+//			v200.storeTo(pack_v200);
+//			if (matrix_L1_diff(pack_v100.visit_count, pack_v200.visit_count) > 1.0)
+//			{
+//				std::cout << i << " " << j << '\n';
+//				std::cout << "---OLD-FORMAT---\n";
+//				std::cout << Board::toString(matrix<Sign>(15, 15), pack_v100.visit_count) << '\n';
+//				v100.print();
+//				std::cout << "---NEW-FORMAT---\n";
+//				std::cout << Board::toString(matrix<Sign>(15, 15), pack_v200.visit_count) << '\n';
+//				v200.print();
+//				exit(0);
+//			}
+//			exit(0);
+			mean_policy_error += matrix_L1_diff(pack_v100.policy_prior, pack_v200.policy_prior);
+			mean_value_error += matrix_L1_diff(pack_v100.action_values, pack_v200.action_values);
+			mean_visit_error += matrix_L1_diff(pack_v100.visit_count, pack_v200.visit_count);
+			data_count += v200.numberOfEntries();
+		}
+	}
+	std::cout << "mean policy error = " << mean_policy_error / data_count << '\n';
+	std::cout << "mean value  error = " << mean_value_error / data_count << '\n';
+	std::cout << "mean visit  error = " << mean_visit_error / data_count << '\n';
 }
 
 void transfer_learning()
@@ -3456,35 +3358,6 @@ namespace evaluation
 	};
 }
 
-template<uint32_t E, uint32_t M, uint32_t B = (1 << E)>
-uint32_t cvt(float x)
-{
-	assert(0.0f <= x && x <= 1.0f);
-	const uint32_t original = reinterpret_cast<const uint32_t*>(&x)[0];
-	const int exponent = std::max(0, static_cast<int>((original & 0x7F800000) >> 23) - 127 + static_cast<int>(B));
-	const int offset = (exponent == 0) ? 0 : 1;
-	const float base = x * (1 << (B - exponent)) - offset;
-
-	const uint32_t mantissa = std::min((1u << M) - 1u, static_cast<uint32_t>(base * (1 << (M + offset - 1)) + 0.5f));
-	return (static_cast<uint32_t>(exponent) << M) | mantissa;
-}
-
-template<uint32_t E, uint32_t M, uint32_t B = (1 << E)>
-float cvt(uint32_t x)
-{
-	assert(0.0f <= x && x <= 1.0f);
-	const int exponent = (x >> M);
-	const uint32_t mantissa = (x & ((1 << M) - 1));
-
-	std::cout << std::bitset<32>(mantissa).to_string() << '\n';
-	std::cout << exponent << " " << mantissa << '\n';
-
-	const float base = static_cast<float>(mantissa) / (1 << M);
-	std::cout << "base = " << base << '\n';
-	const int offset = (exponent == 0) ? 0 : 1;
-	return (offset + base) / (1 << (B - exponent - 1 + offset));
-}
-
 int main(int argc, char *argv[])
 {
 	std::cout << "BEGIN" << std::endl;
@@ -3492,6 +3365,9 @@ int main(int argc, char *argv[])
 //	test_search();
 //	test_evaluate();
 //	run_training();
+	convert_dataset("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer/buffer_149.bin",
+			"/home/maciek/alphagomoku/new_runs/new_buffer.bin");
+	return 0;
 
 	{
 //		std::vector<float> src(1000000);
@@ -3517,19 +3393,16 @@ int main(int argc, char *argv[])
 //
 //		std::cout << "time = " << (stop - start) << '\n';
 
-		const float f = -0.3334f;
-		float8<1, 2, 5, -1> fp8(f);
-
-		std::cout << std::numeric_limits<float>::min() << " " << std::numeric_limits<float>::epsilon() << '\n';
+		const float f = 0.43334f;
+		LowFP<0, 5, 11, -32> lp(f);
 
 		std::cout << "limits\n";
-		std::cout << "max = " << fp8.max() << '\n';
-		std::cout << "min = " << fp8.min() << '\n';
-		std::cout << "denorm min = " << fp8.denorm_min() << '\n';
-		std::cout << "lowest = " << fp8.lowest() << '\n';
-		std::cout << "epsilon = " << fp8.epsilon() << '\n';
+		std::cout << "max = " << lp.max() << '\n';
+		std::cout << "min = " << lp.min() << '\n';
+		std::cout << "denorm min = " << lp.denorm_min() << '\n';
+		std::cout << "lowest = " << lp.lowest() << '\n';
 
-		std::cout << "fp32 = " << static_cast<float>(fp8) << '\n';
+		std::cout << "fp32 = " << static_cast<float>(lp) << '\n';
 //		const float x = 139.0f;
 //
 //		uint32_t i = cvt<2, 6, 5>(x);

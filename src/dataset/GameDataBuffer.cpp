@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <stdexcept>
+#include <iostream>
 
 namespace ag
 {
@@ -95,6 +96,7 @@ namespace ag
 	void GameDataBuffer::save(const std::string &path) const
 	{
 		Json json(JsonType::Object);
+		json["format"] = 200;
 		json["config"] = game_config.toJson();
 		json["offsets"] = Json(JsonType::Array);
 		SerializedObject so;
@@ -113,6 +115,7 @@ namespace ag
 	{
 		FileLoader fl(path, true);
 
+		const int format = (fl.getJson().hasKey("format")) ? fl.getJson()["format"].getInt() : 100;
 		game_config = GameConfig(fl.getJson()["config"]);
 
 		const Json &list_of_offsets = fl.getJson()["offsets"];
@@ -121,7 +124,7 @@ namespace ag
 		for (size_t i = 0; i < size; i++)
 		{
 			size_t offset = list_of_offsets[i].getLong();
-			buffer_data.push_back(GameDataStorage(fl.getBinaryData(), offset));
+			buffer_data.push_back(GameDataStorage(fl.getBinaryData(), offset, format));
 		}
 	}
 	GameDataBufferStats GameDataBuffer::getStats() const noexcept

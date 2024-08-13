@@ -27,21 +27,22 @@ namespace ag
 	{
 		private:
 			std::vector<SearchDataStorage> search_data;
+			std::vector<SearchDataStorage_v2> search_data_v2;
 			std::vector<Move> played_moves;
+			std::vector<uint16_t> played_moves_v2;
 			GameOutcome game_outcome = GameOutcome::UNKNOWN;
+			int format = 100;
 			int rows = 0;
 			int columns = 0;
 		public:
 			GameDataStorage() noexcept = default;
-			GameDataStorage(int rows, int cols) noexcept;
-			GameDataStorage(const SerializedObject &binary_data, size_t &offset);
+			GameDataStorage(int rows, int cols, int format) noexcept;
+			GameDataStorage(const SerializedObject &binary_data, size_t &offset, int format);
 
 			void clear();
 
-			int numberOfMoves() const noexcept;
-			int numberOfSamples() const noexcept;
-
-			const SearchDataStorage& operator[](int index) const;
+			int numberOfMoves() const;
+			int numberOfSamples() const;
 
 			void getSample(SearchDataPack &result, int index) const;
 			Move getMove(int index) const;

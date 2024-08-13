@@ -107,7 +107,7 @@ namespace ag
 	}
 	void NNEvaluator::addToQueue(SearchTask &task, int symmetry)
 	{
-		assert(abs(symmetry) <= available_symmetries);
+		assert(abs(symmetry) <= available_symmetries(get_network().getGameConfig().rows, get_network().getGameConfig().cols));
 		waiting_queue.push_back( { &task, symmetry });
 	}
 	double NNEvaluator::evaluateGraph()

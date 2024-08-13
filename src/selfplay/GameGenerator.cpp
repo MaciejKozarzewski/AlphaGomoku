@@ -136,7 +136,7 @@ namespace ag
 		state = static_cast<GameState>(json["state"].getInt());
 		game = Game(json, binary_data);
 		size_t offset = json["offset"].getLong();
-		game_data_storage = GameDataStorage(binary_data, offset);
+		game_data_storage = GameDataStorage(binary_data, offset, 200);
 		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE or state == GAMEPLAY_EXPAND_AND_BACKUP)
 		{
 			prepare_search();
