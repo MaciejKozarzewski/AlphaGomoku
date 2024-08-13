@@ -18,9 +18,9 @@
 namespace ag
 {
 	template<typename T>
-	constexpr T clip(T value, T lower, T upper) noexcept
+	constexpr T clamp(T value, T lower, T upper) noexcept
 	{
-		assert(lower < upper);
+		assert(lower <= upper);
 		return std::min(upper, std::max(lower, value));
 	}
 

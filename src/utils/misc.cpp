@@ -172,7 +172,7 @@ namespace ag
 		assert(maxSimulations >= minSimulations);
 
 		constexpr float draw_threshold = 0.75f;
-		const float reduction_fraction = clip((drawRate - draw_threshold) / (1.0f - draw_threshold), 0.0f, 1.0f);
+		const float reduction_fraction = clamp((drawRate - draw_threshold) / (1.0f - draw_threshold), 0.0f, 1.0f);
 		return maxSimulations - reduction_fraction * (maxSimulations - minSimulations);
 	}
 

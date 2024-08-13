@@ -50,7 +50,7 @@ namespace
 			const float f = std::erf(x) - P;
 			const float df = 2.0f / std::sqrt(3.141592653589) * std::exp(-x * x);
 
-			const float new_x = x - clip(f / df, -1.0f, 1.0f);
+			const float new_x = x - clamp(f / df, -1.0f, 1.0f);
 			const float diff = std::abs(new_x - x);
 //			std::cout << "mean=" << mean << ", f=" << f << ", df=" << df << ", new mean=" << new_mean << " (" << diff << ")\n";
 
