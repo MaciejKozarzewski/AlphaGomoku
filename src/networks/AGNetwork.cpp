@@ -28,6 +28,7 @@
 #include <cassert>
 #include <cstring>
 #include <string>
+#include <bitset>
 
 namespace
 {
@@ -249,10 +250,6 @@ namespace ag
 	{
 		graph.moveTo(device);
 		reallocate_tensors();
-	}
-	ml::Shape AGNetwork::getInputShape() const
-	{
-		return graph.getInputShape();
 	}
 
 	int AGNetwork::getBatchSize() const noexcept

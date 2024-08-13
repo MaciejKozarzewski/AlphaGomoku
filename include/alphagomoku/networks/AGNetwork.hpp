@@ -100,7 +100,6 @@ namespace ag
 
 			virtual void synchronize();
 			virtual void moveTo(ml::Device device);
-			virtual ml::Shape getInputShape() const;
 
 			virtual int getBatchSize() const noexcept;
 			virtual void setBatchSize(int batchSize);

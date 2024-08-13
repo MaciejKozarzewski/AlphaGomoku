@@ -15,15 +15,6 @@
 
 #include <chrono>
 
-namespace
-{
-	bool is_square(const ml::Shape &shape)
-	{
-		assert(shape.rank() == 4);
-		return shape[1] == shape[2];
-	}
-}
-
 namespace ag
 {
 	NNEvaluatorStats::NNEvaluatorStats() :
@@ -101,7 +92,6 @@ namespace ag
 		get_network().moveTo(config.device);
 		get_network().convertToHalfFloats();
 		get_network().forward(1);
-		available_symmetries = 4 + 4 * static_cast<int>(is_square(get_network().getInputShape()));
 	}
 	void NNEvaluator::unloadGraph()
 	{
@@ -109,8 +99,9 @@ namespace ag
 	}
 	void NNEvaluator::addToQueue(SearchTask &task)
 	{
+		const int r = available_symmetries(get_network().getGameConfig().rows, get_network().getGameConfig().cols);
 		if (use_symmetries)
-			waiting_queue.push_back( { &task, randInt(available_symmetries) });
+			waiting_queue.push_back( { &task, randInt(r) });
 		else
 			waiting_queue.push_back( { &task, 0 });
 	}
@@ -219,7 +210,7 @@ namespace ag
 	void NNEvaluator::pack_to_network()
 	{
 		TimerGuard timer(stats.pack);
-		matrix<Sign> board(get_network().getInputShape()[1], get_network().getInputShape()[2]);
+		matrix<Sign> board(get_network().getGameConfig().rows, get_network().getGameConfig().cols);
 		for (size_t i = 0; i < in_progress_queue.size(); i++)
 		{
 			TaskData td = in_progress_queue.at(i);
@@ -238,8 +229,8 @@ namespace ag
 	void NNEvaluator::unpack_from_network()
 	{
 		TimerGuard timer(stats.unpack);
-		matrix<float> policy(get_network().getInputShape()[1], get_network().getInputShape()[2]);
-		matrix<Value> action_values(get_network().getInputShape()[1], get_network().getInputShape()[2]);
+		matrix<float> policy(get_network().getGameConfig().rows, get_network().getGameConfig().cols);
+		matrix<Value> action_values(get_network().getGameConfig().rows, get_network().getGameConfig().cols);
 		Value value;
 		for (size_t i = 0; i < in_progress_queue.size(); i++)
 		{

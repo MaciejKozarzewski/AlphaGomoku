@@ -110,7 +110,7 @@ namespace ag
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
-		const int batch_size = model.getInputShape().firstDim();
+		const int batch_size = model.getBatchSize();
 		const int rows = model.getGameConfig().rows;
 		const int cols = model.getGameConfig().cols;
 
@@ -150,7 +150,7 @@ namespace ag
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
-		const int batch_size = model.getInputShape().firstDim();
+		const int batch_size = model.getBatchSize();
 		const int rows = model.getGameConfig().rows;
 		const int cols = model.getGameConfig().cols;
 

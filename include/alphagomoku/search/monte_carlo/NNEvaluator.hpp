@@ -55,7 +55,6 @@ namespace ag
 			PerfEstimator perf_estimator;
 			NNEvaluatorStats stats;
 			bool use_symmetries = false;
-			int available_symmetries = 1;
 			DeviceConfig config;
 		public:
 			NNEvaluator(const DeviceConfig &cfg);
