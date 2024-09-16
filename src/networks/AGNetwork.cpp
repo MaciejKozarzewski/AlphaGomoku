@@ -350,7 +350,9 @@ namespace ag
 		static const BottleneckPVQ bottleneck_pvq;
 		static const ResnetPVQraw resnet_pvq_raw;
 		static const ResnetOld resnet_old;
+
 		static const Transformer transformer;
+		static const Transformer_v2 transformer_v2;
 
 		static const ResnetPVraw_v0 resnet_pv_raw_v0;
 		static const ResnetPVraw_v1 resnet_pv_raw_v1;
@@ -376,8 +378,11 @@ namespace ag
 			return std::make_unique<ResnetPVQraw>();
 		if (architecture == resnet_old.name())
 			return std::make_unique<ResnetOld>();
+
 		if (architecture == transformer.name())
 			return std::make_unique<Transformer>();
+		if (architecture == transformer_v2.name())
+			return std::make_unique<Transformer_v2>();
 
 		if (architecture == resnet_pv_raw_v0.name())
 			return std::make_unique<ResnetPVraw_v0>();

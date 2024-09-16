@@ -115,7 +115,7 @@ namespace ag
 	{
 		FileLoader fl(path, true);
 
-		const int format = (fl.getJson().hasKey("format")) ? fl.getJson()["format"].getInt() : 100;
+		const int format = fl.getJson().hasKey("format") ? fl.getJson()["format"].getInt() : 100;
 		game_config = GameConfig(fl.getJson()["config"]);
 
 		const Json &list_of_offsets = fl.getJson()["offsets"];

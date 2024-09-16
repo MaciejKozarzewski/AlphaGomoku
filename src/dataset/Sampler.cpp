@@ -55,7 +55,8 @@ namespace ag
 		const int game_index = buffer_and_game_ordering.at(counter).second;
 		const int sample_index = randInt(dataset->getBuffer(buffer_index).getGameData(game_index).numberOfSamples());
 
-		search_data_pack = SearchDataPack(dataset->getBuffer(buffer_index).getConfig().rows, dataset->getBuffer(buffer_index).getConfig().cols);
+		const GameConfig cfg = dataset->getBuffer(buffer_index).getConfig();
+		search_data_pack = SearchDataPack(cfg.rows, cfg.cols);
 		dataset->getBuffer(buffer_index).getGameData(game_index).getSample(search_data_pack, sample_index);
 		prepare_training_data(result, search_data_pack);
 

@@ -169,6 +169,7 @@ namespace ag
 			int steps_per_iteration = 1000;
 			int blocks = 2;
 			int filters = 32;
+			int patch_size = 1;
 			double l2_regularization = 1.0e-4;
 			double validation_percent = 0.05;
 			Parameter<double> learning_rate = 1.0e-3;

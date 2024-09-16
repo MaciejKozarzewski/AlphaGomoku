@@ -141,6 +141,7 @@ namespace ag
 			steps_per_iteration(get_value<int>(options, "steps_per_iteration")),
 			blocks(get_value<int>(options, "blocks")),
 			filters(get_value<int>(options, "filters")),
+			patch_size(get_value<int>(options, "patch_size", 1)),
 			l2_regularization(get_value<double>(options, "l2_regularization")),
 			validation_percent(get_value<double>(options, "validation_percent")),
 			learning_rate(options["learning_rate"]),
@@ -170,6 +171,7 @@ namespace ag
 		result["steps_per_iteration"] = steps_per_iteration;
 		result["blocks"] = blocks;
 		result["filters"] = filters;
+		result["patch_size"] = patch_size;
 		result["l2_regularization"] = l2_regularization;
 		result["validation_percent"] = validation_percent;
 		result["learning_rate"] = learning_rate.toJson();

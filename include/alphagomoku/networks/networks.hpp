@@ -141,6 +141,15 @@ namespace ag
 			void create_network(const TrainingConfig &trainingOptions);
 	};
 
+	class Transformer_v2: public AGNetwork
+	{
+		public:
+			Transformer_v2() noexcept;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_NETWORKS_NETWORKS_HPP_ */

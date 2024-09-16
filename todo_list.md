@@ -3,21 +3,7 @@
 All notable ideas will be documented in this file.
 
 ## dataset
-### Compressing the dataset
-- currently an entry has following structure:
-	bits	field			optimization possibilites
-	16	location		elsewhere in the code it is already assumed that board is at most 20x20 (9 bits)
-	16	visit_count		maybe we can assume at most 1023 visits (10 bits)
-	16	policy_prior		it depend on how many bits the CompressedFloat must have (9 or 10)
-	16	score			score is minimum 12 bits
-	16	win_rate		same as policy_prior (9 or 10)
-	16	draw_rate		same as policy_prior (9 or 10)
-	which sums up to 58, maybe we can remove draw_rate and keep only expectation Q value?
-	Or switch to some delta-base format?
-IMPORTANT:	Must be done at the same time as reducing bit-width of Score from 16 to 12 bits
-
 - investigate the impact of different samplers (especially the Q-values based sampler).
-
 
 ## game
 - nothing to be done here
