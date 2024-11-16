@@ -74,6 +74,7 @@ else()
 		target_link_libraries(${LibName} PUBLIC OpenCL clblast)
 	else()
 		target_link_libraries(${LibName} PUBLIC "${MINML_BACKEND_PATH}/build/cpu/Release/lib/libMinML_cpu.a")
+		target_compile_options(${LibName} PUBLIC -fPIC)
 	endif()
 endif()
 

@@ -13,6 +13,7 @@
 #include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/search/Score.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/utils/configs.hpp>
 
 namespace ag
 {
@@ -30,6 +31,7 @@ namespace ag
 			matrix<Score> action_scores;
 			Value minimax_value;
 			Score minimax_score;
+			int moves_left = 0;
 			GameOutcome game_outcome = GameOutcome::UNKNOWN;
 			Move played_move;
 
@@ -38,6 +40,7 @@ namespace ag
 			SearchDataPack(const Node &rootNode, const matrix<Sign> &board);
 			void clear();
 			void print() const;
+			int check_correctness() const noexcept;
 	};
 
 	struct TrainingDataPack
@@ -47,6 +50,8 @@ namespace ag
 			matrix<float> policy_target;
 			matrix<Value> action_values_target;
 			Value value_target;
+			Value minimax_target;
+			float moves_left = 0.0f;
 			Sign sign_to_move = Sign::NONE;
 
 			TrainingDataPack() noexcept = default;

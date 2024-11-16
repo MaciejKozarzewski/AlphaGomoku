@@ -57,13 +57,16 @@ namespace ag
 			information_leak_threshold(get_value<float>(cfg, "information_leak_threshold", Defaults::information_leak_threshold)),
 			initial_node_cache_size(get_value<int>(cfg, "initial_node_cache_size", Defaults::initial_node_cache_size)),
 			edge_bucket_size(get_value<int>(cfg, "edge_bucket_size", Defaults::edge_bucket_size)),
-			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size))
+			node_bucket_size(get_value<int>(cfg, "node_bucket_size", Defaults::node_bucket_size)),
+			weight_c(get_value<int>(cfg, "weight_c", 0.1f)),
+			min_uncertainty((get_value<int>(cfg, "min_uncertainty", 0.01f)))
 	{
 	}
 	Json TreeConfig::toJson() const
 	{
 		return Json( { { "information_leak_threshold", information_leak_threshold }, { "initial_node_cache_size", initial_node_cache_size }, {
-				"edge_bucket_size", edge_bucket_size }, { "node_bucket_size", node_bucket_size } });
+				"edge_bucket_size", edge_bucket_size }, { "node_bucket_size", node_bucket_size }, { "weight_c", weight_c }, { "min_uncertainty",
+				min_uncertainty } });
 	}
 
 	EdgeSelectorConfig::EdgeSelectorConfig(const Json &cfg) :

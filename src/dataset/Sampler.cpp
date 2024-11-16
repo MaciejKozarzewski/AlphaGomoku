@@ -81,6 +81,9 @@ namespace ag
 		result.visit_count = sample.visit_count;
 		result.value_target = convertOutcome(sample.game_outcome, sample.played_move.sign);
 		result.sign_to_move = sample.played_move.sign;
+		assert(sample.moves_left > 0);
+		result.moves_left = sample.moves_left;
+		result.minimax_target = sample.minimax_value.getExpectation();
 
 		for (int i = 0; i < sample.board.size(); i++)
 		{
@@ -121,6 +124,9 @@ namespace ag
 		result.value_target = convertOutcome(sample.game_outcome, sample.played_move.sign);
 		result.action_values_target.fill(Value::loss());
 		result.sign_to_move = sample.played_move.sign;
+		assert(sample.moves_left > 0);
+		result.moves_left = sample.moves_left;
+		result.minimax_target = sample.minimax_value.getExpectation();
 
 		int unvisited_actions_count = 0;
 		int max_N = 0.0;

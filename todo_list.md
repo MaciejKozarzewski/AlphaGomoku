@@ -1,12 +1,8 @@
-
 # TODO List
 All notable ideas will be documented in this file.
 
 ## dataset
 - investigate the impact of different samplers (especially the Q-values based sampler).
-
-## game
-- nothing to be done here
 
 ## networks
 - maybe implement nnue ops in assembly (after settling with final architecture)?
@@ -38,6 +34,3 @@ All notable ideas will be documented in this file.
 
 ## selfplay
 - refactor Evaluation so that different Players can be used.
-
-## utils
-- nothing to be done here

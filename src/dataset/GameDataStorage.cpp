@@ -106,6 +106,7 @@ namespace ag
 				result.played_move = played_moves.at(move_number);
 				for (int i = 0; i < move_number; i++)
 					Board::putMove(result.board, played_moves.at(i));
+				result.moves_left = numberOfMoves() - move_number;
 				break;
 			}
 			case 200:
@@ -115,6 +116,7 @@ namespace ag
 				result.played_move = Move(played_moves_v2.at(move_number));
 				for (int i = 0; i < move_number; i++)
 					Board::putMove(result.board, Move(played_moves_v2.at(i)));
+				result.moves_left = numberOfMoves() - move_number;
 				break;
 			}
 			default:

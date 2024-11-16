@@ -47,6 +47,17 @@ namespace
 				return Score();
 		}
 	}
+
+	Value get_valid_value(float winrate, float drawrate) noexcept
+	{
+		const float tmp = winrate + drawrate;
+		if (tmp > 1.0f)
+		{
+			winrate /= tmp;
+			drawrate /= tmp;
+		}
+		return Value(winrate, drawrate);
+	}
 }
 
 namespace ag
@@ -110,7 +121,7 @@ namespace ag
 			assert(pack.board.at(row, col) == Sign::NONE);
 			const int visits = storage[i].visit_count;
 			pack.visit_count.at(row, col) = storage[i].visit_count;
-			const Value q(storage[i].win_rate, storage[i].draw_rate);
+			const Value q = get_valid_value(storage[i].win_rate, storage[i].draw_rate);
 			pack.action_values.at(row, col) = q;
 			const Score s = storage[i].score;
 			pack.action_scores.at(row, col) = s;
@@ -128,7 +139,7 @@ namespace ag
 			pack.minimax_value = minimax_score.convertToValue();
 		}
 		else
-			pack.minimax_value = Value(win_rate / sum_visits, draw_rate / sum_visits);
+			pack.minimax_value = get_valid_value(win_rate / sum_visits, draw_rate / sum_visits);
 	}
 	void SearchDataStorage::serialize(SerializedObject &binary_data) const
 	{
@@ -238,7 +249,8 @@ namespace ag
 			const float visits = visit_format::to_fp32(storage[i].visit_count) * visit_scale + 0.5f;
 			pack.visit_count[current_idx] = visits;
 
-			const Value q(value_format::to_fp32(storage[i].win_rate) * value_scale, value_format::to_fp32(storage[i].draw_rate) * value_scale);
+			const Value q = get_valid_value(value_format::to_fp32(storage[i].win_rate) * value_scale,
+					value_format::to_fp32(storage[i].draw_rate) * value_scale);
 			pack.action_values[current_idx] = q;
 			pack.action_scores[current_idx] = int8_to_score(storage[i].score);
 			pack.policy_prior[current_idx] = policy_format::to_fp32(storage[i].policy_prior) * policy_scale;
@@ -255,7 +267,7 @@ namespace ag
 			pack.minimax_value = minimax_score.convertToValue();
 		}
 		else
-			pack.minimax_value = Value(win_rate / sum_visits, draw_rate / sum_visits);
+			pack.minimax_value = get_valid_value(win_rate / sum_visits, draw_rate / sum_visits);
 	}
 	void SearchDataStorage_v2::serialize(SerializedObject &binary_data) const
 	{
