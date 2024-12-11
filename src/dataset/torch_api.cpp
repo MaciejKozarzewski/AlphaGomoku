@@ -160,90 +160,6 @@ namespace ag
 		std::cout << get_dataset().getStats().toString() << '\n';
 	}
 
-	void get_tensor_sizes(Sample_t sample, TensorSize_t *input, TensorSize_t *visits, TensorSize_t *policy_prior, TensorSize_t *value_target,
-			TensorSize_t *minimax_value, TensorSize_t *minimax_score, TensorSize_t *moves_left, TensorSize_t *action_values,
-			TensorSize_t *action_scores)
-	{
-		const GameConfig cfg = get_dataset().getBuffer(sample.buffer_index).getConfig();
-		const int rows = cfg.rows;
-		const int columns = cfg.cols;
-
-		fill_tensor_size(input, { rows, columns, 32 });
-		fill_tensor_size(visits, { rows, columns, 1 });
-		fill_tensor_size(policy_prior, { rows, columns, 1 });
-		fill_tensor_size(value_target, { 3 });
-		fill_tensor_size(minimax_value, { 3 });
-		fill_tensor_size(minimax_score, { 1 });
-		fill_tensor_size(moves_left, { 1 });
-		fill_tensor_size(action_values, { rows, columns, 3 });
-		fill_tensor_size(action_scores, { rows, columns, 1 });
-	}
-	void load_data(Sample_t sample, float *input, float *visits, float *policy_prior, float *value_target, float *minimax_value, int *minimax_score,
-			int *moves_left, float *action_values, int *action_scores)
-	{
-		assert(input != nullptr);
-		assert(visits != nullptr);
-		assert(policy_prior != nullptr);
-		assert(value_target != nullptr);
-		assert(minimax_value != nullptr);
-		assert(minimax_score != nullptr);
-		assert(moves_left != nullptr);
-		assert(action_values != nullptr);
-		assert(action_scores != nullptr);
-
-		const GameConfig cfg = get_dataset().getBuffer(sample.buffer_index).getConfig();
-
-		SearchDataPack data(cfg.rows, cfg.cols);
-		get_dataset().getBuffer(sample.buffer_index).getGameData(sample.game_index).getSample(data, sample.sample_index);
-
-		assert(sample.augmentation < available_symmetries(data.board));
-		ag::augment(data.board, sample.augmentation);
-		ag::augment(data.visit_count, sample.augmentation);
-		ag::augment(data.policy_prior, sample.augmentation);
-		ag::augment(data.action_values, sample.augmentation);
-		ag::augment(data.action_scores, sample.augmentation);
-
-		const int rows = cfg.rows;
-		const int columns = cfg.cols;
-
-		PatternCalculator calc(cfg);
-		calc.setBoard(data.board, data.played_move.sign);
-		NNInputFeatures features(rows, columns);
-		features.encode(calc);
-
-		const Value qt = convertOutcome(data.game_outcome, data.played_move.sign);
-		value_target[0] = qt.win_rate;
-		value_target[1] = qt.draw_rate;
-		value_target[2] = qt.loss_rate();
-
-		minimax_value[0] = data.minimax_value.win_rate;
-		minimax_value[1] = data.minimax_value.draw_rate;
-		minimax_value[2] = data.minimax_value.loss_rate();
-
-		minimax_score[0] = Score::to_short(data.minimax_score);
-
-		moves_left[0] = data.moves_left;
-
-		for (int i = 0; i < rows * columns; i++)
-		{
-			uint32_t f = features[i];
-			for (int j = 0; j < 32; j++)
-			{
-				input[i * 32 + j] = (f & 1u) ? 1.0f : 0.0f;
-				f = (f >> 1u);
-			}
-			visits[i] = static_cast<float>(data.visit_count[i]);
-			policy_prior[i] = data.policy_prior[i];
-
-			const Value q = data.action_values[i];
-			action_values[i * 3 + 0] = q.win_rate;
-			action_values[i * 3 + 1] = q.draw_rate;
-			action_values[i * 3 + 2] = q.loss_rate();
-
-			action_scores[i] = Score::to_short(data.action_scores[i]);
-		}
-	}
-
 	void get_tensor_shapes(int batch_size, const Sample_t *samples, TensorSize_t *input, TensorSize_t *policy_target, TensorSize_t *value_target,
 			TensorSize_t *moves_left_target, TensorSize_t *action_values_target)
 	{
@@ -266,8 +182,8 @@ namespace ag
 		fill_tensor_size(moves_left_target, { batch_size, 1 });
 		fill_tensor_size(action_values_target, { batch_size, rows, columns, 3 });
 	}
-	void load_multiple_samples(int batch_size, const Sample_t *samples, float *input, float *policy_target, float *value_target,
-			float *moves_left_target, float *action_values_target)
+	void load_batch(int batch_size, const Sample_t *samples, float *input, float *policy_target, float *value_target, float *moves_left_target,
+			float *action_values_target)
 	{
 		assert(samples != nullptr);
 		assert(input != nullptr);

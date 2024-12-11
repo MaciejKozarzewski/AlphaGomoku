@@ -32,15 +32,10 @@ namespace ag
 		void unload_dataset_fragment(int i);
 		void print_dataset_info();
 		void get_dataset_size(TensorSize_t *shape, int *size);
-		void get_tensor_sizes(Sample_t sample, TensorSize_t *input, TensorSize_t *visits, TensorSize_t *policy_prior, TensorSize_t *value_target,
-				TensorSize_t *minimax_value, TensorSize_t *minimax_score, TensorSize_t *moves_left, TensorSize_t *action_values,
-				TensorSize_t *action_scores);
-		void load_data(Sample_t sample, float *input, float *visits, float *policy_prior, float *value_target, float *minimax_value,
-				int *minimax_score, int *moves_left, float *action_values, int *action_scores);
 
 		void get_tensor_shapes(int batch_size, const Sample_t *samples, TensorSize_t *input, TensorSize_t *policy_target, TensorSize_t *value_target,
 				TensorSize_t *moves_left_target, TensorSize_t *action_values_target);
-		void load_multiple_samples(int batch_size, const Sample_t *samples, float *input, float *policy_target, float *value_target, float *moves_left_target,
+		void load_batch(int batch_size, const Sample_t *samples, float *input, float *policy_target, float *value_target, float *moves_left_target,
 				float *action_values_target);
 
 #ifdef __cplusplus
