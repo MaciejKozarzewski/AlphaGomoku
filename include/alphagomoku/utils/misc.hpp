@@ -25,6 +25,11 @@ namespace ag
 
 namespace ag
 {
+	struct float3
+	{
+			float x, y, z;
+	};
+
 	template<typename T>
 	bool is_aligned(const void *ptr) noexcept
 	{

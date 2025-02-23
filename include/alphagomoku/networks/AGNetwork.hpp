@@ -9,8 +9,9 @@
 #define ALPHAGOMOKU_NETWORKS_AGNETWORK_HPP_
 
 #include <alphagomoku/game/Move.hpp>
-#include <alphagomoku/networks/NNInputFeatures.hpp>
+#include <alphagomoku/networks/NetworkDataPack.hpp>
 #include <alphagomoku/utils/matrix.hpp>
+#include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/configs.hpp>
 
 #include <minml/graph/Graph.hpp>
@@ -28,36 +29,22 @@ namespace ml
 
 namespace ag
 {
-	enum class GameOutcome;
 	struct Value;
 	class PatternCalculator;
+	class NNInputFeatures;
 } /* namespace ag */
 
 namespace ag
 {
-	struct float3
-	{
-			float x, y, z;
-	};
 
 	class AGNetwork
 	{
 		protected:
-			ml::Graph graph;
-			ml::Context context_on_cpu;
-
-			std::unique_ptr<ml::Tensor> input_on_cpu, input_on_device;
-			std::vector<ml::Tensor> outputs_on_cpu;
-			std::vector<ml::Tensor> targets_on_cpu;
-
 			GameConfig game_config;
-			const int POLICY_OUTPUT_INDEX = 0;
-			const int VALUE_OUTPUT_INDEX = 1;
-			const int ACTION_VALUES_OUTPUT_INDEX = 2;
+			ml::Graph graph;
+			ml::Tensor input_on_device;
 
-			std::unique_ptr<PatternCalculator> pattern_calculator; // lazily allocated on first use
-			NNInputFeatures input_features; // same as above
-			mutable std::vector<float3> workspace;
+			NetworkDataPack data_pack;
 		public:
 			AGNetwork() noexcept;
 			AGNetwork(const AGNetwork &other) = delete;
@@ -66,22 +53,27 @@ namespace ag
 			AGNetwork& operator=(AGNetwork &&other) = delete;
 			virtual ~AGNetwork() = default;
 
+			virtual std::string getOutputConfig() const = 0;
 			virtual std::string name() const = 0;
-			virtual std::vector<float> getAccuracy(int batchSize, int top_k = 4) const;
 
-			virtual void packInputData(int index, const matrix<Sign> &board, Sign signToMove);
+			std::vector<float> getAccuracy(int batchSize, int top_k = 4) const;
+			void packInputData(int index, const matrix<Sign> &board, Sign signToMove);
 			/*
 			 * \brief Can be used to pack the data if the features were already calculated.
 			 */
-			virtual void packInputData(int index, const NNInputFeatures &features);
-			virtual void packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value);
-			virtual void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const;
+			void packInputData(int index, const NNInputFeatures &features);
+			void packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value, int movesLeft);
+			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value, float &movesLeft) const;
 
-			virtual void asyncForwardLaunch(int batch_size);
-			virtual void asyncForwardJoin();
-			virtual void forward(int batch_size);
-			virtual void backward(int batch_size);
-			virtual std::vector<float> getLoss(int batch_size);
+			void asyncForwardLaunch(int batch_size, NetworkDataPack &pack);
+			void asyncForwardLaunch(int batch_size);
+			void asyncForwardJoin();
+			void forward(int batch_size, NetworkDataPack &pack);
+			void forward(int batch_size);
+			std::vector<float> backward(int batch_size, const NetworkDataPack &pack);
+			std::vector<float> backward(int batch_size);
+			std::vector<float> getLoss(int batch_size, const NetworkDataPack &pack);
+			std::vector<float> getLoss(int batch_size);
 
 			virtual void changeLearningRate(float lr);
 
@@ -105,12 +97,17 @@ namespace ag
 			virtual void setBatchSize(int batchSize);
 			GameConfig getGameConfig() const noexcept;
 			ml::Event addEvent() const;
+			ml::Graph& get_graph()
+			{
+				return graph;
+			}
+			const NetworkDataPack& getDataPack() const noexcept
+			{
+				return data_pack;
+			}
 		protected:
-			virtual ml::Shape get_input_encoding_shape() const;
-			virtual void pack_input_to_graph(int batchSize);
-			virtual PatternCalculator& get_pattern_calculator();
+			ml::Shape get_input_shape() const noexcept;
 			virtual void create_network(const TrainingConfig &trainingOptions) = 0;
-			virtual void reallocate_tensors();
 	};
 
 	std::unique_ptr<AGNetwork> createAGNetwork(const std::string &architecture);

@@ -27,7 +27,7 @@ namespace ag
 	template<typename T>
 	constexpr bool isPowerOf2(T x) noexcept
 	{
-		return (x > 0) && !(x & (x - 1));
+		return (x > 0) and not (x & (x - 1));
 	}
 	template<typename T>
 	constexpr T square(T x) noexcept

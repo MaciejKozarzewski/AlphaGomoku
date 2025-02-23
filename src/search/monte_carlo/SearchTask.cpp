@@ -69,8 +69,7 @@ namespace ag
 	void SearchTask::addEdge(Move move)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge)
-		{	return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;
@@ -98,6 +97,8 @@ namespace ag
 				result += "Value = " + value.toString() + '\n';
 			if (wasProcessedBySolver())
 				result += "Score = " + score.toString() + '\n';
+			result += "Uncertainty = " + std::to_string(value_uncertainty) + '\n';
+			result += "Moves left = " + std::to_string(moves_left) + '\n';
 			if (wasProcessedByNetwork())
 			{
 				result += "Policy:\n" + Board::toString(board, policy);

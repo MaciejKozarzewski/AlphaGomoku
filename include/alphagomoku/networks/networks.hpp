@@ -17,6 +17,7 @@ namespace ag
 	{
 		public:
 			ResnetPV() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -26,6 +27,7 @@ namespace ag
 	{
 		public:
 			ResnetPVraw() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -35,6 +37,7 @@ namespace ag
 	{
 		public:
 			ResnetPVQ() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -44,6 +47,7 @@ namespace ag
 	{
 		public:
 			BottleneckPV() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -52,6 +56,7 @@ namespace ag
 	{
 		public:
 			BottleneckPVraw() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -60,6 +65,7 @@ namespace ag
 	{
 		public:
 			BottleneckBroadcastPVraw() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -68,6 +74,7 @@ namespace ag
 	{
 		public:
 			BottleneckPoolingPVraw() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -76,6 +83,7 @@ namespace ag
 	{
 		public:
 			BottleneckPVQ() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -85,6 +93,7 @@ namespace ag
 	{
 		public:
 			ResnetPVQraw() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -94,8 +103,8 @@ namespace ag
 	{
 		public:
 			ResnetOld() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
-			ml::Graph& getGraph();
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
 	};
@@ -104,6 +113,7 @@ namespace ag
 	{
 		public:
 			ResnetPVraw_v0() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -113,6 +123,7 @@ namespace ag
 	{
 		public:
 			ResnetPVraw_v1() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);
@@ -122,22 +133,9 @@ namespace ag
 	{
 		public:
 			ResnetPVraw_v2() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
-			void create_network(const TrainingConfig &trainingOptions);
-	};
-
-	class Transformer: public AGNetwork
-	{
-			int patch_size = 2;
-		public:
-			Transformer() noexcept;
-			std::string name() const;
-			void packInputData(int index, const NNInputFeatures &features);
-			void packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value);
-			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value) const;
-		protected:
-			ml::Shape get_input_encoding_shape() const;
 			void create_network(const TrainingConfig &trainingOptions);
 	};
 
@@ -145,6 +143,47 @@ namespace ag
 	{
 		public:
 			Transformer_v2() noexcept;
+			std::string getOutputConfig() const;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
+	class ConvUnet: public AGNetwork
+	{
+		public:
+			ConvUnet() noexcept;
+			std::string getOutputConfig() const;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
+	class TransformerUnet: public AGNetwork
+	{
+		public:
+			TransformerUnet() noexcept;
+			std::string getOutputConfig() const;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
+	class BottleneckPVUM: public AGNetwork
+	{
+		public:
+			BottleneckPVUM() noexcept;
+			std::string getOutputConfig() const;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
+	class ConvNextPVraw: public AGNetwork
+	{
+		public:
+			ConvNextPVraw() noexcept;
+			std::string getOutputConfig() const;
 			std::string name() const;
 		protected:
 			void create_network(const TrainingConfig &trainingOptions);

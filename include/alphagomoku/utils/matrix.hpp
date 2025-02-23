@@ -47,7 +47,7 @@ namespace ag
 			{
 				m_data.assign(m_data.size(), T { });
 			}
-			void fill(const T& value)
+			void fill(const T &value)
 			{
 				m_data.assign(m_data.size(), value);
 			}
@@ -146,6 +146,12 @@ namespace ag
 				return not (lhs == rhs);
 			}
 	};
+
+	template<typename T>
+	matrix<T> empty_like(const matrix<T> &x)
+	{
+		return matrix<T>(x.rows(), x.cols());
+	}
 
 } /* namespace ag */
 

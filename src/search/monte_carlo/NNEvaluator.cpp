@@ -232,13 +232,16 @@ namespace ag
 		matrix<float> policy(get_network().getGameConfig().rows, get_network().getGameConfig().cols);
 		matrix<Value> action_values(get_network().getGameConfig().rows, get_network().getGameConfig().cols);
 		Value value;
+		float moves_left;
 		for (size_t i = 0; i < in_progress_queue.size(); i++)
 		{
 			TaskData td = in_progress_queue.at(i);
-			get_network().unpackOutput(i, policy, action_values, value);
+			get_network().unpackOutput(i, policy, action_values, value, moves_left);
 			augment(td.ptr->getPolicy(), policy, -td.symmetry);
 			augment(td.ptr->getActionValues(), action_values, -td.symmetry); // TODO silently assuming that action values come from TSS
 			td.ptr->setValue(value);
+			if (td.ptr->getScore().isUnproven())
+				td.ptr->setMovesLeft(moves_left);
 			td.ptr->markAsProcessedByNetwork();
 		}
 	}

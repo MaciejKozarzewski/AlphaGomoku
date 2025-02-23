@@ -29,6 +29,8 @@ namespace ag
 			Edge *edges = nullptr; // may be owning or not
 			Value value;
 			float variance = 0.0f;
+			float sum_weights = 0.0f;
+			float moves_left = 0.0f;
 			int32_t visits = 0;
 			Score score;
 			int16_t number_of_edges = 0;
@@ -53,6 +55,8 @@ namespace ag
 					edges(nullptr),
 					value(other.value),
 					variance(other.variance),
+					sum_weights(other.sum_weights),
+					moves_left(other.moves_left),
 					visits(other.visits),
 					score(other.score),
 					number_of_edges(0),
@@ -67,6 +71,8 @@ namespace ag
 					edges(other.edges),
 					value(other.value),
 					variance(other.variance),
+					sum_weights(other.sum_weights),
+					moves_left(other.moves_left),
 					visits(other.visits),
 					score(other.score),
 					number_of_edges(other.number_of_edges),
@@ -84,6 +90,8 @@ namespace ag
 				edges = nullptr;
 				value = other.value;
 				variance = other.variance;
+				sum_weights = other.sum_weights;
+				moves_left = other.moves_left;
 				visits = other.visits;
 				score = other.score;
 				number_of_edges = 0;
@@ -99,6 +107,8 @@ namespace ag
 				std::swap(this->edges, other.edges);
 				std::swap(this->value, other.value);
 				std::swap(this->variance, other.variance);
+				std::swap(this->sum_weights, other.sum_weights);
+				std::swap(this->moves_left, other.moves_left);
 				std::swap(this->visits, other.visits);
 				std::swap(this->score, other.score);
 				std::swap(this->number_of_edges, other.number_of_edges);
@@ -117,6 +127,9 @@ namespace ag
 			void clear() noexcept
 			{
 				value = Value();
+				variance = 0.0f;
+				sum_weights = 0.0f;
+				moves_left = 0.0f;
 				visits = 0;
 				score = Score();
 				depth = 0;
@@ -182,12 +195,15 @@ namespace ag
 			}
 			float getVariance() const noexcept
 			{
-				assert(getVisits() >= 2);
-				return variance / static_cast<float>(getVisits() - 1);
+				return (getVisits() >= 2) ? (variance / (sum_weights - 1.0f)) : 0.0f;
 			}
 			float getExpectation() const noexcept
 			{
 				return getValue().getExpectation();
+			}
+			float getMovesLeft() const noexcept
+			{
+				return moves_left;
 			}
 			int getVisits() const noexcept
 			{
@@ -261,15 +277,20 @@ namespace ag
 				assert(value.isValid());
 				this->value = value;
 			}
-			void updateValue(Value eval) noexcept
+			void updateValue(Value eval, float weight = 1.0f) noexcept
 			{
 				visits++;
-				const float tmp = 1.0f / static_cast<float>(visits);
+				sum_weights += weight;
+				const float tmp = weight / sum_weights;
 				const float delta = eval.getExpectation() - value.getExpectation();
 
 				value += (eval - value) * tmp;
 				value.clipToBounds();
-				variance += delta * (eval.getExpectation() - value.getExpectation());
+				variance += weight * delta * (eval.getExpectation() - value.getExpectation());
+			}
+			void updateMovesLeft(float ml) noexcept
+			{
+				moves_left += (ml - moves_left) / getVisits(); // assuming that visit count has been already increased by 1
 			}
 			void setScore(Score s) noexcept
 			{

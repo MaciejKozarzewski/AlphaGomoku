@@ -24,13 +24,11 @@ namespace ag
 	{
 			static constexpr uint16_t is_being_expanded = 0x8000u;
 
-//			static constexpr int nb_bins = 10;
-//			int histogram[nb_bins];
-//			float variance = 0.0f;
-
 			float policy_prior = 0.0f;
 			Value value;
 			int32_t visits = 0;
+			float sum_weights = 0.0f;
+//			float variance = 0.0f;
 			Move move;
 			Score score;
 			uint16_t flag_and_virtual_loss = 0u;
@@ -44,14 +42,10 @@ namespace ag
 				flag_and_virtual_loss = (flag_and_virtual_loss & is_being_expanded) | (vl & (~is_being_expanded));
 			}
 		public:
-			Edge() noexcept
-			{
-//				std::memset(histogram, 0, sizeof(int) * nb_bins);
-			}
+			Edge() noexcept = default;
 			Edge(Move m) noexcept :
 					move(m)
 			{
-//				std::memset(histogram, 0, sizeof(int) * nb_bins);
 			}
 
 			float getPolicyPrior() const noexcept
@@ -77,8 +71,8 @@ namespace ag
 			float getVariance() const noexcept
 			{
 //				assert(getVisits() >= 2);
-//				return variance / static_cast<float>(getVisits() - 1);
-				return 0.0;
+//				return variance / (sum_weights - 1.0f);
+				return 0.0f;
 			}
 			float getExpectation() const noexcept
 			{
@@ -122,15 +116,16 @@ namespace ag
 				assert(value.isValid());
 				this->value = value;
 			}
-			void updateValue(Value eval) noexcept
+			void updateValue(Value eval, float weight = 1.0f) noexcept
 			{
 				visits++;
-				const float tmp = 1.0f / static_cast<float>(visits);
+				sum_weights += weight;
+				const float tmp = weight / sum_weights;
 //				const float delta = eval.getExpectation() - value.getExpectation();
 
 				value += (eval - value) * tmp;
 				value.clipToBounds();
-//				variance += delta * (eval.getExpectation() - value.getExpectation());
+//				variance += weight * delta * (eval.getExpectation() - value.getExpectation());
 			}
 			void setMove(Move m) noexcept
 			{

@@ -50,6 +50,9 @@ namespace ag
 			matrix<Score> action_scores; /**< matrix of action scores returned from solver */
 			Score score; /**< whole position score computed by solver */
 
+			float moves_left = 0.0f;
+			float value_uncertainty = 0.0f;
+
 			Node *final_node = nullptr;
 			GameConfig game_config;
 			Sign sign_to_move = Sign::NONE;
@@ -134,6 +137,14 @@ namespace ag
 			{
 				return score;
 			}
+			float getUncertainty() const noexcept
+			{
+				return value_uncertainty;
+			}
+			float getMovesLeft() const noexcept
+			{
+				return moves_left;
+			}
 			bool wasProcessedByNetwork() const noexcept
 			{
 				return was_processed_by_network;
@@ -216,6 +227,15 @@ namespace ag
 			void setScore(Score s) noexcept
 			{
 				score = s;
+			}
+
+			void setMovesLeft(float ml) noexcept
+			{
+				moves_left = ml;
+			}
+			void setValueUncertainty(float u) noexcept
+			{
+				value_uncertainty = u;
 			}
 
 			void addDefensiveMove(Move move);

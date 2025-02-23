@@ -260,6 +260,7 @@ namespace ag
 			for (int i = 0; i < number_of_edges; i++)
 				node_to_add->getEdge(i) = task.getEdges()[i];
 			node_to_add->updateValue(task.getValue()); // 'updateValue' is called because it increases visit count from 0 to 1 ('setValue' doesn't do that)
+			node_to_add->updateMovesLeft(task.getMovesLeft());
 
 			if (task.mustDefend() or (node_to_add->numberOfEdges() + node_to_add->getDepth()) == task.getBoard().size())
 				node_to_add->markAsFullyExpanded();
@@ -289,6 +290,8 @@ namespace ag
 	{
 		assert(task.isReady());
 
+//		const float weight = config.weight_c / std::max(config.min_uncertainty, task.getUncertainty());
+		float moves_left = task.getMovesLeft();
 		Value value = task.getValue();
 		for (int i = task.visitedPathLength() - 1; i >= 0; i--)
 		{
@@ -319,6 +322,10 @@ namespace ag
 
 			pair.node->updateValue(value);
 			pair.edge->updateValue(value);
+
+			pair.node->updateMovesLeft(moves_left);
+			moves_left += 1.0f;
+
 //			pair.edge->updateDistribution(value);
 			update_score(pair.edge, next_node);
 			update_score(pair.node);
