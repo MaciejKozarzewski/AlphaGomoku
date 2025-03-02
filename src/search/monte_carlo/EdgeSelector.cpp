@@ -113,7 +113,7 @@ namespace
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
 			{
-				const float Q = edge.sampleFromDistribution();
+				const float Q = 0; //edge.sampleFromDistribution();
 				const float U = 10.0f * externalPrior / (1.0f + edge.getVisits() + edge.getVirtualLoss());
 //				const float U = externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());
 //				const float U = 0.0f;
@@ -131,13 +131,13 @@ namespace
 			ThompsonSamplingNormal(const Node *parent, float explorationConstant) noexcept :
 					parent_sqrt_visit(explorationConstant * std::sqrt(parent->getVisits() + parent->getVirtualLoss()))
 			{
-				for (auto edge = parent->begin(); edge < parent->end(); edge++)
-					if (edge->getExpectation() > best_mean)
-					{
-						best_mean = edge->getExpectation();
-						if (edge->getVisits() >= 2)
-							best_variance = edge->getVariance();
-					}
+//				for (auto edge = parent->begin(); edge < parent->end(); edge++)
+//					if (edge->getExpectation() > best_mean)
+//					{
+//						best_mean = edge->getExpectation();
+//						if (edge->getVisits() >= 2)
+//							best_variance = edge->getVariance();
+//					}
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
 			{
@@ -157,7 +157,7 @@ namespace
 
 				const int N = edge.getVisits();
 				const float mean = (N >= 1) ? (edge.getExpectation() * getVirtualLoss(edge)) : fit_mean(edge.getPolicyPrior());
-				const float variance = (N >= 2) ? edge.getVariance() : prior_variance;
+				const float variance = 0; //(N >= 2) ? edge.getVariance() : prior_variance;
 //				std::cout << "using mean = " << mean << ", variance = " << variance << '\n';
 
 				const float U = externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());
@@ -282,13 +282,13 @@ namespace
 					parent_visits(parent->getVisits()),
 					parent_sqrt_visit(explorationConstant * std::sqrt(parent->getVisits() + parent->getVirtualLoss()))
 			{
-				for (auto edge = parent->begin(); edge < parent->end(); edge++)
-					if (edge->getExpectation() > best_mean)
-					{
-						best_mean = edge->getExpectation();
-						if (edge->getVisits() >= 2)
-							best_variance = edge->getVariance();
-					}
+//				for (auto edge = parent->begin(); edge < parent->end(); edge++)
+//					if (edge->getExpectation() > best_mean)
+//					{
+//						best_mean = edge->getExpectation();
+//						if (edge->getVisits() >= 2)
+//							best_variance = edge->getVariance();
+//					}
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
 			{
@@ -306,7 +306,7 @@ namespace
 				}
 				const int N = edge.getVisits();
 				const float mean = (N >= 1) ? (edge.getExpectation() * getVirtualLoss(edge)) : fit_mean(edge.getPolicyPrior());
-				const float variance = (N >= 2) ? edge.getVariance() : prior_variance;
+				const float variance = 0; // (N >= 2) ? edge.getVariance() : prior_variance;
 //				std::cout << "using mean = " << mean << ", variance = " << variance << '\n';
 
 				const float U = 0.0f; //externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());

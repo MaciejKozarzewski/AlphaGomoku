@@ -27,8 +27,6 @@ namespace ag
 			float policy_prior = 0.0f;
 			Value value;
 			int32_t visits = 0;
-			float sum_weights = 0.0f;
-//			float variance = 0.0f;
 			Move move;
 			Score score;
 			uint16_t flag_and_virtual_loss = 0u;
@@ -67,12 +65,6 @@ namespace ag
 			Value getValue() const noexcept
 			{
 				return value;
-			}
-			float getVariance() const noexcept
-			{
-//				assert(getVisits() >= 2);
-//				return variance / (sum_weights - 1.0f);
-				return 0.0f;
 			}
 			float getExpectation() const noexcept
 			{
@@ -116,16 +108,12 @@ namespace ag
 				assert(value.isValid());
 				this->value = value;
 			}
-			void updateValue(Value eval, float weight = 1.0f) noexcept
+			void updateValue(Value eval) noexcept
 			{
 				visits++;
-				sum_weights += weight;
-				const float tmp = weight / sum_weights;
-//				const float delta = eval.getExpectation() - value.getExpectation();
-
+				const float tmp = 1.0f / getVisits();
 				value += (eval - value) * tmp;
 				value.clipToBounds();
-//				variance += weight * delta * (eval.getExpectation() - value.getExpectation());
 			}
 			void setMove(Move m) noexcept
 			{
@@ -163,8 +151,6 @@ namespace ag
 			}
 
 			std::string toString() const;
-			float sampleFromDistribution() const noexcept;
-			void updateDistribution(Value eval) noexcept;
 	};
 
 	template<class Op>

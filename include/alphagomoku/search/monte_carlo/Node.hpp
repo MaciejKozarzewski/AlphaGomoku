@@ -28,8 +28,6 @@ namespace ag
 
 			Edge *edges = nullptr; // may be owning or not
 			Value value;
-			float variance = 0.0f;
-			float sum_weights = 0.0f;
 			float moves_left = 0.0f;
 			int32_t visits = 0;
 			Score score;
@@ -54,8 +52,6 @@ namespace ag
 			Node(const Node &other) noexcept :
 					edges(nullptr),
 					value(other.value),
-					variance(other.variance),
-					sum_weights(other.sum_weights),
 					moves_left(other.moves_left),
 					visits(other.visits),
 					score(other.score),
@@ -70,8 +66,6 @@ namespace ag
 			Node(Node &&other) noexcept :
 					edges(other.edges),
 					value(other.value),
-					variance(other.variance),
-					sum_weights(other.sum_weights),
 					moves_left(other.moves_left),
 					visits(other.visits),
 					score(other.score),
@@ -89,8 +83,6 @@ namespace ag
 			{
 				edges = nullptr;
 				value = other.value;
-				variance = other.variance;
-				sum_weights = other.sum_weights;
 				moves_left = other.moves_left;
 				visits = other.visits;
 				score = other.score;
@@ -106,8 +98,6 @@ namespace ag
 			{
 				std::swap(this->edges, other.edges);
 				std::swap(this->value, other.value);
-				std::swap(this->variance, other.variance);
-				std::swap(this->sum_weights, other.sum_weights);
 				std::swap(this->moves_left, other.moves_left);
 				std::swap(this->visits, other.visits);
 				std::swap(this->score, other.score);
@@ -127,8 +117,6 @@ namespace ag
 			void clear() noexcept
 			{
 				value = Value();
-				variance = 0.0f;
-				sum_weights = 0.0f;
 				moves_left = 0.0f;
 				visits = 0;
 				score = Score();
@@ -192,10 +180,6 @@ namespace ag
 			Value getValue() const noexcept
 			{
 				return value;
-			}
-			float getVariance() const noexcept
-			{
-				return (getVisits() >= 2) ? (variance / (sum_weights - 1.0f)) : 0.0f;
 			}
 			float getExpectation() const noexcept
 			{
@@ -277,16 +261,12 @@ namespace ag
 				assert(value.isValid());
 				this->value = value;
 			}
-			void updateValue(Value eval, float weight = 1.0f) noexcept
+			void updateValue(Value eval) noexcept
 			{
 				visits++;
-				sum_weights += weight;
-				const float tmp = weight / sum_weights;
-				const float delta = eval.getExpectation() - value.getExpectation();
-
+				const float tmp = 1.0 / getVisits();
 				value += (eval - value) * tmp;
 				value.clipToBounds();
-				variance += weight * delta * (eval.getExpectation() - value.getExpectation());
 			}
 			void updateMovesLeft(float ml) noexcept
 			{

@@ -40,7 +40,6 @@ namespace ag
 		result += " : moves left=" + std::to_string(getMovesLeft());
 		result += " : S=" + getScore().toFormattedString();
 		result += " : Q=" + getValue().toString();
-		result += " : Var=" + std::to_string(getVariance());
 		result += " : Visits=" + std::to_string(getVisits());
 #ifndef NDEBUG
 		result += " (" + std::to_string(getVirtualLoss()) + ")";
