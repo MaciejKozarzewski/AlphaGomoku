@@ -89,12 +89,28 @@ namespace ag
 		{
 			first_nn_evaluator.asyncEvaluateGraphJoin();
 			for (size_t i = 0; i < evaluators.size(); i++)
+			{
 				evaluators[i]->generate(1);
+				if (first_nn_evaluator.isQueueFull())
+				{
+					first_nn_evaluator.asyncEvaluateGraphJoin();
+					first_nn_evaluator.asyncEvaluateGraphLaunch();
+				}
+			}
+			first_nn_evaluator.asyncEvaluateGraphJoin();
 			first_nn_evaluator.asyncEvaluateGraphLaunch();
 
 			second_nn_evaluator.asyncEvaluateGraphJoin();
 			for (size_t i = 0; i < evaluators.size(); i++)
+			{
 				evaluators[i]->generate(2);
+				if (second_nn_evaluator.isQueueFull())
+				{
+					second_nn_evaluator.asyncEvaluateGraphJoin();
+					second_nn_evaluator.asyncEvaluateGraphLaunch();
+				}
+			}
+			second_nn_evaluator.asyncEvaluateGraphJoin();
 			second_nn_evaluator.asyncEvaluateGraphLaunch();
 		}
 		first_nn_evaluator.asyncEvaluateGraphJoin();
