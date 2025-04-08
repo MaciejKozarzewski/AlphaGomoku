@@ -63,6 +63,32 @@ namespace ag
 				int get_row_index(Location loc) const noexcept;
 		};
 
+		class TrainingNNUE_policy
+		{
+				GameConfig game_config;
+				ml::Graph model;
+				std::vector<float> input_on_cpu, target_on_cpu;
+				PatternCalculator calculator;
+			public:
+				TrainingNNUE_policy(GameConfig gameConfig, int batchSize, const std::string &path);
+				TrainingNNUE_policy(GameConfig gameConfig, std::initializer_list<int> arch, int batchSize);
+				void packInputData(int index, const matrix<Sign> &board, Sign signToMove);
+				void packTargetData(int index, const matrix<float> &policyTarget);
+				void unpackOutput(int index, matrix<float> &policy) const;
+				void forward(int batchSize);
+				float backward(int batchSize);
+				void setLearningRate(float lr);
+				void learn();
+				void save(const std::string &path) const;
+				void load(const std::string &path);
+				/*
+				 * Optimize the network, perform quantization, pack weights into appropriate format and dump.
+				 */
+				NNUEWeights dump();
+			private:
+				int get_row_index(Location loc) const noexcept;
+		};
+
 		struct NNUEStats
 		{
 				TimedStat refresh;

@@ -128,6 +128,22 @@ namespace ag
 	};
 
 	/**
+	 * @brief PUCT edge selector that optimizes P(win) + 0.5 * P(draw).
+	 */
+	class PUCTvarianceSelector: public EdgeSelector
+	{
+		private:
+			std::vector<float> noisy_policy;
+			const std::string noise_type;
+			const float noise_weight;
+			const float exploration_constant; /**< controls the level of exploration */
+		public:
+			PUCTvarianceSelector(const EdgeSelectorConfig &config);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
+	};
+
+	/**
 	 * @brief Upper Confidence Bound edge selector.
 	 */
 	class UCBSelector: public EdgeSelector

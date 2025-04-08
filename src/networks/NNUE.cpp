@@ -20,6 +20,8 @@
 #include <minml/utils/serialization.hpp>
 #include <minml/core/Device.hpp>
 #include <minml/layers/Dense.hpp>
+#include <minml/layers/Conv2D.hpp>
+#include <minml/layers/Softmax.hpp>
 #include <minml/layers/BatchNormalization.hpp>
 #include <minml/graph/graph_optimizers.hpp>
 
@@ -99,6 +101,7 @@ namespace ag
 				calculator(gameConfig)
 		{
 			load(path);
+
 			model.setInputShape(ml::Shape( { batchSize, model.getInputShape().lastDim() }));
 			input_on_cpu = std::vector<float>(model.getInputShape().volume());
 			target_on_cpu = std::vector<float>(model.getOutputShape().volume());
@@ -117,12 +120,12 @@ namespace ag
 			}
 			assert(arch.begin()[arch.size() - 1] == 1);
 			x = model.add(ml::Dense(1, "sigmoid"), x);
-			model.addOutput(x);
+			model.addOutput(x, ml::CrossEntropyLoss());
 
 			model.init();
-			model.setOptimizer(ml::Optimizer());
-			model.setRegularizer(ml::Regularizer(1.0e-5f));
-			model.setLearningRate(1.0e-3f);
+			model.setOptimizer(ml::RAdam());
+//			model.setRegularizer(ml::RegularizerL2(1.0e-5f));
+			model.getOptimizer().setLearningRate(1.0e-3f);
 			model.moveTo(ml::Device::cuda(0));
 
 			input_on_cpu = std::vector<float>(model.getInputShape().volume());
@@ -161,7 +164,7 @@ namespace ag
 		void TrainingNNUE::forward(int batchSize)
 		{
 			model.getInput().copyFromHost(model.context(), input_on_cpu.data(), sizeof(float) * input_on_cpu.size());
-			model.forward(batchSize);
+			model.predict(batchSize);
 //			std::cout << '\n';
 //			for (int i = 0; i < 64; i++)
 //				std::cout << model.getNode(1).getOutputTensor().get( { 0, i }) << ' ';
@@ -176,16 +179,15 @@ namespace ag
 		float TrainingNNUE::backward(int batchSize)
 		{
 			model.getTarget().copyFromHost(model.context(), target_on_cpu.data(), sizeof(float) * target_on_cpu.size());
-			model.backward(batchSize);
+			model.train(batchSize);
 			return model.getLoss(batchSize).at(0);
 		}
 		void TrainingNNUE::setLearningRate(float lr)
 		{
-			model.setLearningRate(lr);
+			model.getOptimizer().setLearningRate(lr);
 		}
 		void TrainingNNUE::learn()
 		{
-			model.learn();
 		}
 		void TrainingNNUE::save(const std::string &path) const
 		{
@@ -201,7 +203,7 @@ namespace ag
 		}
 		NNUEWeights TrainingNNUE::dump()
 		{
-			model.makeNonTrainable();
+			model.makeTrainable(false);
 			ml::FoldBatchNorm().optimize(model);
 
 			NNUEWeights result;
@@ -282,6 +284,212 @@ namespace ag
 		int TrainingNNUE::get_row_index(Location loc) const noexcept
 		{
 			return 1 + (loc.row * game_config.cols + loc.col) * 16;
+		}
+
+		/*
+		 * TrainingNNUE_policy
+		 */
+		TrainingNNUE_policy::TrainingNNUE_policy(GameConfig gameConfig, int batchSize, const std::string &path) :
+				game_config(gameConfig),
+				calculator(gameConfig)
+		{
+			load(path);
+			model.makeTrainable(false);
+			ml::FoldBatchNorm().optimize(model);
+			model.moveTo(ml::Device::cpu());
+
+			model.setInputShape( { batchSize, gameConfig.rows, gameConfig.cols, 16 });
+			input_on_cpu = std::vector<float>(model.getInputShape().volume());
+			target_on_cpu = std::vector<float>(model.getOutputShape().volume());
+		}
+		TrainingNNUE_policy::TrainingNNUE_policy(GameConfig gameConfig, std::initializer_list<int> arch, int batchSize) :
+				game_config(gameConfig),
+				calculator(gameConfig)
+		{
+			auto x = model.addInput( { batchSize, gameConfig.rows, gameConfig.cols, 16 });
+			x = model.add(ml::Conv2D(arch.begin()[0], 5, "linear").useBias(false), x);
+			x = model.add(ml::BatchNormalization("relu").useGamma(false), x);
+
+			for (size_t i = 1; i < arch.size() - 1; i++)
+			{
+				x = model.add(ml::Conv2D(arch.begin()[i], 1, "linear").useBias(false), x);
+				x = model.add(ml::BatchNormalization("relu").useGamma(false), x);
+			}
+			assert(arch.begin()[arch.size() - 1] == 1);
+			x = model.add(ml::Conv2D(1, 1), x);
+			x = model.add(ml::Softmax( { 1, 2, 3 }), x);
+			model.addOutput(x, ml::CrossEntropyLoss());
+
+			model.init();
+			model.setOptimizer(ml::RAdam());
+//			model.setRegularizer(ml::RegularizerL2(1.0e-5f));
+			model.getOptimizer().setLearningRate(1.0e-3f);
+			model.moveTo(ml::Device::cuda(1));
+
+			input_on_cpu = std::vector<float>(model.getInputShape().volume());
+			target_on_cpu = std::vector<float>(model.getOutputShape().volume());
+		}
+		void TrainingNNUE_policy::packInputData(int index, const matrix<Sign> &board, Sign signToMove)
+		{
+			calculator.setBoard(board, signToMove);
+			const int inputs = model.getInputShape().volumeWithoutFirstDim();
+			float *tensor = input_on_cpu.data() + index * inputs;
+			std::memset(tensor, 0, sizeof(float) * inputs);
+
+			int offset[2] = { 0, 7 };
+			for (ThreatType tt = ThreatType::OPEN_3; tt <= ThreatType::FIVE; tt = increment_threat_type(tt))
+			{
+				const int cross_offset = offset[signToMove == Sign::CROSS];
+				const LocationList &cross_threats = calculator.getThreatHistogram(Sign::CROSS).get(tt);
+				for (auto iter = cross_threats.begin(); iter < cross_threats.end(); iter++)
+					tensor[get_row_index(*iter) + cross_offset + static_cast<int>(tt) - 2] = 1.0f;
+
+				const int circle_offset = offset[signToMove == Sign::CIRCLE];
+				const LocationList &circle_threats = calculator.getThreatHistogram(Sign::CIRCLE).get(tt);
+				for (auto iter = circle_threats.begin(); iter < circle_threats.end(); iter++)
+					tensor[get_row_index(*iter) + circle_offset + static_cast<int>(tt) - 2] = 1.0f;
+			}
+			for (int i = 0; i < board.size(); i++)
+			{
+				if (board[i] != Sign::NONE)
+					tensor[16 * i + 14 + static_cast<int>(board[i] == signToMove)] = 1.0f;
+			}
+		}
+		void TrainingNNUE_policy::packTargetData(int index, const matrix<float> &policyTarget)
+		{
+			const int outputs = model.getOutputShape().volumeWithoutFirstDim();
+			float *tensor = target_on_cpu.data() + index * outputs;
+			std::memcpy(tensor, policyTarget.data(), sizeof(float) * outputs);
+		}
+		void TrainingNNUE_policy::unpackOutput(int index, matrix<float> &policy) const
+		{
+			const int outputs = model.getOutputShape().volumeWithoutFirstDim();
+			const float *tensor = reinterpret_cast<const float*>(model.getOutput().data()) + index * outputs;
+			std::memcpy(policy.data(), tensor, sizeof(float) * outputs);
+		}
+		void TrainingNNUE_policy::forward(int batchSize)
+		{
+			model.getInput().copyFromHost(model.context(), input_on_cpu.data(), sizeof(float) * input_on_cpu.size());
+			model.predict(batchSize);
+//			std::cout << '\n';
+//			for (int i = 0; i < 64; i++)
+//				std::cout << model.getNode(1).getOutputTensor().get( { 0, i }) << ' ';
+//			std::cout << '\n';
+//			for (int i = 0; i < 16; i++)
+//				std::cout << model.getNode(2).getOutputTensor().get( { 0, i }) << ' ';
+//			std::cout << '\n';
+//			for (int i = 0; i < 16; i++)
+//				std::cout << model.getNode(3).getOutputTensor().get( { 0, i }) << ' ';
+//			std::cout << '\n' << '\n';
+		}
+		float TrainingNNUE_policy::backward(int batchSize)
+		{
+			model.getTarget().copyFromHost(model.context(), target_on_cpu.data(), sizeof(float) * target_on_cpu.size());
+			model.train(batchSize);
+			return model.getLoss(batchSize).at(0);
+		}
+		void TrainingNNUE_policy::setLearningRate(float lr)
+		{
+			model.getOptimizer().setLearningRate(lr);
+		}
+		void TrainingNNUE_policy::learn()
+		{
+		}
+		void TrainingNNUE_policy::save(const std::string &path) const
+		{
+			SerializedObject so;
+			const Json json = model.save(so);
+			FileSaver fs(path);
+			fs.save(json, so, 2);
+		}
+		void TrainingNNUE_policy::load(const std::string &path)
+		{
+			FileLoader fl(path);
+			model.load(fl.getJson(), fl.getBinaryData());
+		}
+		NNUEWeights TrainingNNUE_policy::dump()
+		{
+			model.makeTrainable(false);
+			ml::FoldBatchNorm().optimize(model);
+
+			NNUEWeights result;
+
+			std::vector<float> scales;
+			{ // first layer
+				const ml::Tensor &weights = model.getNode(1).getLayer().getWeights().getParam();
+				const ml::Tensor &bias = model.getNode(1).getLayer().getBias().getParam();
+				scales = get_scales(weights, 127);
+
+				const int neurons = weights.firstDim();
+				const int inputs = weights.lastDim();
+				result.layer_0 = NnueLayer<int8_t, int16_t>(inputs, neurons);
+				int idx = 0;
+				for (int i = 0; i < inputs; i++)
+					for (int j = 0; j < neurons; j++, idx++)
+						result.layer_0.weights()[idx] = round_to<int8_t>(weights.get( { j, i }) / scales[j]); // saved as transposed
+				for (int i = 0; i < neurons; i++)
+					result.layer_0.bias()[i] = round_to<int16_t>(bias.get( { i }) / scales[i]);
+
+//				for (size_t i = 0; i < scales.size(); i++)
+//					std::cout << scales[i] << ' ';
+//				std::cout << '\n';
+			}
+
+			{ // second layer
+				ml::Tensor weights = model.getNode(2).getLayer().getWeights().getParam();
+				const ml::Tensor &bias = model.getNode(2).getLayer().getBias().getParam();
+
+				const int neurons = weights.firstDim();
+				const int inputs = weights.lastDim();
+
+				result.layer_1 = NnueLayer<int16_t, int32_t>(inputs, neurons);
+				for (int i = 0; i < neurons; i++)
+					for (int j = 0; j < inputs; j++)
+						weights.set(scales[j] * weights.get( { i, j }), { i, j }); // apply first layer scales to the second layer weights
+
+				scales = get_scales(weights, 4095);
+				int idx = 0;
+				for (int i = 0; i < inputs; i += 2)
+					for (int j = 0; j < neurons; j++, idx += 2)
+					{ // interleave two rows
+						result.layer_1.weights()[idx + 0] = round_to<int16_t>(weights.get( { j, i + 0 }) / scales[j]);
+						result.layer_1.weights()[idx + 1] = round_to<int16_t>(weights.get( { j, i + 1 }) / scales[j]);
+					}
+				for (int i = 0; i < neurons; i++)
+					result.layer_1.bias()[i] = round_to<int32_t>(bias.get( { i }) / scales[i]);
+
+//				for (size_t i = 0; i < scales.size(); i++)
+//					std::cout << scales[i] << ' ';
+//				std::cout << '\n';
+			}
+
+			for (int n = 3; n < model.numberOfNodes(); n++)
+			{ // remaining layers
+				const ml::Tensor &weights = model.getNode(n).getLayer().getWeights().getParam();
+				const ml::Tensor &bias = model.getNode(n).getLayer().getBias().getParam();
+
+				const int neurons = weights.firstDim();
+				const int inputs = weights.lastDim();
+
+				NnueLayer<float, float> tmp(inputs, neurons);
+				int idx = 0;
+				for (int i = 0; i < inputs; i++)
+					for (int j = 0; j < neurons; j++, idx++)
+						tmp.weights()[idx] = weights.get( { j, i }) * scales[i];
+				for (int i = 0; i < neurons; i++)
+					tmp.bias()[i] = bias.get( { i });
+				scales = std::vector<float>(neurons, 1.0f);
+				result.fp32_layers.push_back(tmp);
+			}
+
+			return result;
+		}
+		/*
+		 * private
+		 */
+		int TrainingNNUE_policy::get_row_index(Location loc) const noexcept
+		{
+			return (loc.row * game_config.cols + loc.col) * 16;
 		}
 
 		/*

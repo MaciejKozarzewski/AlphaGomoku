@@ -62,7 +62,6 @@ namespace ag
 			 * \brief Can be used to pack the data if the features were already calculated.
 			 */
 			void packInputData(int index, const NNInputFeatures &features);
-			void packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value, int movesLeft);
 			void unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value, float &movesLeft) const;
 
 			void asyncForwardLaunch(int batch_size, NetworkDataPack &pack);
@@ -70,8 +69,8 @@ namespace ag
 			void asyncForwardJoin();
 			void forward(int batch_size, NetworkDataPack &pack);
 			void forward(int batch_size);
-			std::vector<float> backward(int batch_size, const NetworkDataPack &pack);
-			std::vector<float> backward(int batch_size);
+			std::vector<float> train(int batch_size, NetworkDataPack &pack);
+			std::vector<float> train(int batch_size);
 			std::vector<float> getLoss(int batch_size, const NetworkDataPack &pack);
 			std::vector<float> getLoss(int batch_size);
 
@@ -107,6 +106,7 @@ namespace ag
 			}
 		protected:
 			ml::Shape get_input_shape() const noexcept;
+			void copy_input(const NetworkDataPack &pack);
 			virtual void create_network(const TrainingConfig &trainingOptions) = 0;
 	};
 

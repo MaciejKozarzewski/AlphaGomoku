@@ -44,6 +44,10 @@ namespace
 		return reinterpret_cast<const uint8_t*>(src.data()) + ml::sizeOf(src.dtype()) * src.getIndexOf(idx);
 	}
 
+	ag::float3 to_float3(float x) noexcept
+	{
+		return ag::float3 { x, x, x };
+	}
 	ag::float3 to_float3(const ag::Value &value) noexcept
 	{
 		return ag::float3 { value.win_rate, value.draw_rate, value.loss_rate() };
@@ -53,31 +57,47 @@ namespace
 		return ag::Value(f.x, f.y);
 	}
 
+	struct Bucket
+	{
+			int start = 0;
+			int end = 0;
+
+			Bucket() noexcept = default;
+			Bucket(int s, int e) noexcept :
+					start(s),
+					end(e)
+			{
+			}
+			bool is_inside(int i) const noexcept
+			{
+				return start <= i and i <= end;
+			}
+			float get_center() const noexcept
+			{
+				return 0.5f * (start + end);
+			}
+	};
+
+	const std::vector<Bucket>& get_buckets()
+	{
+		static const std::vector<Bucket> table = { Bucket(0, 0), Bucket(1, 1), Bucket(2, 2), Bucket(3, 3), Bucket(4, 4), Bucket(5, 5), Bucket(6, 6),
+				Bucket(7, 7), Bucket(8, 8), Bucket(9, 9), Bucket(10, 11), Bucket(12, 13), Bucket(14, 15), Bucket(16, 17), Bucket(18, 19), Bucket(20,
+						21), Bucket(22, 23), Bucket(24, 25), Bucket(26, 27), Bucket(28, 29), Bucket(30, 34), Bucket(35, 39), Bucket(40, 44), Bucket(
+						45, 49), Bucket(50, 54), Bucket(55, 59), Bucket(60, 64), Bucket(65, 69), Bucket(70, 74), Bucket(75, 79), Bucket(80, 89),
+				Bucket(90, 99), Bucket(100, 109), Bucket(110, 119), Bucket(120, 129), Bucket(130, 139), Bucket(140, 149), Bucket(150, 159), Bucket(
+						160, 169), Bucket(170, 179), Bucket(180, 204), Bucket(205, 229), Bucket(230, 254), Bucket(255, 279), Bucket(280, 304), Bucket(
+						305, 329), Bucket(330, 354), Bucket(355, 379), Bucket(380, 404), Bucket(405, 429) };
+		return table;
+	}
+
 	int move_to_bucket_number(int m) noexcept
 	{
-		static const std::vector<int> table = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18,
-				19, 20, 20, 20, 20, 20, 20, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 26,
-				26, 26, 26, 26, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 31, 31, 31, 31,
-				31, 31, 31, 31, 31, 31, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 33, 33, 33, 33, 33, 33, 33, 33, 33, 33, 34, 34, 34, 34, 34, 34, 34,
-				34, 34, 34, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-				38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-				40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
-				41, 41, 41, 41, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 43, 43, 43, 43,
-				43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44,
-				44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
-				45, 45, 45, 45, 45, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 47, 47, 47,
-				47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-				48, 48, 48, 48, 48, 48, 48, 48, 48, 48 };
-
-		return table[std::max(0, std::min((int) table.size() - 1, m))];
-	}
-	float bucket_center(int idx) noexcept
-	{
-		static const std::vector<float> table = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 11.0f, 13.0f, 15.0f, 17.0f, 19.0f,
-				21.0f, 23.0f, 25.0f, 27.0f, 29.0f, 32.0f, 38.0f, 43.0f, 48.0f, 53.0f, 58.0f, 63.0f, 68.0f, 73.0f, 78.0f, 85.0f, 95.0f, 105.0f, 115.0f,
-				125.0f, 135.0f, 145.0f, 155.0f, 165.0f, 175.0f, 192.5f, 217.5f, 242.5f, 267.5f, 292.5f, 317.5f, 342.5f, 367.5f, 392.5f };
-
-		return table[std::max(0, std::min((int) table.size() - 1, idx))];
+		assert(m >= 0);
+		const std::vector<Bucket> &table = get_buckets();
+		for (size_t i = 0; i < table.size(); i++)
+			if (table[i].is_inside(m))
+				return i;
+		return table.size() - 1;
 	}
 }
 
@@ -107,46 +127,60 @@ namespace ag
 	}
 	void NetworkDataPack::packInputData(int index, const NNInputFeatures &features)
 	{
-		assert(index >= 0 && index < getBatchSize());
+		assert(0 <= index && index < getBatchSize());
 		std::memcpy(get_pointer(input_on_cpu, { index, 0, 0, 0 }), features.data(), features.sizeInBytes());
 	}
 
-	void NetworkDataPack::packPolicyTarget(int index, const matrix<float> &target)
+	void NetworkDataPack::packPolicyTarget(int index, const matrix<float> &target, const matrix<float> &mask)
 	{
-		assert(index >= 0 && index < getBatchSize());
-		std::memcpy(get_pointer(getTarget('p'), { index, 0 }), target.data(), target.sizeInBytes());
+		assert(0 <= index && index < getBatchSize());
+		ml::Tensor &tensor = getTarget('p');
+		ml::convertType(context_on_cpu, get_pointer(tensor, { index, 0 }), tensor.dtype(), target.data(), ml::DataType::FLOAT32, target.size());
+
+		ml::Tensor &_mask = getMask('p');
+		ml::convertType(context_on_cpu, get_pointer(_mask, { index, 0 }), _mask.dtype(), mask.data(), ml::DataType::FLOAT32, mask.size());
 	}
 	void NetworkDataPack::packValueTarget(int index, Value target)
 	{
-		assert(index >= 0 && index < getBatchSize());
+		assert(0 <= index && index < getBatchSize());
 		const float3 tmp = to_float3(target);
-		std::memcpy(get_pointer(getTarget('v'), { index, 0 }), &tmp, sizeof(tmp));
+		ml::Tensor &tensor = getTarget('v');
+		ml::convertType(context_on_cpu, get_pointer(tensor, { index, 0 }), tensor.dtype(), &tmp, ml::DataType::FLOAT32, 3);
 	}
 	void NetworkDataPack::packMovesLeftTarget(int index, int target)
 	{
-		assert(index >= 0 && index < getBatchSize());
-		const int last_dim_size = getTarget('m').lastDim() * sizeof(float);
-		std::memset(get_pointer(getTarget('m'), { index, 0 }), 0, last_dim_size);
-		getTarget('m').at( { index, move_to_bucket_number(target) }) = 1.0f;
+		assert(0 <= index && index < getBatchSize());
+		ml::Tensor &tensor = getTarget('m');
+		std::memset(get_pointer(tensor, { index, 0 }), 0, tensor.lastDim() * ml::sizeOf(tensor.dtype()));
+		tensor.at( { index, move_to_bucket_number(target) }) = 1.0f;
 	}
-	void NetworkDataPack::packActionValuesTarget(int index, const matrix<Value> &target)
+	void NetworkDataPack::packActionValuesTarget(int index, const matrix<Value> &target, const matrix<float> &mask)
 	{
-		assert(index >= 0 && index < getBatchSize());
-		workspace.resize(game_config.rows * game_config.cols);
+		assert(0 <= index && index < getBatchSize());
+		workspace.resize(target.size());
+
 		for (int i = 0; i < target.size(); i++)
 			workspace[i] = to_float3(target[i]);
-		std::memcpy(get_pointer(getTarget('q'), { index, 0, 0, 0 }), workspace.data(), sizeof(float3) * workspace.size());
+		ml::Tensor &tensor = getTarget('q');
+		ml::convertType(context_on_cpu, get_pointer(tensor, { index, 0, 0, 0 }), tensor.dtype(), workspace.data(), ml::DataType::FLOAT32,
+				3 * workspace.size());
+
+		for (int i = 0; i < mask.size(); i++)
+			workspace[i] = to_float3(mask[i]);
+		ml::Tensor &_mask = getMask('q');
+		ml::convertType(context_on_cpu, get_pointer(_mask, { index, 0, 0, 0 }), _mask.dtype(), workspace.data(), ml::DataType::FLOAT32,
+				3 * workspace.size());
 	}
 
 	void NetworkDataPack::unpackPolicy(int index, matrix<float> &policy) const
 	{
-		assert(index >= 0 && index < getBatchSize());
+		assert(0 <= index && index < getBatchSize());
 		const ml::Tensor &tensor = getOutput('p');
 		ml::convertType(context_on_cpu, policy.data(), ml::DataType::FLOAT32, get_pointer(tensor, { index, 0 }), tensor.dtype(), policy.size());
 	}
 	void NetworkDataPack::unpackValue(int index, Value &value) const
 	{
-		assert(index >= 0 && index < getBatchSize());
+		assert(0 <= index && index < getBatchSize());
 		const ml::Tensor &tensor = getOutput('v');
 		float3 tmp;
 		ml::convertType(context_on_cpu, &tmp, ml::DataType::FLOAT32, get_pointer(tensor, { index, 0 }), tensor.dtype(), 3);
@@ -154,19 +188,19 @@ namespace ag
 	}
 	void NetworkDataPack::unpackMovesLeft(int index, float &movesLeft) const
 	{
-		assert(index >= 0 && index < getBatchSize());
+		assert(0 <= index && index < getBatchSize());
 		const ml::Tensor &tensor = getOutput('m');
 		const int size = tensor.lastDim();
 		std::vector<float> tmp(size);
 		ml::convertType(context_on_cpu, tmp.data(), ml::DataType::FLOAT32, get_pointer(tensor, { index, 0 }), tensor.dtype(), size);
 		float result = 0.0f;
 		for (int i = 0; i < size; i++)
-			result += tmp[i] * bucket_center(i);
+			result += tmp[i] * get_buckets()[i].get_center();
 		movesLeft = result;
 	}
 	void NetworkDataPack::unpackActionValues(int index, matrix<Value> &actionValues) const
 	{
-		assert(index >= 0 && index < getBatchSize());
+		assert(0 <= index && index < getBatchSize());
 		const ml::Tensor &tensor = getOutput('q');
 		workspace.resize(game_config.rows * game_config.cols);
 		ml::convertType(context_on_cpu, workspace.data(), ml::DataType::FLOAT32, get_pointer(tensor, { index, 0, 0, 0 }), tensor.dtype(),
@@ -184,6 +218,9 @@ namespace ag
 
 			for (size_t i = 0; i < targets_on_cpu.size(); i++)
 				targets_on_cpu.at(i).pageLock();
+
+			for (size_t i = 0; i < masks_on_cpu.size(); i++)
+				masks_on_cpu.at(i).pageLock();
 		}
 	}
 	const ml::Tensor& NetworkDataPack::getInput() const
@@ -256,6 +293,40 @@ namespace ag
 				throw std::logic_error("unknown target type '" + std::string(1, c) + "'");
 		}
 	}
+	ml::Tensor& NetworkDataPack::getMask(char c)
+	{
+		if (masks_on_cpu.empty())
+			allocate_mask_tensors();
+		switch (c)
+		{
+			case 'p':
+				return masks_on_cpu.at(0);
+			case 'v':
+				return masks_on_cpu.at(1);
+			case 'm':
+				return masks_on_cpu.at(2);
+			case 'q':
+				return masks_on_cpu.at(3);
+			default:
+				throw std::logic_error("unknown mask type '" + std::string(1, c) + "'");
+		}
+	}
+	const ml::Tensor& NetworkDataPack::getMask(char c) const
+	{
+		switch (c)
+		{
+			case 'p':
+				return masks_on_cpu.at(0);
+			case 'v':
+				return masks_on_cpu.at(1);
+			case 'm':
+				return masks_on_cpu.at(2);
+			case 'q':
+				return masks_on_cpu.at(3);
+			default:
+				throw std::logic_error("unknown mask type '" + std::string(1, c) + "'");
+		}
+	}
 	GameConfig NetworkDataPack::getGameConfig() const noexcept
 	{
 		return game_config;
@@ -282,6 +353,12 @@ namespace ag
 		for (size_t i = 0; i < outputs_on_cpu.size(); i++)
 			targets_on_cpu.push_back(ml::zeros_like(outputs_on_cpu.at(i)));
 	}
+	void NetworkDataPack::allocate_mask_tensors()
+	{
+		masks_on_cpu.clear();
+		for (size_t i = 0; i < outputs_on_cpu.size(); i++)
+			masks_on_cpu.push_back(ml::ones_like(outputs_on_cpu.at(i)));
+	}
 
 	std::vector<float> getAccuracy(int batchSize, const NetworkDataPack &pack, int top_k)
 	{
@@ -290,8 +367,10 @@ namespace ag
 		matrix<float> answer = empty_like(output);
 		for (int b = 0; b < batchSize; b++)
 		{
-			std::memcpy(output.data(), get_pointer(pack.getOutput('p'), { b, 0 }), output.sizeInBytes());
-			std::memcpy(answer.data(), get_pointer(pack.getTarget('p'), { b, 0 }), output.sizeInBytes());
+			ml::convertType(ml::Context(), output.data(), ml::DataType::FLOAT32, get_pointer(pack.getOutput('p'), { b, 0 }),
+					pack.getOutput('p').dtype(), output.size());
+			ml::convertType(ml::Context(), answer.data(), ml::DataType::FLOAT32, get_pointer(pack.getTarget('p'), { b, 0 }),
+					pack.getTarget('p').dtype(), answer.size());
 
 			Move correct = pickMove(answer);
 			for (int l = 0; l < top_k; l++)

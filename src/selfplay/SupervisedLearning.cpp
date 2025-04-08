@@ -41,57 +41,25 @@ namespace
 		ag::augment(pack.action_values_target, r);
 	}
 
-	void mask_out_target_data_pack(const TrainingDataPack &output, TrainingDataPack &target)
-	{
-		assert(equalSize(output.visit_count, target.visit_count));
-		assert(equalSize(output.action_values_target, target.action_values_target));
-
-		for (int i = 0; i < output.action_values_target.size(); i++)
-			if (target.visit_count[i] == 0) // if an action was not visited then we don't have any target data for this spot
-				target.action_values_target[i] = output.action_values_target[i]; // in such case we set value of the target to the output from the network, zeroing the gradient
-
-//		std::cout << "Output from network\n";
-//		std::cout << "Value output = " << output.value.toString() << '\n';
-//		std::cout << "Policy output\n" << Board::toString(matrix<Sign>(15, 15), output.policy);
-//		std::cout << "Action values output\n" << Board::toString(matrix<Sign>(15, 15), output.action_values);
-//
-//		std::cout << "Updated target data pack\n";
-//		std::cout << "Sign to move " << target.sign_to_move << '\n';
-//		std::cout << "Value target = " << target.value.toString() << '\n';
-//		std::cout << "Board\n" << Board::toString(target.board);
-//		std::cout << "Policy target\n" << Board::toString(matrix<Sign>(15, 15), target.policy);
-//		std::cout << "Action values target\n" << Board::toString(matrix<Sign>(15, 15), target.action_values);
-//		std::cout << "\n------------------------------------------------------------------------\n";
-	}
-	void push_input_data_to_model(int batchSize, std::vector<TrainingDataPack> &inputs, AGNetwork &model)
-	{
-		assert(model.getBatchSize() >= static_cast<int>(inputs.size()));
-		assert(batchSize <= static_cast<int>(inputs.size()));
-		for (int i = 0; i < batchSize; i++)
-			model.packInputData(i, inputs[i].board, inputs[i].sign_to_move);
-	}
-	void push_target_data_to_model(int batchSize, std::vector<TrainingDataPack> &targets, AGNetwork &model)
-	{
-		assert(model.getBatchSize() >= static_cast<int>(targets.size()));
-		assert(batchSize <= static_cast<int>(targets.size()));
-		TrainingDataPack output_data_pack(model.getGameConfig().rows, model.getGameConfig().cols);
-		for (int i = 0; i < batchSize; i++)
-		{
-			float tmp;
-			model.unpackOutput(i, output_data_pack.policy_target, output_data_pack.action_values_target, output_data_pack.value_target,
-					output_data_pack.moves_left);
-
-			const float err = square(output_data_pack.value_target.getExpectation() - targets[i].minimax_target.getExpectation());
-			mask_out_target_data_pack(output_data_pack, targets[i]);
-			model.packTargetData(i, targets[i].policy_target, targets[i].action_values_target, targets[i].value_target, targets[i].moves_left);
-		}
-	}
-	std::array<NetworkDataPack, 2> create_data_packs(GameConfig cfg, int batch_size)
+	std::array<NetworkDataPack, 2> create_data_packs(GameConfig cfg, int batch_size, ml::DataType dtype)
 	{
 		std::array<NetworkDataPack, 2> result;
-		result[0] = NetworkDataPack(cfg, batch_size, ml::DataType::FLOAT32);
-		result[1] = NetworkDataPack(cfg, batch_size, ml::DataType::FLOAT32);
+		result[0] = NetworkDataPack(cfg, batch_size, dtype);
+		result[1] = NetworkDataPack(cfg, batch_size, dtype);
 		return result;
+	}
+	void fill_policy_mask(matrix<float> &mask, const matrix<Sign> &board)
+	{
+		assert(equalSize(mask, board));
+		for (int i = 0; i < board.size(); i++)
+			mask[i] = (board[i] == Sign::NONE) ? 1.0f : 0.5f;
+	}
+	void fill_action_values_mask(matrix<float> &mask, const matrix<int> &visits)
+	{
+		assert(equalSize(mask, visits));
+		const float inv = 1.0f / std::accumulate(visits.begin(), visits.end(), 0);
+		for (int i = 0; i < visits.size(); i++)
+			mask[i] = visits[i] * inv;
 	}
 }
 
@@ -124,83 +92,36 @@ namespace ag
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
 
 		const int batch_size = model.getBatchSize();
-		const int rows = model.getGameConfig().rows;
-		const int cols = model.getGameConfig().cols;
 
 		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
 		sampler->init(dataset, batch_size);
 
-		std::vector<TrainingDataPack> data_packs(batch_size, TrainingDataPack(rows, cols));
-
-		double total_time = 0.0;
-		double dataset_time = 0.0;
-		for (int i = 0; i < steps; i++)
-		{
-			if ((i + 1) % std::max(1, (steps / 10)) == 0)
-				std::cout << i + 1 << '\n';
-
-			const double t0 = getTime();
-			for (int b = 0; b < batch_size; b++)
-			{
-				sampler->get(data_packs.at(b));
-				if (config.augment_training_data)
-					augment_data_pack(data_packs.at(b));
-			}
-			dataset_time += getTime() - t0;
-
-			push_input_data_to_model(batch_size, data_packs, model);
-			const double t1 = getTime();
-			model.forward(batch_size);
-			total_time += getTime() - t1;
-
-			push_target_data_to_model(batch_size, data_packs, model);
-			const double t2 = getTime();
-			model.backward(batch_size);
-			std::vector<float> loss = model.getLoss(batch_size);
-			total_time += getTime() - t2;
-
-			auto accuracy = model.getAccuracy(batch_size, 4);
-			updateTrainingStats(loss, accuracy);
-
-			learning_steps++;
-			if (hasCapturedSignal(SignalType::INT))
-				exit(0);
-		}
-		std::cout << "compute time = " << total_time << '\n';
-		std::cout << "dataset time = " << dataset_time << '\n';
-	}
-	void SupervisedLearning::train_async(AGNetwork &model, const Dataset &dataset, int steps)
-	{
-		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
-
-		const int batch_size = model.getBatchSize();
-
-		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
-		sampler->init(dataset, batch_size);
-
-		std::array<NetworkDataPack, 2> data_packs = create_data_packs(model.getGameConfig(), batch_size);
+		std::array<NetworkDataPack, 2> data_packs = create_data_packs(model.getGameConfig(), batch_size, model.get_graph().dtype());
 		int current_pack_idx = 0;
 
 		auto loading_function = [&](int idx)
 		{
 			const GameConfig cfg = data_packs[idx].getGameConfig();
 			TrainingDataPack tdp(cfg.rows, cfg.cols);
+			matrix<float> mask(cfg.rows, cfg.cols);
 			for (int b = 0; b < data_packs[idx].getBatchSize(); b++)
 			{
 				sampler->get(tdp);
 				if (config.augment_training_data)
-				augment_data_pack(tdp);
+					augment_data_pack(tdp);
 				data_packs[idx].packInputData(b, tdp.board, tdp.sign_to_move);
-				data_packs[idx].packPolicyTarget(b, tdp.policy_target);
+				fill_policy_mask(mask, tdp.board);
+				data_packs[idx].packPolicyTarget(b, tdp.policy_target, mask);
 				data_packs[idx].packValueTarget(b, tdp.value_target);
+				fill_action_values_mask(mask, tdp.visit_count);
+				data_packs[idx].packActionValuesTarget(b, tdp.action_values_target, mask);
 				data_packs[idx].packMovesLeftTarget(b, tdp.moves_left);
-				data_packs[idx].packActionValuesTarget(b, tdp.action_values_target);
 			}
 		};
 		std::future<void> loading_future = std::async(std::launch::async, loading_function, current_pack_idx);
 
 		double compute_time = 0.0;
-		for (int i = 0; i < steps; i++)
+		for (int i = 0; i < steps;)
 		{
 			if ((i + 1) % std::max(1, (steps / 10)) == 0)
 				std::cout << i + 1 << '\n';
@@ -212,14 +133,16 @@ namespace ag
 			loading_future = std::async(std::launch::async, loading_function, current_pack_idx);
 
 			const double t1 = getTime();
-			model.forward(batch_size, data_pack);
-			const std::vector<float> loss = model.backward(batch_size, data_pack);
+			const std::vector<float> loss = model.train(batch_size, data_pack);
 			compute_time += getTime() - t1;
 
-			auto accuracy = getAccuracy(batch_size, data_pack, 4);
-			updateTrainingStats(loss, accuracy);
-
-			learning_steps++;
+			if (not loss.empty())
+			{
+				auto accuracy = getAccuracy(batch_size, data_pack, 4);
+				updateTrainingStats(loss, accuracy);
+				learning_steps++;
+				i++;
+			}
 			if (hasCapturedSignal(SignalType::INT))
 				exit(0);
 		}
@@ -249,10 +172,10 @@ namespace ag
 				this_batch++;
 			}
 
-			push_input_data_to_model(this_batch, data_packs, model);
+//			push_input_data_to_model(this_batch, data_packs, model);
 			model.forward(this_batch);
 
-			push_target_data_to_model(this_batch, data_packs, model);
+//			push_target_data_to_model(this_batch, data_packs, model);
 
 			std::vector<float> loss = model.getLoss(this_batch);
 			auto accuracy = model.getAccuracy(this_batch);

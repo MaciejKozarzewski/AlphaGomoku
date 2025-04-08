@@ -335,9 +335,49 @@ namespace
 			}
 			float operator()(const Edge &edge, float externalPrior) const noexcept
 			{
-				const float Q = edge.getExpectation();
-				const float U = externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());
-				return Q * getVirtualLoss(edge) + U;
+				switch (edge.getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return -1000.0f + edge.getScore().getDistance();
+					case ProvenValue::DRAW:
+						return Value::draw().getExpectation();
+					default:
+					case ProvenValue::UNKNOWN:
+					{
+						const float Q = edge.isBeingExpanded() ? -1000.0f : edge.getExpectation() * getVirtualLoss(edge);
+						const float U = externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());
+						return Q + U;
+					}
+					case ProvenValue::WIN:
+						return +1000.0f - edge.getScore().getDistance();
+				}
+			}
+	};
+	struct PUCT_q_head_variance
+	{
+			const float exploration_constant;
+			PUCT_q_head_variance(const Node *parent, float explorationConstant) noexcept :
+					exploration_constant(explorationConstant)
+			{
+			}
+			float operator()(const Edge &edge, float externalPrior) const noexcept
+			{
+				switch (edge.getProvenValue())
+				{
+					case ProvenValue::LOSS:
+						return -1000.0f + edge.getScore().getDistance();
+					case ProvenValue::DRAW:
+						return Value::draw().getExpectation();
+					default:
+					case ProvenValue::UNKNOWN:
+					{
+						const float Q = edge.isBeingExpanded() ? -1000.0f : edge.getExpectation() * getVirtualLoss(edge);
+						const float U = externalPrior * exploration_constant;
+						return Q + U;
+					}
+					case ProvenValue::WIN:
+						return +1000.0f - edge.getScore().getDistance();
+				}
 			}
 	};
 	struct PUCT
@@ -513,7 +553,6 @@ namespace
 		assert(node != nullptr);
 		assert(node->isLeaf() == false);
 
-//		std::cout << "\n\n\n";
 		Edge *best_edge = nullptr;
 		float best_value = std::numeric_limits<float>::lowest();
 		for (Edge *edge = node->begin(); edge < node->end(); edge++)
@@ -526,8 +565,6 @@ namespace
 				best_edge = edge;
 			}
 		}
-//		if (node->getVisits() == 100)
-//			exit(-1);
 		assert(best_edge != nullptr);
 		return best_edge;
 	}
@@ -584,6 +621,8 @@ namespace ag
 			return std::make_unique<PUCTSelector>(config);
 		if (config.policy == "puct_fpu")
 			return std::make_unique<PUCTfpuSelector>(config);
+		if (config.policy == "puct_variance")
+			return std::make_unique<PUCTvarianceSelector>(config);
 		if (config.policy == "max_value")
 			return std::make_unique<MaxValueSelector>(config);
 		if (config.policy == "max_policy")
@@ -687,85 +726,6 @@ namespace ag
 //		}
 	}
 
-	KLUCBSelector::KLUCBSelector(const EdgeSelectorConfig &config) :
-			init_to(config.init_to),
-			noise_type(config.noise_type),
-			noise_weight((config.noise_type == "none") ? 0.0f : config.noise_weight),
-			exploration_constant(config.exploration_constant)
-	{
-	}
-	std::unique_ptr<EdgeSelector> KLUCBSelector::clone() const
-	{
-		EdgeSelectorConfig config;
-		config.policy = "thompson";
-		config.init_to = init_to;
-		config.noise_type = noise_type;
-		config.noise_weight = noise_weight;
-		config.exploration_constant = exploration_constant;
-		return std::make_unique<KLUCBSelector>(config);
-	}
-	Edge* KLUCBSelector::select(const Node *node) noexcept
-	{
-		assert(node != nullptr);
-		assert(node->isLeaf() == false);
-
-//		if (not node->isRoot())
-//		{
-//			const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
-//			float initial_q = node->getValue().getExpectation();
-//			const PUCT op(node, c_puct, initial_q);
-//			return find_best_edge_impl<PUCT, false>(node, op, noisy_policy);
-//		}
-
-		const bool use_noise = node->isRoot() and noise_weight > 0.0f;
-		if (use_noise and noisy_policy.empty())
-		{ // initialize noise
-			if (noise_type == "custom")
-				noisy_policy = applyCustomNoise(node, noise_weight);
-			if (noise_type == "dirichlet")
-				noisy_policy = applyDirichletNoise(node, noise_weight);
-			if (noise_type == "gumbel")
-				noisy_policy = applyGumbelNoise(node, noise_weight);
-		}
-
-		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
-		const KLUCB op(node, c_puct);
-		if (use_noise)
-			return find_best_edge_impl<KLUCB, true>(node, op, noisy_policy);
-		else
-			return find_best_edge_impl<KLUCB, false>(node, op, noisy_policy);
-
-//		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
-//		const float c_puct = exploration_constant;
-
-//		if (init_to == "q_head")
-//		{
-//			const PUCT_q_head op(node, c_puct, exploration_exponent);
-//			if (use_noise)
-//				return find_best_edge_impl<PUCT_q_head, true>(node, op, noisy_policy);
-//			else
-//				return find_best_edge_impl<PUCT_q_head, false>(node, op, noisy_policy);
-//		}
-//		else
-//		{
-//			float initial_q = 0.0f; // the default is 'init to loss'
-//			if (init_to == "parent")
-//				initial_q = node->getValue().getExpectation();
-//			else
-//			{
-//				if (init_to == "draw")
-//					initial_q = 0.5f;
-//				else
-//					initial_q = 0.0f;
-//			}
-//			const UCB op(node, c_puct, exploration_exponent, initial_q);
-//			if (use_noise)
-//				return find_best_edge_impl<UCB, true>(node, op, noisy_policy);
-//			else
-//				return find_best_edge_impl<UCB, false>(node, op, noisy_policy);
-//		}
-	}
-
 	BayesUCBSelector::BayesUCBSelector(const EdgeSelectorConfig &config) :
 			init_to(config.init_to),
 			noise_type(config.noise_type),
@@ -776,7 +736,7 @@ namespace ag
 	std::unique_ptr<EdgeSelector> BayesUCBSelector::clone() const
 	{
 		EdgeSelectorConfig config;
-		config.policy = "thompson";
+		config.policy = "bayes_ucb";
 		config.init_to = init_to;
 		config.noise_type = noise_type;
 		config.noise_weight = noise_weight;
@@ -845,6 +805,85 @@ namespace ag
 //		}
 	}
 
+	KLUCBSelector::KLUCBSelector(const EdgeSelectorConfig &config) :
+			init_to(config.init_to),
+			noise_type(config.noise_type),
+			noise_weight((config.noise_type == "none") ? 0.0f : config.noise_weight),
+			exploration_constant(config.exploration_constant)
+	{
+	}
+	std::unique_ptr<EdgeSelector> KLUCBSelector::clone() const
+	{
+		EdgeSelectorConfig config;
+		config.policy = "kl_ucb";
+		config.init_to = init_to;
+		config.noise_type = noise_type;
+		config.noise_weight = noise_weight;
+		config.exploration_constant = exploration_constant;
+		return std::make_unique<KLUCBSelector>(config);
+	}
+	Edge* KLUCBSelector::select(const Node *node) noexcept
+	{
+		assert(node != nullptr);
+		assert(node->isLeaf() == false);
+
+//		if (not node->isRoot())
+//		{
+//			const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
+//			float initial_q = node->getValue().getExpectation();
+//			const PUCT op(node, c_puct, initial_q);
+//			return find_best_edge_impl<PUCT, false>(node, op, noisy_policy);
+//		}
+
+		const bool use_noise = node->isRoot() and noise_weight > 0.0f;
+		if (use_noise and noisy_policy.empty())
+		{ // initialize noise
+			if (noise_type == "custom")
+				noisy_policy = applyCustomNoise(node, noise_weight);
+			if (noise_type == "dirichlet")
+				noisy_policy = applyDirichletNoise(node, noise_weight);
+			if (noise_type == "gumbel")
+				noisy_policy = applyGumbelNoise(node, noise_weight);
+		}
+
+		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
+		const KLUCB op(node, c_puct);
+		if (use_noise)
+			return find_best_edge_impl<KLUCB, true>(node, op, noisy_policy);
+		else
+			return find_best_edge_impl<KLUCB, false>(node, op, noisy_policy);
+
+//		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
+//		const float c_puct = exploration_constant;
+
+//		if (init_to == "q_head")
+//		{
+//			const PUCT_q_head op(node, c_puct, exploration_exponent);
+//			if (use_noise)
+//				return find_best_edge_impl<PUCT_q_head, true>(node, op, noisy_policy);
+//			else
+//				return find_best_edge_impl<PUCT_q_head, false>(node, op, noisy_policy);
+//		}
+//		else
+//		{
+//			float initial_q = 0.0f; // the default is 'init to loss'
+//			if (init_to == "parent")
+//				initial_q = node->getValue().getExpectation();
+//			else
+//			{
+//				if (init_to == "draw")
+//					initial_q = 0.5f;
+//				else
+//					initial_q = 0.0f;
+//			}
+//			const UCB op(node, c_puct, exploration_exponent, initial_q);
+//			if (use_noise)
+//				return find_best_edge_impl<UCB, true>(node, op, noisy_policy);
+//			else
+//				return find_best_edge_impl<UCB, false>(node, op, noisy_policy);
+//		}
+	}
+
 	PUCTSelector::PUCTSelector(const EdgeSelectorConfig &config) :
 			init_to(config.init_to),
 			noise_type(config.noise_type),
@@ -879,8 +918,8 @@ namespace ag
 				noisy_policy = applyGumbelNoise(node, noise_weight);
 		}
 
-		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
-//		const float c_puct = exploration_constant;
+//		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
+		const float c_puct = exploration_constant;
 
 		if (init_to == "q_head")
 		{
@@ -920,7 +959,7 @@ namespace ag
 	std::unique_ptr<EdgeSelector> PUCTfpuSelector::clone() const
 	{
 		EdgeSelectorConfig config;
-		config.policy = "puct";
+		config.policy = "puct_fpu";
 		config.init_to = init_to;
 		config.noise_type = noise_type;
 		config.noise_weight = noise_weight;
@@ -942,7 +981,7 @@ namespace ag
 				noisy_policy = applyGumbelNoise(node, noise_weight);
 		}
 
-		const float c_fpu = 0.1f;
+		const float c_fpu = 0.0f;
 		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
 //		const float c_puct = exploration_constant;
 
@@ -982,6 +1021,74 @@ namespace ag
 		}
 	}
 
+	PUCTvarianceSelector::PUCTvarianceSelector(const EdgeSelectorConfig &config) :
+			noise_type(config.noise_type),
+			noise_weight((config.noise_type == "none") ? 0.0f : config.noise_weight),
+			exploration_constant(config.exploration_constant)
+	{
+	}
+	std::unique_ptr<EdgeSelector> PUCTvarianceSelector::clone() const
+	{
+		EdgeSelectorConfig config;
+		config.policy = "puct_variance";
+		config.noise_type = noise_type;
+		config.noise_weight = noise_weight;
+		config.exploration_constant = exploration_constant;
+		return std::make_unique<PUCTvarianceSelector>(config);
+	}
+	Edge* PUCTvarianceSelector::select(const Node *node) noexcept
+	{
+		assert(node != nullptr);
+		assert(node->isLeaf() == false);
+		const bool use_noise = node->isRoot() and noise_weight > 0.0f;
+		if (use_noise and noisy_policy.empty())
+		{ // initialize noise
+			if (noise_type == "custom")
+				noisy_policy = applyCustomNoise(node, noise_weight);
+			if (noise_type == "dirichlet")
+				noisy_policy = applyDirichletNoise(node, noise_weight);
+			if (noise_type == "gumbel")
+				noisy_policy = applyGumbelNoise(node, noise_weight);
+		}
+
+		const int visited_edges = node->visitedEdgesCount();
+
+		float avg = 0.0f;
+		float scale = 1.0f;
+		if (visited_edges > 1)
+		{
+			int sum_visits = 0;
+			avg = 0.0f;
+			for (Edge *edge = node->begin(); edge < node->end(); edge++)
+			{
+				sum_visits += edge->getVisits();
+				avg += edge->getExpectation() * edge->getVisits();
+			}
+			avg /= sum_visits;
+
+			float var = 0.0f;
+			for (Edge *edge = node->begin(); edge < node->end(); edge++)
+				var += square(edge->getExpectation() - avg) * edge->getVisits();
+			scale = std::sqrt(visited_edges * var / ((visited_edges - 1) * sum_visits));
+		}
+
+//		if (node->numberOfEdges() > 10 and node->getVisits() > 3)
+//		{
+//			std::cout << "avg = " << avg << "\n";
+//			std::cout << "var = " << scale << "\n";
+//			std::cout << node->toString() << '\n';
+//			for (Edge *edge = node->begin(); edge < node->end(); edge++)
+//				std::cout << edge->toString() << '\n';
+//			exit(0);
+//		}
+
+		const PUCT_q_head_variance op(node, exploration_constant * scale);
+		if (use_noise)
+			return find_best_edge_impl<PUCT_q_head_variance, true>(node, op, noisy_policy);
+		else
+			return find_best_edge_impl<PUCT_q_head_variance, false>(node, op, noisy_policy);
+	}
+
 	UCBSelector::UCBSelector(const EdgeSelectorConfig &config) :
 			exploration_constant(config.exploration_constant)
 	{
@@ -989,7 +1096,7 @@ namespace ag
 	std::unique_ptr<EdgeSelector> UCBSelector::clone() const
 	{
 		EdgeSelectorConfig config;
-		config.policy = "lcb";
+		config.policy = "ucb";
 		config.exploration_constant = exploration_constant;
 		return std::make_unique<UCBSelector>(config);
 	}

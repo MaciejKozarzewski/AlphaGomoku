@@ -122,7 +122,6 @@ namespace ag
 		result.board = sample.board;
 		result.visit_count = sample.visit_count;
 		result.value_target = convertOutcome(sample.game_outcome, sample.played_move.sign);
-		result.action_values_target.fill(Value::loss());
 		result.sign_to_move = sample.played_move.sign;
 		assert(sample.moves_left > 0);
 		result.moves_left = sample.moves_left;
@@ -159,6 +158,7 @@ namespace ag
 				if (result.visit_count[i] > 0)
 				{
 					const Score score = sample.action_scores[i];
+
 					switch (score.getProvenValue())
 					{
 						case ProvenValue::LOSS:
@@ -186,7 +186,7 @@ namespace ag
 		for (int i = 0; i < sample.board.size(); i++)
 			if (result.board[i] == Sign::NONE)
 			{
-				result.policy_target[i] = std::exp(std::max(-40.0f, result.policy_target[i] - max_value));
+				result.policy_target[i] = std::exp(std::max(-20.0f, result.policy_target[i] - max_value));
 				sum_policy += result.policy_target[i];
 			}
 

@@ -24,8 +24,8 @@
 #include <minml/layers/ChannelScaling.hpp>
 #include <minml/layers/Conv2D.hpp>
 #include <minml/layers/MultiHeadAttention.hpp>
-#include <minml/layers/GlobalPooling.hpp>
 #include <minml/layers/GlobalAveragePooling.hpp>
+#include <minml/layers/LearnableGlobalPooling.hpp>
 #include <minml/layers/Dense.hpp>
 #include <minml/layers/DepthToSpace.hpp>
 #include <minml/layers/DepthwiseConv2D.hpp>
@@ -74,9 +74,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -110,9 +110,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -146,12 +146,12 @@ namespace ag
 		graph.addOutput(v);
 
 		auto q = createActionValuesHead(graph, x, filters);
-		graph.addOutput(q, 0.05f);
+		graph.addOutput(q, ml::CrossEntropyLoss(), 0.05f);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -185,9 +185,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -221,9 +221,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -251,8 +251,8 @@ namespace ag
 		for (int i = 0; i < blocks; i++)
 		{
 			x = createBottleneckBlock_v3(graph, x, filters);
-			if ((i + 1) % 4 == 0)
-				x = createBroadcastingBlock(graph, x);
+//			if ((i + 1) % 4 == 0)
+//				x = createBroadcastingBlock(graph, x);
 		}
 
 		auto p = createPolicyHead(graph, x, filters);
@@ -262,9 +262,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -303,9 +303,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -339,12 +339,12 @@ namespace ag
 		graph.addOutput(v);
 
 		auto q = createActionValuesHead(graph, x, filters);
-		graph.addOutput(q, 0.05f);
+		graph.addOutput(q, ml::CrossEntropyLoss(), 0.05f);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -379,15 +379,12 @@ namespace ag
 		graph.addOutput(v);
 
 		auto q = createActionValuesHead(graph, x, filters);
-		graph.addOutput(q, 0.2f);
+		graph.addOutput(q, ml::CrossEntropyLoss(), 0.2f);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-		{
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
-			graph.getNode(graph.numberOfNodes() - 2).getLayer().setRegularizer(ml::Regularizer(0.1f * trainingOptions.l2_regularization)); // action values head
-		}
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -430,7 +427,7 @@ namespace ag
 		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
 
 		p = graph.add(ml::Conv2D(1, 1, "linear").useBias(false), p);
-		p = graph.add(ml::Dense(game_config.rows * game_config.cols, "linear").useWeights(false), p);
+		p = graph.add(ml::Dense(game_config.rows * game_config.cols, "linear"), p);
 		p = graph.add(ml::Softmax( { 1 }), p);
 		graph.addOutput(p);
 
@@ -445,9 +442,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -481,9 +478,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -517,9 +514,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -551,7 +548,7 @@ namespace ag
 		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
 
 		p = graph.add(ml::Conv2D(1, 1, "linear").useBias(false), p);
-		p = graph.add(ml::Dense(game_config.rows * game_config.cols, "linear").useWeights(false), p);
+		p = graph.add(ml::Dense(game_config.rows * game_config.cols, "linear"), p);
 		p = graph.add(ml::Softmax( { 1 }), p);
 		graph.addOutput(p);
 
@@ -559,9 +556,9 @@ namespace ag
 		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -692,12 +689,12 @@ namespace ag
 		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
 		graph.addOutput(p);
 
-		auto v = graph.add(ml::GlobalPooling(), x);
-		v = graph.add(ml::Dense(256, "linear").useBias(false), v);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-		v = graph.add(ml::Dense(3, "linear"), v);
-		v = graph.add(ml::Softmax( { 1 }), v);
-		graph.addOutput(v);
+//		auto v = graph.add(ml::GlobalPooling(), x);
+//		v = graph.add(ml::Dense(256, "linear").useBias(false), v);
+//		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
+//		v = graph.add(ml::Dense(3, "linear"), v);
+//		v = graph.add(ml::Softmax( { 1 }), v);
+//		graph.addOutput(v);
 
 //		auto p = graph.add(ml::RMSNormalization(), x);
 //		p = graph.add(ml::Conv2D(3 * embedding, 1).useBias(false), p);
@@ -716,9 +713,9 @@ namespace ag
 //		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -803,19 +800,19 @@ namespace ag
 		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
 		graph.addOutput(p);
 
-		auto v = graph.add(ml::GlobalPooling(), x);
-		v = graph.add(ml::Dense(embedding).useBias(false), v);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-		v = graph.add(ml::Dense(embedding).useBias(false), v);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-		v = graph.add(ml::Dense(3), v);
-		v = graph.add(ml::Softmax( { 1 }), v);
-		graph.addOutput(v);
+//		auto v = graph.add(ml::GlobalPooling(), x);
+//		v = graph.add(ml::Dense(embedding).useBias(false), v);
+//		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
+//		v = graph.add(ml::Dense(embedding).useBias(false), v);
+//		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
+//		v = graph.add(ml::Dense(3), v);
+//		v = graph.add(ml::Softmax( { 1 }), v);
+//		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -894,19 +891,19 @@ namespace ag
 		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
 		graph.addOutput(p);
 
-		auto v = graph.add(ml::GlobalPooling(), x);
-		v = graph.add(ml::Dense(embedding).useBias(false), v);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-		v = graph.add(ml::Dense(embedding).useBias(false), v);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-		v = graph.add(ml::Dense(3), v);
-		v = graph.add(ml::Softmax( { 1 }), v);
-		graph.addOutput(v);
+//		auto v = graph.add(ml::GlobalPooling(), x);
+//		v = graph.add(ml::Dense(embedding).useBias(false), v);
+//		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
+//		v = graph.add(ml::Dense(embedding).useBias(false), v);
+//		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
+//		v = graph.add(ml::Dense(3), v);
+//		v = graph.add(ml::Softmax( { 1 }), v);
+//		graph.addOutput(v);
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -938,31 +935,31 @@ namespace ag
 		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
 		p = graph.add(ml::Conv2D(1, 1, "linear"), p);
 		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
-		graph.addOutput(p, ml::CrossEntropyLoss(1.0f));
+		graph.addOutput(p, ml::CrossEntropyLoss());
 
-		auto common = graph.add(ml::GlobalPooling(), x);
-		common = graph.add(ml::Dense(256).useBias(false), common);
-		common = graph.add(ml::BatchNormalization("relu").useGamma(false), common);
-
-		// value head
-		auto v = graph.add(ml::Dense(256).useBias(false), common);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
-		v = graph.add(ml::Dense(3), v);
-		v = graph.add(ml::Softmax( { 1 }), v);
-		graph.addOutput(v, ml::CrossEntropyLoss(1.0f));
-
-		// uncertainty head
-		auto unc = graph.add(ml::Dense(128).useBias(false), common);
-		unc = graph.add(ml::BatchNormalization("relu").useGamma(false), unc);
-		unc = graph.add(ml::Dense(1, "sigmoid"), unc);
-		graph.addOutput(unc, ml::MeanSquaredLoss(1.0f));
-
-		// moves left head
-		auto mlh = graph.add(ml::Dense(128).useBias(false), common);
-		mlh = graph.add(ml::BatchNormalization("relu").useGamma(false), mlh);
-		mlh = graph.add(ml::Dense(50), mlh);
-		mlh = graph.add(ml::Softmax( { 1 }), mlh);
-		graph.addOutput(mlh, ml::CrossEntropyLoss(0.1f));
+//		auto common = graph.add(ml::GlobalPooling(), x);
+//		common = graph.add(ml::Dense(256).useBias(false), common);
+//		common = graph.add(ml::BatchNormalization("relu").useGamma(false), common);
+//
+//		// value head
+//		auto v = graph.add(ml::Dense(256).useBias(false), common);
+//		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
+//		v = graph.add(ml::Dense(3), v);
+//		v = graph.add(ml::Softmax( { 1 }), v);
+//		graph.addOutput(v, ml::CrossEntropyLoss());
+//
+//		// uncertainty head
+//		auto unc = graph.add(ml::Dense(128).useBias(false), common);
+//		unc = graph.add(ml::BatchNormalization("relu").useGamma(false), unc);
+//		unc = graph.add(ml::Dense(1, "sigmoid"), unc);
+//		graph.addOutput(unc, ml::MeanSquaredLoss(1.0f));
+//
+//		// moves left head
+//		auto mlh = graph.add(ml::Dense(128).useBias(false), common);
+//		mlh = graph.add(ml::BatchNormalization("relu").useGamma(false), mlh);
+//		mlh = graph.add(ml::Dense(50), mlh);
+//		mlh = graph.add(ml::Softmax( { 1 }), mlh);
+//		graph.addOutput(mlh, ml::CrossEntropyLoss(0.1f));
 
 //		auto global_pooling = graph.add(ml::GlobalPooling(), x);
 //
@@ -973,7 +970,7 @@ namespace ag
 //		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
 //		v = graph.add(ml::Dense(3), v);
 //		v = graph.add(ml::Softmax( { 1 }), v);
-//		graph.addOutput(v, ml::CrossEntropyLoss(1.0f));
+//		graph.addOutput(v, ml::CrossEntropyLoss());
 //
 //		// minimax estimate with uncertainty
 //		auto unc = graph.add(ml::Dense(128).useBias(false), global_pooling);
@@ -993,9 +990,9 @@ namespace ag
 //		graph.addOutput(mlh, ml::CrossEntropyLoss(0.1f));
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer());
-		if (trainingOptions.l2_regularization != 0.0)
-			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam());
+//		if (trainingOptions.l2_regularization != 0.0)
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
@@ -1022,10 +1019,6 @@ namespace ag
 		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
 
 		x = squeeze_and_excitation_block(graph, x, filters);
-//		auto y = graph.add(ml::GlobalAveragePooling().quantizable(false), x);
-//		y = graph.add(ml::Dense(filters, "relu").quantizable(false), y);
-//		y = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), y);
-//		x = graph.add(ml::ChannelScaling(), { x, y });
 
 		for (int i = 0; i < blocks; i++)
 		{
@@ -1034,18 +1027,11 @@ namespace ag
 			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
 			x = graph.add(ml::Conv2D(filters, 1), { y, x });
 
-//			if ((i + 1) % 4 == 0)
-//			{
 			x = squeeze_and_excitation_block(graph, x, filters);
-//				y = graph.add(ml::GlobalAveragePooling().quantizable(false), x);
-//				y = graph.add(ml::Dense(filters, "relu").quantizable(false), y);
-//				y = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), y);
-//				x = graph.add(ml::ChannelScaling(), { x, y });
-//			}
 		}
 
 		// policy head
-		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
+		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false).quantizable(false), x);
 		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
 		p = squeeze_and_excitation_block(graph, p, filters);
 		p = graph.add(ml::Conv2D(1, 1).quantizable(false), p);
@@ -1053,7 +1039,7 @@ namespace ag
 		graph.addOutput(p);
 
 		// value head
-		auto v = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+		auto v = graph.add(ml::Conv2D(filters, 1, "relu").quantizable(false), x);
 		v = graph.add(ml::GlobalAveragePooling().quantizable(false), v);
 		v = graph.add(ml::Dense(256).useBias(false).quantizable(false), v);
 		v = graph.add(ml::BatchNormalization("relu"), v);
@@ -1071,9 +1057,81 @@ namespace ag
 //		graph.addOutput(mlh, ml::CrossEntropyLoss(0.1f));
 
 		graph.init();
-		graph.setOptimizer(ml::Optimizer(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));
+		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f));
 //		if (trainingOptions.l2_regularization != 0.0)
-//			graph.setRegularizer(ml::Regularizer(trainingOptions.l2_regularization));
+//			graph.setRegularizer(ml::RegularizerL2(trainingOptions.l2_regularization));
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
+	ConvNextPVQraw::ConvNextPVQraw() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string ConvNextPVQraw::getOutputConfig() const
+	{
+		return "pvq";
+	}
+	std::string ConvNextPVQraw::name() const
+	{
+		return "ConvNextPVQraw";
+	}
+	void ConvNextPVQraw::create_network(const TrainingConfig &trainingOptions)
+	{
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 8 });
+		const int blocks = trainingOptions.blocks;
+		const int filters = trainingOptions.filters;
+
+		auto x = graph.addInput(input_shape);
+		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
+		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
+
+		x = squeeze_and_excitation_block(graph, x, filters);
+
+		for (int i = 0; i < blocks; i++)
+		{
+			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
+			y = graph.add(ml::BatchNormalization().useGamma(false), y);
+			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
+			x = graph.add(ml::Conv2D(filters, 1), { y, x });
+
+			x = squeeze_and_excitation_block(graph, x, filters);
+		}
+
+		// policy head
+		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false).quantizable(false), x);
+		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
+		p = squeeze_and_excitation_block(graph, p, filters);
+		p = graph.add(ml::Conv2D(1, 1).quantizable(false), p);
+		p = graph.add(ml::Softmax( { 1, 2, 3 }).quantizable(false), p);
+		graph.addOutput(p);
+
+		// value head
+		auto v = graph.add(ml::Conv2D(filters, 1, "relu").quantizable(false), x);
+		v = graph.add(ml::GlobalAveragePooling().quantizable(false), v);
+		v = graph.add(ml::Dense(256).useBias(false).quantizable(false), v);
+		v = graph.add(ml::BatchNormalization("leaky_relu"), v);
+		v = graph.add(ml::Dense(3).quantizable(false), v);
+		v = graph.add(ml::Softmax( { 1 }).quantizable(false), v);
+		graph.addOutput(v);
+
+		auto q = graph.add(ml::Conv2D(filters, 1, "linear").useBias(false).quantizable(false), x);
+		q = graph.add(ml::BatchNormalization("relu").useGamma(false), q);
+		q = squeeze_and_excitation_block(graph, q, filters);
+		q = graph.add(ml::Conv2D(3, 1, "linear").quantizable(false), q);
+		q = graph.add(ml::Softmax( { 3 }).quantizable(false), q);
+		graph.addOutput(q);
+
+// moves left head
+//		auto mlh = graph.add(ml::Conv2D(32, 1, "relu"), x);
+//		mlh = graph.add(ml::GlobalPooling(), mlh);
+//		mlh = graph.add(ml::Dense(128).useBias(false), mlh);
+//		mlh = graph.add(ml::BatchNormalization("relu"), mlh);
+//		mlh = graph.add(ml::Dense(50), mlh);
+//		mlh = graph.add(ml::Softmax( { 1 }), mlh);
+//		graph.addOutput(mlh, ml::CrossEntropyLoss(0.1f));
+
+		graph.init();
+		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 

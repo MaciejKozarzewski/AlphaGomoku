@@ -22,7 +22,8 @@
 namespace ml
 {
 	class Tensor;
-	enum class DataType;
+	enum class DataType
+	;
 } /* namespace ml */
 
 namespace ag
@@ -41,6 +42,7 @@ namespace ag
 			ml::Tensor input_on_cpu;
 			std::vector<ml::Tensor> outputs_on_cpu;
 			std::vector<ml::Tensor> targets_on_cpu;
+			std::vector<ml::Tensor> masks_on_cpu;
 
 			std::unique_ptr<PatternCalculator> pattern_calculator; // lazily allocated on first use
 			NNInputFeatures input_features; // same as above
@@ -55,10 +57,10 @@ namespace ag
 			 */
 			void packInputData(int index, const NNInputFeatures &features);
 
-			void packPolicyTarget(int index, const matrix<float> &target);
+			void packPolicyTarget(int index, const matrix<float> &target, const matrix<float> &mask);
 			void packValueTarget(int index, Value target);
 			void packMovesLeftTarget(int index, int target);
-			void packActionValuesTarget(int index, const matrix<Value> &target);
+			void packActionValuesTarget(int index, const matrix<Value> &target, const matrix<float> &mask);
 
 			void unpackPolicy(int index, matrix<float> &policy) const;
 			void unpackValue(int index, Value &value) const;
@@ -66,17 +68,21 @@ namespace ag
 			void unpackActionValues(int index, matrix<Value> &actionValues) const;
 
 			void pinMemory();
+
 			const ml::Tensor& getInput() const;
 			ml::Tensor& getOutput(char c);
 			const ml::Tensor& getOutput(char c) const;
 			ml::Tensor& getTarget(char c);
 			const ml::Tensor& getTarget(char c) const;
+			ml::Tensor& getMask(char c);
+			const ml::Tensor& getMask(char c) const;
 
 			GameConfig getGameConfig() const noexcept;
 			int getBatchSize() const noexcept;
 		private:
 			PatternCalculator& get_pattern_calculator();
 			void allocate_target_tensors();
+			void allocate_mask_tensors();
 	};
 
 	std::vector<float> getAccuracy(int batchSize, const NetworkDataPack &pack, int top_k);

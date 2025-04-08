@@ -125,7 +125,7 @@ namespace ag
 						const double tmp1 = epoch - prev.first;
 						const double tmp2 = next.first - prev.first;
 						const double tmp3 = next.second - prev.second;
-						result = next.second + 0.5 * tmp3 * (1.0 + std::cos(tmp1 / tmp2 * M_PI));
+						result = prev.second + 0.5 * tmp3 * (1.0 - std::cos(tmp1 / tmp2 * M_PI));
 					}
 					if (std::is_integral<T>::value)
 						return static_cast<T>(result + 0.5); // round to nearest

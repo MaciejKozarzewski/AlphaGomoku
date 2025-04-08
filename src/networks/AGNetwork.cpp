@@ -49,13 +49,6 @@ namespace ag
 	{
 		data_pack.packInputData(index, features);
 	}
-	void AGNetwork::packTargetData(int index, const matrix<float> &policy, const matrix<Value> &actionValues, Value value, int movesLeft)
-	{
-		data_pack.packPolicyTarget(index, policy);
-		data_pack.packValueTarget(index, value);
-		data_pack.packMovesLeftTarget(index, movesLeft);
-		data_pack.packActionValuesTarget(index, actionValues);
-	}
 	void AGNetwork::unpackOutput(int index, matrix<float> &policy, matrix<Value> &actionValues, Value &value, float &movesLeft) const
 	{
 		data_pack.unpackPolicy(index, policy);
@@ -66,14 +59,8 @@ namespace ag
 
 	void AGNetwork::asyncForwardLaunch(int batch_size, NetworkDataPack &pack)
 	{
-		if (graph.device().isCPU())
-			ml::unpackInput(graph.context(), graph.getInput(), pack.getInput());
-		else
-		{
-			input_on_device.copyFrom(graph.context(), pack.getInput());
-			ml::unpackInput(graph.context(), graph.getInput(), input_on_device);
-		}
-		graph.forward(batch_size);
+		copy_input(pack);
+		graph.predict(batch_size);
 		const std::string output_config = getOutputConfig();
 		assert((size_t ) graph.numberOfOutputs() == output_config.size());
 		for (size_t i = 0; i < output_config.size(); i++)
@@ -97,22 +84,31 @@ namespace ag
 	{
 		forward(batch_size, data_pack);
 	}
-	std::vector<float> AGNetwork::backward(int batch_size, const NetworkDataPack &pack)
+	std::vector<float> AGNetwork::train(int batch_size, NetworkDataPack &pack)
 	{
 		assert(graph.isTrainable());
+		copy_input(pack);
+
 		const std::string output_config = getOutputConfig();
 		assert((size_t ) graph.numberOfOutputs() == output_config.size());
 		for (size_t i = 0; i < output_config.size(); i++)
+		{
 			graph.getTarget(i).copyFrom(graph.context(), pack.getTarget(output_config[i]));
+			graph.getMask(i).copyFrom(graph.context(), pack.getMask(output_config[i]));
+		}
 
-		graph.backward(batch_size);
-		graph.learn();
+		const bool success = graph.train(batch_size);
+		for (size_t i = 0; i < output_config.size(); i++)
+			pack.getOutput(output_config[i]).copyFrom(graph.context(), graph.getOutput(i));
 		graph.context().synchronize();
-		return graph.getLoss(batch_size);
+		if (success)
+			return graph.getLoss(batch_size);
+		else
+			return std::vector<float>();
 	}
-	std::vector<float> AGNetwork::backward(int batch_size)
+	std::vector<float> AGNetwork::train(int batch_size)
 	{
-		return backward(batch_size, data_pack);
+		return train(batch_size, data_pack);
 	}
 	std::vector<float> AGNetwork::getLoss(int batch_size, const NetworkDataPack &pack)
 	{
@@ -131,13 +127,15 @@ namespace ag
 	void AGNetwork::changeLearningRate(float lr)
 	{
 		assert(graph.isTrainable());
-		graph.setLearningRate(lr);
+		graph.getOptimizer().setLearningRate(lr);
 	}
 	void AGNetwork::optimize()
 	{
-		graph.makeNonTrainable();
+		graph.makeTrainable(false);
 		ml::FoldBatchNorm().optimize(graph);
 		ml::FoldAdd().optimize(graph);
+//		ml::FuseConvBlock().optimize(graph);
+//		ml::FuseSEBlock().optimize(graph);
 	}
 	void AGNetwork::convertToHalfFloats()
 	{
@@ -239,6 +237,16 @@ namespace ag
 	{
 		return ml::Shape( { getBatchSize(), game_config.rows, game_config.cols, 1 });
 	}
+	void AGNetwork::copy_input(const NetworkDataPack &pack)
+	{
+		if (graph.device().isCPU())
+			ml::unpackInput(graph.context(), graph.getInput(), pack.getInput());
+		else
+		{
+			input_on_device.copyFrom(graph.context(), pack.getInput());
+			ml::unpackInput(graph.context(), graph.getInput(), input_on_device);
+		}
+	}
 	std::unique_ptr<AGNetwork> createAGNetwork(const std::string &architecture)
 	{
 		static const ResnetPV resnet_pv;
@@ -263,6 +271,7 @@ namespace ag
 
 		static const BottleneckPVUM bottleneck_pvum;
 		static const ConvNextPVraw convnext_pv_raw;
+		static const ConvNextPVQraw convnext_pvq_raw;
 
 		if (architecture == resnet_pv.name())
 			return std::make_unique<ResnetPV>();
@@ -305,6 +314,8 @@ namespace ag
 
 		if (architecture == convnext_pv_raw.name())
 			return std::make_unique<ConvNextPVraw>();
+		if (architecture == convnext_pvq_raw.name())
+			return std::make_unique<ConvNextPVQraw>();
 
 		throw std::runtime_error("createAGNetwork() : unknown architecture '" + architecture + "'");
 	}

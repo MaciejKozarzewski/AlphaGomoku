@@ -442,7 +442,7 @@ namespace ag
 					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
 					if (group.contains(PatternType::HALF_OPEN_4))
 					{ // quite common (approximately 1 in 40 positions)
-						actions->has_initiative = true;  // there is some half-open four to make in a response (may help gain initiative)
+						actions->has_initiative = true; // there is some half-open four to make in a response (may help gain initiative)
 						response_score = Score(14); // assign some prior score for ordering purposes
 						// in renju it is possible that this half-open four would create a foul attack and potential win
 						// it is rare (approximately 1 in 9000 positions) and would require separate method to check so we skip it

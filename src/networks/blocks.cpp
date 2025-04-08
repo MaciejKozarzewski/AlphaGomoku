@@ -12,9 +12,8 @@
 #include <minml/layers/Dense.hpp>
 #include <minml/layers/Add.hpp>
 #include <minml/layers/BatchNormalization.hpp>
-#include <minml/layers/Gelu.hpp>
 #include <minml/layers/GlobalAveragePooling.hpp>
-#include <minml/layers/GlobalBroadcastHW.hpp>
+#include <minml/layers/LearnableGlobalPooling.hpp>
 #include <minml/layers/Softmax.hpp>
 #include <minml/layers/SqueezeAndExcitation.hpp>
 #include <minml/layers/PositionalEncoding.hpp>
@@ -31,13 +30,9 @@ namespace ag
 		return x;
 	}
 
-	ml::GraphNodeID createBroadcastingBlock(ml::Graph &graph, ml::GraphNodeID x)
-	{
-		return graph.add(ml::GlobalBroadcastHW("relu"), x);
-	}
 	ml::GraphNodeID createPoolingBlock(ml::Graph &graph, ml::GraphNodeID x)
 	{
-		return graph.add(ml::SqueezeAndExcitation("relu"), x);
+		return x;
 	}
 
 	ml::GraphNodeID createResidualBlock(ml::Graph &graph, ml::GraphNodeID x, int filters)
@@ -143,13 +138,6 @@ namespace ag
 	{
 		x = graph.add(ml::Conv2D(filters, kernel_size, "linear").useBias(false), x);
 		x = graph.add(ml::BatchNormalization("linear").useGamma(false), x);
-		return x;
-	}
-	ml::GraphNodeID conv_bn_gelu(ml::Graph &graph, ml::GraphNodeID x, int filters, int kernel_size)
-	{
-		x = graph.add(ml::Conv2D(filters, kernel_size, "linear").useBias(false), x);
-		x = graph.add(ml::BatchNormalization("linear").useGamma(false), x);
-		x = graph.add(ml::Gelu(), x);
 		return x;
 	}
 	ml::GraphNodeID mha_pre_norm_block(ml::Graph &graph, ml::GraphNodeID x, int embedding, int head_dim, int range, bool symmetric)

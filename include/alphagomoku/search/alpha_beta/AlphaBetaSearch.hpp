@@ -42,6 +42,7 @@ namespace ag
 			PatternCalculator pattern_calculator;
 			MoveGenerator move_generator;
 			nnue::InferenceNNUE inference_nnue;
+			nnue::TrainingNNUE_policy policy_nnue;
 
 			SharedHashTable shared_table;
 			HashKey128 hash_key;
@@ -49,6 +50,7 @@ namespace ag
 			size_t total_positions = 0;
 			size_t total_calls = 0;
 			TimedStat total_time;
+			TimedStat policy_time;
 		public:
 			AlphaBetaSearch(const GameConfig &gameConfig);
 			void increaseGeneration();

@@ -189,6 +189,16 @@ namespace ag
 			void create_network(const TrainingConfig &trainingOptions);
 	};
 
+	class ConvNextPVQraw: public AGNetwork
+	{
+		public:
+			ConvNextPVQraw() noexcept;
+			std::string getOutputConfig() const;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
 } /* namespace ag */
 
 #endif /* ALPHAGOMOKU_NETWORKS_NETWORKS_HPP_ */

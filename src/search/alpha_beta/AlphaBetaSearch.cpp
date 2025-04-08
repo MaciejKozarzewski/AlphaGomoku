@@ -55,8 +55,10 @@ namespace ag
 			game_config(gameConfig),
 			pattern_calculator(gameConfig),
 			move_generator(gameConfig, pattern_calculator),
+			policy_nnue(gameConfig, 1, "nnue_policy_s2_5x5_32x32x1.bin"),
 			shared_table(gameConfig.rows, gameConfig.cols, 4 * 1024 * 1024),
-			total_time("total_time")
+			total_time("total_time"),
+			policy_time("policy_time")
 	{
 //		loadWeights(nnue::NNUEWeights("/home/maciek/Desktop/AlphaGomoku560/networks/standard_nnue_64x16x16x1.bin"));
 	}
@@ -119,13 +121,17 @@ namespace ag
 		}
 		task.setScore(result);
 		if (task.getScore().isProven())
+		{
 			task.setValue(task.getScore().convertToValue());
+			task.setMovesLeft(task.getScore().getDistance());
+			task.setValueUncertainty(0.0f);
+		}
 		if (actions.must_defend)
 			task.markAsDefensive();
 		task.markAsProcessedBySolver();
 
 //		if (result.score.getEval() ==  Score::min_value())
-//		if (task.getScore().getEval() == Score::min_value())
+//		if (task.getScore().isProven())
 //		{
 //		std::cout << result.toString() << " at " << node_counter << '\n';
 //		std::cout << "sign to move = " << toString(task.getSignToMove()) << '\n';
@@ -148,6 +154,7 @@ namespace ag
 	{
 		pattern_calculator.print_stats();
 		std::cout << total_time.toString() << '\n';
+		std::cout << policy_time.toString() << '\n';
 		std::cout << "total positions = " << total_positions << " : " << total_positions / total_calls << "\n";
 		std::cout << "SharedHashTable load factor = " << shared_table.loadFactor(true) << '\n';
 		inference_nnue.print_stats();
@@ -173,6 +180,12 @@ namespace ag
 	 */
 	Score AlphaBetaSearch::recursive_solve(int depthRemaining, Score alpha, Score beta, ActionList &actions)
 	{
+//		if (not (alpha < beta))
+//		{
+//			pattern_calculator.print();
+//			pattern_calculator.printAllThreats();
+//			std::cout << "alpha = " << alpha << ", beta = " << beta << '\n';
+//		}
 		assert(Score::minus_infinity() <= alpha);
 		assert(alpha < beta);
 		assert(beta <= Score::plus_infinity());
@@ -182,7 +195,7 @@ namespace ag
 			const SharedTableData tt_entry = shared_table.seek(hash_key);
 			const Bound tt_bound = tt_entry.bound();
 
-			if (tt_bound != Bound::NONE) //  and is_move_legal(tt_entry.move()))
+			if (tt_bound != Bound::NONE)
 			{ // there is some information stored in this entry
 				best_move = tt_entry.move();
 				if (not actions.isRoot())
@@ -226,6 +239,20 @@ namespace ag
 //		inference_nnue.update(pattern_calculator);
 		if (depthRemaining <= 0)
 			return evaluate();
+
+//		if (actions.size() > 1)
+//		{
+//			policy_time.startTimer();
+//			policy_nnue.packInputData(0, pattern_calculator.getBoard(), pattern_calculator.getSignToMove());
+//			policy_nnue.forward(1);
+//			matrix<float> policy(game_config.rows, game_config.cols);
+//			policy_nnue.unpackOutput(0, policy);
+//			policy_time.stopTimer();
+//
+//			for (int i = 0; i < actions.size(); i++)
+//				if (actions[i].score != Score())
+//					actions[i].score = Score(static_cast<int>(1000 * policy.at(actions[i].move.row, actions[i].move.col)));
+//		}
 
 		const Score original_alpha = alpha;
 		Score best_score = Score::minus_infinity();

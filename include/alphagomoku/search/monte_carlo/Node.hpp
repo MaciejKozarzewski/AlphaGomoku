@@ -311,6 +311,13 @@ namespace ag
 				std::swap(edges[index], edges[number_of_edges - 1]);
 				number_of_edges--;
 			}
+			int visitedEdgesCount() const noexcept
+			{
+				int result = 0;
+				for (Edge *edge = begin(); edge < end(); edge++)
+					result += static_cast<int>(edge->getVisits() > 0);
+				return result;
+			}
 
 			std::string toString() const;
 			void sortEdges() const;
