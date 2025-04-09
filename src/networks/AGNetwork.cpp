@@ -116,7 +116,10 @@ namespace ag
 		const std::string output_config = getOutputConfig();
 		assert((size_t ) graph.numberOfOutputs() == output_config.size());
 		for (size_t i = 0; i < output_config.size(); i++)
+		{
 			graph.getTarget(i).copyFrom(graph.context(), pack.getTarget(output_config[i]));
+			graph.getMask(i).copyFrom(graph.context(), pack.getMask(output_config[i]));
+		}
 		return graph.getLoss(batch_size);
 	}
 	std::vector<float> AGNetwork::getLoss(int batch_size)
