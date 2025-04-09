@@ -48,12 +48,6 @@ namespace
 		result[1] = NetworkDataPack(cfg, batch_size, dtype);
 		return result;
 	}
-	void fill_policy_mask(matrix<float> &mask, const matrix<Sign> &board)
-	{
-		assert(equalSize(mask, board));
-		for (int i = 0; i < board.size(); i++)
-			mask[i] = (board[i] == Sign::NONE) ? 1.0f : 0.5f;
-	}
 	void fill_action_values_mask(matrix<float> &mask, const matrix<int> &visits)
 	{
 		assert(equalSize(mask, visits));
@@ -110,8 +104,7 @@ namespace ag
 				if (config.augment_training_data)
 					augment_data_pack(tdp);
 				data_packs[idx].packInputData(b, tdp.board, tdp.sign_to_move);
-				fill_policy_mask(mask, tdp.board);
-				data_packs[idx].packPolicyTarget(b, tdp.policy_target, mask);
+				data_packs[idx].packPolicyTarget(b, tdp.policy_target);
 				data_packs[idx].packValueTarget(b, tdp.value_target);
 				fill_action_values_mask(mask, tdp.visit_count);
 				data_packs[idx].packActionValuesTarget(b, tdp.action_values_target, mask);

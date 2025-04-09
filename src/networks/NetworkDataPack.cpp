@@ -131,14 +131,11 @@ namespace ag
 		std::memcpy(get_pointer(input_on_cpu, { index, 0, 0, 0 }), features.data(), features.sizeInBytes());
 	}
 
-	void NetworkDataPack::packPolicyTarget(int index, const matrix<float> &target, const matrix<float> &mask)
+	void NetworkDataPack::packPolicyTarget(int index, const matrix<float> &target)
 	{
 		assert(0 <= index && index < getBatchSize());
 		ml::Tensor &tensor = getTarget('p');
 		ml::convertType(context_on_cpu, get_pointer(tensor, { index, 0 }), tensor.dtype(), target.data(), ml::DataType::FLOAT32, target.size());
-
-		ml::Tensor &_mask = getMask('p');
-		ml::convertType(context_on_cpu, get_pointer(_mask, { index, 0 }), _mask.dtype(), mask.data(), ml::DataType::FLOAT32, mask.size());
 	}
 	void NetworkDataPack::packValueTarget(int index, Value target)
 	{

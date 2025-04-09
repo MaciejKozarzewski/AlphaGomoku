@@ -272,6 +272,7 @@ namespace ag
 		static const BottleneckPVUM bottleneck_pvum;
 		static const ConvNextPVraw convnext_pv_raw;
 		static const ConvNextPVQraw convnext_pvq_raw;
+		static const ConvNextPVQMraw convnext_pvqm_raw;
 
 		if (architecture == resnet_pv.name())
 			return std::make_unique<ResnetPV>();
@@ -316,6 +317,8 @@ namespace ag
 			return std::make_unique<ConvNextPVraw>();
 		if (architecture == convnext_pvq_raw.name())
 			return std::make_unique<ConvNextPVQraw>();
+		if (architecture == convnext_pvqm_raw.name())
+			return std::make_unique<ConvNextPVQMraw>();
 
 		throw std::runtime_error("createAGNetwork() : unknown architecture '" + architecture + "'");
 	}

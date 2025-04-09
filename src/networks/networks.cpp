@@ -1121,14 +1121,77 @@ namespace ag
 		q = graph.add(ml::Softmax( { 3 }).quantizable(false), q);
 		graph.addOutput(q);
 
-// moves left head
-//		auto mlh = graph.add(ml::Conv2D(32, 1, "relu"), x);
-//		mlh = graph.add(ml::GlobalPooling(), mlh);
-//		mlh = graph.add(ml::Dense(128).useBias(false), mlh);
-//		mlh = graph.add(ml::BatchNormalization("relu"), mlh);
-//		mlh = graph.add(ml::Dense(50), mlh);
-//		mlh = graph.add(ml::Softmax( { 1 }), mlh);
-//		graph.addOutput(mlh, ml::CrossEntropyLoss(0.1f));
+		graph.init();
+		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
+	ConvNextPVQMraw::ConvNextPVQMraw() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string ConvNextPVQMraw::getOutputConfig() const
+	{
+		return "pvqm";
+	}
+	std::string ConvNextPVQMraw::name() const
+	{
+		return "ConvNextPVQMraw";
+	}
+	void ConvNextPVQMraw::create_network(const TrainingConfig &trainingOptions)
+	{
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 8 });
+		const int blocks = trainingOptions.blocks;
+		const int filters = trainingOptions.filters;
+
+		auto x = graph.addInput(input_shape);
+		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
+		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
+
+		x = squeeze_and_excitation_block(graph, x, filters);
+
+		for (int i = 0; i < blocks; i++)
+		{
+			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
+			y = graph.add(ml::BatchNormalization().useGamma(false), y);
+			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
+			x = graph.add(ml::Conv2D(filters, 1), { y, x });
+
+			x = squeeze_and_excitation_block(graph, x, filters);
+		}
+
+		// policy head
+		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false).quantizable(false), x);
+		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
+		p = squeeze_and_excitation_block(graph, p, filters);
+		p = graph.add(ml::Conv2D(1, 1).quantizable(false), p);
+		p = graph.add(ml::Softmax( { 1, 2, 3 }).quantizable(false), p);
+		graph.addOutput(p);
+
+		// value head
+		auto v = graph.add(ml::Conv2D(filters, 1, "relu").quantizable(false), x);
+		v = graph.add(ml::GlobalAveragePooling().quantizable(false), v);
+		v = graph.add(ml::Dense(256).useBias(false).quantizable(false), v);
+		v = graph.add(ml::BatchNormalization("leaky_relu"), v);
+		v = graph.add(ml::Dense(3).quantizable(false), v);
+		v = graph.add(ml::Softmax( { 1 }).quantizable(false), v);
+		graph.addOutput(v);
+
+		auto q = graph.add(ml::Conv2D(filters, 1, "linear").useBias(false).quantizable(false), x);
+		q = graph.add(ml::BatchNormalization("relu").useGamma(false), q);
+		q = squeeze_and_excitation_block(graph, q, filters);
+		q = graph.add(ml::Conv2D(3, 1, "linear").quantizable(false), q);
+		q = graph.add(ml::Softmax( { 3 }).quantizable(false), q);
+		graph.addOutput(q);
+
+		// moves left head
+		auto mlh = graph.add(ml::Conv2D(32, 1, "relu"), x);
+		mlh = graph.add(ml::GlobalAveragePooling(), mlh);
+		mlh = graph.add(ml::Dense(128).useBias(false), mlh);
+		mlh = graph.add(ml::BatchNormalization("leaky_relu"), mlh);
+		mlh = graph.add(ml::Dense(50), mlh);
+		mlh = graph.add(ml::Softmax( { 1 }), mlh);
+		graph.addOutput(mlh, ml::CrossEntropyLoss(), 0.1f);
 
 		graph.init();
 		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));

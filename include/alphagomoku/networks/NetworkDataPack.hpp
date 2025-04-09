@@ -57,7 +57,7 @@ namespace ag
 			 */
 			void packInputData(int index, const NNInputFeatures &features);
 
-			void packPolicyTarget(int index, const matrix<float> &target, const matrix<float> &mask);
+			void packPolicyTarget(int index, const matrix<float> &target);
 			void packValueTarget(int index, Value target);
 			void packMovesLeftTarget(int index, int target);
 			void packActionValuesTarget(int index, const matrix<Value> &target, const matrix<float> &mask);
