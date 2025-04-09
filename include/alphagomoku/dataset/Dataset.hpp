@@ -11,6 +11,7 @@
 #include <alphagomoku/dataset/GameDataBuffer.hpp>
 
 #include <map>
+#include <mutex>
 
 namespace ag
 {
@@ -18,6 +19,7 @@ namespace ag
 	class Dataset
 	{
 			std::map<int, GameDataBuffer> m_list_of_buffers;
+			mutable std::mutex m_list_mutex;
 		public:
 			GameDataBufferStats getStats() const noexcept;
 			int numberOfBuffers() const noexcept;
