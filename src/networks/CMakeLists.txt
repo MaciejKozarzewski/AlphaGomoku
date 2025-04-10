@@ -2,6 +2,7 @@ target_sources(${LibName} PRIVATE 	nnue_ops/def_ops.cpp
 									nnue_ops/layers.cpp
 									AGNetwork.cpp
 									blocks.cpp
+									NetworkDataPack.cpp
 									networks.cpp
 									NNInputFeatures.cpp
 									NNUE.cpp
