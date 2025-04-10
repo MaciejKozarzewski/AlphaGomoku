@@ -123,7 +123,7 @@ std::vector<std::vector<Move>> generate_openings(size_t number, GameConfig game_
 
 void run_training()
 {
-	ml::Device::setNumberOfThreads(1);
+	ml::Device::setNumberOfThreads(4);
 	const std::string path = "/home/maciek/alphagomoku/new_runs_2025/test_batch_size/test_final_fp32/";
 
 	GameConfig game_config(GameRules::STANDARD, 15);
@@ -148,6 +148,14 @@ void run_training()
 	int max_epochs = 500;
 	int swa_num_epochs = 20;
 	int steps_per_epoch = 2000;
+// @formatter:off
+	Parameter<float> learning_rate( { std::pair<int, float> {   0, 1.0e-4f },
+									  std::pair<int, float> {  25, 1.0e-3f },
+									  std::pair<int, float> { 150, 1.0e-3f },
+									  std::pair<int, float> { 250, 1.0e-4f },
+									  std::pair<int, float> { 350, 1.0e-4f },
+									  std::pair<int, float> { 450, 1.0e-5f }}, "cosine");
+// @formatter:on
 
 	if (not pathExists(path))
 		createDirectory(path);
@@ -162,6 +170,7 @@ void run_training()
 			max_epochs = fl.getJson()["max_epochs"].getInt();
 			swa_num_epochs = fl.getJson()["swa_num_epochs"].getInt();
 			steps_per_epoch = fl.getJson()["steps_per_epoch"].getInt();
+			learning_rate = Parameter<float>(fl.getJson()["learning_rate_schedule"]);
 		}
 		if (pathExists(path + "network_progress.bin"))
 			network = loadAGNetwork(path + "network_progress.bin");
@@ -171,37 +180,8 @@ void run_training()
 	network->get_graph().context().enableTF32(true);
 	network->get_graph().print();
 
-// @formatter:off
-//	const Parameter<float> learning_rate( { std::pair<int, float> {   0, 1.0e-4f },
-//											std::pair<int, float> {  25, 1.0e-3f },
-//											std::pair<int, float> { 100, 1.0e-3f },
-//											std::pair<int, float> { 200, 1.0e-4f },
-//											std::pair<int, float> { 300, 1.0e-5f },
-//											std::pair<int, float> { 400, 1.0e-6f }}, "cosine");
-//	const Parameter<float> learning_rate( { std::pair<int, float> {   0, 1.0e-3f },
-//											std::pair<int, float> {  60, 1.0e-3f },
-//											std::pair<int, float> {  90, 1.0e-4f },
-//											std::pair<int, float> { 110, 1.0e-4f },
-//											std::pair<int, float> { 140, 1.0e-5f }}, "cosine");
-	const Parameter<float> learning_rate( { std::pair<int, float> {   0, 1.0e-4f },
-											std::pair<int, float> {  25, 1.0e-3f },
-											std::pair<int, float> { 150, 1.0e-3f },
-											std::pair<int, float> { 250, 1.0e-4f },
-											std::pair<int, float> { 350, 1.0e-4f },
-											std::pair<int, float> { 450, 1.0e-5f }}, "cosine");
-//	const Parameter<float> learning_rate( { std::pair<int, float> {   0, 1.0e-4f },
-//											std::pair<int, float> {  20, 1.0e-3f },
-//											std::pair<int, float> { 200, 1.0e-3f },
-//											std::pair<int, float> { 300, 1.0e-4f },
-//											std::pair<int, float> { 500, 1.0e-4f },
-//											std::pair<int, float> { 600, 1.0e-5f }}, "cosine");
-//	const Parameter<float> learning_rate( { std::pair<int, float> {   0, 1.0e-4f },
-//											std::pair<int, float> {  10, 1.0e-3f },
-//											std::pair<int, float> {  75, 1.0e-4f },
-//											std::pair<int, float> { 125, 1.0e-5f }});
-// @formatter:on
-
 	Dataset dataset;
+#pragma omp parallel for
 	for (int i = 200; i < 250; i++)
 	{
 		std::cout << "loading buffer " << i << "...\n";
@@ -212,7 +192,9 @@ void run_training()
 	for (int e = initial_epoch; e <= max_epochs; e++)
 	{
 		const double t0 = getTime();
-		network->changeLearningRate(learning_rate.getValue(e));
+		const float lr = learning_rate.getValue(e);
+		std::cout << "epoch " << e << ", learning rate = " << lr << '\n';
+		network->changeLearningRate(lr);
 		sl.clearStats();
 		sl.train(*network, dataset, steps_per_epoch);
 		sl.saveTrainingHistory(path);
@@ -234,6 +216,7 @@ void run_training()
 		tmp["max_epochs"] = max_epochs;
 		tmp["swa_num_epochs"] = swa_num_epochs;
 		tmp["steps_per_epoch"] = steps_per_epoch;
+		tmp["learning_rate_schedule"] = learning_rate.toJson();
 		FileSaver(path + "sl_progress.json").save(tmp, SerializedObject(), true);
 		network->saveToFile(path + "/network_progress.bin");
 
@@ -3563,6 +3546,11 @@ void test_quantization()
 int main(int argc, char *argv[])
 {
 	std::cout << "BEGIN" << std::endl;
+//	FileLoader fl("/home/maciek/alphagomoku/new_runs_2025/test_batch_size/test_final_fp32/network_progress.bin");
+//	Json j = fl.getJson();
+//	j["model"]["loss_weights"][3] = 0.25f;
+//	FileSaver("/home/maciek/alphagomoku/new_runs_2025/test_batch_size/test_final_fp32/network_progress.bin").save(j, fl.getBinaryData(), 2);
+//	return 0;
 
 	std::cout << ml::Device::hardwareInfo() << '\n';
 //	test_search();
@@ -3687,11 +3675,11 @@ int main(int argc, char *argv[])
 //		std::unique_ptr<AGNetwork> network = loadAGNetwork(path + "transformer_3x192/network_opt.bin");
 //		std::unique_ptr<AGNetwork> network = loadAGNetwork(path + "transformer_unet_test_1/network_opt.bin");
 //		std::unique_ptr<AGNetwork> network = loadAGNetwork(path + "pvq_8x128_cosine_150_250_350_450/network_150.bin");
-		std::unique_ptr<AGNetwork> network = loadAGNetwork(path + "test_final_fp32/network_50.bin");
+		std::unique_ptr<AGNetwork> network = loadAGNetwork(path + "test_final_fp32/network_75.bin");
 
 		network->moveTo(ml::Device::cuda());
 		network->optimize();
-		network->moveTo(ml::Device::cpu());
+//		network->moveTo(ml::Device::cpu());
 		network->setBatchSize(1);
 
 //		for (int n = 0; n < network->get_graph().numberOfNodes(); n++)

@@ -1191,7 +1191,7 @@ namespace ag
 		mlh = graph.add(ml::BatchNormalization("leaky_relu"), mlh);
 		mlh = graph.add(ml::Dense(50), mlh);
 		mlh = graph.add(ml::Softmax( { 1 }), mlh);
-		graph.addOutput(mlh, ml::CrossEntropyLoss(), 0.1f);
+		graph.addOutput(mlh, ml::CrossEntropyLoss(), 0.25f);
 
 		graph.init();
 		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));
