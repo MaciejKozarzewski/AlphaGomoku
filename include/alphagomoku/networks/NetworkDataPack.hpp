@@ -69,7 +69,9 @@ namespace ag
 
 			void pinMemory();
 
+			ml::Tensor& getInput();
 			const ml::Tensor& getInput() const;
+
 			ml::Tensor& getOutput(char c);
 			const ml::Tensor& getOutput(char c) const;
 			ml::Tensor& getTarget(char c);

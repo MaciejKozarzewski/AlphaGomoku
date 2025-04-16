@@ -37,10 +37,10 @@ namespace ag
 			void updateTrainingStats(const std::vector<float> &loss, std::vector<float> &acc);
 			void updateValidationStats(const std::vector<float> &loss, std::vector<float> &acc);
 			void train(AGNetwork &model, const Dataset &dataset, int steps);
+			void train(AGNetwork &teacher, AGNetwork &student, const Dataset &dataset, int steps);
 			void validate(AGNetwork &model, const Dataset &dataset);
 			void saveTrainingHistory(const std::string &workingDirectory);
 			void clearStats();
-
 			Json saveProgress() const;
 			void loadProgress(const Json &json);
 	};

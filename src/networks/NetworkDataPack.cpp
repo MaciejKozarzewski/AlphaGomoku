@@ -220,6 +220,10 @@ namespace ag
 				masks_on_cpu.at(i).pageLock();
 		}
 	}
+	ml::Tensor& NetworkDataPack::getInput()
+	{
+		return input_on_cpu;
+	}
 	const ml::Tensor& NetworkDataPack::getInput() const
 	{
 		return input_on_cpu;

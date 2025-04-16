@@ -21,6 +21,8 @@
 #include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/utils/os_utils.hpp>
 
+#include <minml/core/math.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -54,6 +56,12 @@ namespace
 		const float inv = 1.0f / std::accumulate(visits.begin(), visits.end(), 0);
 		for (int i = 0; i < visits.size(); i++)
 			mask[i] = visits[i] * inv;
+	}
+
+	ml::Tensor get_partial_tensor(const ml::Tensor &src, int offset, int size)
+	{
+		const ml::Shape shape = ml::change_dim<0>(src.shape(), size);
+		return src.view(shape, offset * shape.volumeWithoutFirstDim());
 	}
 }
 
@@ -102,7 +110,7 @@ namespace ag
 			{
 				sampler->get(tdp);
 				if (config.augment_training_data)
-					augment_data_pack(tdp);
+				augment_data_pack(tdp);
 				data_packs[idx].packInputData(b, tdp.board, tdp.sign_to_move);
 				data_packs[idx].packPolicyTarget(b, tdp.policy_target);
 				data_packs[idx].packValueTarget(b, tdp.value_target);
@@ -132,6 +140,82 @@ namespace ag
 			if (not loss.empty())
 			{
 				auto accuracy = getAccuracy(batch_size, data_pack, 4);
+				updateTrainingStats(loss, accuracy);
+				learning_steps++;
+				i++;
+			}
+			if (hasCapturedSignal(SignalType::INT))
+				exit(0);
+		}
+		std::cout << "compute time = " << compute_time << '\n';
+	}
+	void SupervisedLearning::train(AGNetwork &teacher, AGNetwork &student, const Dataset &dataset, int steps)
+	{
+		if (student.getBatchSize() % teacher.getBatchSize() != 0)
+			throw std::logic_error("student batch size must by multiple of teacher batch size");
+
+		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
+
+		const int batch_size = student.getBatchSize();
+
+		std::unique_ptr<Sampler> sampler = createSampler(config.sampler_type);
+		sampler->init(dataset, batch_size);
+
+		NetworkDataPack student_pack(student.getGameConfig(), batch_size, student.get_graph().dtype());
+		NetworkDataPack teacher_pack(teacher.getGameConfig(), teacher.getBatchSize(), teacher.get_graph().dtype());
+
+		const GameConfig cfg = student_pack.getGameConfig();
+		TrainingDataPack tdp(cfg.rows, cfg.cols);
+		matrix<Value> tmp_q(cfg.rows, cfg.cols);
+		matrix<float> mask_q(cfg.rows, cfg.cols);
+
+		double compute_time = 0.0;
+		for (int i = 0; i < steps;)
+		{
+			if ((i + 1) % std::max(1, (steps / 10)) == 0)
+				std::cout << i + 1 << '\n';
+
+			// pack student batch
+			for (int b = 0; b < student_pack.getBatchSize(); b++)
+			{
+				sampler->get(tdp);
+				if (config.augment_training_data)
+					augment_data_pack(tdp);
+				student_pack.packInputData(b, tdp.board, tdp.sign_to_move);
+				fill_action_values_mask(mask_q, tdp.visit_count);
+				student_pack.packActionValuesTarget(b, tmp_q, mask_q);
+			}
+
+			// process student batch by teacher network
+			for (int b = 0; b < student_pack.getBatchSize(); b += teacher.getBatchSize())
+			{
+				ml::Context context;
+
+				// copy one part of input tensor
+				const ml::Tensor partial_input = get_partial_tensor(student_pack.getInput(), b, teacher.getBatchSize());
+				teacher_pack.getInput().copyFrom(context, partial_input);
+
+				// run teacher inference
+				const double t0 = getTime();
+				teacher.forward(teacher.getBatchSize(), teacher_pack);
+				compute_time += getTime() - t0;
+
+				// copy teacher outputs into parts of student target
+				const std::string output_config = teacher.getOutputConfig();
+				for (size_t o = 0; o < output_config.size(); o++)
+				{
+					ml::Tensor partial_target = get_partial_tensor(student_pack.getTarget(output_config[o]), b, teacher.getBatchSize());
+					ml::convertTensor(context, partial_target, teacher_pack.getOutput(output_config[o]));
+				}
+			}
+
+			const double t1 = getTime();
+			const std::vector<float> loss = student.train(batch_size, student_pack);
+			compute_time += getTime() - t1;
+
+			if (not loss.empty())
+			{
+				auto accuracy = getAccuracy(batch_size, student_pack, 4);
 				updateTrainingStats(loss, accuracy);
 				learning_steps++;
 				i++;
@@ -222,7 +306,6 @@ namespace ag
 		std::fill(validation_loss.begin(), validation_loss.end(), 0.0f);
 		std::fill(validation_accuracy.begin(), validation_accuracy.end(), 0.0f);
 	}
-
 	Json SupervisedLearning::saveProgress() const
 	{
 		Json result;
