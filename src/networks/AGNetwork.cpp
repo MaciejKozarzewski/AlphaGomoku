@@ -24,6 +24,7 @@
 #include <minml/core/math.hpp>
 #include <minml/utils/json.hpp>
 #include <minml/utils/serialization.hpp>
+#include <minml/utils/testing_util.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -132,13 +133,19 @@ namespace ag
 		assert(graph.isTrainable());
 		graph.getOptimizer().setLearningRate(lr);
 	}
-	void AGNetwork::optimize()
+	void AGNetwork::optimize(int level)
 	{
 		graph.makeTrainable(false);
-		ml::FoldBatchNorm().optimize(graph);
-		ml::FoldAdd().optimize(graph);
-//		ml::FuseConvBlock().optimize(graph);
-//		ml::FuseSEBlock().optimize(graph);
+		if (level >= 0)
+		{
+			ml::FoldBatchNorm().optimize(graph);
+			ml::FoldAdd().optimize(graph);
+		}
+		if (level >= 1)
+		{
+			ml::FuseConvBlock().optimize(graph);
+			ml::FuseSEBlock().optimize(graph);
+		}
 	}
 	void AGNetwork::convertToHalfFloats()
 	{

@@ -79,7 +79,7 @@ namespace ag
 			/**
 			 * This method makes the network non-trainable and then optimizes for inference.
 			 */
-			virtual void optimize();
+			virtual void optimize(int level = 0);
 			virtual void convertToHalfFloats();
 
 			virtual void init(const GameConfig &gameOptions, const TrainingConfig &trainingOptions);
