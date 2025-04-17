@@ -247,19 +247,19 @@ void run_knowledge_distillation()
 	TrainingConfig training_config;
 	training_config.network_arch = "ConvNextPVQMraw";
 	training_config.augment_training_data = true;
-	training_config.blocks = 6;
+	training_config.blocks = 8;
 	training_config.filters = 128;
 	training_config.patch_size = 1;
-	training_config.device_config.batch_size = 128;
-	training_config.l2_regularization = 1.0e-4f;
+	training_config.device_config.batch_size = 1536;
+	training_config.l2_regularization = 2.0e-5f;
 	training_config.sampler_type = "values";
 
 	SupervisedLearning sl(training_config);
 
-	std::unique_ptr<AGNetwork> teacher = loadAGNetwork("/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_8x128/network_swa_opt.bin");
+	std::unique_ptr<AGNetwork> teacher = loadAGNetwork("/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_12x128/network_swa_opt.bin");
 	teacher->moveTo(ml::Device::cuda());
 	teacher->optimize(1);
-	teacher->setBatchSize(std::min(128, training_config.device_config.batch_size));
+	teacher->setBatchSize(std::min(256, training_config.device_config.batch_size));
 	teacher->convertToHalfFloats();
 
 	std::unique_ptr<AGNetwork> student = createAGNetwork(training_config.network_arch);
@@ -270,7 +270,7 @@ void run_knowledge_distillation()
 	int initial_epoch = 0;
 	int max_epochs = 500;
 	int swa_num_epochs = 20;
-	int steps_per_epoch = 1000;
+	int steps_per_epoch = 2000;
 // @formatter:off
 	Parameter<float> learning_rate( { std::pair<int, float> {   0, 1.0e-4f },
 									  std::pair<int, float> {  25, 1.0e-3f },
@@ -305,7 +305,7 @@ void run_knowledge_distillation()
 
 	Dataset dataset;
 #pragma omp parallel for
-	for (int i = 240; i < 250; i++)
+	for (int i = 200; i < 250; i++)
 	{
 		std::cout << "loading buffer " << i << "...\n";
 		dataset.load(i, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer_v200/buffer_" + std::to_string(i) + ".bin");
@@ -2630,17 +2630,17 @@ void test_evaluate(int idx = 0)
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
 
 	cfg.simulations = 400;
-//	cfg.search_config.mcts_config.edge_selector_config.init_to = "parent";
-//	cfg.search_config.mcts_config.edge_selector_config.policy = "puct_fpu";
-//	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku583/networks/standard_conv_8x128.bin", "gomocup_2024");
+	cfg.search_config.mcts_config.edge_selector_config.init_to = "parent";
+	cfg.search_config.mcts_config.edge_selector_config.policy = "puct_fpu";
+	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku583/networks/standard_conv_8x128.bin", "gomocup_2024");
 //	manager.setFirstPlayer(cfg, path + "size_tests/baseline_8x128/network_swa_opt.bin", "baseline");
 
 	cfg.search_config.mcts_config.edge_selector_config.policy = "puct";
 	cfg.search_config.mcts_config.edge_selector_config.init_to = "q_head";
 	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.5f;
 
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_8x128/network_swa_opt.bin", "pvqm_8x128");
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2025/lower_l2/network_swa_opt.bin", "pvqm_8x128_l2");
+//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_8x128/network_swa_opt.bin", "pvqm_8x128");
+	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_12x128/network_swa_opt.bin", "pvqm_12x128");
 
 //	cfg.search_config.mcts_config.edge_selector_config.policy = "puct_variance";
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = idx / 100.0f;
@@ -2654,7 +2654,7 @@ void test_evaluate(int idx = 0)
 //	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2025/size_tests/convnext_1x128/network_150_opt_int8.bin", "int8");
 
 	const double start = getTime();
-	manager.generate(1000);
+	manager.generate(4000);
 	const double stop = getTime();
 	std::cout << "generated in " << (stop - start) << '\n';
 
