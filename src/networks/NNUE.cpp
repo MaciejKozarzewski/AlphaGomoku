@@ -289,6 +289,11 @@ namespace ag
 		/*
 		 * TrainingNNUE_policy
 		 */
+		TrainingNNUE_policy::TrainingNNUE_policy() :
+				game_config(GameConfig()),
+				calculator(game_config)
+		{
+		}
 		TrainingNNUE_policy::TrainingNNUE_policy(GameConfig gameConfig, int batchSize, const std::string &path) :
 				game_config(gameConfig),
 				calculator(gameConfig)

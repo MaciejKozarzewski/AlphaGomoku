@@ -70,6 +70,7 @@ namespace ag
 				std::vector<float> input_on_cpu, target_on_cpu;
 				PatternCalculator calculator;
 			public:
+				TrainingNNUE_policy();
 				TrainingNNUE_policy(GameConfig gameConfig, int batchSize, const std::string &path);
 				TrainingNNUE_policy(GameConfig gameConfig, std::initializer_list<int> arch, int batchSize);
 				void packInputData(int index, const matrix<Sign> &board, Sign signToMove);

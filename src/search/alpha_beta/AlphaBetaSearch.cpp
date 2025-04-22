@@ -55,7 +55,7 @@ namespace ag
 			game_config(gameConfig),
 			pattern_calculator(gameConfig),
 			move_generator(gameConfig, pattern_calculator),
-			policy_nnue(gameConfig, 1, "nnue_policy_s2_5x5_32x32x1.bin"),
+//			policy_nnue(gameConfig, 1, "nnue_policy_s2_5x5_32x32x1.bin"),
 			shared_table(gameConfig.rows, gameConfig.cols, 4 * 1024 * 1024),
 			total_time("total_time"),
 			policy_time("policy_time")
