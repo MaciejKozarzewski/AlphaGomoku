@@ -121,28 +121,70 @@ std::vector<std::vector<Move>> generate_openings(size_t number, GameConfig game_
 	return result;
 }
 
+void generate_games()
+{
+	setupSignalHandler(SignalType::INT, SignalHandlerMode::CUSTOM_HANDLER);
+	ml::Device::setNumberOfThreads(4);
+	const std::string working_directory = "/home/maciek/alphagomoku/new_runs_2025/standard_dataset/";
+	const std::string path_to_network = "/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_8x128/network_swa_opt.bin";
+
+	if (not pathExists(working_directory))
+		createDirectory(working_directory);
+	if (not pathExists(working_directory + "buffers/"))
+		createDirectory(working_directory + "buffers/");
+
+	const MasterLearningConfig config(FileLoader(working_directory + "config.json").getJson());
+	Json metadata;
+	if (pathExists(working_directory + "metadata.json"))
+		metadata = FileLoader(working_directory + "metadata.json").getJson();
+	else
+	{
+		metadata["current_part"] = 0;
+		metadata["total_parts"] = 20;
+	}
+
+	for (int i = metadata["current_part"].getInt(); i < metadata["total_parts"].getInt(); i++)
+	{
+		GeneratorManager generator_manager(config.game_config, config.generation_config);
+		generator_manager.setWorkingDirectory(working_directory);
+		generator_manager.generate(path_to_network, config.generation_config.games_per_iteration);
+		if (hasCapturedSignal(SignalType::INT))
+		{
+			std::ofstream output;
+			output.open(working_directory + "metadata.json", std::ios::app);
+			output << metadata.dump(2) << '\n';
+			return;
+		}
+		metadata["part"] = i + 1;
+		std::cout << "Finished generating games\n";
+
+		std::cout << "Saving buffer\n";
+		generator_manager.getGameBuffer().save(working_directory + "/buffers/buffer_" + std::to_string(i) + ".bin");
+	}
+}
+
 void run_training()
 {
 	ml::Device::setNumberOfThreads(4);
-	const std::string path = "/home/maciek/alphagomoku/new_runs_2025/test_batch_size/test_16x256/";
+	const std::string path = "/home/maciek/alphagomoku/new_runs_2025/test_fast/value_no_bn/";
 
 	GameConfig game_config(GameRules::STANDARD, 15);
 	TrainingConfig training_config;
 	training_config.network_arch = "ConvNextPVQMraw";
 	training_config.augment_training_data = true;
-	training_config.blocks = 16;
-	training_config.filters = 256;
+	training_config.blocks = 8;
+	training_config.filters = 128;
 	training_config.patch_size = 1;
-	training_config.device_config.batch_size = 512;
-	training_config.l2_regularization = 1.0e-4f;
+	training_config.device_config.batch_size = 64;
+	training_config.l2_regularization = 2.0e-5f;
 	training_config.sampler_type = "values";
 
 	SupervisedLearning sl(training_config);
 
 	std::unique_ptr<AGNetwork> network = createAGNetwork(training_config.network_arch);
 	network->init(game_config, training_config);
-//	network->convertToHalfFloats();
-//	network->get_graph().setGradientScaler(ml::GradientScaler(1024.0f, 10000));
+	network->convertToHalfFloats();
+	network->get_graph().setGradientScaler(ml::GradientScaler(1024.0f, 10000));
 
 	int initial_epoch = 0;
 	int max_epochs = 500;
@@ -182,7 +224,7 @@ void run_training()
 
 	Dataset dataset;
 #pragma omp parallel for
-	for (int i = 240; i < 250; i++)
+	for (int i = 200; i < 250; i++)
 	{
 		std::cout << "loading buffer " << i << "...\n";
 		dataset.load(i, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer_v200/buffer_" + std::to_string(i) + ".bin");
@@ -2624,23 +2666,24 @@ void test_nnue()
 void test_evaluate(int idx = 0)
 {
 	const std::string path = "/home/maciek/alphagomoku/new_runs_2025/";
-	MasterLearningConfig config(FileLoader(path + "config.json").getJson());
+	MasterLearningConfig config(FileLoader(path + "test_fast/config.json").getJson());
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
 
 	cfg.simulations = 400;
-	cfg.search_config.mcts_config.edge_selector_config.init_to = "parent";
-	cfg.search_config.mcts_config.edge_selector_config.policy = "puct_fpu";
-	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku583/networks/standard_conv_8x128.bin", "gomocup_2024");
+//	cfg.search_config.mcts_config.edge_selector_config.init_to = "parent";
+//	cfg.search_config.mcts_config.edge_selector_config.policy = "puct_fpu";
+//	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku583/networks/standard_conv_8x128.bin", "gomocup_2024");
 //	manager.setFirstPlayer(cfg, path + "size_tests/baseline_8x128/network_swa_opt.bin", "baseline");
 
 	cfg.search_config.mcts_config.edge_selector_config.policy = "puct";
 	cfg.search_config.mcts_config.edge_selector_config.init_to = "q_head";
 	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.5f;
 
-//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_8x128/network_swa_opt.bin", "pvqm_8x128");
-	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_12x128/network_swa_opt.bin", "pvqm_12x128");
+	manager.setFirstPlayer(cfg, path + "test_fast/baseline/network_swa_opt.bin", "baseline");
+	if (idx == 0)
+		manager.setSecondPlayer(cfg, path + "test_fast/value_no_bn/network_swa_opt.bin", "value_no_bn");
 
 //	cfg.search_config.mcts_config.edge_selector_config.policy = "puct_variance";
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = idx / 100.0f;
@@ -2654,12 +2697,12 @@ void test_evaluate(int idx = 0)
 //	manager.setSecondPlayer(cfg, "/home/maciek/alphagomoku/new_runs_2025/size_tests/convnext_1x128/network_150_opt_int8.bin", "int8");
 
 	const double start = getTime();
-	manager.generate(4000);
+	manager.generate(1000);
 	const double stop = getTime();
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file(path + "testy2.pgn", std::ios::out | std::ios::app);
+	std::ofstream file(path + "test_fast/testy.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -3667,8 +3710,11 @@ int main(int argc, char *argv[])
 //	test_proven_positions(1000);
 //	test_proven_search(100, 1000, true);
 //	train_nnue();
+
+	generate_games();
 //	run_training();
-	run_knowledge_distillation();
+//	run_knowledge_distillation();
+
 //	test_evaluate(0);
 //	test_evaluate(1);
 //	test_evaluate(2);
@@ -3787,11 +3833,11 @@ int main(int argc, char *argv[])
 //		std::unique_ptr<AGNetwork> network = loadAGNetwork(path + "transformer_unet_test_1/network_opt.bin");
 //		std::unique_ptr<AGNetwork> network = loadAGNetwork(path + "pvq_8x128_cosine_150_250_350_450/network_150.bin");
 //		std::unique_ptr<AGNetwork> network = loadAGNetwork(path + "test_final_fp32/network_75.bin");
-		std::unique_ptr<AGNetwork> network = loadAGNetwork("/home/maciek/alphagomoku/new_runs_2025/standard_pvqm_8x128/network_swa_opt.bin");
+		std::unique_ptr<AGNetwork> network = loadAGNetwork("/home/maciek/alphagomoku/new_runs_2025/test_fast/value_s2d/network_swa_opt.bin");
 
 //		network->moveTo(ml::Device::cuda());
 		network->moveTo(ml::Device::cpu());
-		network->optimize(1);
+//		network->optimize(1);
 		network->setBatchSize(8);
 
 //		for (int n = 0; n < network->get_graph().numberOfNodes(); n++)
