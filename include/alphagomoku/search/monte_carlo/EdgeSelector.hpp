@@ -103,7 +103,6 @@ namespace ag
 			const std::string noise_type;
 			const float noise_weight;
 			const float exploration_constant; /**< controls the level of exploration */
-			const float exploration_exponent;
 		public:
 			PUCTSelector(const EdgeSelectorConfig &config);
 			std::unique_ptr<EdgeSelector> clone() const;

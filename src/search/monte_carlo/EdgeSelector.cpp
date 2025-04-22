@@ -888,8 +888,7 @@ namespace ag
 			init_to(config.init_to),
 			noise_type(config.noise_type),
 			noise_weight((config.noise_type == "none") ? 0.0f : config.noise_weight),
-			exploration_constant(config.exploration_constant),
-			exploration_exponent(config.exploration_exponent)
+			exploration_constant(config.exploration_constant)
 	{
 	}
 	std::unique_ptr<EdgeSelector> PUCTSelector::clone() const
@@ -900,7 +899,6 @@ namespace ag
 		config.noise_type = noise_type;
 		config.noise_weight = noise_weight;
 		config.exploration_constant = exploration_constant;
-		config.exploration_exponent = exploration_exponent;
 		return std::make_unique<PUCTSelector>(config);
 	}
 	Edge* PUCTSelector::select(const Node *node) noexcept
