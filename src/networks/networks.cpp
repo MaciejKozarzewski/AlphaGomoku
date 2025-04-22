@@ -21,6 +21,7 @@
 #include <minml/core/Shape.hpp>
 #include <minml/core/math.hpp>
 
+#include <minml/layers/AveragePooling.hpp>
 #include <minml/layers/ChannelScaling.hpp>
 #include <minml/layers/Conv2D.hpp>
 #include <minml/layers/MultiHeadAttention.hpp>
@@ -1148,8 +1149,6 @@ namespace ag
 		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
 		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
 
-		x = squeeze_and_excitation_block(graph, x, filters);
-
 		for (int i = 0; i < blocks; i++)
 		{
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
@@ -1163,7 +1162,6 @@ namespace ag
 		// policy head
 		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
 		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
-		p = squeeze_and_excitation_block(graph, p, filters);
 		p = graph.add(ml::Conv2D(1, 1), p);
 		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
 		graph.addOutput(p);
@@ -1181,7 +1179,6 @@ namespace ag
 		// action values head
 		auto q = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
 		q = graph.add(ml::BatchNormalization("relu").useGamma(false), q);
-		q = squeeze_and_excitation_block(graph, q, filters);
 		q = graph.add(ml::Conv2D(3, 1), q);
 		q = graph.add(ml::Softmax( { 3 }), q);
 		graph.addOutput(q);

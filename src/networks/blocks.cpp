@@ -7,15 +7,18 @@
 
 #include <alphagomoku/networks/blocks.hpp>
 
+#include <minml/layers/ChannelAveragePooling.hpp>
 #include <minml/layers/ChannelScaling.hpp>
 #include <minml/layers/Conv2D.hpp>
 #include <minml/layers/Dense.hpp>
+#include <minml/layers/DepthwiseConv2D.hpp>
 #include <minml/layers/Add.hpp>
 #include <minml/layers/BatchNormalization.hpp>
 #include <minml/layers/GlobalAveragePooling.hpp>
 #include <minml/layers/LearnableGlobalPooling.hpp>
 #include <minml/layers/Softmax.hpp>
 #include <minml/layers/SqueezeAndExcitation.hpp>
+#include <minml/layers/SpatialScaling.hpp>
 #include <minml/layers/PositionalEncoding.hpp>
 #include <minml/layers/RMSNormalization.hpp>
 #include <minml/layers/MultiHeadAttention.hpp>
@@ -125,6 +128,28 @@ namespace ag
 		y = graph.add(ml::Dense(filters, "relu").quantizable(false), y);
 		y = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), y);
 		x = graph.add(ml::ChannelScaling(), { x, y });
+		return x;
+	}
+	ml::GraphNodeID squeeze_and_excitation_block_v2(ml::Graph &graph, ml::GraphNodeID x, int filters)
+	{
+		auto y = graph.add(ml::GlobalAveragePooling().quantizable(false), x);
+		y = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), y);
+		x = graph.add(ml::ChannelScaling(), { x, y });
+		return x;
+	}
+	ml::GraphNodeID spatial_scaling_block(ml::Graph &graph, ml::GraphNodeID x, int hw)
+	{
+		auto y = graph.add(ml::ChannelAveragePooling().quantizable(false), x);
+		y = graph.add(ml::Dense(128, "relu").quantizable(false), y);
+		y = graph.add(ml::Dense(hw, "sigmoid").quantizable(false), y);
+		x = graph.add(ml::SpatialScaling(), { x, y });
+		return x;
+	}
+	ml::GraphNodeID spatial_scaling_block_v2(ml::Graph &graph, ml::GraphNodeID x, int hw)
+	{
+		auto y = graph.add(ml::Conv2D(1, 1).quantizable(false), x);
+		y = graph.add(ml::Dense(hw, "sigmoid").quantizable(false), y);
+		x = graph.add(ml::SpatialScaling(), { x, y });
 		return x;
 	}
 

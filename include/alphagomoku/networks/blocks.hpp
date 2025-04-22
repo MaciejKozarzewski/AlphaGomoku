@@ -26,6 +26,9 @@ namespace ag
 	ml::GraphNodeID createActionValuesHead(ml::Graph &graph, ml::GraphNodeID x, int filters);
 
 	ml::GraphNodeID squeeze_and_excitation_block(ml::Graph &graph, ml::GraphNodeID x, int filters);
+	ml::GraphNodeID squeeze_and_excitation_block_v2(ml::Graph &graph, ml::GraphNodeID x, int filters);
+	ml::GraphNodeID spatial_scaling_block(ml::Graph &graph, ml::GraphNodeID x, int hw);
+	ml::GraphNodeID spatial_scaling_block_v2(ml::Graph &graph, ml::GraphNodeID x, int hw);
 
 	ml::GraphNodeID conv_bn_relu(ml::Graph &graph, ml::GraphNodeID x, int filters, int kernel_size);
 	ml::GraphNodeID conv_bn(ml::Graph &graph, ml::GraphNodeID x, int filters, int kernel_size);
