@@ -31,7 +31,7 @@ namespace ag
 			std::vector<Move> played_moves;
 			std::vector<uint16_t> played_moves_v2;
 			GameOutcome game_outcome = GameOutcome::UNKNOWN;
-			int format = 100;
+			int format = 200;
 			int rows = 0;
 			int columns = 0;
 		public:
