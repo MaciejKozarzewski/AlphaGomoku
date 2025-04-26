@@ -155,18 +155,14 @@ namespace ag
 		if (new_type != ml::DataType::FLOAT32)
 		{
 			graph.convertTo(new_type);
-			data_pack = NetworkDataPack(game_config, getBatchSize(), graph.dtype());
-			if (not graph.device().isCPU())
-				input_on_device = ml::Tensor(get_input_shape(), ml::DataType::INT32, graph.device());
+			allocate_tensors();
 		}
 	}
 	void AGNetwork::init(const GameConfig &gameOptions, const TrainingConfig &trainingOptions)
 	{
 		game_config = gameOptions;
 		create_network(trainingOptions);
-		data_pack = NetworkDataPack(game_config, getBatchSize(), graph.dtype());
-		if (not graph.device().isCPU())
-			input_on_device = ml::Tensor(get_input_shape(), ml::DataType::INT32, graph.device());
+		allocate_tensors();
 	}
 	void AGNetwork::saveToFile(const std::string &path) const
 	{
@@ -210,10 +206,7 @@ namespace ag
 	void AGNetwork::moveTo(ml::Device device)
 	{
 		graph.moveTo(device);
-		if (graph.device().isCUDA())
-			data_pack.pinMemory();
-		if (not graph.device().isCPU())
-			input_on_device = ml::Tensor(get_input_shape(), ml::DataType::INT32, graph.device());
+		allocate_tensors();
 	}
 
 	int AGNetwork::getBatchSize() const noexcept
@@ -227,9 +220,7 @@ namespace ag
 			ml::Shape shape = graph.getInputShape();
 			shape[0] = batchSize;
 			graph.setInputShape(shape);
-			data_pack = NetworkDataPack(game_config, batchSize, graph.dtype());
-			if (not graph.device().isCPU())
-				input_on_device = ml::Tensor(get_input_shape(), ml::DataType::INT32, graph.device());
+			allocate_tensors();
 		}
 	}
 	GameConfig AGNetwork::getGameConfig() const noexcept
@@ -246,6 +237,14 @@ namespace ag
 	ml::Shape AGNetwork::get_input_shape() const noexcept
 	{
 		return ml::Shape( { getBatchSize(), game_config.rows, game_config.cols, 1 });
+	}
+	void AGNetwork::allocate_tensors()
+	{
+		data_pack = NetworkDataPack(game_config, getBatchSize(), graph.dtype());
+		if (graph.device().isCUDA())
+			data_pack.pinMemory();
+		if (not graph.device().isCPU())
+			input_on_device = ml::Tensor(get_input_shape(), ml::DataType::INT32, graph.device());
 	}
 	void AGNetwork::copy_input(const NetworkDataPack &pack)
 	{

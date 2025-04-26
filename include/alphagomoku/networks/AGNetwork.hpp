@@ -106,6 +106,7 @@ namespace ag
 			}
 		protected:
 			ml::Shape get_input_shape() const noexcept;
+			void allocate_tensors();
 			void copy_input(const NetworkDataPack &pack);
 			virtual void create_network(const TrainingConfig &trainingOptions) = 0;
 	};
