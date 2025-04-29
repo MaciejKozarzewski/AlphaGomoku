@@ -238,7 +238,6 @@ namespace ag
 	}
 	void ProgramManager::process_pre_launch_commands()
 	{
-		const std::vector<std::string> commands = { "help", "version", "benchmark", "configure", "load-config", "selfcheck" };
 		while (true)
 		{
 			const std::string cmd = input_listener.peekLine();
