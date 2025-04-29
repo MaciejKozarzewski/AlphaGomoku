@@ -37,6 +37,14 @@ namespace
 			return cfg;
 		}
 	}
+	NetworkLoader get_network_loader(int idx, const Parameter<int> &param, const std::string &base_path)
+	{
+		std::cout << " (" << std::max(0, 1 + idx - param.getValue(idx)) << ", " << idx << ") ";
+		std::vector<std::string> paths;
+		for (int i = std::max(0, 1 + idx - param.getValue(idx)); i <= idx; i++)
+			paths.push_back(base_path + "network_" + std::to_string(i) + ".bin");
+		return NetworkLoader(paths);
+	}
 }
 
 namespace ag
@@ -144,10 +152,6 @@ namespace ag
 		model->init(config.game_config, config.training_config);
 		model->saveToFile(working_dir + "/checkpoint/network_0.bin");
 		std::cout << "Saved training model\n";
-		model->optimize();
-		std::cout << "Optimized model\n";
-		model->saveToFile(working_dir + "/checkpoint/network_0_opt.bin");
-		std::cout << "Saved optimized model\n";
 	}
 	void TrainingManager::generateGames()
 	{
@@ -158,15 +162,14 @@ namespace ag
 			return;
 		}
 
-		std::string path_to_last_network = working_dir + "/checkpoint/network_" + std::to_string(epoch) + "_opt.bin";
-		std::cout << "Using " << path_to_last_network << '\n';
+		const NetworkLoader network_loader = get_network_loader(epoch, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
 		const int training_games = config.generation_config.games_per_iteration;
 		const int validation_games = std::max(1.0, training_games * config.training_config.validation_percent);
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
 		GeneratorManager generator_manager(config.game_config, config.generation_config);
 		generator_manager.setWorkingDirectory(working_dir);
-		generator_manager.generate(path_to_last_network, training_games + validation_games);
+		generator_manager.generate(network_loader, training_games + validation_games);
 		if (hasCapturedSignal(SignalType::INT))
 			return;
 		std::cout << "Finished generating games\n";
@@ -203,46 +206,39 @@ namespace ag
 		std::cout << "Training finished in " << (getTime() - start) << "s\n";
 
 		// run validation
-		loadDataset(validation_dataset, path_to_data + "/valid_buffer/");
-		sl_manager.validate(*model, validation_dataset);
-		if (not config.training_config.keep_loaded)
-			validation_dataset.clear();
-		std::cout << "Validation finished\n";
+//		loadDataset(validation_dataset, path_to_data + "/valid_buffer/");
+//		sl_manager.validate(*model, validation_dataset);
+//		if (not config.training_config.keep_loaded)
+//			validation_dataset.clear();
+//		std::cout << "Validation finished\n";
 
 		// save metadata and training history
 		sl_manager.saveTrainingHistory(working_dir);
 		metadata["learning_steps"] = sl_manager.saveProgress()["learning_steps"];
 		metadata["last_checkpoint"] = get_last_checkpoint() + 1;
 
-		// optimize model
-		model->moveTo(ml::Device::cpu());
-		model->optimize();
-		model->saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + "_opt.bin");
-		std::cout << "Optimized model\n";
-
 	}
 	void TrainingManager::evaluate()
 	{
 		const int epoch = get_last_checkpoint();
 
-		const std::string path_to_networks = working_dir + "/checkpoint/network_";
+		const NetworkLoader loader_1st = get_network_loader(epoch, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
 
-		const std::string first_network = path_to_networks + std::to_string(epoch) + "_opt.bin";
 		const std::string first_name = "AG_" + zfill(epoch, 3);
 
 		EvaluationManager evaluator_manager(config.game_config, config.evaluation_config.selfplay_options);
-		evaluator_manager.setFirstPlayer(config.evaluation_config.selfplay_options, first_network, first_name);
+		evaluator_manager.setFirstPlayer(config.evaluation_config.selfplay_options, loader_1st, first_name);
 
 		std::cout << "Evaluating network " << epoch << " against";
 		const int max_parts = std::min(evaluator_manager.numberOfThreads(), (int) config.evaluation_config.opponents.size());
 		for (int i = 0; i < max_parts; i++)
 		{
 			const int index = std::max(0, epoch + config.evaluation_config.opponents[i]);
-			const std::string second_network = path_to_networks + std::to_string(index) + "_opt.bin";
+			std::cout << ((i == 0) ? " " : ", ") << std::to_string(index);
+			const NetworkLoader loader_2nd = get_network_loader(index, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
 			const std::string second_name = "AG_" + zfill(index, 3);
 
-			evaluator_manager.setSecondPlayer(i, config.evaluation_config.selfplay_options, second_network, second_name);
-			std::cout << ((i == 0) ? " " : ", ") << std::to_string(index);
+			evaluator_manager.setSecondPlayer(i, config.evaluation_config.selfplay_options, loader_2nd, second_name);
 		}
 		std::cout << '\n';
 

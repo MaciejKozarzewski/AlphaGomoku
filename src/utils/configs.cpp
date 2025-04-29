@@ -147,20 +147,9 @@ namespace ag
 			l2_regularization(get_value<double>(options, "l2_regularization")),
 			validation_percent(get_value<double>(options, "validation_percent")),
 			learning_rate(options["learning_rate"]),
-			buffer_size(options["buffer_size"])
+			buffer_size(options["buffer_size"]),
+			swa_networks_num(get_value<Parameter<int>>(options, "swa_networks_num", Parameter<int>(1)))
 	{
-//		for (int i = 0; i < options["learning_rate_schedule"].size(); i++)
-//		{
-//			int first = options["learning_rate_schedule"][i]["from_epoch"];
-//			double second = options["learning_rate_schedule"][i]["value"];
-//			learning_rate_schedule.push_back( { first, second });
-//		}
-//		for (int i = 0; i < options["buffer_size"].size(); i++)
-//		{
-//			int first = options["buffer_size"][i]["from_epoch"];
-//			int second = options["buffer_size"][i]["size"];
-//			buffer_size.push_back( { first, second });
-//		}
 	}
 	Json TrainingConfig::toJson() const
 	{
@@ -178,11 +167,7 @@ namespace ag
 		result["validation_percent"] = validation_percent;
 		result["learning_rate"] = learning_rate.toJson();
 		result["buffer_size"] = buffer_size.toJson();
-//		for (size_t i = 0; i < learning_rate_schedule.size(); i++)
-//			result["learning_rate_schedule"][i] = Json(
-//					{ { "from_epoch", learning_rate_schedule[i].first }, { "value", learning_rate_schedule[i].second } });
-//		for (size_t i = 0; i < buffer_size.size(); i++)
-//			result["buffer_size"][i] = Json( { { "from_epoch", buffer_size[i].first }, { "size", buffer_size[i].second } });
+		result["swa_networks_num"] = swa_networks_num.toJson();
 		return result;
 	}
 

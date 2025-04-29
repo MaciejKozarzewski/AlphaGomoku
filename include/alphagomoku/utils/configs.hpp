@@ -175,6 +175,7 @@ namespace ag
 			double validation_percent = 0.05;
 			Parameter<double> learning_rate = 1.0e-3;
 			Parameter<int> buffer_size = 10;
+			Parameter<int> swa_networks_num = 1;
 
 			TrainingConfig() = default;
 			TrainingConfig(const Json &options);

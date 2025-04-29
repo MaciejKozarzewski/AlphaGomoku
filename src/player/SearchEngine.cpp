@@ -10,6 +10,7 @@
 #include <alphagomoku/player/EngineSettings.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
+#include <alphagomoku/selfplay/NetworkLoader.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/game/Game.hpp>
 #include <alphagomoku/utils/matrix.hpp>

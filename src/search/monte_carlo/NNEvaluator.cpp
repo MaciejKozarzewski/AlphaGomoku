@@ -8,6 +8,7 @@
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/search/monte_carlo/SearchTask.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
+#include <alphagomoku/selfplay/NetworkLoader.hpp>
 #include <alphagomoku/utils/misc.hpp>
 #include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/utils/augmentations.hpp>
@@ -85,9 +86,9 @@ namespace ag
 	{
 		use_symmetries = b;
 	}
-	void NNEvaluator::loadGraph(const std::string &path)
+	void NNEvaluator::loadGraph(const NetworkLoader &loader)
 	{
-		network = loadAGNetwork(path);
+		network = loader.get();
 		get_network().setBatchSize(config.batch_size);
 		get_network().moveTo(config.device);
 		get_network().convertToHalfFloats();

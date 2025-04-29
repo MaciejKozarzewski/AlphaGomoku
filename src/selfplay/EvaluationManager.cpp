@@ -7,6 +7,7 @@
 
 #include <alphagomoku/selfplay/EvaluationManager.hpp>
 #include <alphagomoku/selfplay/EvaluationGame.hpp>
+#include <alphagomoku/selfplay/NetworkLoader.hpp>
 #include <alphagomoku/selfplay/SearchData.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
 #include <alphagomoku/utils/configs.hpp>
@@ -25,16 +26,16 @@ namespace ag
 		for (size_t i = 0; i < evaluators.size(); i++)
 			evaluators[i] = std::make_unique<EvaluationGame>(gameOptions, *this, selfplayOptions.use_opening);
 	}
-	void EvaluatorThread::setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
+	void EvaluatorThread::setFirstPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name)
 	{
-		first_nn_evaluator.loadGraph(pathToNetwork);
+		first_nn_evaluator.loadGraph(loader);
 		first_nn_evaluator.useSymmetries(options.use_symmetries);
 		for (size_t i = 0; i < evaluators.size(); i++)
 			evaluators[i]->setFirstPlayer(options, first_nn_evaluator, name);
 	}
-	void EvaluatorThread::setSecondPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
+	void EvaluatorThread::setSecondPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name)
 	{
-		second_nn_evaluator.loadGraph(pathToNetwork);
+		second_nn_evaluator.loadGraph(loader);
 		second_nn_evaluator.useSymmetries(options.use_symmetries);
 		for (size_t i = 0; i < evaluators.size(); i++)
 			evaluators[i]->setSecondPlayer(options, second_nn_evaluator, name);
@@ -143,27 +144,27 @@ namespace ag
 		}
 		return result;
 	}
-	void EvaluationManager::setFirstPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
+	void EvaluationManager::setFirstPlayer(int threadIndex, const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name)
 	{
 		wait_for_finish();
-		evaluators.at(threadIndex)->setFirstPlayer(options, pathToNetwork, name);
+		evaluators.at(threadIndex)->setFirstPlayer(options, loader, name);
 	}
-	void EvaluationManager::setSecondPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
+	void EvaluationManager::setSecondPlayer(int threadIndex, const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name)
 	{
 		wait_for_finish();
-		evaluators.at(threadIndex)->setSecondPlayer(options, pathToNetwork, name);
+		evaluators.at(threadIndex)->setSecondPlayer(options, loader, name);
 	}
-	void EvaluationManager::setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
+	void EvaluationManager::setFirstPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name)
 	{
 		wait_for_finish();
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->setFirstPlayer(options, pathToNetwork, name);
+			evaluators[i]->setFirstPlayer(options, loader, name);
 	}
-	void EvaluationManager::setSecondPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name)
+	void EvaluationManager::setSecondPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name)
 	{
 		wait_for_finish();
 		for (size_t i = 0; i < evaluators.size(); i++)
-			evaluators[i]->setSecondPlayer(options, pathToNetwork, name);
+			evaluators[i]->setSecondPlayer(options, loader, name);
 	}
 
 	int EvaluationManager::numberOfThreads() const noexcept

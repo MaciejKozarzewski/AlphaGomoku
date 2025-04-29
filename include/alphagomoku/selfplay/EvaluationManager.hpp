@@ -19,6 +19,7 @@ namespace ag
 {
 	class GameConfig;
 	class SelfplayConfig;
+	class NetworkLoader;
 } /* namespace ag */
 
 namespace ag
@@ -38,8 +39,8 @@ namespace ag
 			int games_to_play = 0;
 		public:
 			EvaluatorThread(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index);
-			void setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
-			void setSecondPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
+			void setFirstPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
+			void setSecondPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
 			void addToBuffer(const Game &game);
 			const std::vector<Game>& getGameBuffer() noexcept;
 			void generate(int numberOfGames);
@@ -59,10 +60,10 @@ namespace ag
 			const std::vector<Game>& getGameBuffer(int threadIndex) const;
 			std::string getPGN() const;
 
-			void setFirstPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
-			void setSecondPlayer(int threadIndex, const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
-			void setFirstPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
-			void setSecondPlayer(const SelfplayConfig &options, const std::string pathToNetwork, const std::string &name);
+			void setFirstPlayer(int threadIndex, const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
+			void setSecondPlayer(int threadIndex, const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
+			void setFirstPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
+			void setSecondPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
 
 			int numberOfThreads() const noexcept;
 			int numberOfGames() const noexcept;

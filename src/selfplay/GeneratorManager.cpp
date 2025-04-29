@@ -123,7 +123,7 @@ namespace ag
 	 */
 	void GeneratorThread::run()
 	{
-		nn_evaluator.loadGraph(manager.getPathToNetwork());
+		nn_evaluator.loadGraph(manager.getNetworkLoader());
 		while (is_running.load() and not manager.hasEnoughGames())
 		{
 			for (size_t i = 0; i < generators.size(); i++)
@@ -165,9 +165,9 @@ namespace ag
 	{
 		return game_buffer;
 	}
-	std::string GeneratorManager::getPathToNetwork() const
+	const NetworkLoader& GeneratorManager::getNetworkLoader() const noexcept
 	{
-		return path_to_network;
+		return network_loader;
 	}
 	bool GeneratorManager::hasEnoughGames() const noexcept
 	{
@@ -179,10 +179,10 @@ namespace ag
 		for (size_t i = 0; i < generators.size(); i++)
 			generators[i]->resetGames();
 	}
-	void GeneratorManager::generate(const std::string &pathToNetwork, int numberOfGames)
+	void GeneratorManager::generate(const NetworkLoader &loader, int numberOfGames)
 	{
 		games_to_generate = numberOfGames;
-		path_to_network = pathToNetwork;
+		network_loader = loader;
 		load_state();
 
 		for (size_t i = 0; i < generators.size(); i++)

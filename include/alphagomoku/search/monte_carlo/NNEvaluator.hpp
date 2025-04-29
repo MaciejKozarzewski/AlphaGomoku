@@ -20,6 +20,7 @@ namespace ag
 {
 	class SearchTask;
 	class DeviceConfig;
+	class NetworkLoader;
 }
 
 namespace ag
@@ -67,7 +68,7 @@ namespace ag
 			void clearQueue() noexcept;
 			void useSymmetries(bool b) noexcept;
 
-			void loadGraph(const std::string &path);
+			void loadGraph(const NetworkLoader &loader);
 			void unloadGraph();
 			void addToQueue(SearchTask &task);
 			void addToQueue(SearchTask &task, int symmetry);

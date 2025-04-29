@@ -10,6 +10,7 @@
 
 #include <alphagomoku/dataset/GameDataBuffer.hpp>
 #include <alphagomoku/selfplay/GameGenerator.hpp>
+#include <alphagomoku/selfplay/NetworkLoader.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 
 #include <cinttypes>
@@ -79,8 +80,8 @@ namespace ag
 			GameDataBuffer game_buffer;
 
 			int games_to_generate = 0;
-			std::string path_to_network;
 			std::string working_directory;
+			NetworkLoader network_loader;
 		public:
 			GeneratorManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions);
 
@@ -89,10 +90,10 @@ namespace ag
 
 			const GameDataBuffer& getGameBuffer() const noexcept;
 			GameDataBuffer& getGameBuffer() noexcept;
-			std::string getPathToNetwork() const;
+			const NetworkLoader& getNetworkLoader() const noexcept;
 
 			void resetGames();
-			void generate(const std::string &pathToNetwork, int numberOfGames);
+			void generate(const NetworkLoader &loader, int numberOfGames);
 			bool hasEnoughGames() const noexcept;
 
 			void printStats();
