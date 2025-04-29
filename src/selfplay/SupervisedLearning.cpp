@@ -92,6 +92,7 @@ namespace ag
 	void SupervisedLearning::train(AGNetwork &model, const Dataset &dataset, int steps)
 	{
 		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
+		model.get_graph().context().enableTF32(true);
 
 		const int batch_size = model.getBatchSize();
 
