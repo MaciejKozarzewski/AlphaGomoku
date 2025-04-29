@@ -166,6 +166,10 @@ namespace ag
 	{
 		return evaluation;
 	}
+	float Tree::getMovesLeft() const noexcept
+	{
+		return moves_left;
+	}
 	int Tree::getNodeCount() const noexcept
 	{
 		return node_cache.storedNodes();
@@ -336,7 +340,8 @@ namespace ag
 			pair.edge->clearFlags();
 		}
 
-		evaluation = root_node->getExpectation();
+		this->evaluation = root_node->getExpectation();
+		this->moves_left = root_node->getMovesLeft();
 	}
 	void Tree::correctInformationLeak(const SearchTask &task)
 	{

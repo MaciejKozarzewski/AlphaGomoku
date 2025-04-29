@@ -59,6 +59,7 @@ namespace ag
 			matrix<Sign> base_board;
 			std::atomic<int> move_number { 0 };
 			std::atomic<float> evaluation { 0.0f };
+			std::atomic<float> moves_left { 0.0f };
 			std::atomic<int> max_depth { 0 };
 			Sign sign_to_move = Sign::NONE;
 
@@ -74,6 +75,7 @@ namespace ag
 
 			int getMoveNumber() const noexcept;
 			float getEvaluation() const noexcept;
+			float getMovesLeft() const noexcept;
 			int getNodeCount() const noexcept;
 			int getSimulationCount() const noexcept;
 			int getMaximumDepth() const noexcept;
