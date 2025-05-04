@@ -19,7 +19,7 @@ namespace
 	{
 		std::unique_ptr<AGNetwork> result = loadAGNetwork(path);
 		if (optimize)
-			result->optimize(0);
+			result->optimize(1);
 		return result;
 	}
 }

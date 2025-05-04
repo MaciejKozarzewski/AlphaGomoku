@@ -136,12 +136,12 @@ namespace ag
 	void AGNetwork::optimize(int level)
 	{
 		graph.makeTrainable(false);
-		if (level >= 0)
+		if (level >= 1)
 		{
 			ml::FoldBatchNorm().optimize(graph);
 			ml::FoldAdd().optimize(graph);
 		}
-		if (level >= 1)
+		if (level >= 2)
 		{
 			ml::FuseConvBlock().optimize(graph);
 			ml::FuseSEBlock().optimize(graph);

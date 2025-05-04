@@ -89,6 +89,7 @@ namespace ag
 	void NNEvaluator::loadGraph(const NetworkLoader &loader)
 	{
 		network = loader.get();
+		get_network().optimize(2);
 		get_network().setBatchSize(config.batch_size);
 		get_network().moveTo(config.device);
 		get_network().convertToHalfFloats();
