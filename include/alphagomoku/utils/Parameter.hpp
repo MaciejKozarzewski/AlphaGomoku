@@ -8,6 +8,8 @@
 #ifndef ALPHAGOMOKU_UTILS_PARAMETER_HPP_
 #define ALPHAGOMOKU_UTILS_PARAMETER_HPP_
 
+#include <alphagomoku/utils/math_utils.hpp>
+
 #include <minml/core/Device.hpp>
 #include <minml/utils/json.hpp>
 
@@ -125,7 +127,7 @@ namespace ag
 						const double tmp1 = epoch - prev.first;
 						const double tmp2 = next.first - prev.first;
 						const double tmp3 = next.second - prev.second;
-						result = prev.second + 0.5 * tmp3 * (1.0 - std::cos(tmp1 / tmp2 * M_PI));
+						result = prev.second + 0.5 * tmp3 * (1.0 - std::cos(tmp1 / tmp2 * PI));
 					}
 					if (std::is_integral<T>::value)
 						return static_cast<T>(result + 0.5); // round to nearest

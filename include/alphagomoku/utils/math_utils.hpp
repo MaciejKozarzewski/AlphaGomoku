@@ -17,6 +17,8 @@
 
 namespace ag
 {
+	static constexpr double PI = 3.14159265358979323846;
+
 	template<typename T>
 	constexpr T clamp(T value, T lower, T upper) noexcept
 	{
