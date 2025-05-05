@@ -97,7 +97,7 @@ namespace
 	};
 	board_size get_board_size_from_string(const std::string &str)
 	{
-		int height = std::count(str.begin(), str.end(), '\n');		// every line must end with new line character "\n"
+		int height = std::count(str.begin(), str.end(), '\n'); // every line must end with new line character "\n"
 		if (height == 0)
 			throw std::logic_error("get_board_size_from_string() : height is 0");
 		if (str.size() % height != 0)
