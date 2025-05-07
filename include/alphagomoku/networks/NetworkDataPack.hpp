@@ -59,13 +59,13 @@ namespace ag
 
 			void packPolicyTarget(int index, const matrix<float> &target);
 			void packValueTarget(int index, Value target);
-			void packMovesLeftTarget(int index, int target);
 			void packActionValuesTarget(int index, const matrix<Value> &target, const matrix<float> &mask);
+			void packMovesLeftTarget(int index, int target);
 
 			void unpackPolicy(int index, matrix<float> &policy) const;
 			void unpackValue(int index, Value &value) const;
-			void unpackMovesLeft(int index, float &movesLeft) const;
 			void unpackActionValues(int index, matrix<Value> &actionValues) const;
+			void unpackMovesLeft(int index, float &movesLeft) const;
 
 			void pinMemory();
 

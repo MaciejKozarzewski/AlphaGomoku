@@ -1189,7 +1189,7 @@ namespace ag
 		mlh = graph.add(ml::GlobalAveragePooling(), mlh);
 		mlh = graph.add(ml::Dense(128).useBias(false), mlh);
 		mlh = graph.add(ml::BatchNormalization("leaky_relu"), mlh);
-		mlh = graph.add(ml::Dense(50), mlh);
+		mlh = graph.add(ml::Dense(game_config.rows * game_config.cols), mlh);
 		mlh = graph.add(ml::Softmax( { 1 }), mlh);
 		graph.addOutput(mlh, ml::CrossEntropyLoss(), 0.25f);
 
