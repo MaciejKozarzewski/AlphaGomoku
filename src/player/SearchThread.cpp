@@ -201,7 +201,12 @@ namespace ag
 		}
 		if (tree.isRootProven())
 		{
-			Logger::write("Tree is proven");
+			Logger::write("Root node is proven");
+			return true;
+		}
+		if (tree.hasAllMovesProven())
+		{
+			Logger::write("All moves at root are proven");
 			return true;
 		}
 		if (tree.hasSingleMove())

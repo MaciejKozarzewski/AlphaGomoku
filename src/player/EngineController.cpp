@@ -25,7 +25,8 @@ namespace
 	}
 	UnifiedGenerator get_base_generator(const EngineSettings &settings)
 	{
-		return UnifiedGenerator(settings.getSearchConfig().mcts_config.max_children, settings.getSearchConfig().mcts_config.policy_expansion_threshold);
+		return UnifiedGenerator(settings.getSearchConfig().mcts_config.max_children,
+				settings.getSearchConfig().mcts_config.policy_expansion_threshold);
 	}
 }
 
@@ -56,7 +57,6 @@ namespace ag
 		EdgeSelectorConfig config;
 		config.exploration_constant = 0.2f;
 		LCBSelector selector(config);
-//		BestEdgeSelector selector;
 		return selector.select(&summary.node)->getMove();
 	}
 	void log_balancing_move(const std::string &whichOne, Move m)
@@ -115,7 +115,43 @@ namespace ag
 	 */
 	bool EngineController::is_search_completed(double timeout) const
 	{
-		return (time_manager.getElapsedTime() > timeout or search_engine.isSearchFinished()) and search_engine.isRootEvaluated();
+		if (not search_engine.isRootEvaluated())
+			return false;
+		if (time_manager.getElapsedTime() > timeout or search_engine.isSearchFinished())
+			return true;
+
+		Node root_node = search_engine.getRootCopy();
+		if (root_node.numberOfEdges() == 1)
+			return true;
+		if (root_node.getVisits() <= 1)
+			return false;
+
+		Edge *best_edge = root_node.begin();
+		int most_visits = 0;
+		int total_visits = 0;
+
+		for (Edge *edge = root_node.begin(); edge < root_node.end(); edge++)
+		{
+			const int v = std::max(1, edge->getVisits());
+			total_visits += v;
+			if (v > most_visits)
+			{
+				best_edge = edge;
+				most_visits = v;
+			}
+		}
+
+		if (most_visits > 0.99 * total_visits)
+		{
+			Logger::write("Early stopping");
+			Logger::write(root_node.toString());
+			root_node.sortEdges();
+			for (Edge *edge = root_node.begin(); edge < root_node.end(); edge++)
+				Logger::write(edge->toString() + "   " + std::to_string(100.0f * std::max(1, edge->getVisits()) / total_visits) + "%");
+			return true;
+		}
+		else
+			return false;
 	}
 	void EngineController::start_best_move_search()
 	{

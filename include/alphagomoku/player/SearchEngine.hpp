@@ -63,6 +63,7 @@ namespace ag
 			const Tree& getTree() const noexcept;
 			void logSearchInfo() const;
 			SearchSummary getSummary(const std::vector<Move> &listOfMoves, bool getPV) const;
+			Node getRootCopy() const;
 		private:
 			void setup_search_threads();
 	};

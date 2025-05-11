@@ -263,6 +263,10 @@ namespace ag
 			result.number_of_nodes += search_threads[i]->getSearchStats().nb_node_count;
 		return result;
 	}
+	Node SearchEngine::getRootCopy() const
+	{
+		return tree.getInfo( { });
+	}
 	/*
 	 * private
 	 */
