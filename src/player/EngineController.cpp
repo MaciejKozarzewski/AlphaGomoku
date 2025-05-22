@@ -126,7 +126,6 @@ namespace ag
 		if (root_node.getVisits() <= 1)
 			return false;
 
-		Edge *best_edge = root_node.begin();
 		int most_visits = 0;
 		int total_visits = 0;
 
@@ -134,24 +133,10 @@ namespace ag
 		{
 			const int v = std::max(1, edge->getVisits());
 			total_visits += v;
-			if (v > most_visits)
-			{
-				best_edge = edge;
-				most_visits = v;
-			}
+			most_visits = std::max(most_visits, v);
 		}
 
-		if (most_visits > 0.99 * total_visits)
-		{
-			Logger::write("Early stopping");
-			Logger::write(root_node.toString());
-			root_node.sortEdges();
-			for (Edge *edge = root_node.begin(); edge < root_node.end(); edge++)
-				Logger::write(edge->toString() + "   " + std::to_string(100.0f * std::max(1, edge->getVisits()) / total_visits) + "%");
-			return true;
-		}
-		else
-			return false;
+		return most_visits > 0.99 * total_visits; // early stopping
 	}
 	void EngineController::start_best_move_search()
 	{
