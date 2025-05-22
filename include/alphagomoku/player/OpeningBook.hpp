@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_PLAYER_OPENINGBOOK_HPP_
 #define ALPHAGOMOKU_PLAYER_OPENINGBOOK_HPP_
 
-#include <alphagomoku/mcts/Value.hpp>
+#include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/game/Move.hpp>
 
 #include <cinttypes>

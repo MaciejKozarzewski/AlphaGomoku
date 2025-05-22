@@ -100,7 +100,7 @@ namespace ag
 
 			// if draw probability is higher than some level we proportionally reduce the number of simulations to save time (15-20% speedup)
 			const Value root_eval = tree.getInfo( { }).getValue();
-			const int simulations = get_simulations_for_move(root_eval.draw_rate, selfplay_config.simulations, 100);
+			const int simulations = get_simulations_for_move(root_eval.draw_rate, selfplay_config.simulations, 50);
 
 			if (tree.getSimulationCount() > simulations or tree.isRootProven())
 			{

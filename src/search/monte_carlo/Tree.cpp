@@ -129,7 +129,7 @@ namespace ag
 	{
 		if (not equalSize(base_board, newBoard))
 		{
-			const GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // rules specified here are irrelevant
+			const GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // game rule specified here is irrelevant
 			node_cache = NodeCache(game_config, config);
 			edge_selector = nullptr; // must clear selector in case it uses information about board size
 			edge_generator = nullptr; // must clear generator in case it uses information about board size

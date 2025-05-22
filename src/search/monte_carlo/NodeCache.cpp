@@ -296,8 +296,6 @@ namespace ag
 	}
 	void NodeCache::remove(const matrix<Sign> &board, Sign signToMove) noexcept
 	{
-		assert(seek(board, signToMove) != nullptr); // the board state must be in the cache
-
 		TimerGuard timer(stats.remove);
 		const HashKey64 hash_key = hash_function.getHash(board, signToMove);
 
