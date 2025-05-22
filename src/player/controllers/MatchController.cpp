@@ -35,9 +35,8 @@ namespace ag
 		if (state == ControllerState::SEARCH)
 		{
 			const int move_number = search_engine.getTree().getMoveNumber();
-			const float evaluation = search_engine.getTree().getEvaluation();
 			const float moves_left = search_engine.getTree().getMovesLeft();
-			const double time_for_turn = time_manager.getTimeForTurn(engine_settings, move_number, evaluation); // TODO pass moves_left instead of evaluation
+			const double time_for_turn = time_manager.getTimeForTurn(engine_settings, move_number, moves_left);
 			if (is_search_completed(time_for_turn))
 			{
 				stop_search();

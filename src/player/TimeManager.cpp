@@ -111,14 +111,11 @@ namespace ag
 		return time_of_last_search;
 	}
 
-	double TimeManager::getTimeForTurn(const EngineSettings &settings, int moveNumber, float eval)
+	double TimeManager::getTimeForTurn(const EngineSettings &settings, int moveNumber, float moves_left)
 	{
 		std::lock_guard lock(mutex);
-		const MovesLeftEstimator &estimator = moves_left_estimators.find(settings.getGameConfig().rules)->second;
-		const double moves_left = estimator.get(moveNumber, eval);
-
-		const double fraction = 1.0 - 0.08 * std::pow(2.0, -moveNumber / 50.0);
-		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
+		const double fraction = 0.9;
+		const double sum = (1.0 - std::pow(fraction, moves_left)) / std::max(1.0e-8, 1.0 - fraction);
 
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
 	}
