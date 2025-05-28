@@ -8,6 +8,7 @@
 #ifndef ALPHAGOMOKU_GAME_MOVE_HPP_
 #define ALPHAGOMOKU_GAME_MOVE_HPP_
 
+#include <cstdint>
 #include <string>
 #include <cassert>
 
