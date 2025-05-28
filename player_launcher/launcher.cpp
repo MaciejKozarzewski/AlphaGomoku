@@ -17,6 +17,7 @@ using namespace ag;
 
 int main(int argc, char *argv[])
 {
+	ml::Device::flushDenormalsToZero(true);
 	ag::ProgramManager player_manager;
 	try
 	{

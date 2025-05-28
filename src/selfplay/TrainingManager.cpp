@@ -37,13 +37,19 @@ namespace
 			return cfg;
 		}
 	}
-	NetworkLoader get_network_loader(int idx, const Parameter<int> &param, const std::string &base_path)
+	NetworkLoader get_network_loader(int from, int to, const std::string &base_path)
 	{
-		std::cout << " (" << std::max(0, 1 + idx - param.getValue(idx)) << ", " << idx << ") ";
+		assert(from >= 0);
+		assert(to >= 0);
+		std::cout << " (" << from << ", " << to << ") ";
 		std::vector<std::string> paths;
-		for (int i = std::max(0, 1 + idx - param.getValue(idx)); i <= idx; i++)
+		for (int i = from; i <= to; i++)
 			paths.push_back(base_path + "network_" + std::to_string(i) + ".bin");
 		return NetworkLoader(paths);
+	}
+	NetworkLoader get_network_loader(int idx, const Parameter<int> &param, const std::string &base_path)
+	{
+		return get_network_loader(std::max(0, idx - param.getValue(idx)), idx, base_path);
 	}
 }
 
@@ -217,6 +223,9 @@ namespace ag
 		metadata["learning_steps"] = sl_manager.saveProgress()["learning_steps"];
 		metadata["last_checkpoint"] = get_last_checkpoint() + 1;
 
+		// save most recent SWA network
+		const NetworkLoader loader = get_network_loader(std::max(0, get_last_checkpoint() - 10), get_last_checkpoint(), working_dir + "/checkpoint/");
+		loader.get()->saveToFile(working_dir + "/network_swa.bin");
 	}
 	void TrainingManager::evaluate()
 	{
