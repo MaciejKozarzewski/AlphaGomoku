@@ -159,14 +159,16 @@ namespace ag
 	Score MoveGenerator::generate(ActionList &actions, MoveGeneratorMode mode)
 	{
 		TimerGuard tg(m_total_time);
+		const int distance_to_draw = game_config.draw_after - pattern_calculator.getCurrentDepth();
+		if (distance_to_draw <= 0)
+			return Score::draw();
+
 		assert(this->actions == nullptr);
 		assert(actions.isEmpty());
 
 		this->actions = &actions;
 		moves.fill(false);
 		forbidden_moves_cache.clear();
-
-		const int distance_to_draw = game_config.draw_after - pattern_calculator.getCurrentDepth();
 
 		Result result;
 		if (result.must_continue and distance_to_draw >= 1)

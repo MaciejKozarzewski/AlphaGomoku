@@ -148,12 +148,10 @@ namespace ag
 				current_task.setScore(s);
 				current_task.setValue(s.convertToValue());
 				current_task.markAsProcessedBySolver();
-				tree.backup(current_task); // we just propagate proven value and score (again)
 				stats.nb_proven_states++;
-				get_buffer().removeLast();
 			}
 
-//			// in theory we can keep hitting information leaks of proven states forever
+//			// in theory we can keep hitting information leaks forever
 //			// this is why we exit the loop after certain number of search tasks
 			number_of_trials--;
 			if (number_of_trials <= 0)

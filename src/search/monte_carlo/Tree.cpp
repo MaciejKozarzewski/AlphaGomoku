@@ -231,6 +231,9 @@ namespace ag
 			node->increaseVirtualLoss();
 			edge->increaseVirtualLoss();
 
+			if (edge->isProven())
+				return SelectOutcome::REACHED_PROVEN_EDGE;
+
 			node = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in cache
 			task.setFinalNode(node);
 			if (node == nullptr)
@@ -240,10 +243,7 @@ namespace ag
 				return SelectOutcome::INFORMATION_LEAK;
 		}
 		max_depth = std::max((int) max_depth, task.visitedPathLength());
-		if (task.visitedPathLength() > 0 and task.getLastEdge()->isProven())
-			return SelectOutcome::REACHED_PROVEN_EDGE;
-		else
-			return SelectOutcome::REACHED_LEAF;
+		return SelectOutcome::REACHED_LEAF;
 	}
 	void Tree::generateEdges(SearchTask &task) const
 	{
