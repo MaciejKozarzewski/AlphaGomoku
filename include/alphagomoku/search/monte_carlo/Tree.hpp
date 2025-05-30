@@ -40,7 +40,8 @@ namespace ag
 	enum class ExpandOutcome
 	{
 		SUCCESS,
-		ALREADY_EXPANDED
+		ALREADY_EXPANDED,
+		SKIPPED_EXPANSION
 	};
 
 	class TreeLock;

@@ -148,6 +148,7 @@ namespace ag
 				current_task.setScore(s);
 				current_task.setValue(s.convertToValue());
 				current_task.markAsProcessedBySolver();
+				current_task.markToSkipEdgeGeneration();
 				stats.nb_proven_states++;
 			}
 
@@ -171,16 +172,16 @@ namespace ag
 			ab_search.setNodeLimit(10000);
 
 		for (int i = 0; i < get_buffer().storedElements(); i++)
-		{
-			if (endTime >= 0.0)
+			if (not get_buffer().get(i).wasProcessedBySolver())
 			{
-//				std::cout << i << "/" << getBatchSize() << ", time = " << 1.0e6 * (endTime - getTime()) / (getBatchSize() - i) << "us ("
-//						<< 1.0e6 * (endTime - getTime()) << "us)\n";
-				ab_search.setTimeLimit((endTime - getTime()) / (getBatchSize() - i));
+				if (endTime >= 0.0)
+				{
+//					std::cout << i << "/" << getBatchSize() << ", time = " << 1.0e6 * (endTime - getTime()) / (getBatchSize() - i) << "us ("
+//							<< 1.0e6 * (endTime - getTime()) << "us)\n";
+					ab_search.setTimeLimit((endTime - getTime()) / (getBatchSize() - i));
+				}
+				ab_search.solve(get_buffer().get(i));
 			}
-
-			ab_search.solve(get_buffer().get(i));
-		}
 		stats.solve.stopTimer(get_buffer().storedElements());
 	}
 	void Search::scheduleToNN(NNEvaluator &evaluator)
@@ -209,7 +210,8 @@ namespace ag
 	{
 		stats.generate.startTimer();
 		for (int i = 0; i < get_buffer().storedElements(); i++)
-			tree.generateEdges(get_buffer().get(i));
+			if (not get_buffer().get(i).skipEdgeGeneration())
+				tree.generateEdges(get_buffer().get(i));
 		stats.generate.stopTimer(get_buffer().storedElements());
 	}
 	void Search::expand(Tree &tree)

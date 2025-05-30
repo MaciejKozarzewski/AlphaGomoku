@@ -46,6 +46,7 @@ namespace ag
 		must_defend = false;
 		was_processed_by_network = false;
 		was_processed_by_solver = false;
+		skip_edge_generation = false;
 	}
 
 	void SearchTask::append(Node *node, Edge *edge)
@@ -69,7 +70,8 @@ namespace ag
 	void SearchTask::addEdge(Move move)
 	{
 		assert(move.sign == sign_to_move);
-		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge) { return edge.getMove() == move;})); // an edge must not be added twice
+		assert(std::none_of(edges.begin(), edges.end(), [move](const Edge &edge)
+		{	return edge.getMove() == move;})); // an edge must not be added twice
 		assert(board.at(move.row, move.col) == Sign::NONE); // move must be valid
 
 		Edge e;

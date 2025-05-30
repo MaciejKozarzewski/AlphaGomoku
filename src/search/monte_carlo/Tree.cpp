@@ -252,7 +252,8 @@ namespace ag
 	}
 	ExpandOutcome Tree::expand(SearchTask &task)
 	{
-		assert(task.getEdges().size() > 0);
+		if (task.getEdges().size() == 0)
+			return ExpandOutcome::SKIPPED_EXPANSION;
 
 		Node *node_to_add = node_cache.seek(task.getBoard(), task.getSignToMove()); // try to find board state in the cache
 		if (node_to_add == nullptr)

@@ -59,6 +59,7 @@ namespace ag
 			bool must_defend = false;
 			bool was_processed_by_network = false; /**< flag indicating whether the task has been evaluated by neural network and can be used for edge generation */
 			bool was_processed_by_solver = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
+			bool skip_edge_generation = false;
 		public:
 			SearchTask() noexcept = default;
 			SearchTask(GameConfig config);
@@ -153,6 +154,10 @@ namespace ag
 			{
 				return was_processed_by_solver;
 			}
+			bool skipEdgeGeneration() const noexcept
+			{
+				return skip_edge_generation;
+			}
 			bool isReady() const noexcept
 			{
 				return score.isProven() or wasProcessedByNetwork();
@@ -214,6 +219,10 @@ namespace ag
 			void markAsProcessedBySolver() noexcept
 			{
 				was_processed_by_solver = true;
+			}
+			void markToSkipEdgeGeneration() noexcept
+			{
+				skip_edge_generation = true;
 			}
 			void markAsDefensive() noexcept
 			{
