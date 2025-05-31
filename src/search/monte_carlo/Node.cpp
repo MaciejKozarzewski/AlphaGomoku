@@ -37,7 +37,6 @@ namespace ag
 	{
 		std::string result = "depth=";
 		result += std::to_string(getDepth());
-		result += " : moves left=" + std::to_string(getMovesLeft());
 		result += " : S=" + getScore().toFormattedString();
 		result += " : Q=" + getValue().toString();
 		result += " : Visits=" + std::to_string(getVisits());
@@ -45,6 +44,7 @@ namespace ag
 		result += " (" + std::to_string(getVirtualLoss()) + ")";
 #endif
 		result += " : Edges=" + std::to_string(numberOfEdges());
+		result += " : moves left=" + std::to_string(getMovesLeft());
 #ifndef NDEBUG
 		result += " : flags=" + flags_to_string(flags);
 		result += " : now moving=" + ag::toString(sign_to_move);
