@@ -237,6 +237,10 @@ namespace ag
 			{
 				score = s;
 			}
+			void setSignToMove(Sign s) noexcept
+			{
+				sign_to_move = s;
+			}
 
 			void setMovesLeft(float ml) noexcept
 			{
