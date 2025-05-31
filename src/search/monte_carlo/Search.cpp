@@ -144,7 +144,7 @@ namespace ag
 			if (out == SelectOutcome::REACHED_PROVEN_EDGE)
 			{ // this was added to allow the search to correctly continue even if the tree is proven and we re-visit already proven edges
 				assert(current_task.visitedPathLength() > 0);
-				const Score s = invert_down(current_task.getLastEdge()->getScore());
+				const Score s = current_task.getLastEdge()->getScore();
 				current_task.setScore(s);
 				current_task.setValue(s.convertToValue());
 				current_task.markAsProcessedBySolver();
