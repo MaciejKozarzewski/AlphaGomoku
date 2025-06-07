@@ -190,6 +190,9 @@ namespace ag
 		SearchConfig search_config;
 		search_config.max_batch_size = final_config.max_batch_size;
 		search_config.mcts_config.max_children = 32;
+		search_config.mcts_config.edge_selector_config.exploration_constant = 0.5;
+		search_config.mcts_config.edge_selector_config.init_to = "q_head";
+		search_config.mcts_config.edge_selector_config.policy = "puct";
 		search_config.tss_config.mode = 2;
 		search_config.tss_config.hash_table_size = 4 * 1024 * 1024;
 

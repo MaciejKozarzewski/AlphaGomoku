@@ -4,6 +4,11 @@
 /cpu_only/
 doc/html/*
 doc/latex/*
+doc/*/*.aux
+doc/*/*.toc
+doc/*/*.log
+doc/*/*.synctex.gz
+doc/*/*.out
 bin/*
 build/*
 bin/objects/*

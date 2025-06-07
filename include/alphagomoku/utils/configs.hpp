@@ -59,9 +59,6 @@ namespace ag
 			int edge_bucket_size = Defaults::edge_bucket_size;
 			int node_bucket_size = Defaults::node_bucket_size;
 
-			float weight_c = 0.1f;
-			float min_uncertainty = 0.01f;
-
 			TreeConfig() = default;
 			TreeConfig(const Json &cfg);
 			Json toJson() const;
