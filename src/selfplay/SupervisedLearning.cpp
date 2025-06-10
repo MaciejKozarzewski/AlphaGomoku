@@ -91,7 +91,7 @@ namespace ag
 	}
 	void SupervisedLearning::train(AGNetwork &model, const Dataset &dataset, int steps)
 	{
-		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
+		ml::Device::cpu().setNumberOfThreads(1);
 		model.get_graph().context().enableTF32(true);
 
 		const int batch_size = model.getBatchSize();
@@ -155,7 +155,7 @@ namespace ag
 		if (student.getBatchSize() % teacher.getBatchSize() != 0)
 			throw std::logic_error("student batch size must by multiple of teacher batch size");
 
-		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
+		ml::Device::cpu().setNumberOfThreads(1);
 
 		const int batch_size = student.getBatchSize();
 
@@ -228,7 +228,7 @@ namespace ag
 	}
 	void SupervisedLearning::validate(AGNetwork &model, const Dataset &dataset)
 	{
-		ml::Device::cpu().setNumberOfThreads(config.device_config.omp_threads);
+		ml::Device::cpu().setNumberOfThreads(1);
 
 		const int batch_size = model.getBatchSize();
 		const int rows = model.getGameConfig().rows;

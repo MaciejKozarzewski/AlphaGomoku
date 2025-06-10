@@ -116,7 +116,7 @@ namespace ag
 	{
 		if (not get_network().isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
-		ml::Device::cpu().setNumberOfThreads(config.omp_threads);
+		ml::Device::cpu().setNumberOfThreads(1);
 		while (waiting_queue.size() > 0)
 		{
 			const int batch_size = std::min(static_cast<int>(waiting_queue.size()), get_network().getBatchSize());
@@ -153,7 +153,7 @@ namespace ag
 			throw std::logic_error("graph is empty - the network has not been loaded");
 		if (not in_progress_queue.empty())
 			throw std::logic_error("some tasks are already being processed");
-		ml::Device::cpu().setNumberOfThreads(config.omp_threads);
+		ml::Device::cpu().setNumberOfThreads(1);
 		const int batch_size = std::min(static_cast<int>(waiting_queue.size()), get_network().getBatchSize());
 		if (batch_size > 0)
 		{
@@ -177,7 +177,7 @@ namespace ag
 	{
 		if (not get_network().isLoaded())
 			throw std::logic_error("graph is empty - the network has not been loaded");
-		ml::Device::cpu().setNumberOfThreads(config.omp_threads);
+		ml::Device::cpu().setNumberOfThreads(1);
 		const int batch_size = in_progress_queue.size();
 		assert(batch_size <= get_network().getBatchSize());
 		if (batch_size > 0)

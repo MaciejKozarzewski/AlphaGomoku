@@ -122,13 +122,12 @@ namespace ag
 
 	DeviceConfig::DeviceConfig(const Json &cfg) :
 			device(ml::Device::fromString(cfg["device"])),
-			batch_size(get_value<int>(cfg, "batch_size", Defaults::batch_size)),
-			omp_threads(get_value<int>(cfg, "omp_threads", Defaults::omp_threads))
+			batch_size(get_value<int>(cfg, "batch_size", Defaults::batch_size))
 	{
 	}
 	Json DeviceConfig::toJson() const
 	{
-		return Json( { { "device", device.toString() }, { "batch_size", batch_size }, { "omp_threads", omp_threads } });
+		return Json( { { "device", device.toString() }, { "batch_size", batch_size } });
 	}
 
 	TrainingConfig::TrainingConfig(const Json &options) :

@@ -164,16 +164,16 @@ void generate_games()
 void run_training()
 {
 	ml::Device::setNumberOfThreads(4);
-	const std::string path = "/home/maciek/alphagomoku/new_runs_2025/test_fast/mlh_1/";
+	const std::string path = "/home/maciek/alphagomoku/final_runs_2025/fast_policy_3x3/";
 
 	GameConfig game_config(GameRules::STANDARD, 15);
 	TrainingConfig training_config;
-	training_config.network_arch = "ConvNextPVQMraw";
+	training_config.network_arch = "FastPolicy";
 	training_config.augment_training_data = true;
-	training_config.blocks = 8;
-	training_config.filters = 128;
+	training_config.blocks = 0;
+	training_config.filters = 32;
 	training_config.patch_size = 1;
-	training_config.device_config.batch_size = 64;
+	training_config.device_config.batch_size = 256;
 	training_config.l2_regularization = 2.0e-5f;
 	training_config.sampler_type = "values";
 
@@ -181,8 +181,8 @@ void run_training()
 
 	std::unique_ptr<AGNetwork> network = createAGNetwork(training_config.network_arch);
 	network->init(game_config, training_config);
-	network->convertToHalfFloats();
-	network->get_graph().setGradientScaler(ml::GradientScaler(1024.0f, 10000));
+//	network->convertToHalfFloats();
+//	network->get_graph().setGradientScaler(ml::GradientScaler(1024.0f, 10000));
 
 	int initial_epoch = 0;
 	int max_epochs = 500;
@@ -222,12 +222,12 @@ void run_training()
 
 	Dataset dataset;
 #pragma omp parallel for
-//	for (int i = 200; i < 250; i++)
-	for (int i = 0; i < 20; i++)
+	for (int i = 200; i < 250; i++)
+//	for (int i = 0; i < 20; i++)
 	{
 		std::cout << "loading buffer " << i << "...\n";
-//		dataset.load(i, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer_v200/buffer_" + std::to_string(i) + ".bin");
-		dataset.load(i, "/home/maciek/alphagomoku/new_runs_2025/standard_dataset/buffers/buffer_" + std::to_string(i) + ".bin");
+		dataset.load(i, "/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer_v200/buffer_" + std::to_string(i) + ".bin");
+//		dataset.load(i, "/home/maciek/alphagomoku/new_runs_2025/standard_dataset/buffers/buffer_" + std::to_string(i) + ".bin");
 	}
 	std::cout << dataset.getStats().toString() << '\n';
 
@@ -1076,32 +1076,32 @@ void test_forbidden_moves()
 
 void test_search()
 {
-//	GameConfig game_config(GameRules::CARO, 15);
-//	GameConfig game_config(GameRules::STANDARD, 15);
-	GameConfig game_config(GameRules::FREESTYLE, 20);
+//	GameConfig game_config(GameRules::CARO5, 15);
+//	game_config.draw_after = 200;
+	GameConfig game_config(GameRules::STANDARD, 15);
+//	GameConfig game_config(GameRules::FREESTYLE, 20);
 
 	SearchConfig search_config;
 	search_config.max_batch_size = 12;
-	search_config.mcts_config.max_children = 3200;
-	search_config.mcts_config.policy_expansion_threshold = 0.0e-4f;
+	search_config.mcts_config.max_children = 32;
+	search_config.mcts_config.policy_expansion_threshold = 1.0e-4f;
 	search_config.tss_config.mode = 2;
-	search_config.tss_config.max_positions = 1000;
+	search_config.tss_config.max_positions = 100;
 	search_config.tss_config.hash_table_size = 1048576;
 
 	Tree tree(search_config.tree_config);
 
 	DeviceConfig device_config;
 	device_config.batch_size = 12;
-	device_config.omp_threads = 1;
 //#ifdef NDEBUG
-	device_config.device = ml::Device::cpu();
+	device_config.device = ml::Device::cuda();
 //#else
 //	device_config.device = ml::Device::cpu();
 //#endif
 	NNEvaluator nn_evaluator(device_config);
 	nn_evaluator.useSymmetries(false);
 //	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku582/networks/standard_conv_8x128.bin");
-	nn_evaluator.loadGraph("/home/maciek/alphagomoku/final_runs_2025/freestyle_20x20/network_swa.bin");
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/final_runs_2025/standard_15x15/network_swa.bin");
 //	nn_evaluator.loadGraph("./old_6x64s.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/checkpoint/network_255_opt.bin");
 //	nn_evaluator.loadGraph("/home/maciek/alphagomoku/new_runs/btl_pv_8x128f/checkpoint/network_242_opt.bin");
@@ -1112,960 +1112,7 @@ void test_search()
 //	nn_evaluator.loadGraph("/home/maciek/cpp_workspace/AlphaGomoku/Release/networks/network_44_opt.bin");
 
 	Sign sign_to_move;
-	matrix<Sign> board(20, 20);
-
-//	// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ _ O _ _ O _ _ X _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ _ _ _ X X O _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ X O O O X _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
-//	board = Board::fromString(" _ _ _ X O O O O X _ _ _ _ _ _\n"
-//			" X _ O O _ X O _ _ _ _ _ _ _ _\n"
-//			" X X O X X X X O _ _ _ _ _ _ _\n"
-//			" X X O X X X O _ X _ _ _ _ _ _\n"
-//			" O O O X O X O _ _ O _ _ O _ _\n"
-//			" _ X O O X O X X _ X _ X _ _ _\n"
-//			" _ _ O O X O X O _ O O _ _ _ _\n"
-//			" _ _ X O O O X _ _ O _ _ _ _ _\n"
-//			" _ _ O O X X _ X O O O _ _ _ _\n"
-//			" _ O X X X X O X X X _ _ _ _ _\n"
-//			" _ _ X O O X X O X O _ _ _ _ _\n"
-//			" O X X X X O O O X _ _ _ _ _ _\n"
-//			" O _ _ O _ _ _ X X _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-//			" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n");
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o          */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*        a b c d e f g h i j k l m n o          */);  // @formatter:on
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ _ O _ _ O _ _ X _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ _ _ _ X X O _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ X O O O X\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ X _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ O X\n"/* 11 */
-//			/*        a b c d e f g h i j k l         */); // @formatter:on
-// @formatter:off
-//	board = Board::fromString(
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ O O O X _ _ _ _ _ _\n"
-//			" _ _ _ X O X X _ _ O _ _ _ _ _\n"
-//			" _ _ _ _ X O O _ X _ _ _ _ _ _\n"
-//			" _ _ _ _ _ X X O _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"); // @formatter:on
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ _ O X O O O _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ X O X X _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ X _ _ _ X _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);      // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" O X X X X _ X _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" O X X O _ O X _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" X _ _ O X _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" O _ _ _ O _ _ _ _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" X _ _ _ O O _ _ _ _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" O _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);         // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ X _ _ O _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" O X X X X _ X _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" O X _ O X _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" X X O _ X _ X _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" O O X O O _ O _ _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" X _ _ _ O _ _ _ _ _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" O _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" X O O O O X _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ X O X X O X _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ X O O O _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" _ _ _ O _ X _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ X O X X _ _ _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ O O _ _ _ _ _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
-//	sign_to_move = Sign::CROSS;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ O X _ _ _ _ _ O _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ X _ _ O X X _ X _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ X _ _ _ X _ _ O _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ O _ O O O O X _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ X _ O X _ _ O X _ _\n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ X X _ O X O O _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ O X X X _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ _ _ _ _ _ _ O _ O X _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ O O _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ O _ O X X X _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ X O X X _ O X _ _\n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ X X O O O O X _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ O _ _ O O X O X X _\n"/*  6 */
-//			/*  7 */" _ _ _ _ _ _ O _ X X X O _ O _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ _ X _ _ O _ X _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ O X O O _ X O _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ O X _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ X O X X X O\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ X _ X _ O _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);          // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//	std::cout << get_BOARD_command(board, sign_to_move);
-//	return;
-//
-//	// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o          */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n" /*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ O X O _ _ _\n" /*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ X O X X O _ _\n" /*  4 */
-//			/*  5 */" _ _ _ _ _ _ O _ X _ O X O _ _\n" /*  5 */
-//			/*  6 */" _ _ _ _ O X X X O O _ X _ _ _\n" /*  6 */
-//			/*  7 */" _ _ _ X _ O O O X X _ X _ _ _\n" /*  7 */
-//			/*  8 */" _ _ _ O _ X X O X _ O O _ _ _\n" /*  8 */
-//			/*  9 */" _ _ _ O X O _ O O X X _ _ _ _\n" /*  9 */
-//			/* 10 */" _ _ O O X O X O _ X _ O _ _ _\n" /* 10 */
-//			/* 11 */" _ _ X X X O X X O O _ X _ _ _\n" /* 11 */
-//			/* 12 */" _ _ X O O O O X _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */" _ O X _ _ X X O X _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*        a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ O O_ _ _ _ _ _ _ _ _ _ \n"/*  4 */
-//			/*  5 */" _ O O X O _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ X O X X _ _ _ _ _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
-//	sign_to_move = Sign::CROSS;
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ X O O O _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ X _ X _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
-//	sign_to_move = Sign::CROSS;
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ O X X _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ O _ _ X _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ O _ X _\n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ X O O _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ _ _ X X _ _ X _\n"/*  6 */
-//			/*  7 */" _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */); // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ X X _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ _ _ O O X O _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ O X X X O _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ O X O _ O _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ O X X X _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);                          // @formatter:on
-//	sign_to_move = Sign::CROSS;
-//
-//// @formatter:off
-//	board = Board::fromString( // sure loss if played Om12
-//			/*        a b c d e f g h i j k l m n o p q r s t         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  7 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _\n"/*  5 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ O O O X _ X _ _\n"/*  6 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ ! _ _ X O _ _ _\n"/*  7 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X O X _ O _\n"/*  8 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ X O O O X _ _\n"/*  9 */
-//			/* 15 */" _ _ _ _ _ _ _ _ _ _ X _ O O O X _ X X _\n"/* 10 */
-//			/* 16 */" _ _ _ _ _ _ _ _ _ _ _ _ X O X X X X O O\n"/* 11 */
-//			/* 17 */" _ _ _ _ _ _ _ _ _ _ _ _ O O X O _ O _ _\n"/* 12 */
-//			/* 18 */" _ _ _ _ _ _ _ _ _ _ _ X _ O X _ _ _ _ _\n"/* 13 */
-//			/* 19 */" _ _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o p q r s t         */); // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ _ O O O X _ _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ _ O X _ _ O _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ X O X X _ X _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ X O _ O _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ X O X X _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ O X X _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ O _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);  // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(	" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//								" _ _ _ _ _ O _ O _ _ _ _ _ _ _\n"
-//								" _ _ _ _ _ X X X _ _ O _ _ _ _\n"
-//								" X _ _ X _ _ O O _ X _ _ _ _ _\n"
-//								" _ O _ _ O _ X O O _ _ O O _ _\n"
-//								" _ _ X _ X O X O O O X X O _ _\n"
-//								" _ _ _ X _ O O X X O X X _ _ O\n"
-//								" _ _ _ _ X X _ O O X X X X O _\n"
-//								" _ _ _ O X O O X X X O X X _ _\n"
-//								" _ _ X O O O X O X O O O _ _ _\n"
-//								" X _ O _ X X _ O X O O X _ O _\n"
-//								" _ O O X X X X O O X _ X X _ _\n"
-//								" O X X O O O O X X O X O _ _ _\n"
-//								" _ O _ X _ _ _ X X _ O O _ _ _\n"
-//								" _ _ _ O X X _ _ _ O _ X X _ _\n"); // @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(	/*         a b c d e f g h i j k l m n o        */
-//								/*  0 */ " _ _ _ _ _ _ _ _ _ X _ _ _ _ O\n" /*  0 */
-//								/*  1 */ " _ _ _ _ _ _ _ _ _ X _ X ! X _\n" /*  1 */
-//								/*  2 */ " _ _ _ _ _ _ _ _ _ O O O X _ _\n" /*  2 */
-//								/*  3 */ " _ _ _ _ _ _ _ _ O O _ X _ _ _\n" /*  3 */
-//								/*  4 */ " _ _ O _ _ _ _ _ O O X X X _ _\n" /*  4 */
-//								/*  5 */ " _ _ _ _ _ _ _ X _ O _ _ _ _ _\n" /*  5 */
-//								/*  6 */ " _ _ _ _ _ _ O _ _ X _ _ _ _ _\n" /*  6 */
-//								/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//								/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//								/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//								/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//								/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//								/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//								/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//								/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//								/*         a b c d e f g h i j k l m n o          */);   // @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-//// @formatter:off
-//	board = Board::fromString(	/*         a b c d e f g h i j k l m n o        */
-//								/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//								/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//								/*  2 */ " _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//								/*  3 */ " _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  3 */
-//								/*  4 */ " _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /*  4 */
-//								/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//								/*  6 */ " _ O O _ O _ O O _ _ _ _ _ _ _\n" /*  6 */
-//								/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//								/*  8 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  8 */
-//								/*  9 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  9 */
-//								/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//								/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//								/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//								/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//								/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//								/*         a b c d e f g h i j k l m n o          */); // @formatter:on
-
-//// @formatter:off
-//	board = Board::fromString(	/*         a b c d e f g h i j k l m n o        */
-//								/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//								/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//								/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//								/*  3 */ " _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n" /*  3 */
-//								/*  4 */ " _ _ _ _ _ _ _ _ O X X _ X _ _\n" /*  4 */
-//								/*  5 */ " _ _ _ _ _ _ _ _ _ X O _ _ _ _\n" /*  5 */
-//								/*  6 */ " _ _ _ _ _ _ _ _ _ X O _ X _ _\n" /*  6 */
-//								/*  7 */ " _ _ _ _ _ _ _ _ _ _ O _ X _ _\n" /*  7 */
-//								/*  8 */ " _ _ _ _ _ _ _ _ _ _ X O O _ _\n" /*  8 */
-//								/*  9 */ " _ _ _ _ _ _ _ _ _ O _ X _ _ _\n" /*  9 */
-//								/* 10 */ " _ _ _ _ _ _ _ _ _ O _ _ _ _ _\n" /* 10 */
-//								/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//								/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//								/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//								/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//								/*         a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//// @formatter:off
-//	board = Board::fromString(	/*         a b c d e f g h i j k l m n o        */
-//								/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//								/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//								/*  2 */ " _ _ _ _ _ X _ _ X _ _ _ _ _ _\n" /*  2 */
-//								/*  3 */ " _ _ _ _ _ _ O O X _ _ _ _ _ O\n" /*  3 */
-//								/*  4 */ " _ _ _ _ _ _ _ X O O O _ _ O _\n" /*  4 */
-//								/*  5 */ " _ _ _ _ O _ _ _ X X O X X _ O\n" /*  5 */
-//								/*  6 */ " _ _ _ _ _ _ O X X X O O O _ X\n" /*  6 */
-//								/*  7 */ " _ _ _ _ _ _ X O O O O X X _ X\n" /*  7 */
-//								/*  8 */ " _ _ _ _ _ O _ X X _ X O _ O X\n" /*  8 */
-//								/*  9 */ " _ _ _ _ _ _ _ _ _ O O X X X _\n" /*  9 */
-//								/* 10 */ " _ _ _ _ _ _ O X X _ O X X _ _\n" /* 10 */
-//								/* 11 */ " _ _ _ _ _ _ _ X _ O X X O _ _\n" /* 11 */
-//								/* 12 */ " _ _ _ _ _ _ _ _ O X O _ O _ _\n" /* 12 */
-//								/* 13 */ " _ _ _ _ _ _ _ X O _ _ _ _ _ _\n" /* 13 */
-//								/* 14 */ " _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /* 14 */
-//								/*         a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-//// @formatter:off
-//	board = Board::fromString(	/*        a b c d e f g h i j k l m n o          */
-//								/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//								/*  1 */" _ _ _ _ _ _ _ _ X O O _ O _ _\n" /*  1 */
-//								/*  2 */" _ _ _ _ _ _ _ O _ O X X _ _ _\n" /*  2 */
-//								/*  3 */" _ _ _ _ ! _ X O _ O X X X _ _\n" /*  3 */
-//								/*  4 */" _ _ _ _ _ X X O X X _ O X O _\n" /*  4 */
-//								/*  5 */" _ _ _ _ _ _ X X O O O X _ O _\n" /*  5 */
-//								/*  6 */" _ _ _ _ _ O O X O X O _ X _ X\n" /*  6 */
-//								/*  7 */" _ _ _ _ _ O _ X O X O O O X _\n" /*  7 */
-//								/*  8 */" _ _ _ _ _ _ _ _ X _ X _ _ _ _\n" /*  8 */
-//								/*  9 */" _ _ _ _ _ _ _ O _ O X _ _ _ _\n" /*  9 */
-//								/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//								/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//								/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//								/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//								/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//								/*        a b c d e f g h i j k l m n o          */); // Xe3 is winning
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-//// @formatter:off
-//	board = Board::fromString(	/*         a b c d e f g h i j k l m n o          */
-//								/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//								/*  1 */ " _ _ _ _ _ _ O _ X O O X O O _\n" /*  1 */
-//								/*  2 */ " _ _ _ O _ O X O _ O X X O _ _\n" /*  2 */
-//								/*  3 */ " _ _ _ _ X _ X O _ O X X X X O\n" /*  3 */
-//								/*  4 */ " _ _ O X X X X O X X O O X O _\n" /*  4 */
-//								/*  5 */ " _ _ _ _ _ _ X X O O O X X O _\n" /*  5 */
-//								/*  6 */ " _ _ _ _ _ O O X O X O _ X _ X\n" /*  6 */
-//								/*  7 */ " _ _ _ _ _ O _ X O X O O O X _\n" /*  7 */
-//								/*  8 */ " _ _ _ _ _ _ _ _ X _ X _ _ _ X\n" /*  8 */
-//								/*  9 */ " _ _ _ _ _ _ _ O _ O X _ _ _ _\n" /*  9 */
-//								/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//								/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//								/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//								/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//								/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//								/*         a b c d e f g h i j k l m n o          */); // Xe5 is winning
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-//	board = Board::fromString(	" _ _ _ _ _ _ _ X _ _ _ X _ _ _\n"
-//								" _ _ _ _ _ _ O O X O O O O X _\n"
-//								" _ _ _ O O O X O _ O X X X _ _\n"
-//								" _ _ _ _ X _ X O O O X X X _ _\n"
-//								" _ _ O X X X X O X X X O X O _\n"
-//								" _ _ _ _ X _ X X O O O X _ O _\n"
-//								" _ _ _ _ _ O O X O X O _ X _ X\n"
-//								" _ _ _ _ _ O _ X O X O O O X _\n"
-//								" _ _ _ _ _ _ _ _ X _ X _ X _ O\n"
-//								" _ _ _ _ _ _ _ O _ O X X _ O _\n"
-//								" _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n"
-//								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//								" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-//	sign_to_move = Sign::CIRCLE;
-//
-//	// @formatter:off
-//	board = Board::fromString(
-//				/*         a b c d e f g h i j k l m n o          */
-//				/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//				/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//				/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//				/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//				/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//				/*  5 */ " _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n" /*  5 */
-//				/*  6 */ " _ _ _ _ _ _ X O X X _ _ _ _ _\n" /*  6 */
-//				/*  7 */ " _ _ _ _ X X O X O _ _ X _ _ _\n" /*  7 */
-//				/*  8 */ " _ _ _ _ X X O O _ _ _ _ _ _ _\n" /*  8 */
-//				/*  9 */ " _ _ O _ _ _ O _ O _ _ _ _ _ _\n" /*  9 */
-//				/* 10 */ " _ _ X _ _ O _ _ _ _ _ _ _ _ _\n" /* 10 */
-//				/* 11 */ " _ _ _ _ X X _ _ _ _ _ _ _ _ _\n" /* 11 */
-//				/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//				/* 13 */ " _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//				/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//				/*         a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//				/*         a b c d e f g h i j k l m n o          */
-//				/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//				/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//				/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//				/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//				/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//				/*  5 */ " _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//				/*  6 */ " _ _ _ _ X _ _ _ _ X _ _ _ _ _\n" /*  6 */
-//				/*  7 */ " _ _ _ _ _ _ O O O X _ _ _ _ _\n" /*  7 */
-//				/*  8 */ " _ _ _ X _ _ X _ X _ _ _ _ _ _\n" /*  8 */
-//				/*  9 */ " _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//				/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//				/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//				/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//				/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//				/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//				/*         a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(
-//				/*         a b c d e f g h i j k l m n o          */
-//				/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//				/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//				/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//				/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//				/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//				/*  5 */ " _ _ _ _ _ _ O _ X _ O X _ _ _\n" /*  5 */
-//				/*  6 */ " _ _ _ _ _ O X X X _ _ _ _ _ _\n" /*  6 */
-//				/*  7 */ " _ _ _ _ _ _ O X O _ _ _ _ _ _\n" /*  7 */
-//				/*  8 */ " _ _ _ _ _ O X X X O _ _ _ _ _\n" /*  8 */
-//				/*  9 */ " _ _ _ _ _ O X O _ O _ _ _ _ _\n" /*  9 */
-//				/* 10 */ " _ _ _ _ O X X X _ _ _ _ _ _ _\n" /* 10 */
-//				/* 11 */ " _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /* 11 */
-//				/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//				/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//				/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//				/*         a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o          */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */" _ _ _ _ X _ X _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */" _ _ _ X _ _ X O O _ O _ _ _ _\n" /*  4 */
-//			/*  5 */" _ _ _ _ O _ X _ _ O _ _ _ _ _\n" /*  5 */
-//			/*  6 */" _ _ _ O X O O O O X _ _ _ _ _\n" /*  6 */
-//			/*  7 */" _ _ _ _ _ X O X X _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */" _ _ _ _ _ X O X _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */" _ _ _ _ _ _ O _ _ _ X _ _ _ _\n" /*  9 */
-//			/* 10 */" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*        a b c d e f g h i j k l m n o          */); // after Xe3 it is a win for circle
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o          */
-//			/*  0 */" _ _ _ _ O _ _ ! _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */" _ _ _ _ _ O ! _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */" _ _ _ _ _ ! ! _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */" _ _ _ _ X _ X ? _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */" _ _ _ X _ O X _ ? _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */" _ _ ! _ _ _ X _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*        a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//	// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ X _ _ _ _ O _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " X _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ X X _ O _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ X X _ _ _ _ O _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ O _ _ _ _ O _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ O X _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ O O X _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ X X O _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ X _ O _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ X _ _ X _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ X _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//	// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ O _ _ _ X X X O _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ O O _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ _ _ _ O _ O _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ O O _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o          */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */" _ O _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */" X X _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */" _ O _ X O O _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */" _ O O _ _ X _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */" _ O X O X X X O O X _ _ _ _ _\n" /*  5 */
-//			/*  6 */" _ X X O O O O X X O _ _ _ _ _\n" /*  6 */
-//			/*  7 */" _ _ X X O X _ O X O X X _ O _\n" /*  7 */
-//			/*  8 */" _ _ X O X _ _ O X O O O O X _\n" /*  8 */
-//			/*  9 */" _ _ O _ _ _ _ _ X _ _ O _ _ _\n" /*  9 */
-//			/* 10 */" _ X _ _ _ _ O _ O X X O X _ _\n" /* 10 */
-//			/* 11 */" _ _ _ _ _ _ _ _ _ _ X _ X _ _\n" /* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*        a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ X O X _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ O X O X X _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ X O _ O _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ O X X X O _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(	/*    a b c d e f g h i j k l m n o        */
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-//									" _ _ _ X _ X _ O _ _ _ _ _ _ _\n"
-//									" _ _ _ O O X O _ _ _ _ O _ _ _\n"
-//									" _ _ _ _ X X X O _ _ X _ _ _ _\n"
-//									" _ _ _ O X O O O O X _ _ _ _ _\n"
-//									" _ _ _ _ _ X O X X _ _ _ _ _ _\n"
-//									" _ _ _ _ _ X O X _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ O _ _ _ X _ _ _ _\n"
-//									" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//								/*    a b c d e f g h i j k l m n o        */); // Oh2 or Of2 is a win
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(	" O _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
-//								" X O _ _ X _ _ _ _ _ _ _ _ _ _\n"
-//								" X X _ _ _ _ O _ _ _ X _ _ _ _\n"
-//								" X O _ _ O X O _ O O _ _ _ _ _\n"
-//								" X O _ O X X X X O _ _ _ _ _ _\n"
-//								" O X X O X O O O _ X _ _ _ _ _\n"
-//								" _ X O X O X X X O O _ O _ _ _\n"
-//								" _ _ O X O O X O X _ _ _ _ _ _\n"
-//								" _ _ _ O X X O X _ _ _ O _ _ _\n"
-//								" _ _ _ _ O X O X O _ X X _ _ _\n"
-//								" _ _ _ _ _ X X X O _ _ O _ _ _\n"
-//								" _ _ _ _ O _ _ O X _ _ _ _ _ _\n"
-//								" _ _ _ _ _ O _ _ _ X X _ _ _ _\n"
-//								" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
-//								" _ _ _ _ _ _ _ _ _ _ _ O _ _ _\n"); // Ok3 is w win
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(	/*    a b c d e f g h i j k l m n o        */
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ O O _ _ _ _ _ _ _ _\n"
-//									" _ _ X _ O _ O O X _ _ _ _ _ _\n"
-//									" _ _ _ O _ X _ O _ _ _ O _ _ _\n"
-//									" _ _ _ X O _ X X X O X _ _ _ _\n"
-//									" _ _ _ O X O O O O X X _ _ _ _\n"
-//									" _ _ _ _ _ X O X X _ X _ _ _ _\n"
-//									" _ _ _ _ _ X O X _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ O _ _ _ X _ _ _ _\n"
-//									" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//								/*    a b c d e f g h i j k l m n o          */); // position is a loss
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-//
-//// @formatter:off
-//	board = Board::fromString(	/*    a b c d e f g h i j k l m n o        */
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" // 0
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" // 1
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" // 2
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" // 3
-//									" _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n" // 4
-//									" _ _ _ _ O _ _ _ X _ _ _ _ _ _\n" // 5
-//									" _ _ _ O _ O X O _ _ _ _ _ _ _\n" // 6
-//									" _ _ _ _ _ X O _ X _ _ _ _ _ _\n" // 7
-//									" _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n" // 8
-//									" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n" // 9
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //10
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //11
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //12
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //13
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //14
-//								/*    a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-//
-//// @formatter:off
-//	board = Board::fromString(	/*    a b c d e f g h i j k l m n o        */
-//									" _ _ _ _ _ _ _ _ O X _ _ _ _ _\n" // 0
-//									" _ _ _ _ _ _ _ _ _ _ _ _ X O _\n" // 1
-//									" _ _ _ _ _ _ _ _ _ _ _ _ X _ _\n" // 2
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" // 3
-//									" _ _ _ _ _ _ _ _ _ O _ X _ _ O\n" // 4
-//									" _ _ _ _ _ _ _ _ _ _ X O _ _ _\n" // 5
-//									" _ _ _ _ _ _ X _ _ O O X X X _\n" // 6
-//									" _ _ _ _ _ _ _ _ _ X O _ O _ _\n" // 7
-//									" _ _ _ _ _ _ _ _ _ _ X O _ _ _\n" // 8
-//									" _ _ _ _ _ _ _ _ _ _ O _ X _ _\n" // 9
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //10
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //11
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //12
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //13
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" //14
-//								/*    a b c d e f g h i j k l m n o          */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(	/*    a b c d e f g h i j k l m n o        */
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ X _ _ _ ! _ _ _ _ _ _ _ _\n"
-//									" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ X O _ X _ _ _ _ _ _ _ _\n"
-//									" _ _ _ O X O O O _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ X O _ X _ _ _ _ _ _\n"
-//									" _ _ _ _ _ X O X _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//									" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//								/*    a b c d e f g h i j k l m n o          */); // position is a win for circle
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-//
-//// @formatter:off
-//	board = Board::fromString(
-//			/*        a b c d e f g h i j k l m n o         */
-//			/*  0 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  0 */
-//			/*  1 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  1 */
-//			/*  2 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  2 */
-//			/*  3 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  3 */
-//			/*  4 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  4 */
-//			/*  5 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/*  5 */
-//			/*  6 */" _ _ _ _ _ O _ X X _ _ _ _ _ _\n"/*  6 */
-//			/*  7 */" _ _ _ _ _ _ O X O _ _ _ _ _ _\n"/*  7 */
-//			/*  8 */" _ _ _ _ _ O X X X O _ _ _ _ _\n"/*  8 */
-//			/*  9 */" _ _ _ _ _ O X O _ O _ _ _ _ _\n"/*  9 */
-//			/* 10 */" _ _ _ _ O X X X _ _ _ _ _ _ _\n"/* 10 */
-//			/* 11 */" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"/* 11 */
-//			/* 12 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 12 */
-//			/* 13 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 13 */
-//			/* 14 */" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"/* 14 */
-//			/*        a b c d e f g h i j k l m n o         */);
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-//
-// @formatter:off
-//	board = Board::fromString(
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ X O _ _ O X _ _ _ _ _ _\n"
-//			" _ _ _ O _ O X O X _ _ _ _ _ _\n"
-//			" _ _ _ _ X X O _ X _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ X O _ _ _ _ _ _\n"
-//			" _ _ _ _ X O O X _ _ X _ _ _ _\n"
-//			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ O X _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ X X _ X O _ X X\n"
-//			" _ _ _ _ _ _ _ O _ O O X _ X _\n"
-//			" _ _ _ _ _ _ X _ X X O O X O _\n"
-//			" _ _ _ _ _ _ _ _ O X _ O X _ _\n"
-//			" _ _ _ _ _ _ X O O O O X O _ O\n"
-//			" _ _ _ _ _ O _ _ X O X X O X _\n"
-//			" _ _ _ _ _ _ X X O X X O O _ _\n"
-//			" _ _ _ _ _ _ _ X O O X O X _ _\n"
-//			" _ _ _ _ _ _ _ _ X O X X O _ _\n"
-//			" _ _ _ _ _ _ _ _ _ O O X O _ _\n"
-//			" _ _ _ _ _ O X O O O X O X _ _\n"
-//			" _ _ _ _ _ _ _ _ _ X _ _ X _ _\n");
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ _ O O O X _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ O _ _ _ O _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ _ _ X _ _ X _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ X O _ O _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ X O X X _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ X X _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
+	matrix<Sign> board(15, 15);
 
 //	board = Board::fromString(" _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n"
 //			" _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n"
@@ -2082,313 +1129,25 @@ void test_search()
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
 //			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+	board = Board::fromString(" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n"
+			" _ _ _ _ _ _ O X _ _ _ _ _ _ _\n"
+			" _ _ _ _ X _ O O O X _ _ _ _ _\n"
+			" _ _ _ _ _ O _ X O O _ _ _ _ _\n"
+			" _ _ _ _ O O O X _ X X _ _ _ _\n"
+			" _ _ _ _ _ _ X O X X X O _ _ _\n"
+			" _ _ _ _ _ _ X X O O O O X _ _\n"
+			" _ _ _ _ _ _ _ O X X X X O X _\n"
+			" _ _ _ _ _ _ _ _ O O X O O _ _\n"
+			" _ _ _ _ _ _ _ _ _ O X X X _ _\n"
+			" _ _ _ _ _ _ _ _ _ _ X _ _ X _\n"
+			" _ _ _ _ _ _ _ _ _ _ O O _ O X\n");
 
-// @formatter:off
-	board = Board::fromString(
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ X _ _ _ _ X O _ _ X O _\n"
-			" _ _ _ _ _ _ O _ _ O _ _ _ _ O _ _ X _ _\n"
-			" _ _ _ _ _ _ X X X O X O _ _ _ O X O _ _\n"
-			" _ _ _ _ _ _ _ _ X O O X X O O X _ X _ _\n"
-			" _ _ _ _ _ O O _ O X O X X O X X O _ _ _\n"
-			" _ _ _ _ _ _ O O O X _ _ X O O O X _ _ _\n"
-			" _ _ _ _ _ _ O _ X X O O O X _ X O _ _ _\n"
-			" _ _ _ _ _ X _ X O O _ X X X O _ _ _ _ _\n"
-			" _ _ _ _ _ _ X O X X X _ O _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ O _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ O _ X _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-);
-// @formatter:on
-	sign_to_move = Sign::CROSS;
+	sign_to_move = Sign::CIRCLE;
 
-//// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ _ X O _ X _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ _ X _ _ _ _ X _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ X _ _ O _ _ _ _ _ O _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ O _ X _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ X X _ X O _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ X _ _ _ O _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ O _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ X _ _ _ O _ _ O _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//	std::cout << get_BOARD_command(board, sign_to_move) << '\n';
-//	return;
-
-//	const auto moves = load_psq_file("/home/maciek/Downloads/GAME 2.psq");
-//	board = Board::fromListOfMoves(15, 15, moves);
-//	sign_to_move = invertSign(moves.back().sign);
-
-//	return;
-
-//	for (int i = 0; i < 15; i++)
-//		for (int j = 0; j < 15; j++)
-//		{
-//			Move m(i, j, sign_to_move);
-//			std::cout << "move " << m.text() << " is forbidden = " << isForbidden(board, m) << " " << calc.isForbidden(m.sign, m.row, m.col) << '\n';
-//		}
-//	return;
-
-//	board = Board::fromString(""
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ X O _ _ O X _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ O O O X O X _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ X _ X X O _ X _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ O X _ X X O _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ X O O X _ _ X _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ X _ O _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ O _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//	sign_to_move = Sign::CROSS;
-
-////// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ X X _ X _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ X _ X O O O X O _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ O _ O X O O O _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ O X X X _ O _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ X O O _ X _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ _ _ _ O O X _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ _ _ _ _ X X _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-////////			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ X X _ X _ _ _ _\n"
-////////			" _ _ _ X _ X O O O X O _ _ _ _\n"
-////////			" _ _ _ _ O _ O X O O O _ _ _ _\n"
-////////			" _ _ _ _ _ O X X X _ O _ _ _ _\n"
-////////			" _ _ _ _ _ X O O _ X _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ O O X _ _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ X X _ _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-////////			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ X O _ _ X _ _ _\n"
-//			" _ _ _ _ _ _ O X X X O _ _ _ _\n"
-//			" _ _ _ _ _ O X O O O X _ _ _ _\n"
-//			" _ _ _ X O _ X O O _ X O _ _ _\n"
-//			" _ _ _ X O X O _ X X X O _ _ _\n"
-//			" _ _ _ O X O X X O _ _ _ _ _ _\n"
-//			" _ O X X X O O _ _ _ _ _ _ _ _\n"
-//			" _ _ O _ _ _ X _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-//// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-//// @formatter:off
-//	board = Board::fromString(
-//			" _ _ _ _ _ _ _ _ X O X X _ _ _\n"
-//			" _ _ _ _ _ _ X O X O _ _ _ _ _\n"
-//			" _ _ _ O _ O _ _ _ X _ _ _ _ _\n"
-//			" _ _ _ _ X O _ _ X _ X _ _ _ _\n"
-//			" _ _ _ _ _ O _ _ _ _ _ O _ _ _\n"
-//			" _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n"
-//			" _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
-//// @formatter:on
-//	sign_to_move = Sign::CROSS;
-
-// @formatter:off
-//	board = Board::fromString(
-//    /*         a b c d e f g h i j k l m n o          */
-//	/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//	/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ X _ _ _\n" /*  1 */
-//	/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//	/*  3 */ " _ _ _ _ _ _ _ _ _ _ O _ _ _ _\n" /*  3 */
-//	/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//	/*  5 */ " _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n" /*  5 */
-//	/*  6 */ " _ _ _ _ _ X X _ _ _ _ _ _ _ _\n" /*  6 */
-//	/*  7 */ " _ _ _ O _ _ _ X _ _ _ _ _ _ _\n" /*  7 */
-//	/*  8 */ " _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//	/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//	/* 10 */ " _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /* 10 */
-//	/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//	/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//	/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//	/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//    /*         a b c d e f g h i j k l m n o          */);
-//	board = Board::fromString(
-//		/*         a b c d e f g h i j k l m n o        */
-//		/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//		/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//		/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//		/*  3 */ " _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  3 */
-//		/*  4 */ " _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n" /*  4 */
-//		/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//		/*  6 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//		/*  7 */ " _ O _ _ _ _ _ _ O _ _ _ _ _ _\n" /*  7 */
-//		/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//		/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
-//		/* 10 */ " _ _ _ _ _ _ _ _ X _ X _ _ _ _\n" /* 10 */
-//		/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ O _ _ _\n" /* 11 */
-//		/* 12 */ " _ _ _ _ _ _ _ _ _ X _ _ O _ _\n" /* 12 */
-//		/* 13 */ " _ _ _ _ _ _ _ _ O _ _ _ _ O _\n" /* 13 */
-//		/* 14 */ " _ _ _ _ _ _ _ _ X _ _ _ _ _ _\n" /* 14 */
-//		/*         a b c d e f g h i j k l m n o        */);
-
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ O O O X _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ O X O O _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ _ _ O X X X X O _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ _ _ X X _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ _ _ X _ _ X _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ O _ _ _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ O X _ _ X _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ X O _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ O O _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ X _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o p q r s t          */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ _ _ _ _ X _ _ _ _ _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ O _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/* 15 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 15 */
-//			/* 16 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 16 */
-//			/* 17 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 17 */
-//			/* 18 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 18 */
-//			/* 19 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 19 */
-//			/*         a b c d e f g h i j k l m n o p q r s t          */
-//			);
-// @formatter:on
-//	sign_to_move = Sign::CIRCLE;
-
-// @formatter:off
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ X _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ _ X O _ _ _ X _ O _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ X O _ _ X O O _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ O O O X O X X X O _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ X X O O X O _ O X X X _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ X O _ X _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ X _ _ _ _ _ O _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ O _ _ _ _ _ _ _ _ X _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ O _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-//	board = Board::fromString(
-//			/*         a b c d e f g h i j k l m n o        */
-//			/*  0 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  0 */
-//			/*  1 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  1 */
-//			/*  2 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  2 */
-//			/*  3 */ " _ _ _ _ X _ _ _ _ _ _ _ _ _ _\n" /*  3 */
-//			/*  4 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  4 */
-//			/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
-//			/*  6 */ " _ _ _ O _ _ _ _ _ _ _ _ _ _ _\n" /*  6 */
-//			/*  7 */ " _ _ _ X _ X _ X _ _ _ _ _ _ _\n" /*  7 */
-//			/*  8 */ " _ _ _ _ _ _ _ _ _ X _ _ _ _ _\n" /*  8 */
-//			/*  9 */ " _ _ _ _ _ _ O _ O X _ _ _ _ _\n" /*  9 */
-//			/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
-//			/* 11 */ " _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n" /* 11 */
-//			/* 12 */ " _ _ _ _ _ _ _ _ O O _ _ _ _ _\n" /* 12 */
-//			/* 13 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 13 */
-//			/* 14 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 14 */
-//			/*         a b c d e f g h i j k l m n o        */);
-// @formatter:on
-//	sign_to_move = Sign::CROSS;
+	std::cout << (int) getOutcome(game_config.rules, board, Move(Sign::CROSS, 0, 0), game_config.draw_after) << '\n';
 
 //	ThreatSpaceSearch ts_search(game_config, search_config.tss_config);
 	AlphaBetaSearch ts_search(game_config);
@@ -2410,8 +1169,8 @@ void test_search()
 //	ts_search.print_stats();
 //	std::cout << "\n\n\n" << task2.toString() << '\n';
 //	return;
-	std::cout << get_BOARD_command(board, sign_to_move);
-	return;
+//	std::cout << get_BOARD_command(board, sign_to_move);
+//	return;
 
 	Search search(game_config, search_config);
 //	search.getSolver().loadWeights(nnue::NNUEWeights("networks/freestyle_nnue_64x16x16x1.bin"));
@@ -2429,16 +1188,22 @@ void test_search()
 	tree.setEdgeGenerator(UnifiedGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold, false));
 //	tree.setEdgeGenerator(UnifiedGenerator(true));
 
-	int next_step = 0;
+	int next_step = 1;
 	double time_per_sample = 0.1;
-	for (int j = 0; j <= 100000; j++)
+	for (int j = 0; j <= 10000; j++)
 	{
 		if (tree.getSimulationCount() >= next_step)
 		{
-			std::cout << tree.getSimulationCount() << " ..." << std::endl;
-			next_step += 10000;
+//			std::cout << tree.getSimulationCount() << " ..." << std::endl;
+//			Node info = tree.getInfo( { });
+//			info.sortEdges();
+//			std::cout << info.toString() << '\n';
+//			for (int i = 0; i < info.numberOfEdges(); i++)
+//				std::cout << info.getEdge(i).getMove().toString() << " : " << info.getEdge(i).toString() << '\n';
+//			std::cout << '\n';
+			next_step++;
 		}
-		search.select(tree, 100000);
+		search.select(tree, 10000);
 		search.solve(getTime() + 0.5 * search.getBatchSize() * time_per_sample);
 		search.scheduleToNN(nn_evaluator);
 		time_per_sample = nn_evaluator.evaluateGraph();
@@ -2698,7 +1463,7 @@ void test_nnue()
 void test_evaluate(int idx = 0)
 {
 	const std::string path = "/home/maciek/alphagomoku/final_runs_2025/";
-	MasterLearningConfig config(FileLoader(path + "freestyle_20x20/config.json").getJson());
+	MasterLearningConfig config(FileLoader(path + "caro5/config.json").getJson());
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
@@ -2713,8 +1478,9 @@ void test_evaluate(int idx = 0)
 	cfg.search_config.mcts_config.edge_selector_config.init_to = "q_head";
 	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.5f;
 
-	manager.setFirstPlayer(cfg, path + "freestyle_20x20/network_swa_10.bin", "network_swa_10");
-	manager.setSecondPlayer(cfg, path + "freestyle_20x20/network_swa_5.bin", "network_swa_5");
+	manager.setFirstPlayer(cfg, path + "caro5/network_swa.bin", "rl");
+
+	manager.setSecondPlayer(cfg, path + "caro5_sl/network_swa_opt.bin", "sl");
 
 //	cfg.search_config.mcts_config.edge_selector_config.policy = "puct_variance";
 //	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = idx / 100.0f;
@@ -2733,7 +1499,7 @@ void test_evaluate(int idx = 0)
 	std::cout << "generated in " << (stop - start) << '\n';
 
 	const std::string to_save = manager.getPGN();
-	std::ofstream file(path + "freestyle_20x20/test_swa.pgn", std::ios::out | std::ios::app);
+	std::ofstream file(path + "rl_vs_sl.pgn", std::ios::out | std::ios::app);
 	file.write(to_save.data(), to_save.size());
 	file.close();
 }
@@ -2752,7 +1518,7 @@ void evaluate_vs_old(const std::string &path, int idx)
 
 	cfg.search_config.mcts_config.edge_selector_config.init_to = "parent";
 	cfg.search_config.mcts_config.edge_selector_config.policy = "puct_fpu";
-	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku583/networks/freestyle_conv_8x128_15x15.bin", "old");
+	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku583/networks/caro6_conv_8x128.bin", "old");
 
 	const double start = getTime();
 	manager.generate(1000);
@@ -2969,7 +1735,6 @@ void test_proven_search(int mcts_nodes, int tss_nodes, bool fast)
 
 	DeviceConfig device_config;
 	device_config.batch_size = 32;
-	device_config.omp_threads = 1;
 	device_config.device = ml::Device::cpu();
 	NNEvaluator nn_evaluator(device_config);
 	nn_evaluator.useSymmetries(false);
@@ -3759,11 +2524,615 @@ void test_quantization()
 	std::cout << "END" << std::endl;
 }
 
+void prepare_selection_dataset(int max_simulations)
+{
+	SearchDataPack pack(15, 15);
+	GameDataBuffer result;
+
+//	GameConfig game_config(GameRules::FREESTYLE, 15);
+	GameConfig game_config(GameRules::STANDARD, 15);
+//	GameConfig game_config(GameRules::RENJU, 15);
+//	GameConfig game_config(GameRules::CARO5, 15);
+//	GameConfig game_config(GameRules::CARO6, 20);
+
+	SearchConfig search_config;
+	search_config.max_batch_size = 32;
+	search_config.mcts_config.edge_selector_config.exploration_constant = 0.5f;
+	search_config.mcts_config.max_children = 32;
+	search_config.tss_config.max_positions = 100;
+
+	DeviceConfig device_config;
+	device_config.batch_size = 32;
+	device_config.device = ml::Device::cuda();
+
+	NNEvaluator nn_evaluator(device_config);
+	nn_evaluator.useSymmetries(true);
+	nn_evaluator.loadGraph("/home/maciek/alphagomoku/final_runs_2025/standard_15x15/network_swa.bin");
+
+	Search search(game_config, search_config);
+	Tree tree(search_config.tree_config);
+
+	EdgeSelectorConfig config;
+	config.exploration_constant = 0.2f;
+	LCBSelector selector(config);
+
+	int match_count = 0;
+	int total_count = 0;
+
+	const double start = getTime();
+	for (int b = 0; b < 1; b++)
+	{
+		GameDataBuffer buffer;
+		buffer.load("/home/maciek/alphagomoku/final_runs_2025/buffer_0.bin");
+		std::cout << buffer.getStats().toString() << '\n';
+
+		for (int i = 0; i < buffer.numberOfGames() / 200; i++)
+		{
+//			std::cout << "game " << i << "\n";
+
+			const int samples_count = buffer.getGameData(i).numberOfSamples();
+			const std::vector<int> order = permutation(samples_count);
+			bool found_unproven_state = false;
+			for (size_t j = 0; j < order.size(); j++)
+			{
+				buffer.getGameData(i).getSample(pack, order[j]);
+//				std::cout << "trying " << order[j] << " : " << pack.minimax_score << '\n';
+				if (reduce_add(pack.visit_count) > 100 or not pack.minimax_score.isProven())
+				{
+					found_unproven_state = true;
+					break;
+				}
+			}
+
+			if (found_unproven_state)
+			{
+				tree.setBoard(pack.board, pack.played_move.sign);
+				search.setBoard(pack.board, pack.played_move.sign);
+				tree.setEdgeSelector(PUCTSelector(search_config.mcts_config.edge_selector_config));
+				tree.setEdgeGenerator(UnifiedGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold));
+
+				int sample_visits = 0.1 * max_simulations; // 1.0 + std::exp(randFloat() * std::log(max_simulations - 1));
+//				std::cout << "sampling at " << sample_visits << " visits\n";
+
+				Node sample_info;
+
+				for (int k = 0; k <= max_simulations; k++)
+				{
+					search.setBatchSize(std::max(1.0, std::min((double) search_config.max_batch_size, std::sqrt(tree.getSimulationCount()))));
+					search.select(tree, max_simulations);
+					search.solve();
+					search.scheduleToNN(nn_evaluator);
+					nn_evaluator.evaluateGraph();
+
+					search.generateEdges(tree);
+					search.expand(tree);
+					search.backup(tree);
+					if (tree.getSimulationCount() >= sample_visits)
+					{
+						sample_visits = std::numeric_limits<int>::max();
+						sample_info = tree.getInfo( { });
+					}
+//					if (tree.isRootProven())
+//						break;
+				}
+				search.cleanup(tree);
+
+				const Node target_info = tree.getInfo( { });
+
+				const Move best_move_at_sampling = selector.select(&sample_info)->getMove();
+				const Move best_move_at_target = selector.select(&target_info)->getMove();
+
+//				if (best_move_at_sampling != best_move_at_target)
+//				{
+//					std::cout << best_move_at_sampling.text() << " vs " << best_move_at_target.text() << '\n';
+//
+//					std::cout << "Sample:\n";
+//					sample_info.sortEdges();
+//					std::cout << sample_info.toString() << '\n';
+//					for (int i = 0; i < sample_info.numberOfEdges(); i++)
+//						std::cout << sample_info.getEdge(i).getMove().toString() << " : " << sample_info.getEdge(i).toString() << '\n';
+//					std::cout << '\n';
+//
+//					std::cout << "Target:\n";
+//					target_info.sortEdges();
+//					std::cout << target_info.toString() << '\n';
+//					for (int i = 0; i < target_info.numberOfEdges(); i++)
+//						std::cout << target_info.getEdge(i).getMove().toString() << " : " << target_info.getEdge(i).toString() << '\n';
+//					std::cout << '\n';
+//					return;
+//				}
+				match_count += (best_move_at_sampling == best_move_at_target);
+				total_count++;
+			}
+
+			if (i % (buffer.numberOfGames() / 10000) == 0)
+			{
+				std::cout << i << " / " << buffer.numberOfGames() << '\n';
+				const double stop = getTime();
+				std::cout << (stop - start) / total_count << "s per sample\n";
+			}
+		}
+	}
+
+	std::cout << match_count << "/" << total_count << " (" << 100 * match_count / total_count << "%)\n";
+
+//	std::cout << result.getStats().toString() << '\n';
+//	result.save("/home/maciek/alphagomoku/proven_positions_big.bin");
+}
+
+float inv_erf(float p) noexcept
+{
+	float x = 0.5f;
+	for (int i = 0; i < 10; i++)
+	{
+		const float fx = std::erf(x) - p;
+		const float dfx = 2.0f / std::sqrt(M_PI) * std::exp(-x * x);
+		x -= fx / dfx;
+	}
+	return x;
+}
+
+float my_logf(float a)
+{
+	float i, m, r, s, t;
+	int e;
+
+	m = frexpf(a, &e);
+	if (m < 0.666666667f)
+	{ // 0x1.555556p-1
+		m = m + m;
+		e = e - 1;
+	}
+	i = (float) e;
+	/* m in [2/3, 4/3] */
+	m = m - 1.0f;
+	s = m * m;
+	/* Compute log1p(m) for m in [-1/3, 1/3] */
+	r = -0.130310059f;  // -0x1.0ae000p-3
+	t = 0.140869141f;  //  0x1.208000p-3
+	r = fmaf(r, s, -0.121484190f); // -0x1.f19968p-4
+	t = fmaf(t, s, 0.139814854f); //  0x1.1e5740p-3
+	r = fmaf(r, s, -0.166846052f); // -0x1.55b362p-3
+	t = fmaf(t, s, 0.200120345f); //  0x1.99d8b2p-3
+	r = fmaf(r, s, -0.249996200f); // -0x1.fffe02p-3
+	r = fmaf(t, m, r);
+	r = fmaf(r, m, 0.333331972f); //  0x1.5554fap-2
+	r = fmaf(r, m, -0.500000000f); // -0x1.000000p-1
+	r = fmaf(r, s, m);
+	r = fmaf(i, 0.693147182f, r); //  0x1.62e430p-1 // log(2)
+	if (!((a > 0.0f) && (a <= 3.40282346e+38f)))
+	{ // 0x1.fffffep+127
+		r = a + a;  // silence NaNs if necessary
+		if (a < 0.0f)
+			r = (0.0f / 0.0f); //  NaN
+		if (a == 0.0f)
+			r = (-1.0f / 0.0f); // -Inf
+	}
+	return r;
+}
+
+float inv_erf_v2(float a)
+{
+	float p, r, t;
+	t = fmaf(a, 0.0f - a, 1.0f);
+	t = std::log(t);
+	if (fabsf(t) > 6.125f)
+	{ // maximum ulp error = 2.35793
+		p = 3.03697567e-10f; //  0x1.4deb44p-32
+		p = fmaf(p, t, 2.93243101e-8f); //  0x1.f7c9aep-26
+		p = fmaf(p, t, 1.22150334e-6f); //  0x1.47e512p-20
+		p = fmaf(p, t, 2.84108955e-5f); //  0x1.dca7dep-16
+		p = fmaf(p, t, 3.93552968e-4f); //  0x1.9cab92p-12
+		p = fmaf(p, t, 3.02698812e-3f); //  0x1.8cc0dep-9
+		p = fmaf(p, t, 4.83185798e-3f); //  0x1.3ca920p-8
+		p = fmaf(p, t, -2.64646143e-1f); // -0x1.0eff66p-2
+		p = fmaf(p, t, 8.40016484e-1f); //  0x1.ae16a4p-1
+	}
+	else
+	{ // maximum ulp error = 2.35002
+		p = 5.43877832e-9f;  //  0x1.75c000p-28
+		p = fmaf(p, t, 1.43285448e-7f); //  0x1.33b402p-23
+		p = fmaf(p, t, 1.22774793e-6f); //  0x1.499232p-20
+		p = fmaf(p, t, 1.12963626e-7f); //  0x1.e52cd2p-24
+		p = fmaf(p, t, -5.61530760e-5f); // -0x1.d70bd0p-15
+		p = fmaf(p, t, -1.47697632e-4f); // -0x1.35be90p-13
+		p = fmaf(p, t, 2.31468678e-3f); //  0x1.2f6400p-9
+		p = fmaf(p, t, 1.15392581e-2f); //  0x1.7a1e50p-7
+		p = fmaf(p, t, -2.32015476e-1f); // -0x1.db2aeep-3
+		p = fmaf(p, t, 8.86226892e-1f); //  0x1.c5bf88p-1
+	}
+	r = a * p;
+	return r;
+}
+
+template<int Level = 0>
+float inv_erf_v3(float p)
+{
+	const float sgn = (p < 0) ? -1.0f : 1.0f;
+
+	const float lnx = std::log(1.0f - p * p);
+
+	const float tt1 = 2.0f / (M_PI * 0.147f) + 0.5f * lnx;
+	const float tt2 = 1.0f / 0.147f * lnx;
+
+	const float x = sgn * std::sqrt(-tt1 + std::sqrt(tt1 * tt1 - tt2));
+
+	if constexpr (Level == 1)
+	{
+		const float fx = std::erf(x) - p;
+		const float dfx = 2.0f / std::sqrt(M_PI) * std::exp(-x * x);
+		return x - fx / dfx;
+	}
+	else
+		return x;
+}
+
+class Bandit
+{
+		float mean = 0.0f;
+		float stddev = 0.0f;
+		float cdf0 = 0.0f;
+		float cdf1 = 1.0f;
+	public:
+		Bandit() :
+				mean(-1.0f + 3.0f * randFloat()),
+				stddev(0.1f + 0.9f * randFloat()),
+				cdf0(gaussian_cdf(0.0f, mean, stddev)),
+				cdf1(gaussian_cdf(1.0f, mean, stddev))
+		{
+		}
+		float get_reward() const noexcept
+		{
+			const float p = cdf0 + randFloat() * (cdf1 - cdf0);
+			return mean + std::sqrt(2.0f) * stddev * inverse_erf(2.0f * p - 1.0f);
+		}
+		std::string to_string() const
+		{
+			return "mean=" + std::to_string(mean) + ", stddev=" + std::to_string(stddev) + " (" + std::to_string(cdf0) + ", " + std::to_string(cdf1)
+					+ ")";
+		}
+		float get_expectation(int N = 1000) const noexcept
+		{
+			float result = 0.0f;
+			float sum_p = 0.0f;
+			const float c = 1.0f / (stddev * std::sqrt(2.0f * M_PI));
+			for (int n = 0; n <= N; n++)
+			{
+				const float x = n / static_cast<double>(N);
+				const float p = c * std::exp(-(x - mean) * (x - mean) / (2.0f * stddev * stddev));
+				const float w = (n == 0 or n == N) ? 0.5f : 1.0f;
+
+				result += w * x * p;
+				sum_p += w * p;
+			}
+			return result / sum_p;
+		}
+};
+
+struct Choice
+{
+		int index = 0;
+		float reward = 0.0f;
+		Choice(int i, float r) noexcept :
+				index(i),
+				reward(r)
+		{
+		}
+};
+
+class Policy
+{
+	public:
+		virtual ~Policy() = default;
+		virtual Choice select(const std::vector<Bandit> &bandits) = 0;
+};
+
+std::vector<float> get_priors(const std::vector<Bandit> &bandits, int N)
+{
+	std::vector<float> result(bandits.size(), 0.0f);
+
+	for (int n = 0; n < N; n++)
+	{
+		int best_idx = -1;
+		float best_reward = std::numeric_limits<float>::lowest();
+		for (size_t i = 0; i < bandits.size(); i++)
+		{
+			const float r = bandits[i].get_reward();
+			if (r > best_reward)
+			{
+				best_reward = r;
+				best_idx = i;
+			}
+		}
+		result[best_idx] += 1.0f;
+	}
+
+	for (size_t i = 0; i < result.size(); i++)
+		result[i] /= N;
+
+	return result;
+}
+std::vector<float> get_values(const std::vector<Bandit> &bandits, int N)
+{
+	std::vector<float> result(bandits.size(), 0.0f);
+
+	for (size_t i = 0; i < bandits.size(); i++)
+	{
+		for (int n = 0; n < N; n++)
+			result[i] += bandits[i].get_reward();
+		result[i] /= N;
+	}
+	return result;
+}
+
+class EpsilonGreedy: public Policy
+{
+		struct data
+		{
+				float reward_sum = 0.0f;
+				int count = 0;
+
+				float get_avg() const noexcept
+				{
+					return reward_sum / (0.001f + count);
+				}
+				void update(float r) noexcept
+				{
+					reward_sum += r;
+					count++;
+				}
+		};
+
+		std::vector<data> arm_stats;
+		float epsilon = 0.0f;
+	public:
+		EpsilonGreedy(float eps) noexcept :
+				epsilon(eps)
+		{
+		}
+		Choice select(const std::vector<Bandit> &bandits)
+		{
+			if (arm_stats.size() != bandits.size())
+				arm_stats = std::vector<data>(bandits.size());
+
+			size_t best_idx = 0;
+			float best_reward = std::numeric_limits<float>::lowest();
+			for (size_t i = 0; i < bandits.size(); i++)
+			{
+				const float r = (arm_stats[i].count > 0) ? arm_stats[i].get_avg() : randFloat();
+//				std::cout << i << " avg = " << arm_stats[i].get_avg() << " (" << arm_stats[i].count << ")\n";
+				if (r > best_reward)
+				{
+					best_reward = r;
+					best_idx = i;
+				}
+			}
+
+			if (randFloat() < epsilon)
+			{
+				int r = randInt(bandits.size() - 1);
+				for (size_t i = 0; i < bandits.size(); i++)
+					if (i != best_idx)
+					{
+						if (r == 0)
+						{
+							best_idx = i;
+							break;
+						}
+						r--;
+					}
+			}
+			const float reward = bandits[best_idx].get_reward();
+			arm_stats[best_idx].update(reward);
+
+//			std::cout << "------------------------------------------\n";
+			return Choice(best_idx, reward);
+		}
+};
+
+class UpperConfidenceBound: public Policy
+{
+		struct data
+		{
+				float reward_sum = 0.0f;
+				int count = 0;
+
+				float get_avg() const noexcept
+				{
+					return reward_sum / (0.001f + count);
+				}
+				float get_bound(int N) const noexcept
+				{
+					return std::sqrt(std::log(N) / (0.001f + count));
+				}
+				void update(float r) noexcept
+				{
+					reward_sum += r;
+					count++;
+				}
+		};
+
+		std::vector<data> arm_stats;
+		float exploration = 0.0f;
+		int total_count = 0;
+	public:
+		UpperConfidenceBound(float c) noexcept :
+				exploration(c)
+		{
+		}
+		Choice select(const std::vector<Bandit> &bandits)
+		{
+			if (arm_stats.size() != bandits.size())
+				arm_stats = std::vector<data>(bandits.size());
+
+			total_count++;
+
+			size_t best_idx = 0;
+			float best_reward = std::numeric_limits<float>::lowest();
+			for (size_t i = 0; i < bandits.size(); i++)
+			{
+				const float r = arm_stats[i].get_avg() + exploration * arm_stats[i].get_bound(total_count);
+//				std::cout << i << " avg = " << arm_stats[i].get_avg() << " " << arm_stats[i].get_bound(total_count) << " (" << arm_stats[i].count
+//						<< ")\n";
+				if (r > best_reward)
+				{
+					best_reward = r;
+					best_idx = i;
+				}
+			}
+
+			const float reward = bandits[best_idx].get_reward();
+			arm_stats[best_idx].update(reward);
+//			std::cout << "------------------------------------------\n";
+			return Choice(best_idx, reward);
+		}
+};
+
+class PUCT: public Policy
+{
+		struct data
+		{
+				float prior = 0.0f;
+				float reward_sum = 0.0f;
+				int count = 0;
+
+				float get_avg() const noexcept
+				{
+					return reward_sum / (0.001f + count);
+				}
+				float get_bound(int N) const noexcept
+				{
+					return prior * std::sqrt(N) / (1 + count);
+				}
+				void update(float r) noexcept
+				{
+					reward_sum += r;
+					count++;
+				}
+		};
+
+		std::vector<data> arm_stats;
+		float exploration = 0.0f;
+		int prior_accuracy = 0;
+		int total_count = 0;
+	public:
+		PUCT(float c, int pa = 2) noexcept :
+				exploration(c),
+				prior_accuracy(pa)
+		{
+		}
+		Choice select(const std::vector<Bandit> &bandits)
+		{
+			if (arm_stats.size() != bandits.size())
+			{
+				arm_stats = std::vector<data>(bandits.size());
+				const std::vector<float> priors = get_priors(bandits, prior_accuracy * bandits.size());
+				const std::vector<float> values = get_values(bandits, prior_accuracy);
+				const std::vector<float> noise = createCustomNoise(priors.size());
+
+				const float w = 0.25f;
+				for (size_t i = 0; i < arm_stats.size(); i++)
+				{
+					arm_stats[i].prior = noise[i] * w + priors[i] * (1.0f - w);
+					arm_stats[i].reward_sum = 0.001f * values[i];
+				}
+			}
+
+			total_count++;
+
+			size_t best_idx = 0;
+			float best_reward = std::numeric_limits<float>::lowest();
+			for (size_t i = 0; i < bandits.size(); i++)
+			{
+				const float Q = arm_stats[i].get_avg();
+				const float U = exploration * arm_stats[i].get_bound(total_count);
+//				std::cout << i << " avg = " << arm_stats[i].get_avg() << " " << arm_stats[i].get_bound(total_count) << " " << arm_stats[i].prior
+//						<< " (" << arm_stats[i].count << ")\n";
+				if ((Q + U) > best_reward)
+				{
+					best_reward = Q + U;
+					best_idx = i;
+				}
+			}
+
+			const float reward = bandits[best_idx].get_reward();
+			arm_stats[best_idx].update(reward);
+//			std::cout << "------------------------------------------\n";
+			return Choice(best_idx, reward);
+		}
+};
+
+int measure_regret(Policy &policy, const std::vector<Bandit> &bandits, int N)
+{
+	int best_idx = 0;
+	float best_reward = std::numeric_limits<float>::lowest();
+	for (size_t i = 0; i < bandits.size(); i++)
+	{
+		const float r = bandits[i].get_expectation();
+		if (r > best_reward)
+		{
+			best_reward = r;
+			best_idx = i;
+		}
+	}
+
+	int regret = 0;
+
+	for (int n = 0; n < N; n++)
+	{
+		const Choice c = policy.select(bandits);
+		if (c.index != best_idx)
+			regret++;
+		if (n % 100 == 0)
+			std::cout << regret << '\n';
+	}
+
+	return regret;
+}
+
+void asdf()
+{
+	std::vector<Bandit> bandits(10);
+
+//	EpsilonGreedy policy(0.1f);
+//	UpperConfidenceBound policy(0.4f);
+	PUCT policy(0.1f);
+
+	const int regret = measure_regret(policy, bandits, 10000);
+	std::cout << "regret = " << regret << '\n';
+	return;
+
+//	const std::vector<float> priors = get_priors(bandits, 1000);
+//
+//	const double t0 = getTime();
+//	for (int i = 0; i < 10000000; i++)
+//	{
+//		bandits[0].get_reward();
+//		bandits[1].get_reward();
+//		bandits[2].get_reward();
+//		bandits[3].get_reward();
+//		bandits[4].get_reward();
+//		bandits[5].get_reward();
+//		bandits[6].get_reward();
+//		bandits[7].get_reward();
+//		bandits[8].get_reward();
+//		bandits[9].get_reward();
+//	}
+//	const double t1 = getTime();
+//	std::cout << (t1 - t0) * 10.0 << "ns\n";
+//
+//	for (size_t i = 0; i < bandits.size(); i++)
+//		std::cout << bandits[i].to_string() << "   " << priors[i] << "   " << bandits[i].get_expectation() << '\n';
+}
+
 int main(int argc, char *argv[])
 {
 	ml::Device::flushDenormalsToZero(true);
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
+
+//	asdf();
+//	return 0;
 
 //	{
 //		EngineSettings settings(FileLoader("/home/maciek/Desktop/AlphaGomoku590/config.json").getJson());
@@ -3803,9 +3172,9 @@ int main(int argc, char *argv[])
 //	}
 
 //	{
-//		const std::string root_path = "/home/maciek/alphagomoku/final_runs_2025/renju_15x15/";
+//		const std::string root_path = "/home/maciek/alphagomoku/final_runs_2025/caro6/";
 //		std::vector<std::string> paths;
-//		for (int i = 390; i <= 400; i++)
+//		for (int i = 80; i <= 90; i++)
 //			paths.push_back(root_path + "checkpoint/network_" + std::to_string(i) + ".bin");
 //		NetworkLoader loader(paths);
 //		auto network = loader.get();
@@ -3845,14 +3214,16 @@ int main(int argc, char *argv[])
 //	test_proven_positions(1000);
 //	test_proven_search(100, 1000, true);
 //	train_nnue();
+//	prepare_selection_dataset(100000);
 
 //	generate_games();
 //	run_training();
 //	test_evaluate();
 //	run_knowledge_distillation();
+//	return 0;
 
-	evaluate_vs_old("/home/maciek/alphagomoku/final_runs_2025/freestyle_15x15/", 140);
-	return 0;
+//	evaluate_vs_old("/home/maciek/alphagomoku/final_runs_2025/caro6/", 90);
+//	return 0;
 //
 //	{
 //		const std::string path = "/home/maciek/alphagomoku/new_runs_2025/size_tests/convnext_ls01_se2_8x128/";
@@ -3940,7 +3311,7 @@ int main(int argc, char *argv[])
 				/*  4 */ " _ _ _ _ _ _ _ _ O _ _ _ _ _ _\n" /*  4 */
 				/*  5 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  5 */
 				/*  6 */ " _ _ _ _ X _ _ _ _ X _ _ _ _ _\n" /*  6 */
-				/*  7 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
+				/*  7 */ " _ _ _ X _ _ _ _ _ _ _ _ _ _ _\n" /*  7 */
 				/*  8 */ " _ _ X _ _ O _ _ _ _ _ O _ _ _\n" /*  8 */
 				/*  9 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /*  9 */
 				/* 10 */ " _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n" /* 10 */
@@ -3952,13 +3323,14 @@ int main(int argc, char *argv[])
 // @formatter:on
 		const Sign sign_to_move = Sign::CROSS;
 
-		const std::string path = "/home/maciek/alphagomoku/new_runs_2025/test_batch_size/";
-		std::unique_ptr<AGNetwork> network = NetworkLoader("/home/maciek/alphagomoku/new_runs_2025/test_fast/new_data_v2/network_500.bin").get();
+		const std::string path = "/home/maciek/alphagomoku/final_runs_2025/standard_15x15/";
+		std::unique_ptr<AGNetwork> network = NetworkLoader(path + "/network_swa.bin").get();
 
-//		network->moveTo(ml::Device::cuda());
-		network->moveTo(ml::Device::cpu());
-		network->optimize(1);
-		network->setBatchSize(1);
+		network->moveTo(ml::Device::cuda());
+//		network->moveTo(ml::Device::opencl());
+//		network->optimize(1);
+		network->setBatchSize(128);
+		network->get_graph().print();
 
 //		for (int n = 0; n < network->get_graph().numberOfNodes(); n++)
 //		{
@@ -3982,7 +3354,7 @@ int main(int argc, char *argv[])
 //			}
 //		}
 
-		network->convertToHalfFloats();
+//		network->convertToHalfFloats();
 
 //		return 0;
 //		network->convertToHalfFloats();
@@ -4010,11 +3382,11 @@ int main(int argc, char *argv[])
 		std::cout << Board::toString(board, policy) << '\n';
 		std::cout << Board::toString(board, action_values) << '\n';
 
-		return 0;
+//		return 0;
 		std::cout << "starting benchmark\n";
 		const double start = getTime();
 		int repeats = 0;
-		for (; repeats < 10000; repeats++)
+		for (; repeats < 100000; repeats++)
 		{
 			network->forward(network->getBatchSize());
 			if ((getTime() - start) > 30.0)
