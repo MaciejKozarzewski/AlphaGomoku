@@ -14,16 +14,16 @@ namespace
 	using namespace ag;
 	uint32_t encode_patterns(TwoPlayerGroup<DirectionGroup<PatternType>> patterns, Sign ownSign) noexcept
 	{
-		static const uint32_t table1[8] = { 0u, 0u, 1u, (1u << 4), 0u, 0u, 0u, 0u };
-		static const uint32_t table2[8] = { 0u, 0u, 0u, 0u, (1u << 8u), (1u << 9u), (1u << 10u), (1u << 11u) };
+		static const uint32_t directional_table[8] = { 0u, 0u, 1u, (1u << 4), 0u, 0u, 0u, 0u };
+		static const uint32_t isotropic_table[8] = { 0u, 0u, 0u, 0u, (1u << 8u), (1u << 9u), (1u << 10u), (1u << 11u) };
 
 		uint32_t result1 = 0, result2 = 0;
 		for (uint32_t i = 0; i < 4u; i++)
 		{
 			const int idx1 = static_cast<int>(patterns.for_cross[i]);
 			const int idx2 = static_cast<int>(patterns.for_circle[i]);
-			result1 |= (table1[idx1] << i) | table2[idx1];
-			result2 |= (table1[idx2] << i) | table2[idx2];
+			result1 |= (directional_table[idx1] << i) | isotropic_table[idx1];
+			result2 |= (directional_table[idx2] << i) | isotropic_table[idx2];
 		}
 		if (ownSign == Sign::CROSS)
 			return (result1 << 8u) | (result2 << 20u);
