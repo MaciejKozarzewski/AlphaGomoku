@@ -49,7 +49,6 @@ def edit_config_file(path: str) -> None:
 	cfg = json.loads(f.read())
 	f.close()
 	cfg['devices'] = [cfg['devices'][0]]
-	del cfg['devices'][0]['omp_threads']
 	cfg['devices'][0]['batch_size'] = 12
 	cfg['search_threads'] = 1
 	cfg['search_config']['max_batch_size'] = 12
@@ -57,107 +56,111 @@ def edit_config_file(path: str) -> None:
 	f.write(json.dumps(cfg, indent=2))
 	f.close()
 	
-
-
-platform = get_platform()
-
-if platform == 'linux':
-	conv_network_paths = {
-		'freestyle_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/freestyle_20x20/network_swa.bin',
-		'freestyle_conv_8x128_15x15': '/home/maciek/alphagomoku/final_runs_2025/freestyle_15x15/network_swa.bin',
-		'standard_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/standard_15x15/network_swa.bin',
-		'renju_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/renju_15x15/network_swa.bin',
-		'caro5_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/caro5/network_swa.bin',
-		'caro6_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/caro6/network_swa.bin'
-	}
-if platform == 'windows':
-	conv_network_paths = {
-		'freestyle_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128.bin',
-		'freestyle_conv_8x128_15x15': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128_15x15.bin',
-		'standard_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\standard_conv_8x128.bin',
-		'renju_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\renju_conv_8x128.bin',
-		'caro5_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128.bin',
-		'caro6_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128.bin',
-	}
-
-swap2_openings = [
-	[{"row": 5, "col": 11, "sign": "CROSS"}, {"row": 6, "col": 11, "sign": "CIRCLE"}, {"row": 6, "col": 13, "sign": "CROSS"}],
-	[{"row": 12, "col": 11, "sign": "CROSS"}, {"row": 13, "col": 13, "sign": "CIRCLE"}, {"row": 14, "col": 12, "sign": "CROSS"}],
-	[{"row": 13, "col": 11, "sign": "CROSS"}, {"row": 12, "col": 10, "sign": "CIRCLE"}, {"row": 10, "col": 11, "sign": "CROSS"}],
-	[{"row": 11, "col": 8, "sign": "CROSS"}, {"row": 10, "col": 9, "sign": "CIRCLE"}, {"row": 11, "col": 12, "sign": "CROSS"}],
-	[{"row": 10, "col": 9, "sign": "CROSS"}, {"row": 12, "col": 8, "sign": "CIRCLE"}, {"row": 13, "col": 4, "sign": "CROSS"}]
-]
-
-
-print('Step 1 - building executables')
-build_directory = '../build/Release/bin/'
-exe_extension = None
-if platform == 'linux':
-	os.system('sh build_all.sh')
-	exe_extension = ''
-if platform == 'windows':
-	os.system('windows_build_all.bat')
-	exe_extension = '.exe'
-
-version = get_version(build_directory + 'ag_player_cpu' + exe_extension)
 	
+if __name__ == '__main__':
+	dst_path = sys.argv[1]
 
-print('Step 2 - building docs')
-if platform == 'linux':
-	protocols_pdf = compile_latex('../doc/protocols/', 'protocols')
-	user_manual_pdf = compile_latex('../doc/user_manual/', 'user_manual')
+	platform = get_platform()
 
+	if platform == 'linux':
+		conv_network_paths = {
+			'freestyle_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/freestyle_20x20/network_swa.bin',
+			'freestyle_conv_8x128_15x15': '/home/maciek/alphagomoku/final_runs_2025/freestyle_15x15/network_swa.bin',
+			'standard_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/standard_15x15/network_swa.bin',
+			'renju_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/renju_15x15/network_swa.bin',
+			'caro5_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/caro5/network_swa.bin',
+			'caro6_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/caro6/network_swa.bin'
+		}
+	if platform == 'windows':
+		conv_network_paths = {
+			'freestyle_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128.bin',
+			'freestyle_conv_8x128_15x15': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128_15x15.bin',
+			'standard_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\standard_conv_8x128.bin',
+			'renju_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\renju_conv_8x128.bin',
+			'caro5_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128.bin',
+			'caro6_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128.bin',
+		}
 
-print('Step 3 - copying files')
-dst_directory = '../release_' + version + '/'
-create_directory(dst_directory)
-create_directory(dst_directory + 'logs')
-create_directory(dst_directory + 'networks')
-
-shutil.copy(build_directory + 'ag_player_cpu' + exe_extension, dst_directory + 'pbrain-AlphaGomoku' + exe_extension)
-shutil.copy(build_directory + 'ag_player_cuda' + exe_extension, dst_directory+ 'pbrain-AlphaGomoku_cuda' + exe_extension)
-shutil.copy(build_directory + 'ag_player_opencl' + exe_extension, dst_directory+ 'pbrain-AlphaGomoku_opencl' + exe_extension)
-
-shutil.copy('../doc/protocols/protocols.pdf', dst_directory)
-shutil.copy('../doc/user_manual/user_manual.pdf', dst_directory)
-
-
-for key in conv_network_paths:
-	tmp = dst_directory + 'networks/'
-	shutil.copy(conv_network_paths[key], tmp + key + '.bin')
-	
-
-if platform == 'windows':
-	mingw_path = 'C:\\mingw64\\bin\\'
-	libraries = ['libdl.dll', 'libgcc_s_seh-1.dll', 'libgomp-1.dll', 'libstdc++-6.dll', 'libwinpthread-1.dll']
-	for lib in libraries:
-		shutil.copy(mingw_path + lib, dst_directory)
-	
-	shutil.copy('../../minml/build/cudaml.dll', dst_directory)
+	swap2_openings = [
+		[{"row": 5, "col": 11, "sign": "CROSS"}, {"row": 6, "col": 11, "sign": "CIRCLE"}, {"row": 6, "col": 13, "sign": "CROSS"}],
+		[{"row": 12, "col": 11, "sign": "CROSS"}, {"row": 13, "col": 13, "sign": "CIRCLE"}, {"row": 14, "col": 12, "sign": "CROSS"}],
+		[{"row": 13, "col": 11, "sign": "CROSS"}, {"row": 12, "col": 10, "sign": "CIRCLE"}, {"row": 10, "col": 11, "sign": "CROSS"}],
+		[{"row": 11, "col": 8, "sign": "CROSS"}, {"row": 10, "col": 9, "sign": "CIRCLE"}, {"row": 11, "col": 12, "sign": "CROSS"}],
+		[{"row": 10, "col": 9, "sign": "CROSS"}, {"row": 12, "col": 8, "sign": "CIRCLE"}, {"row": 13, "col": 4, "sign": "CROSS"}]
+	]
 
 
-print('Step 4 - configuring')
-run_command(dst_directory + 'pbrain-AlphaGomoku' + exe_extension, '--benchmark')
-run_command(dst_directory + 'pbrain-AlphaGomoku' + exe_extension, '--configure')
-os.remove(dst_directory + 'benchmark.json')
+	print('Step 1 - building executables')
+	build_directory = '../build/Release/bin/'
+	exe_extension = None
+	if platform == 'linux':
+		os.system('sh build_all.sh')
+		exe_extension = ''
+	if platform == 'windows':
+		os.system('windows_build_all.bat')
+		exe_extension = '.exe'
 
-edit_config_file(dst_directory + 'config.json')
+	version = get_version(build_directory + 'ag_player_cpu' + exe_extension)
+		
 
-f = open(dst_directory + 'swap2_openings.json', 'w')
-f.write(json.dumps(swap2_openings, indent=2))
-f.close()
+	print('Step 2 - building docs')
+	if platform == 'linux':
+		protocols_pdf = compile_latex('../doc/protocols/', 'protocols')
+		user_manual_pdf = compile_latex('../doc/user_manual/', 'user_manual')
 
 
-if platform == 'windows':
-	print('Step 5 - prepare Gomocup release')
-	gomocup_directory = '../gomocup_' + version + '/'
-	shutil.copytree(dst_directory, gomocup_directory, dirs_exist_ok=True)
-	
-	os.remove(gomocup_directory + 'protocols.pdf')
-	os.remove(gomocup_directory + 'user_manual.pdf')
-	os.remove(gomocup_directory + 'pbrain-AlphaGomoku_cuda.exe')
-	os.remove(gomocup_directory + 'pbrain-AlphaGomoku_opencl.exe')
-	os.remove(gomocup_directory + 'cudaml.dll')
+	print('Step 3 - copying files')
+	dst_directory = dst_path + '/release_' + version + '/'
+	create_directory(dst_directory)
+	create_directory(dst_directory + 'logs')
+	create_directory(dst_directory + 'networks')
+
+	shutil.copy(build_directory + 'ag_player_cpu' + exe_extension, dst_directory + 'pbrain-AlphaGomoku' + exe_extension)
+	shutil.copy(build_directory + 'ag_player_cuda' + exe_extension, dst_directory + 'pbrain-AlphaGomoku_cuda' + exe_extension)
+	shutil.copy(build_directory + 'ag_player_opencl' + exe_extension, dst_directory + 'pbrain-AlphaGomoku_opencl' + exe_extension)
+
+	shutil.copy('../doc/protocols/protocols.pdf', dst_directory)
+	shutil.copy('../doc/user_manual/user_manual.pdf', dst_directory)
+
+
+	for key in conv_network_paths:
+		tmp = dst_directory + 'networks/'
+		shutil.copy(conv_network_paths[key], tmp + key + '.bin')
+		
+
+	if platform == 'windows':
+		mingw_path = 'C:\\mingw64\\bin\\'
+		libraries = ['libdl.dll', 'libgcc_s_seh-1.dll', 'libgomp-1.dll', 'libstdc++-6.dll', 'libwinpthread-1.dll', 'OpenCL.dll', 'CLBlast.dll']
+		for lib in libraries:
+			shutil.copy(mingw_path + lib, dst_directory)
+		
+		shutil.copy('../../minml/build/cudaml.dll', dst_directory)
+
+
+	print('Step 4 - configuring')
+	run_command(dst_directory + 'pbrain-AlphaGomoku' + exe_extension, '--benchmark')
+	run_command(dst_directory + 'pbrain-AlphaGomoku' + exe_extension, '--configure')
+	os.remove(dst_directory + 'benchmark.json')
+
+	edit_config_file(dst_directory + 'config.json')
+
+	f = open(dst_directory + 'swap2_openings.json', 'w')
+	f.write(json.dumps(swap2_openings, indent=2))
+	f.close()
+
+
+	if platform == 'windows' and 'gomocup' in sys.argv[1:]:
+		print('Step 5 - prepare Gomocup release')
+		gomocup_directory = dst_path + '/gomocup_' + version + '/'
+		shutil.copytree(dst_directory, gomocup_directory, dirs_exist_ok=True)
+		
+		os.remove(gomocup_directory + 'protocols.pdf')
+		os.remove(gomocup_directory + 'user_manual.pdf')
+		os.remove(gomocup_directory + 'pbrain-AlphaGomoku_cuda.exe')
+		os.remove(gomocup_directory + 'pbrain-AlphaGomoku_opencl.exe')
+		os.remove(gomocup_directory + 'cudaml.dll')
+
+
 
 
 
