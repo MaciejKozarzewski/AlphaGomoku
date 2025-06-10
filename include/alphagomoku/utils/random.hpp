@@ -31,9 +31,26 @@ namespace ag
 	 * \brief Calculates Gaussian cumulative distribution function.
 	 */
 	template<typename T>
-	T gaussian_cdf(T x) noexcept
+	T gaussian_cdf(T x, T mean = 0.0, T stddev = 1.0) noexcept
 	{
-		return static_cast<T>(0.5) * (static_cast<T>(1.0) + std::erf(x / std::sqrt(static_cast<T>(2.0))));
+		return static_cast<T>(0.5) * (static_cast<T>(1.0) + std::erf((x - mean) / (stddev * std::sqrt(static_cast<T>(2.0)))));
+	}
+	template<typename T>
+	T inverse_erf(T y) noexcept
+	{
+		T x = static_cast<T>(0.5);
+		for (int i = 0; i < 100; i++)
+		{
+			const T fx = std::erf(x) - y;
+			const T dfx = 2.0 / sqrt(M_PI) * std::exp(-x * x);
+			const T new_x = x - fx / dfx;
+
+			if (new_x == x)
+				break;
+
+			x = new_x;
+		}
+		return x;
 	}
 
 	template<typename T>
