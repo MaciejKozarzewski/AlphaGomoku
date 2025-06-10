@@ -168,7 +168,7 @@ AG behaves just like for \texttt{START} command keeping the previous settings.
 
 \subsection{TAKEBACK [C],[R]}
 \label{cmd_takeback}
-This command \textbf{might not be} implemented like in the protocol description. This command can be used to undo \textbf{only the last move}. It can be used repeatedly to undo several moves, but they must be sent in the opposite order to the one in which they were played. During regular game this condition is obviously fulfilled. Problems may appear when trying to undo moves that were sent in the \texttt{BOARD} command as it may send moves in random order. If an incorrect last move was specified, AG will simply send an \texttt{ERROR} message with the description which move it considers to be the last one.
+This command \textbf{might not be} implemented like in the protocol description. This command can be used to undo \textbf{only the last move}. It can be used repeatedly to undo several moves, but they must be sent in the opposite order to the one in which they were played. During regular game this condition is obviously fulfilled. Problems may appear when trying to undo moves that were sent in the \texttt{BOARD} command as it may send moves in random order (while AG internally reorders them). If an incorrect last move was specified, AG will simply send an \texttt{ERROR} message with the description which move it considers to be the last one.
 
 
 \subsection{UNKNOWN [error message]}
