@@ -2,7 +2,7 @@
  * math_utils.hpp
  *
  *  Created on: Apr 24, 2023
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_UTILS_MATH_UTILS_HPP_
@@ -118,6 +118,12 @@ namespace ag
 		sum = static_cast<T>(1) / sum;
 		for (size_t i = 0; i < x.size(); i++)
 			x[i] *= sum;
+	}
+
+	template<typename T>
+	T reduce_add(const matrix<T> &x)
+	{
+		return std::accumulate(x.begin(), x.end(), T { });
 	}
 
 } /* namespace ag */

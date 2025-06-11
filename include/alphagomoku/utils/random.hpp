@@ -2,7 +2,7 @@
  * random.hpp
  *
  *  Created on: Apr 24, 2023
- *      Author: maciek
+ *      Author: Maciej Kozarzewski
  */
 
 #ifndef ALPHAGOMOKU_UTILS_RANDOM_HPP_
