@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
 	if platform == 'windows':
 		mingw_path = 'C:\\mingw64\\bin\\'
-		libraries = ['libdl.dll', 'libgcc_s_seh-1.dll', 'libgomp-1.dll', 'libstdc++-6.dll', 'libwinpthread-1.dll', 'OpenCL.dll', 'CLBlast.dll']
+		libraries = ['libdl.dll', 'libgcc_s_seh-1.dll', 'libgomp-1.dll', 'libstdc++-6.dll', 'libwinpthread-1.dll', 'libOpenCL.dll', 'libclblast.dll']
 		for lib in libraries:
 			shutil.copy(mingw_path + lib, dst_directory)
 		
@@ -159,6 +159,8 @@ if __name__ == '__main__':
 		os.remove(gomocup_directory + 'pbrain-AlphaGomoku_cuda.exe')
 		os.remove(gomocup_directory + 'pbrain-AlphaGomoku_opencl.exe')
 		os.remove(gomocup_directory + 'cudaml.dll')
+		os.remove(gomocup_directory + 'libOpenCL.dll')
+		os.remove(gomocup_directory + 'libclblast.dll')
 
 
 

@@ -8,6 +8,8 @@
 #ifndef ALPHAGOMOKU_UTILS_RANDOM_HPP_
 #define ALPHAGOMOKU_UTILS_RANDOM_HPP_
 
+#include <alphagomoku/utils/math_utils.hpp>
+
 #include <vector>
 #include <algorithm>
 #include <cinttypes>
@@ -42,7 +44,7 @@ namespace ag
 		for (int i = 0; i < 100; i++)
 		{
 			const T fx = std::erf(x) - y;
-			const T dfx = 2.0 / sqrt(M_PI) * std::exp(-x * x);
+			const T dfx = 2.0 / std::sqrt(PI) * std::exp(-x * x);
 			const T new_x = x - fx / dfx;
 
 			if (new_x == x)
