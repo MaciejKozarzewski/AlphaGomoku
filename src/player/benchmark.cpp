@@ -37,6 +37,7 @@ namespace
 		for (size_t i = 0; i < networks.size(); i++)
 		{
 			networks[i] = loadAGNetwork(path);
+			networks[i]->optimize(2);
 			networks[i]->setBatchSize(batch_sizes().back());
 			networks[i]->moveTo(config.device);
 		}
