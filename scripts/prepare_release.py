@@ -59,6 +59,7 @@ def edit_config_file(path: str) -> None:
 	
 if __name__ == '__main__':
 	dst_path = sys.argv[1]
+	create_directory(dst_path)
 
 	platform = get_platform()
 
@@ -100,8 +101,6 @@ if __name__ == '__main__':
 		os.system('windows_build_all.bat')
 		exe_extension = '.exe'
 
-	version = get_version(build_directory + 'ag_player_cpu' + exe_extension)
-		
 
 	print('Step 2 - building docs')
 	if platform == 'linux':
@@ -110,7 +109,7 @@ if __name__ == '__main__':
 
 
 	print('Step 3 - copying files')
-	dst_directory = dst_path + '/release_' + version + '/'
+	dst_directory = dst_path + '/AlphaGomoku_' + platform + '/'
 	create_directory(dst_directory)
 	create_directory(dst_directory + 'logs')
 	create_directory(dst_directory + 'networks')
@@ -151,7 +150,7 @@ if __name__ == '__main__':
 
 	if platform == 'windows' and 'gomocup' in sys.argv[1:]:
 		print('Step 5 - prepare Gomocup release')
-		gomocup_directory = dst_path + '/gomocup_' + version + '/'
+		gomocup_directory = dst_path + '/gomocup/'
 		shutil.copytree(dst_directory, gomocup_directory, dirs_exist_ok=True)
 		
 		os.remove(gomocup_directory + 'protocols.pdf')
