@@ -143,6 +143,8 @@ namespace
 			ml::checkMatrixMultiplication(devices[i]);
 			ml::checkWinogradTransforms(devices[i]);
 			ml::checkActivationFuncion(devices[i]);
+			ml::checkPoolingAndScaling(devices[i]);
+			ml::checkDepthwiseConv2D(devices[i]);
 		}
 	}
 	void check_patterns()
