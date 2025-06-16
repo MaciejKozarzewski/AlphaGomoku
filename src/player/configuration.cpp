@@ -49,14 +49,12 @@ namespace
 	{
 			ml::Device device = ml::Device::cpu();
 			int search_threads = 0;
-			int omp_threads = 0;
 			std::vector<int> batch_size;
 			std::vector<float> speed; // [samples / second]
 			HardwareConfiguration() = default;
 			HardwareConfiguration(const Json &json) :
 					device(ml::Device::fromString(json["device"])),
-					search_threads(json["search_threads"].getInt()),
-					omp_threads(json["omp_threads"].getInt())
+					search_threads(json["search_threads"].getInt())
 			{
 				for (int i = 0; i < json["batch"].size(); i++)
 				{
@@ -69,7 +67,7 @@ namespace
 			}
 			void print() const
 			{
-				std::cout << device.toString() << " " << search_threads << ":" << omp_threads << '\n';
+				std::cout << device.toString() << " " << search_threads << '\n';
 				for (size_t i = 0; i < batch_size.size(); i++)
 					std::cout << "--" << batch_size[i] << " = " << speed[i] << " n/s\n";
 				std::cout << '\n';

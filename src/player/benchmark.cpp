@@ -20,12 +20,11 @@ namespace
 	{
 			ml::Device device;
 			int search_threads;
-			int omp_threads;
 	};
 
 	const std::vector<int>& batch_sizes()
 	{
-		static const std::vector<int> result = { 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128 };
+		static const std::vector<int> result = { 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 256 };
 		return result;
 	}
 
@@ -47,7 +46,7 @@ namespace
 		std::mutex result_mutex;
 		auto benchmark_function = [&](size_t index, int batch_size)
 		{
-			ml::Device::cpu().setNumberOfThreads(config.omp_threads);
+			ml::Device::cpu().setNumberOfThreads(1);
 			try
 			{
 				networks[index]->forward(1);
@@ -71,7 +70,6 @@ namespace
 		Json result;
 		result["device"] = config.device.toString();
 		result["search_threads"] = config.search_threads;
-		result["omp_threads"] = config.omp_threads;
 		result["batch"] = Json(JsonType::Array);
 		result["samples"] = Json(JsonType::Array);
 		result["time"] = Json(JsonType::Array);
@@ -114,19 +112,17 @@ namespace ag
 		const int cpu_cores = ml::Device::numberOfCpuCores();
 		/* create list of CPU configurations to test */
 		for (int search_threads = 1; search_threads <= cpu_cores; search_threads *= 2)
-			configs_to_test.push_back( { ml::Device::cpu(), search_threads, 1 });
-//			for (int omp_threads = 1; omp_threads <= std::min(4, cpu_cores / search_threads); omp_threads *= 2) // usually it doesn't make sense to use more than 4 OpenMP threads
-//				configs_to_test.push_back( { ml::Device::cpu(), search_threads, omp_threads });
+			configs_to_test.push_back( { ml::Device::cpu(), search_threads });
 
 		/* create list of CUDA configurations to test */
 		for (int device_index = 0; device_index < ml::Device::numberOfCudaDevices(); device_index++)
 			for (int search_threads = 1; search_threads <= cpu_cores; search_threads *= 2)
-				configs_to_test.push_back( { ml::Device::cuda(device_index), search_threads, 1 });
+				configs_to_test.push_back( { ml::Device::cuda(device_index), search_threads });
 
 		/* create list of OpenCL configurations to test */
 		for (int device_index = 0; device_index < ml::Device::numberOfOpenCLDevices(); device_index++)
 			for (int search_threads = 1; search_threads <= cpu_cores; search_threads *= 2)
-				configs_to_test.push_back({ ml::Device::opencl(device_index), search_threads, 1 });
+				configs_to_test.push_back({ ml::Device::opencl(device_index), search_threads });
 
 		const int overhead_time = 2; /**< in seconds */
 		const int estimated_time = ((batch_sizes().size() * benchmarking_time + overhead_time) * configs_to_test.size() + 59.9) / 60.0;

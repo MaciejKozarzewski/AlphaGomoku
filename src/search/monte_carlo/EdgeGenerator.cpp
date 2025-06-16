@@ -215,7 +215,7 @@ namespace ag
 					std::cout << task.getPolicy().at(i, j) << ' ';
 				std::cout << '\n';
 			}
-			std::cout << Board::toString(task.getBoard(), true);
+			std::cout << Board::toString(task.getBoard(), true) << std::endl;
 			exit(-1);
 		}
 
