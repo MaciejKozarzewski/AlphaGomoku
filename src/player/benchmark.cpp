@@ -39,6 +39,7 @@ namespace
 			networks[i]->optimize(2);
 			networks[i]->setBatchSize(batch_sizes().back());
 			networks[i]->moveTo(config.device);
+			networks[i]->convertToHalfFloats();
 		}
 
 		int total_samples = 0;
@@ -49,7 +50,7 @@ namespace
 			ml::Device::cpu().setNumberOfThreads(1);
 			try
 			{
-				networks[index]->forward(1);
+				networks[index]->forward(batch_size);
 				const double start = getTime();
 				int processed_samples = 0;
 				while (getTime() - start < max_time)
