@@ -115,7 +115,7 @@ namespace ag
 	{
 		std::lock_guard lock(mutex);
 		const double fraction = 0.9;
-		const double sum = (1.0 - std::pow(fraction, moves_left)) / std::max(1.0e-8, 1.0 - fraction);
+		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
 	}

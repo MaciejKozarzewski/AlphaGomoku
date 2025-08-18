@@ -8,8 +8,6 @@
 #include <alphagomoku/networks/perf_stats.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
-#include <iostream>
-
 namespace ag
 {
 

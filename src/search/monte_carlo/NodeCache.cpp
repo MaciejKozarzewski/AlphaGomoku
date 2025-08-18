@@ -252,7 +252,8 @@ namespace ag
 		TimerGuard timer(stats.seek);
 		const HashKey64 hash_key = hash_function.getHash(board, signToMove);
 
-		Entry *current = bins[hash_key & bin_index_mask];
+		const size_t bin_index = hash_key & bin_index_mask;
+		Entry *current = bins[bin_index];
 		while (current != nullptr)
 		{
 			if (current->hash_key == hash_key and current->board == board and current->node.getSignToMove() == signToMove)
