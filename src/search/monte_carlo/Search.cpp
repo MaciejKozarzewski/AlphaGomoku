@@ -128,12 +128,7 @@ namespace ag
 			if (current_task.visitedPathLength() == 0)
 				break; // visited only root node
 			if (is_duplicate(current_task))
-			{
-				tree.cancelVirtualLoss(current_task);
-				get_buffer().removeLast();
 				stats.nb_duplicate_nodes++;
-				break; // the search can be continued but some neural network evaluations would be wasted
-			}
 			if (out == SelectOutcome::INFORMATION_LEAK)
 			{
 				tree.correctInformationLeak(current_task);
