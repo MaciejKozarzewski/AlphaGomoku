@@ -25,8 +25,6 @@ namespace ag
 			time_point m_timer_stop;
 			int64_t m_total_time = 0;
 			int64_t m_total_count = 0;
-			bool m_is_measuring = false;
-			bool m_is_paused = false;
 		public:
 			TimedStat() = default;
 			TimedStat(const std::string &name) :
@@ -55,14 +53,6 @@ namespace ag
 			{
 				return m_total_count;
 			}
-			bool isMeasuring() const noexcept
-			{
-				return m_is_measuring;
-			}
-			bool isPaused() const noexcept
-			{
-				return m_is_paused;
-			}
 
 			static time_point getTime() noexcept
 			{
@@ -74,8 +64,6 @@ namespace ag
 			 */
 			void reset() noexcept
 			{
-				m_is_measuring = false;
-				m_is_paused = false;
 				m_total_time = 0;
 				m_total_count = 0;
 			}
@@ -84,8 +72,6 @@ namespace ag
 			 */
 			void startTimer() noexcept
 			{
-				assert(isMeasuring() == false);
-				m_is_measuring = true;
 				m_timer_start = getTime();
 				m_timer_stop = m_timer_start;
 			}
@@ -95,42 +81,35 @@ namespace ag
 			 */
 			void pauseTimer() noexcept
 			{
-				assert(isMeasuring());
 				m_timer_stop = getTime();
 				m_total_time += std::chrono::duration<int64_t, std::nano>(m_timer_stop - m_timer_start).count();
-				m_is_paused = true;
 			}
 			/**
 			 * \brief Resume the time measurement, paused by @see pauseTimer() call.
 			 */
 			void resumeTimer() noexcept
 			{
-				assert(isMeasuring() && isPaused());
 				m_timer_start = getTime();
 				m_timer_stop = m_timer_start;
-				m_is_paused = false;
 			}
 			/**
 			 * \brief Stop current time measurement and increase the total counter.
 			 */
 			void stopTimer() noexcept
 			{
-				assert(isMeasuring());
 				m_timer_stop = getTime();
 				m_total_time += std::chrono::duration<int64_t, std::nano>(m_timer_stop - m_timer_start).count();
 				m_total_count++;
-				m_is_measuring = false;
 			}
 			/**
 			 * \brief Stop current time measurement and increase the total counter by specified value
 			 */
 			void stopTimer(int count) noexcept
 			{
-				assert(isMeasuring());
+//				assert(isMeasuring());
 				m_timer_stop = getTime();
 				m_total_time += std::chrono::duration<int64_t, std::nano>(m_timer_stop - m_timer_start).count();
 				m_total_count += count;
-				m_is_measuring = false;
 			}
 			std::string toString() const;
 
