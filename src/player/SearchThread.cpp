@@ -16,6 +16,8 @@
 
 #include <alphagomoku/networks/NNUE.hpp>
 
+#include <thread>
+
 namespace
 {
 	int get_batch_size(int simulation_count, int max_batch_size) noexcept
@@ -89,7 +91,7 @@ namespace ag
 			search.clearStats();
 
 			{ /* artificial scope for lock */
-				TreeLock lock(tree);
+				LowPriorityLock lock = tree.low_priority_lock();
 				if (isStopConditionFulfilled())
 					return;
 			}
@@ -102,7 +104,7 @@ namespace ag
 
 			evaluator_pool.release(evaluator);
 
-			TreeLock lock(tree);
+			LowPriorityLock lock = tree.low_priority_lock();
 			search.cleanup(tree);
 		} catch (std::exception &e)
 		{
@@ -122,7 +124,7 @@ namespace ag
 		while (true)
 		{
 			{ /* artificial scope for lock */
-				TreeLock lock(tree);
+				LowPriorityLock lock = tree.low_priority_lock();
 				const int batch_size = get_batch_size(tree.getSimulationCount(), search.getConfig().max_batch_size);
 				search.setBatchSize(batch_size);
 				search.select(tree);
@@ -133,7 +135,7 @@ namespace ag
 
 			search.generateEdges(tree); // this step doesn't require locking the tree
 			{ /* artificial scope for lock */
-				TreeLock lock(tree);
+				LowPriorityLock lock = tree.low_priority_lock();
 				search.expand(tree);
 				search.backup(tree);
 				if (isStopConditionFulfilled())
@@ -151,10 +153,12 @@ namespace ag
 		while (true)
 		{
 			search.generateEdges(tree); // this step doesn't require locking the tree
+
 			{ /* artificial scope for lock */
-				TreeLock lock(tree);
+				LowPriorityLock lock = tree.low_priority_lock();
 				search.expand(tree);
 				search.backup(tree);
+
 				if (isStopConditionFulfilled())
 					break;
 
@@ -165,6 +169,7 @@ namespace ag
 			search.solve(end_time);
 			search.scheduleToNN(evaluator);
 			evaluator.asyncEvaluateGraphJoin();
+
 			end_time = evaluator.asyncEvaluateGraphLaunch();
 			search.switchBuffer();
 

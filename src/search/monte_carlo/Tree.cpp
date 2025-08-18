@@ -425,5 +425,15 @@ namespace ag
 	{
 		return node_cache.getStats();
 	}
+
+	LowPriorityLock Tree::low_priority_lock() const
+	{
+		return LowPriorityLock(tree_mutex);
+	}
+	HighPriorityLock Tree::high_priority_lock() const
+	{
+		return HighPriorityLock(tree_mutex);
+	}
+
 } /* namespace ag */
 

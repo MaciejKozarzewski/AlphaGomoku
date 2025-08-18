@@ -25,6 +25,7 @@
 #include <filesystem>
 #include <string>
 #include <limits>
+#include <iostream>
 
 namespace ag
 {
@@ -96,7 +97,7 @@ namespace ag
 	void SearchEngine::setPosition(const matrix<Sign> &board, Sign signToMove)
 	{
 		assert(isSearchFinished());
-		TreeLock lock(tree);
+		HighPriorityLock lock = tree.high_priority_lock();
 		tree.setBoard(board, signToMove, true);
 		for (size_t i = 0; i < search_threads.size(); i++)
 			search_threads[i]->setPosition(board, signToMove);
@@ -104,13 +105,13 @@ namespace ag
 	void SearchEngine::setEdgeSelector(const EdgeSelector &selector)
 	{
 		assert(isSearchFinished());
-		TreeLock lock(tree);
+		HighPriorityLock lock = tree.high_priority_lock();
 		tree.setEdgeSelector(selector);
 	}
 	void SearchEngine::setEdgeGenerator(const EdgeGenerator &generator)
 	{
 		assert(isSearchFinished());
-		TreeLock lock(tree);
+		HighPriorityLock lock = tree.high_priority_lock();
 		tree.setEdgeGenerator(generator);
 	}
 
@@ -146,10 +147,10 @@ namespace ag
 	}
 	void SearchEngine::logSearchInfo() const
 	{
-		if (Logger::isEnabled() == false)
-			return;
+//		if (Logger::isEnabled() == false)
+//			return;
 
-		TreeLock lock(tree);
+		HighPriorityLock lock = tree.high_priority_lock();
 		matrix<Sign> board = tree.getBoard();
 		matrix<float> policy(board.rows(), board.cols());
 		matrix<Score> action_acores(board.rows(), board.cols());
@@ -241,7 +242,7 @@ namespace ag
 	}
 	SearchSummary SearchEngine::getSummary(const std::vector<Move> &listOfMoves, bool getPV) const
 	{
-		TreeLock lock(tree);
+		HighPriorityLock lock = tree.high_priority_lock();
 		SearchSummary result;
 		result.node = tree.getInfo(listOfMoves);
 
@@ -265,6 +266,7 @@ namespace ag
 	}
 	Node SearchEngine::getRootCopy() const
 	{
+		HighPriorityLock lock = tree.high_priority_lock();
 		return tree.getInfo( { });
 	}
 	/*

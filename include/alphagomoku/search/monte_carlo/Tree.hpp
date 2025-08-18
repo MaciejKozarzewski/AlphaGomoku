@@ -15,6 +15,7 @@
 #include <alphagomoku/search/ZobristHashing.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
+#include <alphagomoku/utils/PriorityMutex.hpp>
 
 #include <cinttypes>
 #include <memory>
@@ -48,9 +49,7 @@ namespace ag
 	class Tree
 	{
 		private:
-			friend class TreeLock;
-
-			mutable std::mutex tree_mutex;
+			mutable PriorityMutex tree_mutex;
 
 			NodeCache node_cache;
 			Node *root_node = nullptr; // non-owning
@@ -58,10 +57,10 @@ namespace ag
 			std::unique_ptr<EdgeSelector> edge_selector;
 			std::unique_ptr<EdgeGenerator> edge_generator;
 			matrix<Sign> base_board;
-			std::atomic<int> move_number { 0 };
-			std::atomic<float> evaluation { 0.0f };
-			std::atomic<float> moves_left { 0.0f };
-			std::atomic<int> max_depth { 0 };
+			int move_number = 0;
+			float evaluation = 0.0f;
+			float moves_left = 0.0f;
+			int max_depth = 0;
 			Sign sign_to_move = Sign::NONE;
 
 			TreeConfig config;
@@ -99,26 +98,9 @@ namespace ag
 			Node getInfo(const std::vector<Move> &moves) const;
 			void clearNodeCacheStats() noexcept;
 			NodeCacheStats getNodeCacheStats() const noexcept;
-	};
 
-	class TreeLock
-	{
-		private:
-			const Tree &tree;
-		public:
-			TreeLock(const Tree &t) :
-					tree(t)
-			{
-				t.tree_mutex.lock();
-			}
-			~TreeLock()
-			{
-				tree.tree_mutex.unlock();
-			}
-			TreeLock(const TreeLock &other) = delete;
-			TreeLock(TreeLock &&other) = delete;
-			TreeLock& operator=(const TreeLock &other) = delete;
-			TreeLock& operator=(TreeLock &&other) = delete;
+			LowPriorityLock low_priority_lock() const;
+			HighPriorityLock high_priority_lock() const;
 	};
 
 } /* namespace ag */
