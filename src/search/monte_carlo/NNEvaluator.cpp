@@ -16,6 +16,34 @@
 
 #include <chrono>
 
+namespace
+{
+	using namespace ag;
+
+	bool is_ok(float x) noexcept
+	{
+		return not (std::isnan(x) or std::isinf(x));
+	}
+	bool is_ok(const matrix<float> &m)
+	{
+		for (int i = 0; i < m.size(); i++)
+			if (not is_ok(m[i]))
+				return false;
+		return true;
+	}
+	bool is_ok(Value v)
+	{
+		return is_ok(v.win_rate) and is_ok(v.draw_rate);
+	}
+	bool is_ok(const matrix<Value> &m)
+	{
+		for (int i = 0; i < m.size(); i++)
+			if (not is_ok(m[i]))
+				return false;
+		return true;
+	}
+}
+
 namespace ag
 {
 	NNEvaluatorStats::NNEvaluatorStats() :
@@ -239,6 +267,10 @@ namespace ag
 		{
 			TaskData td = in_progress_queue.at(i);
 			get_network().unpackOutput(i, policy, action_values, value, moves_left);
+			assert(is_ok(policy));
+			assert(is_ok(action_values));
+			assert(is_ok(value));
+			assert(is_ok(moves_left));
 			augment(td.ptr->getPolicy(), policy, -td.symmetry);
 			augment(td.ptr->getActionValues(), action_values, -td.symmetry); // TODO silently assuming that action values come from TSS
 			td.ptr->setValue(value);
