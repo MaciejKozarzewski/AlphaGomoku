@@ -103,11 +103,13 @@ namespace ag
 				tmp |= encode_patterns(calc.getPatternsAt(row, col), own_sign);
 				this->at(row, col) = tmp;
 			}
-		if (calc.getConfig().rules == GameRules::RENJU and own_sign == Sign::CROSS)
+		if (calc.getConfig().rules == GameRules::RENJU)
+		{
 			for (int row = 0; row < rows(); row++)
 				for (int col = 0; col < cols(); col++)
 					if (calc.isForbidden(own_sign, row, col))
 						this->at(row, col) |= forbidden;
+		}
 	}
 	void NNInputFeatures::augment(int mode) noexcept
 	{
