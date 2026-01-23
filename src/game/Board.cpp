@@ -40,11 +40,15 @@ namespace
 	}
 	std::string to_string(float f)
 	{
+		if (std::isnan(f))
+			return " NaN";
+		if (std::isinf(f))
+			return ((f > 0) ? std::string("+") : std::string("-")) + std::string("INF");
 		return to_string(static_cast<int>(1000 * f));
 	}
 	std::string to_string(Value v)
 	{
-		return to_string(static_cast<int>(1000 * v.getExpectation()));
+		return to_string(v.getExpectation());
 	}
 
 	std::string pretty_print_top_row(int columns, int spacingLeft, int spacingRight)
