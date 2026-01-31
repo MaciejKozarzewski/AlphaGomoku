@@ -17,8 +17,8 @@ namespace ag
 	template<typename T, std::size_t Alignment = 16>
 	class AlignedAllocator
 	{
-			static_assert(Alignment >= alignof(T), "Alignment must be larger than the size of T");
-			static_assert(Alignment % alignof(T) == 0, "Alignment must be a multiple of size of T");
+			static_assert(Alignment >= alignof(T), "Alignment must be at least alignof(T)");
+			static_assert(Alignment % alignof(T) == 0, "Alignment must be a multiple of alignof(T)");
 		public:
 			using value_type = T;
 
@@ -45,11 +45,11 @@ namespace ag
 			{
 				if (n > std::numeric_limits<std::size_t>::max() / sizeof(T))
 					throw std::bad_array_new_length();
-				return reinterpret_cast<T*>(::operator new[](n * sizeof(T), get_alignment()));
+				return reinterpret_cast<T*>(::operator new(n * sizeof(T), get_alignment()));
 			}
 			void deallocate(T *p, [[maybe_unused]] std::size_t n)
 			{
-				::operator delete[](p, get_alignment());
+				::operator delete(p, get_alignment());
 			}
 	};
 	template<class T, std::size_t Alignment>
@@ -60,7 +60,7 @@ namespace ag
 	template<class T, std::size_t Alignment>
 	bool operator!=(const AlignedAllocator<T, Alignment> &lhs, const AlignedAllocator<T, Alignment> &rhs)
 	{
-		return false;
+		return not (lhs == rhs);
 	}
 
 } /* namespace ag */
