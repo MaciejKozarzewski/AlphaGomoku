@@ -85,12 +85,12 @@ namespace
 				SearchDataPack result(cfg.rows, cfg.cols);
 				dataset->getBuffer(sample.buffer_index).getGameData(sample.game_index).getSample(result, sample.sample_index);
 
-				const int r = randInt(available_symmetries(result.board));
-				ag::augment(result.board, r);
-				ag::augment(result.visit_count, r);
-				ag::augment(result.policy_prior, r);
-				ag::augment(result.action_values, r);
-				ag::augment(result.action_scores, r);
+				const Symmetry s = int_to_symmetry(randInt(number_of_available_symmetries(result.board.shape())));
+				ag::apply_symmetry_in_place(result.board, s);
+				ag::apply_symmetry_in_place(result.visit_count, s);
+				ag::apply_symmetry_in_place(result.policy_prior, s);
+				ag::apply_symmetry_in_place(result.action_values, s);
+				ag::apply_symmetry_in_place(result.action_scores, s);
 				return result;
 			}
 	};
@@ -150,7 +150,7 @@ namespace ag
 				size[idx + 0] = list_of_buffers[i];
 				size[idx + 1] = j;
 				size[idx + 2] = buffer.getGameData(j).numberOfSamples();
-				size[idx + 3] = available_symmetries(buffer.getConfig().rows, buffer.getConfig().cols);
+				size[idx + 3] = number_of_available_symmetries(MatrixShape(buffer.getConfig().rows, buffer.getConfig().cols));
 				idx += 4;
 			}
 		}
@@ -214,12 +214,13 @@ namespace ag
 
 			get_dataset().getBuffer(sample.buffer_index).getGameData(sample.game_index).getSample(pack, sample.sample_index);
 
-			assert(sample.augmentation < available_symmetries(pack.board));
-			ag::augment(pack.board, sample.augmentation);
-			ag::augment(pack.visit_count, sample.augmentation);
-			ag::augment(pack.policy_prior, sample.augmentation);
-			ag::augment(pack.action_values, sample.augmentation);
-			ag::augment(pack.action_scores, sample.augmentation);
+			const Symmetry s = int_to_symmetry(sample.augmentation);
+			assert(is_symmetry_allowed(s, pack.board.shape()));
+			ag::apply_symmetry_in_place(pack.board, s);
+			ag::apply_symmetry_in_place(pack.visit_count, s);
+			ag::apply_symmetry_in_place(pack.policy_prior, s);
+			ag::apply_symmetry_in_place(pack.action_values, s);
+			ag::apply_symmetry_in_place(pack.action_scores, s);
 
 			calc.setBoard(pack.board, pack.played_move.sign);
 			features.encode(calc);

@@ -36,11 +36,12 @@ namespace
 
 	void augment_data_pack(TrainingDataPack &pack)
 	{
-		const int r = randInt(available_symmetries(pack.board));
-		ag::augment(pack.board, r);
-		ag::augment(pack.visit_count, r);
-		ag::augment(pack.policy_target, r);
-		ag::augment(pack.action_values_target, r);
+		const int num_symmetries = number_of_available_symmetries(pack.board.shape());
+		const Symmetry r = int_to_symmetry(randInt(num_symmetries));
+		apply_symmetry_in_place(pack.board, r);
+		apply_symmetry_in_place(pack.visit_count, r);
+		apply_symmetry_in_place(pack.policy_target, r);
+		apply_symmetry_in_place(pack.action_values_target, r);
 	}
 
 	std::array<NetworkDataPack, 2> create_data_packs(GameConfig cfg, int batch_size, ml::DataType dtype)
@@ -52,7 +53,7 @@ namespace
 	}
 	void fill_action_values_mask(matrix<float> &mask, const matrix<int> &visits)
 	{
-		assert(equalSize(mask, visits));
+		assert(equal_shape(mask, visits));
 		const float inv = 1.0f / std::accumulate(visits.begin(), visits.end(), 0);
 		for (int i = 0; i < visits.size(); i++)
 			mask[i] = visits[i] * inv;

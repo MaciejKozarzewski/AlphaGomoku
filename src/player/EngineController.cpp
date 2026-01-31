@@ -97,7 +97,7 @@ namespace ag
 		std::vector<Move> result(openings.at(index).begin(), openings.at(index).end());
 		const int mode = randInt(4);
 		for (size_t i = 0; i < result.size(); i++)
-			result[i] = augment(result[i], 15, 15, mode);
+			result[i] = apply_symmetry(result[i], MatrixShape(15, 15), int_to_symmetry(mode));
 		return result;
 	}
 

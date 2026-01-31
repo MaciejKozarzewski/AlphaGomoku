@@ -13,102 +13,134 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdlib>
-#include <string>
 
 namespace ag
 {
-	inline int available_symmetries(int height, int width) noexcept
+	enum class Symmetry
 	{
-		return (height == width) ? 8 : 4;
-	}
-	template<typename T>
-	int available_symmetries(const matrix<T> &input) noexcept
+		IDENTITY,
+		FLIP_VERTICALLY,
+		FLIP_HORIZONTALLY,
+		ROTATE_180,
+		FLIP_DIAGONALLY,
+		FLIP_ANTIDIAGONALLY,
+		ROTATE_90,
+		ROTATE_270
+	};
+
+	inline Symmetry get_inverse_symmetry(Symmetry s) noexcept
 	{
-		return available_symmetries(input.rows(), input.cols());
-	}
-
-	template<typename T>
-	void augment(matrix<T> &input, int mode) noexcept
-	{
-		assert(-available_symmetries(input) < mode && mode < available_symmetries(input));
-
-		if (mode == 0)
-			return;
-
-		const int height = input.rows();
-		const int width = input.cols();
-		const int height1 = height - 1;
-
-		switch (mode)
+		switch (s)
 		{
-			case 1: // reflect x
-			case -1:
+			default:
+			case Symmetry::IDENTITY:
+				return Symmetry::IDENTITY;
+			case Symmetry::FLIP_VERTICALLY:
+				return Symmetry::FLIP_VERTICALLY;
+			case Symmetry::FLIP_HORIZONTALLY:
+				return Symmetry::FLIP_HORIZONTALLY;
+			case Symmetry::ROTATE_180:
+				return Symmetry::ROTATE_180;
+			case Symmetry::FLIP_DIAGONALLY:
+				return Symmetry::FLIP_DIAGONALLY;
+			case Symmetry::FLIP_ANTIDIAGONALLY:
+				return Symmetry::FLIP_ANTIDIAGONALLY;
+			case Symmetry::ROTATE_90:
+				return Symmetry::ROTATE_270;
+			case Symmetry::ROTATE_270:
+				return Symmetry::ROTATE_90;
+		}
+	}
+
+	inline Symmetry int_to_symmetry(int i) noexcept
+	{
+		assert(0 <= i && i < 8);
+		return static_cast<Symmetry>(i);
+	}
+
+	inline int number_of_available_symmetries(MatrixShape shape) noexcept
+	{
+		return shape.is_square() ? 8 : 4;
+	}
+
+	inline bool is_symmetry_allowed(Symmetry s, MatrixShape shape) noexcept
+	{
+		return static_cast<int>(s) < number_of_available_symmetries(shape);
+	}
+
+	template<typename T>
+	void apply_symmetry_in_place(matrix<T> &input, Symmetry s) noexcept
+	{
+		assert(is_symmetry_allowed(s, input.shape()));
+
+		const int rows = input.rows();
+		const int cols = input.cols();
+		const int last_idx = rows - 1; // used only when matrices are square (rows == cols)
+
+		switch (s)
+		{
+			case Symmetry::IDENTITY:
+				break;
+			case Symmetry::FLIP_VERTICALLY:
 			{
-				for (int i = 0; i < height / 2; i++)
-					std::swap_ranges(input.data(i), input.data(i) + width, input.data(height1 - i));
+				for (int r = 0; r < rows / 2; r++)
+					std::swap_ranges(input.data(r), input.data(r) + cols, input.data(last_idx - r));
 				break;
 			}
-			case 2: // reflect y
-			case -2:
+			case Symmetry::FLIP_HORIZONTALLY:
 			{
-				for (int i = 0; i < height; i++)
-					std::reverse(input.data(i), input.data(i) + width);
+				for (int r = 0; r < rows; r++)
+					std::reverse(input.data(r), input.data(r) + cols);
 				break;
 			}
-			case 3: // rotate 180 degrees
-			case -3:
+			case Symmetry::ROTATE_180:
 			{
 				std::reverse(input.begin(), input.end());
 				break;
 			}
-			case 4: // reflect diagonal
-			case -4:
+			case Symmetry::FLIP_DIAGONALLY:
 			{
-				for (int i = 0; i < height; i++)
+				for (int r = 0; r < rows; r++)
 				{
-					T *ptr = input.data(i);
-					for (int j = i + 1; j < height; j++)
-						std::swap(ptr[j], input.at(j, i));
+					T *ptr = input.data(r);
+					for (int c = r + 1; c < rows; c++)
+						std::swap(ptr[c], input.at(c, r));
 				}
 				break;
 			}
-			case 5: // reflect antidiagonal
-			case -5:
+			case Symmetry::FLIP_ANTIDIAGONALLY:
 			{
-				for (int i = 0; i < height; i++)
+				for (int r = 0; r < rows; r++)
 				{
-					T *ptr = input.data(i);
-					for (int j = 0; j < height1 - i; j++)
-						std::swap(ptr[j], input.at(height1 - j, height1 - i));
+					T *ptr = input.data(r);
+					for (int c = 0; c < last_idx - r; c++)
+						std::swap(ptr[c], input.at(last_idx - c, last_idx - r));
 				}
 				break;
 			}
-			case 6: // rotate 90 degrees
-			case -7:
+			case Symmetry::ROTATE_90:
 			{
-				for (int i = 0; i < height / 2; i++)
-					for (int j = i; j < height1 - i; j++)
+				for (int r = 0; r < rows / 2; r++)
+					for (int c = r; c < last_idx - r; c++)
 					{
-						const T tmp = input.at(i, j);
-						input.at(i, j) = input.at(j, height1 - i);
-						input.at(j, height1 - i) = input.at(height1 - i, height1 - j);
-						input.at(height1 - i, height1 - j) = input.at(height1 - j, i);
-						input.at(height1 - j, i) = tmp;
+						const T tmp = input.at(r, c);
+						input.at(r, c) = input.at(c, last_idx - r);
+						input.at(c, last_idx - r) = input.at(last_idx - r, last_idx - c);
+						input.at(last_idx - r, last_idx - c) = input.at(last_idx - c, r);
+						input.at(last_idx - c, r) = tmp;
 					}
 				break;
 			}
-			case 7: // rotate 270 degrees
-			case -6:
+			case Symmetry::ROTATE_270:
 			{
-				for (int i = 0; i < height / 2; i++)
-					for (int j = i; j < height1 - i; j++)
+				for (int r = 0; r < rows / 2; r++)
+					for (int c = r; c < last_idx - r; c++)
 					{
-						const T tmp = input.at(i, j);
-						input.at(i, j) = input.at(height1 - j, i);
-						input.at(height1 - j, i) = input.at(height1 - i, height1 - j);
-						input.at(height1 - i, height1 - j) = input.at(j, height1 - i);
-						input.at(j, height1 - i) = tmp;
+						const T tmp = input.at(r, c);
+						input.at(r, c) = input.at(last_idx - c, r);
+						input.at(last_idx - c, r) = input.at(last_idx - r, last_idx - c);
+						input.at(last_idx - r, last_idx - c) = input.at(c, last_idx - r);
+						input.at(c, last_idx - r) = tmp;
 					}
 				break;
 			}
@@ -116,79 +148,72 @@ namespace ag
 	}
 
 	template<typename T>
-	void augment(matrix<T> &dst, const matrix<T> &src, int mode) noexcept
+	void apply_symmetry(matrix<T> &dst, const matrix<T> &src, Symmetry s) noexcept
 	{
 		assert(&dst != &src); // will not work 'in-place'
-		assert(equalSize(dst, src));
-		assert(-available_symmetries(dst) < mode && mode < available_symmetries(dst));
+		assert(dst.shape() == src.shape());
+		assert(is_symmetry_allowed(s, dst.shape()));
 
-		if (mode == 0)
-		{
-			dst.copyFrom(src);
-			return;
-		}
+		const int rows = src.rows();
+		const int cols = src.cols();
+		const int last_idx = rows - 1; // used only when matrices are square (rows == cols)
 
-		const int height = src.rows();
-		const int width = src.cols();
-		const int height1 = height - 1;
-
-		// reflect x
-		if (mode == 1 || mode == -1)
+		switch (s)
 		{
-			for (int i = 0; i < height; i++)
-				std::copy(src.data(i), src.data(i) + width, dst.data(height1 - i));
-			return;
-		}
-		// reflect y
-		if (mode == 2 || mode == -2)
-		{
-			for (int i = 0; i < height; i++)
-				std::reverse_copy(src.data(i), src.data(i) + width, dst.data(i));
-			return;
-		}
-		// rotate 180
-		if (mode == 3 || mode == -3)
-		{
-			std::reverse_copy(src.begin(), src.end(), dst.begin());
-			return;
-		}
-
-		// reflect diagonal
-		if (mode == 4 || mode == -4)
-		{
-			for (int i = 0; i < height; i++)
-				for (int j = 0; j < width; j++)
-					dst.at(i, j) = src.at(j, i);
-			return;
-		}
-		// reflect antidiagonal
-		if (mode == 5 || mode == -5)
-		{
-			for (int i = 0; i < height; i++)
-				for (int j = 0; j < width; j++)
-					dst.at(i, j) = src.at(height1 - j, height1 - i);
-			return;
-		}
-
-		// rotate 90 to the left
-		if (mode == 6 || mode == -7)
-		{
-			for (int i = 0; i < height; i++)
-				for (int j = 0; j < width; j++)
-					dst.at(i, j) = src.at(j, height1 - i);
-			return;
-		}
-		// rotate 270 to the left
-		if (mode == 7 || mode == -6)
-		{
-			for (int i = 0; i < height; i++)
-				for (int j = 0; j < width; j++)
-					dst.at(i, j) = src.at(height1 - j, i);
-			return;
+			case Symmetry::IDENTITY:
+			{
+				dst.copyFrom(src);
+				break;
+			}
+			case Symmetry::FLIP_VERTICALLY:
+			{
+				for (int r = 0; r < rows; r++)
+					std::copy(src.data(r), src.data(r) + cols, dst.data(last_idx - r));
+				break;
+			}
+			case Symmetry::FLIP_HORIZONTALLY:
+			{
+				for (int r = 0; r < rows; r++)
+					std::reverse_copy(src.data(r), src.data(r) + cols, dst.data(r));
+				break;
+			}
+			case Symmetry::ROTATE_180:
+			{
+				std::reverse_copy(src.begin(), src.end(), dst.begin());
+				break;
+			}
+			case Symmetry::FLIP_DIAGONALLY:
+			{
+				for (int r = 0; r < rows; r++)
+					for (int c = 0; c < cols; c++)
+						dst.at(r, c) = src.at(c, r);
+				break;
+			}
+			case Symmetry::FLIP_ANTIDIAGONALLY:
+			{
+				for (int r = 0; r < rows; r++)
+					for (int c = 0; c < cols; c++)
+						dst.at(r, c) = src.at(last_idx - c, last_idx - r);
+				break;
+			}
+			case Symmetry::ROTATE_90:
+			{
+				for (int r = 0; r < rows; r++)
+					for (int c = 0; c < cols; c++)
+						dst.at(r, c) = src.at(c, last_idx - r);
+				break;
+			}
+			case Symmetry::ROTATE_270:
+			{
+				for (int r = 0; r < rows; r++)
+					for (int c = 0; c < cols; c++)
+						dst.at(r, c) = src.at(last_idx - c, r);
+				break;
+			}
 		}
 	}
 
-	Move augment(Move move, int height, int width, int mode) noexcept;
+	Move apply_symmetry(Move move, MatrixShape shape, Symmetry s) noexcept;
 
 } /* namespace ag */
 

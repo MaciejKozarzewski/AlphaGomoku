@@ -6,41 +6,39 @@
  */
 
 #include <alphagomoku/utils/augmentations.hpp>
+
 #include <cassert>
 
 namespace ag
 {
-	Move augment(Move move, int height, int width, int mode) noexcept
-	{
-		assert(-available_symmetries(height, width) < mode && mode < available_symmetries(height, width));
-		if (mode == 0)
-			return move;
 
-		switch (mode)
+	Move apply_symmetry(Move move, MatrixShape shape, Symmetry s) noexcept
+	{
+		assert(is_symmetry_allowed(s, shape));
+
+		const int last_row = shape.rows - 1;
+		const int last_col = shape.cols - 1;
+
+		switch (s)
 		{
-			case 1:
-			case -1:
-				return Move(move.sign, height - 1 - move.row, move.col); // reflect x
-			case 2:
-			case -2:
-				return Move(move.sign, move.row, width - 1 - move.col); // reflect y
-			case 3:
-			case -3:
-				return Move(move.sign, height - 1 - move.row, width - 1 - move.col); // rotate 180 degrees
-			case 4:
-			case -4:
-				return Move(move.sign, move.col, move.row); // reflect diagonal
-			case 5:
-			case -5:
-				return Move(move.sign, height - 1 - move.col, height - 1 - move.row); // reflect antidiagonal
-			case 6:
-			case -7:
-				return Move(move.sign, move.col, height - 1 - move.row); // rotate 90 degrees
-			case 7:
-			case -6:
-				return Move(move.sign, height - 1 - move.col, move.row); // rotate 270 degrees
 			default:
+			case Symmetry::IDENTITY:
 				return move;
+			case Symmetry::FLIP_VERTICALLY:
+				return Move(move.sign, last_row - move.row, move.col);
+			case Symmetry::FLIP_HORIZONTALLY:
+				return Move(move.sign, move.row, last_col - move.col);
+			case Symmetry::ROTATE_180:
+				return Move(move.sign, last_row - move.row, last_col - move.col);
+			case Symmetry::FLIP_DIAGONALLY:
+				return Move(move.sign, move.col, move.row);
+			case Symmetry::FLIP_ANTIDIAGONALLY:
+				return Move(move.sign, last_col - move.col, last_row - move.row);
+			case Symmetry::ROTATE_90:
+				return Move(move.sign, move.col, last_row - move.row);
+			case Symmetry::ROTATE_270:
+				return Move(move.sign, last_col - move.col, move.row);
 		}
 	}
-}
+
+} /* namespace ag */

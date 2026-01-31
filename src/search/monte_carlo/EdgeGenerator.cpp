@@ -12,6 +12,7 @@
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 
@@ -153,16 +154,17 @@ namespace
 		const int left = task.getBoard().cols() / 2 - size / 2;
 		return row >= top and row < top + size and col >= left and col < left + size;
 	}
-	std::vector<int> get_symmetries(const matrix<Sign> &board)
+	std::vector<Symmetry> get_symmetries(const matrix<Sign> &board)
 	{
-		std::vector<int> result;
+		std::vector<Symmetry> result;
 		matrix<Sign> copy(board.rows(), board.cols());
 
-		for (int i = 1; i < available_symmetries(board); i++)
+		for (int i = 1; i < number_of_available_symmetries(board.shape()); i++)
 		{
-			augment(copy, board, i);
+			const Symmetry s = int_to_symmetry(i);
+			apply_symmetry(copy, board, s);
 			if (copy == board)
-				result.push_back(i);
+				result.push_back(s);
 		}
 		return result;
 	}
@@ -366,11 +368,11 @@ namespace ag
 					if (task.getBoard().at(row, col) == Sign::NONE)
 						tmp_moves.emplace_back(row, col, task.getSignToMove());
 
-			const std::vector<int> symmetry_modes = get_symmetries(task.getBoard());
+			const std::vector<Symmetry> symmetry_modes = get_symmetries(task.getBoard());
 			for (size_t i = 0; i < symmetry_modes.size(); i++)
 				for (size_t j = 0; j < tmp_moves.size(); j++)
 				{
-					const Move augmented = augment(tmp_moves[j], task.getBoard().rows(), task.getBoard().cols(), symmetry_modes[i]);
+					const Move augmented = apply_symmetry(tmp_moves[j], task.getBoard().shape(), symmetry_modes[i]);
 					auto position = std::find(tmp_moves.begin() + j + 1, tmp_moves.end(), augmented);
 					if (position != tmp_moves.end())
 						tmp_moves.erase(position);

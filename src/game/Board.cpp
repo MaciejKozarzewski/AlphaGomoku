@@ -212,28 +212,28 @@ namespace ag
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<Score> &actionScores, bool prettyPrint)
 	{
-		assert(equalSize(board, actionScores));
+		assert(equal_shape(board, actionScores));
 		return board_to_string(board, actionScores, prettyPrint);
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<float> &policy, bool prettyPrint)
 	{
-		assert(equalSize(board, policy));
+		assert(equal_shape(board, policy));
 		return board_to_string(board, policy, prettyPrint);
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<int> &visitCount, bool prettyPrint)
 	{
-		assert(equalSize(board, visitCount));
+		assert(equal_shape(board, visitCount));
 		return board_to_string(board, visitCount, prettyPrint);
 	}
 	std::string Board::toString(const matrix<Sign> &board, const matrix<Value> &actionValues, bool prettyPrint)
 	{
-		assert(equalSize(board, actionValues));
+		assert(equal_shape(board, actionValues));
 		return board_to_string(board, actionValues, prettyPrint);
 	}
 
 	bool Board::isTransitionPossible(const matrix<Sign> &from, const matrix<Sign> &to) noexcept
 	{
-		assert(equalSize(from, to));
+		assert(equal_shape(from, to));
 		for (int i = 0; i < from.size(); i++)
 			if (to[i] != from[i] and from[i] != Sign::NONE)
 				return false;

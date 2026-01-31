@@ -39,7 +39,7 @@ namespace ag
 
 	void PatternCalculator::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
-		assert(equalSize(internal_board, board));
+		assert(equal_shape(internal_board, board));
 
 		sign_to_move = signToMove;
 		internal_board = board;

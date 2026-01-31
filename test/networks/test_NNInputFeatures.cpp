@@ -66,13 +66,13 @@ namespace ag
 		NNInputFeatures features(cfg.rows, cfg.cols);
 
 		matrix<Sign> tmp(board.rows(), board.cols());
-		for (int mode = -7; mode <= 7; mode++)
+		for (int mode = 0; mode <= 7; mode++)
 		{
 			calc.setBoard(board, sign_to_move);
 			features.encode(calc);
 			features.augment(mode);
 
-			augment(tmp, board, mode);
+			apply_symmetry(tmp, board, int_to_symmetry(mode));
 			calc.setBoard(tmp, sign_to_move);
 			correct.encode(calc);
 

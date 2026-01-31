@@ -113,7 +113,7 @@ namespace ag
 	}
 	void NNInputFeatures::augment(int mode) noexcept
 	{
-		ag::augment(*this, mode);
+		ag::apply_symmetry_in_place(*this, int_to_symmetry(mode));
 
 		// now we have to shuffle bits 8-11, 12-15, 20-23, 24-17 because their values depend on direction
 		switch (mode)

@@ -105,7 +105,7 @@ namespace ag
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist)
 	{
-		assert(equalSize(board, dist));
+		assert(equal_shape(board, dist));
 		if (Board::isEmpty(board))
 		{
 			for (int i = 0; i < board.rows(); i++)

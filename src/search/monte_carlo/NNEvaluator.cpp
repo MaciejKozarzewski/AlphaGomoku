@@ -42,6 +42,10 @@ namespace
 				return false;
 		return true;
 	}
+	MatrixShape matrix_shape_from_config(GameConfig cfg) noexcept
+	{
+		return MatrixShape(cfg.rows, cfg.cols);
+	}
 }
 
 namespace ag
@@ -129,7 +133,7 @@ namespace ag
 	}
 	void NNEvaluator::addToQueue(SearchTask &task)
 	{
-		const int r = available_symmetries(get_network().getGameConfig().rows, get_network().getGameConfig().cols);
+		const int r = number_of_available_symmetries(matrix_shape_from_config(get_network().getGameConfig()));
 		if (use_symmetries)
 			waiting_queue.push_back( { &task, randInt(r) });
 		else
@@ -137,7 +141,7 @@ namespace ag
 	}
 	void NNEvaluator::addToQueue(SearchTask &task, int symmetry)
 	{
-		assert(abs(symmetry) <= available_symmetries(get_network().getGameConfig().rows, get_network().getGameConfig().cols));
+		assert(abs(symmetry) <= number_of_available_symmetries(matrix_shape_from_config(get_network().getGameConfig())));
 		waiting_queue.push_back( { &task, symmetry });
 	}
 	double NNEvaluator::evaluateGraph()
@@ -251,7 +255,7 @@ namespace ag
 			}
 			else
 			{
-				augment(board, td.ptr->getBoard(), td.symmetry);
+				apply_symmetry(board, td.ptr->getBoard(), int_to_symmetry(td.symmetry));
 				get_network().packInputData(i, board, td.ptr->getSignToMove());
 			}
 		}
@@ -271,8 +275,9 @@ namespace ag
 			assert(is_ok(action_values));
 			assert(is_ok(value));
 			assert(is_ok(moves_left));
-			augment(td.ptr->getPolicy(), policy, -td.symmetry);
-			augment(td.ptr->getActionValues(), action_values, -td.symmetry); // TODO silently assuming that action values come from TSS
+			const Symmetry inv_s = get_inverse_symmetry(int_to_symmetry(-td.symmetry));
+			apply_symmetry(td.ptr->getPolicy(), policy, inv_s);
+			apply_symmetry(td.ptr->getActionValues(), action_values, inv_s); // TODO silently assuming that action values come from TSS
 			td.ptr->setValue(value);
 			if (td.ptr->getScore().isUnproven())
 				td.ptr->setMovesLeft(moves_left);

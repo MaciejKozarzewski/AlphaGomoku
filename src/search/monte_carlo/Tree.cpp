@@ -127,7 +127,7 @@ namespace ag
 	}
 	void Tree::setBoard(const matrix<Sign> &newBoard, Sign signToMove, bool forceRemoveRootNode)
 	{
-		if (not equalSize(base_board, newBoard))
+		if (not equal_shape(base_board, newBoard))
 		{
 			const GameConfig game_config(GameRules::FREESTYLE, newBoard.rows(), newBoard.cols()); // game rule specified here is irrelevant
 			node_cache = NodeCache(game_config, config);

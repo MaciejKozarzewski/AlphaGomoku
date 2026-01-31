@@ -9,39 +9,73 @@
 #define ALPHAGOMOKU_UTILS_MATRIX_HPP_
 
 #include <vector>
+#include <algorithm>
 #include <cassert>
 
 namespace ag
 {
+	struct MatrixShape
+	{
+			int rows = 0;
+			int cols = 0;
+
+			MatrixShape() noexcept = default;
+			MatrixShape(int size) noexcept :
+					MatrixShape(size, size)
+			{
+			}
+			MatrixShape(int rows, int cols) noexcept
+			{
+				assert(rows >= 0);
+				assert(cols >= 0);
+				this->rows = rows;
+				this->cols = cols;
+			}
+
+			bool is_inside(int row, int col) const noexcept
+			{
+				return 0 <= row and row < rows and 0 <= col and col < cols;
+			}
+			bool is_square() const noexcept
+			{
+				return rows == cols;
+			}
+
+			friend bool operator==(const MatrixShape &lhs, const MatrixShape &rhs) noexcept
+			{
+				return (lhs.rows == rhs.rows) and (lhs.cols == rhs.cols);
+			}
+			friend bool operator!=(const MatrixShape &lhs, const MatrixShape &rhs) noexcept
+			{
+				return not (lhs == rhs);
+			}
+	};
+
 	template<typename T>
 	class matrix
 	{
 		private:
 			std::vector<T> m_data;
-			int m_rows = 0;
-			int m_cols = 0;
+			MatrixShape m_shape;
 		public:
 			matrix() = default;
 			matrix(int size) :
 					matrix(size, size)
 			{
 			}
-			matrix(int rows, int cols) :
-					m_data(rows * cols),
-					m_rows(rows),
-					m_cols(cols)
+			matrix(int rows, int cols)
 			{
-				assert(rows >= 0);
-				assert(cols >= 0);
+				m_shape = MatrixShape(rows, cols);
+				m_data.resize(rows * cols);
 			}
 
 			int rows() const noexcept
 			{
-				return m_rows;
+				return m_shape.rows;
 			}
 			int cols() const noexcept
 			{
-				return m_cols;
+				return m_shape.cols;
 			}
 			void clear()
 			{
@@ -69,6 +103,10 @@ namespace ag
 				assert(row >= 0 && row < rows());
 				return data() + row * cols();
 			}
+			MatrixShape shape() const noexcept
+			{
+				return m_shape;
+			}
 			int size() const noexcept
 			{
 				return rows() * cols();
@@ -79,7 +117,7 @@ namespace ag
 			}
 			void copyFrom(const matrix<T> &other)
 			{
-				assert(equalSize(*this, other));
+				assert(this->shape() == other.shape());
 				this->m_data = other.m_data;
 			}
 			const T& at(int row, int col) const noexcept
@@ -123,21 +161,16 @@ namespace ag
 			}
 			bool isSquare() const noexcept
 			{
-				return rows() == cols();
+				return shape().is_square();
 			}
 			bool isInside(int row, int col) const noexcept
 			{
-				return 0 <= row and row < rows() and 0 <= col and col < cols();
+				return shape().is_inside(row, col);
 			}
 
-			template<typename U>
-			friend bool equalSize(const matrix<T> &lhs, const matrix<U> &rhs) noexcept
-			{
-				return (lhs.rows() == rhs.rows()) and (lhs.cols() == rhs.cols());
-			}
 			friend bool operator==(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
 			{
-				if (not equalSize(lhs, rhs))
+				if (lhs.shape() != rhs.shape())
 					return false;
 				return std::equal(lhs.begin(), lhs.end(), rhs.begin());
 			}
@@ -146,6 +179,12 @@ namespace ag
 				return not (lhs == rhs);
 			}
 	};
+
+	template<typename T, typename U>
+	bool equal_shape(const matrix<T> &lhs, const matrix<U> &rhs) noexcept
+	{
+		return lhs.shape() == rhs.shape();
+	}
 
 	template<typename T>
 	matrix<T> empty_like(const matrix<T> &x)

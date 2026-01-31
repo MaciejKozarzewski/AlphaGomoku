@@ -16,7 +16,7 @@ namespace
 	template<typename T>
 	void clear_or_reallocate(T &m, const matrix<Sign> &board)
 	{
-		if (equalSize(m, board))
+		if (equal_shape(m, board))
 			m.clear();
 		else
 			m = T(board.rows(), board.cols());
