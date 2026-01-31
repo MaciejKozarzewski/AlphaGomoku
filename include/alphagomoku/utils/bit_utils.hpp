@@ -8,6 +8,7 @@
 #ifndef ALPHAGOMOKU_UTILS_BIT_UTILS_HPP_
 #define ALPHAGOMOKU_UTILS_BIT_UTILS_HPP_
 
+#include <type_traits>
 #include <cstring>
 
 namespace ag
@@ -17,6 +18,8 @@ namespace ag
 	T bitwise_cast(U x) noexcept
 	{
 		static_assert(sizeof(T) == sizeof(U), "Cannot cast types of different sizes");
+		static_assert(std::is_trivially_copyable<T>::value);
+		static_assert(std::is_trivially_copyable<U>::value);
 		T result;
 		std::memcpy(&result, &x, sizeof(T));
 		return result;
@@ -26,7 +29,6 @@ namespace ag
 	T extract_bits(T value) noexcept
 	{
 		static_assert(First <= Last, "");
-		static_assert(0 <= First, "");
 		static_assert(Last <= 8 * sizeof(T), "");
 		constexpr T one = static_cast<T>(1);
 		constexpr T mask = (one << (Last - First)) - one;
@@ -37,7 +39,6 @@ namespace ag
 	void insert_bits(T &value, U bits) noexcept
 	{
 		static_assert(First <= Last, "");
-		static_assert(0 <= First, "");
 		static_assert(Last <= 8 * sizeof(T), "");
 		static_assert((Last - First) <= 8 * sizeof(U), "");
 		constexpr T one = static_cast<T>(1);
