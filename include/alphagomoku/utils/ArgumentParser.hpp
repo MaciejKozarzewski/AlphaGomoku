@@ -66,6 +66,7 @@ namespace ag
 			bool hasBeenParsed() const noexcept;
 
 			void parse(const std::vector<std::string> &args);
+			void reset() noexcept;
 	};
 
 	class ArgumentParser
@@ -99,7 +100,7 @@ namespace ag
 			void parseArguments(std::vector<std::string> arguments);
 			void parseArguments(int argc, char *argv[]);
 			std::string getLaunchPath() const;
-			std::string getExecutablename() const;
+			std::string getExecutableName() const;
 
 			bool hasArgument(const std::string &name) const;
 			Argument& getArgument(const std::string &name);

@@ -132,6 +132,10 @@ namespace ag
 		}
 		m_has_been_parsed = true;
 	}
+	void Argument::reset() noexcept
+	{
+		m_has_been_parsed = false;
+	}
 
 	ArgumentParser::ArgumentParser(const std::string &helperMessage) :
 			m_help_message(helperMessage),
@@ -169,6 +173,11 @@ namespace ag
 
 	void ArgumentParser::parseArguments(std::vector<std::string> arguments)
 	{
+		for (size_t i = 0; i < m_positional_arguments.size(); i++)
+			m_positional_arguments[i].reset();
+		for (size_t i = 0; i < m_optional_arguments.size(); i++)
+			m_optional_arguments[i].reset();
+
 		process_separators(arguments);
 
 		if (arguments.size() == 0)
@@ -237,7 +246,7 @@ namespace ag
 	{
 		return m_launch_path;
 	}
-	std::string ArgumentParser::getExecutablename() const
+	std::string ArgumentParser::getExecutableName() const
 	{
 		return m_executable_name;
 	}

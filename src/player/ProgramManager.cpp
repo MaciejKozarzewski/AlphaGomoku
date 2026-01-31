@@ -58,7 +58,7 @@ namespace ag
 		} catch (ParsingError &pe)
 		{
 			output_sender.send(pe.what());
-			output_sender.send("Try '" + argument_parser.getExecutablename() + " --help' for more information.");
+			output_sender.send("Try '" + argument_parser.getExecutableName() + " --help' for more information.");
 			throw;
 		}
 		if (display_help)
@@ -297,7 +297,7 @@ namespace ag
 	}
 	void ProgramManager::version() const
 	{
-		std::string result = argument_parser.getExecutablename() + " (" + ProgramInfo::name() + ") " + ProgramInfo::version() + '\n';
+		std::string result = argument_parser.getExecutableName() + " (" + ProgramInfo::name() + ") " + ProgramInfo::version() + '\n';
 		result += ProgramInfo::copyright() + '\n';
 		result += ProgramInfo::build() + '\n';
 		result += ProgramInfo::license() + '\n';
