@@ -23,6 +23,7 @@
 
 #include <minml/layers/AveragePooling.hpp>
 #include <minml/layers/ChannelScaling.hpp>
+#include <minml/layers/ChannelAveragePooling.hpp>
 #include <minml/layers/Conv2D.hpp>
 #include <minml/layers/MultiHeadAttention.hpp>
 #include <minml/layers/GlobalAveragePooling.hpp>
@@ -38,6 +39,7 @@
 #include <minml/layers/RMSNormalization.hpp>
 #include <minml/layers/SpaceToDepth.hpp>
 #include <minml/layers/Softmax.hpp>
+#include <minml/layers/SpatialScaling.hpp>
 #include <minml/layers/WindowPartitioning.hpp>
 #include <minml/layers/WindowMerging.hpp>
 
@@ -1151,12 +1153,49 @@ namespace ag
 
 		for (int i = 0; i < blocks; i++)
 		{
+//			if ((i != 0) and i % 4 == 0)
+//				x = graph.add(ml::RMSNormalization(false), x);
+
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
 			y = graph.add(ml::BatchNormalization().useGamma(false), y);
-			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
-			x = graph.add(ml::Conv2D(filters, 1), { y, x });
 
-			x = squeeze_and_excitation_block(graph, x, filters);
+//			auto y0 = graph.add(ml::Conv2D(filters, 1, "relu"), y);
+//			y0 = graph.add(ml::Conv2D(filters, 1), y0);
+//			y0 = graph.add(ml::BatchNormalization().useGamma(false), y0);
+//
+//			auto y1 = graph.add(ml::Conv2D(filters, 1, "relu"), y);
+//			y1 = graph.add(ml::Conv2D(filters, 1), y1);
+//			y1 = graph.add(ml::BatchNormalization().useGamma(false), y1);
+//
+//			auto y2 = graph.add(ml::Conv2D(filters, 1, "relu"), y);
+//			y2 = graph.add(ml::Conv2D(filters, 1), y2);
+//			y2 = graph.add(ml::BatchNormalization().useGamma(false), y2);
+//
+//			auto y3 = graph.add(ml::Conv2D(filters, 1, "relu"), y);
+//			y3 = graph.add(ml::Conv2D(filters, 1), y3);
+//			y3 = graph.add(ml::BatchNormalization().useGamma(false), y3);
+//
+//			y0 = graph.add(ml::Add(), { y0, y1 });
+//			y2 = graph.add(ml::Add(), { y2, y3 });
+//			y = graph.add(ml::Add(), { y0, y2 });
+//
+//			x = graph.add(ml::Add(), { y, x });
+
+			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
+			y = graph.add(ml::Conv2D(filters, 1), y);
+			x = graph.add(ml::BatchNormalization().useGamma(false), { y, x });
+
+// squeeze-and-excitation module
+			auto z = graph.add(ml::GlobalAveragePooling().quantizable(false), x);
+			z = graph.add(ml::Dense(filters, "relu").quantizable(false), z);
+			z = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), z);
+			x = graph.add(ml::ChannelScaling(), { x, z });
+
+			// spatial scaling module
+//			auto t = graph.add(ml::ChannelAveragePooling().quantizable(false), x);
+//			t = graph.add(ml::Dense(filters, "relu").quantizable(false), t);
+//			t = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), t);
+//			x = graph.add(ml::SpatialScaling(), { x, t });
 		}
 
 		// policy head
@@ -1167,11 +1206,10 @@ namespace ag
 		graph.addOutput(p);
 
 		// value head
-		auto v = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
-		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
+		auto v = graph.add(ml::Conv2D(filters, 1, "relu"), x);
 		v = graph.add(ml::GlobalAveragePooling(), v);
 		v = graph.add(ml::Dense(256).useBias(false), v);
-		v = graph.add(ml::BatchNormalization("leaky_relu"), v);
+		v = graph.add(ml::BatchNormalization("relu"), v);
 		v = graph.add(ml::Dense(3), v);
 		v = graph.add(ml::Softmax( { 1 }), v);
 		graph.addOutput(v);
@@ -1184,14 +1222,87 @@ namespace ag
 		graph.addOutput(q);
 
 		// moves left head
-		auto mlh = graph.add(ml::Conv2D(32, 1).useBias(false), x);
-		mlh = graph.add(ml::BatchNormalization("relu").useGamma(false), mlh);
+		auto mlh = graph.add(ml::Conv2D(32, 1, "relu"), x);
 		mlh = graph.add(ml::GlobalAveragePooling(), mlh);
 		mlh = graph.add(ml::Dense(128).useBias(false), mlh);
-		mlh = graph.add(ml::BatchNormalization("leaky_relu"), mlh);
+		mlh = graph.add(ml::BatchNormalization("relu"), mlh);
 		mlh = graph.add(ml::Dense(game_config.rows * game_config.cols), mlh);
 		mlh = graph.add(ml::Softmax( { 1 }), mlh);
 		graph.addOutput(mlh, ml::CrossEntropyLoss(), 0.25f);
+
+		graph.init();
+		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
+	FastNetwork::FastNetwork() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string FastNetwork::getOutputConfig() const
+	{
+		return "pv";
+	}
+	std::string FastNetwork::name() const
+	{
+		return "FastNetwork";
+	}
+	void FastNetwork::create_network(const TrainingConfig &trainingOptions)
+	{
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 32 });
+		const int filters = trainingOptions.filters;
+
+		auto x = graph.addInput(input_shape);
+		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
+		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
+		x = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+
+		// policy head
+		auto p = graph.add(ml::Conv2D(filters / 2, 1).useBias(false), x);
+		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
+		p = graph.add(ml::Conv2D(1, 1), p);
+		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
+		graph.addOutput(p);
+
+		// value head
+		auto v = graph.add(ml::Conv2D(filters / 2, 1).useBias(false), x);
+		v = graph.add(ml::BatchNormalization("relu").useGamma(false), v);
+		v = graph.add(ml::GlobalAveragePooling(), v);
+		v = graph.add(ml::Dense(filters).useBias(false), v);
+		v = graph.add(ml::BatchNormalization("relu"), v);
+		v = graph.add(ml::Dense(3), v);
+		v = graph.add(ml::Softmax( { 1 }), v);
+		graph.addOutput(v);
+
+		graph.init();
+		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
+	FastPolicy::FastPolicy() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string FastPolicy::getOutputConfig() const
+	{
+		return "p";
+	}
+	std::string FastPolicy::name() const
+	{
+		return "FastPolicy";
+	}
+	void FastPolicy::create_network(const TrainingConfig &trainingOptions)
+	{
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 32 });
+		const int filters = trainingOptions.filters;
+
+		auto x = graph.addInput(input_shape);
+		x = graph.add(ml::Conv2D(filters, 3).useBias(false), x);
+		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
+		x = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+		x = graph.add(ml::Conv2D(1, 1), x);
+		x = graph.add(ml::Softmax( { 1, 2, 3 }), x);
+		graph.addOutput(x);
 
 		graph.init();
 		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));

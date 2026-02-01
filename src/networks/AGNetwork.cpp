@@ -139,7 +139,7 @@ namespace ag
 		if (level >= 1)
 		{
 			ml::FoldBatchNorm().optimize(graph);
-			ml::FoldAdd().optimize(graph);
+//			ml::FoldAdd().optimize(graph);
 		}
 		if (level >= 2)
 		{
@@ -283,6 +283,9 @@ namespace ag
 		static const ConvNextPVQraw convnext_pvq_raw;
 		static const ConvNextPVQMraw convnext_pvqm_raw;
 
+		static const FastNetwork fast_network;
+		static const FastPolicy fast_policy;
+
 		if (architecture == resnet_pv.name())
 			return std::make_unique<ResnetPV>();
 		if (architecture == resnet_pv_raw.name())
@@ -328,6 +331,11 @@ namespace ag
 			return std::make_unique<ConvNextPVQraw>();
 		if (architecture == convnext_pvqm_raw.name())
 			return std::make_unique<ConvNextPVQMraw>();
+
+		if (architecture == fast_network.name())
+			return std::make_unique<FastNetwork>();
+		if (architecture == fast_policy.name())
+			return std::make_unique<FastPolicy>();
 
 		throw std::runtime_error("createAGNetwork() : unknown architecture '" + architecture + "'");
 	}
