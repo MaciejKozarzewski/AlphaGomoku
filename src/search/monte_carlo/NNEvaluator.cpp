@@ -275,7 +275,7 @@ namespace ag
 			assert(is_ok(action_values));
 			assert(is_ok(value));
 			assert(is_ok(moves_left));
-			const Symmetry inv_s = get_inverse_symmetry(int_to_symmetry(-td.symmetry));
+			const Symmetry inv_s = get_inverse_symmetry(int_to_symmetry(td.symmetry));
 			apply_symmetry(td.ptr->getPolicy(), policy, inv_s);
 			apply_symmetry(td.ptr->getActionValues(), action_values, inv_s); // TODO silently assuming that action values come from TSS
 			td.ptr->setValue(value);

@@ -70,7 +70,6 @@ namespace ag
 			}
 	};
 
-}
-/* namespace ag */
+} /* namespace ag */
 
 #endif /* INCLUDE_ALPHAGOMOKU_UTILS_PRIORITYMUTEX_HPP_ */
