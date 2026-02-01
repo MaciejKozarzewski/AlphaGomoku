@@ -3,4 +3,5 @@ target_sources(${LibName} PRIVATE 	AlphaBetaSearch.cpp
 									MoveGenerator.cpp
 									ThreatGenerator.cpp
 									MoveGenerator.cpp
-									ThreatSpaceSearch.cpp)
+									ThreatSpaceSearch.cpp
+									VCFSolver.cpp)

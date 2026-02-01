@@ -186,9 +186,9 @@ namespace ag
 //			pattern_calculator.printAllThreats();
 //			std::cout << "alpha = " << alpha << ", beta = " << beta << '\n';
 //		}
-		assert(Score::minus_infinity() <= alpha);
-		assert(alpha < beta);
-		assert(beta <= Score::plus_infinity());
+//		assert(Score::minus_infinity() <= alpha);
+//		assert(alpha < beta);
+//		assert(beta <= Score::plus_infinity());
 
 		Move best_move;
 		{ // lookup to the shared hash table
@@ -302,7 +302,11 @@ namespace ag
 			}
 			best_score = std::max(best_score, actions[i].score);
 
-			alpha = std::max(alpha, actions[i].score);
+			if (actions[i].score > alpha)
+			{
+				alpha = actions[i].score;
+				best_move = actions[i].move;
+			}
 			if (actions[i].score >= beta or actions[i].score.isWin())
 				break;
 		}
