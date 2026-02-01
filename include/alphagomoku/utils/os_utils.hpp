@@ -29,8 +29,8 @@ namespace ag
 
 	enum class PrefetchMode
 	{
-		READ,
-		WRITE
+		READ = 0,
+		WRITE = 1
 	};
 	template<PrefetchMode Mode, int LocalityHint>
 	void prefetchMemory(const void *ptr) noexcept
@@ -38,7 +38,7 @@ namespace ag
 #if (defined(__GNUC__) && defined(__cplusplus)) || defined(__clang__)
 		__builtin_prefetch(ptr, static_cast<int>(Mode), LocalityHint);
 #elif defined(_MSC_VER)
-		_mm_prefetch(ptr, LocaliTyHint);
+		_mm_prefetch(ptr, LocalityHint);
 #else
 
 #endif

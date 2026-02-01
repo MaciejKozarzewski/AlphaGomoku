@@ -21,36 +21,36 @@
 
 namespace
 {
-	volatile sig_atomic_t sigint_status;
-	volatile sig_atomic_t sigill_status;
-	volatile sig_atomic_t sigabrt_status;
-	volatile sig_atomic_t sigfpe_status;
-	volatile sig_atomic_t sigsegv_status;
-	volatile sig_atomic_t sigterm_status;
+	volatile sig_atomic_t sigint_captured = 0;
+	volatile sig_atomic_t sigill_captured = 0;
+	volatile sig_atomic_t sigabrt_captured = 0;
+	volatile sig_atomic_t sigfpe_captured = 0;
+	volatile sig_atomic_t sigsegv_captured = 0;
+	volatile sig_atomic_t sigterm_captured = 0;
 
 	void sigint_handler(int status)
 	{
-		sigint_status = status;
+		sigint_captured = status;
 	}
 	void sigill_handler(int status)
 	{
-		sigill_status = status;
+		sigill_captured = status;
 	}
 	void sigabrt_handler(int status)
 	{
-		sigabrt_status = status;
+		sigabrt_captured = status;
 	}
 	void sigfpe_handler(int status)
 	{
-		sigfpe_status = status;
+		sigfpe_captured = status;
 	}
 	void sigsegv_handler(int status)
 	{
-		sigsegv_status = status;
+		sigsegv_captured = status;
 	}
 	void sigterm_handler(int status)
 	{
-		sigterm_status = status;
+		sigterm_captured = status;
 	}
 	int get_signal(ag::SignalType st)
 	{
@@ -109,9 +109,7 @@ namespace ag
 
 	std::string getOperatingSystemName()
 	{
-#ifdef _WIN32
-		return "Windows 32-bit";
-#elif _WIN64
+#ifdef _WIN64
 		OSVERSIONINFO vi;
 			vi.dwOSVersionInfoSize = sizeof(vi);
 		if (GetVersionEx(&vi) == 0) throw SystemException("Cannot get OS version information");
@@ -127,6 +125,8 @@ namespace ag
 			return "Unknown";
 		}
 //    return "Windows 64-bit";
+#elif _WIN32
+		return "Windows 32-bit";
 #elif __APPLE__ || __MACH__
 		return "Mac OSX";
 #elif __linux__
@@ -188,17 +188,17 @@ namespace ag
 		switch (type)
 		{
 			case SignalType::INT:
-				return sigint_status == SIGINT;
+				return sigint_captured;
 			case SignalType::ILL:
-				return sigill_status == SIGILL;
+				return sigill_captured;
 			case SignalType::ABRT:
-				return sigabrt_status == SIGABRT;
+				return sigabrt_captured;
 			case SignalType::FPE:
-				return sigfpe_status == SIGFPE;
+				return sigfpe_captured;
 			case SignalType::SEGV:
-				return sigsegv_status == SIGSEGV;
+				return sigsegv_captured;
 			case SignalType::TERM:
-				return sigterm_status == SIGTERM;
+				return sigterm_captured;
 			default:
 				return false; // unknown signal type
 		}
