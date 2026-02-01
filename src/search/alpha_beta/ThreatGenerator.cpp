@@ -43,7 +43,7 @@ namespace
 	 * \brief Creates the list of elements that occur in both arguments.
 	 */
 	template<int N, int M>
-	void get_intersection(ShortVector<Location, N> &lhs, const ShortVector<Location, M> &rhs) noexcept
+	void get_intersection(StackVector<Location, N> &lhs, const StackVector<Location, M> &rhs) noexcept
 	{
 		int i = 0;
 		while (i < lhs.size())
@@ -58,7 +58,7 @@ namespace
 	 * \brief Creates the list of elements that occur in both arguments.
 	 */
 	template<int N, int M>
-	void get_union(ShortVector<Location, N> &lhs, const ShortVector<Location, M> &rhs) noexcept
+	void get_union(StackVector<Location, N> &lhs, const StackVector<Location, M> &rhs) noexcept
 	{
 		for (int i = 0; i < rhs.size(); i++)
 			if (not lhs.contains(rhs[i]))
@@ -74,10 +74,10 @@ namespace
 	{
 		private:
 			bool not_initialized = true;
-			ShortVector<Location, 24> list;
+			StackVector<Location, 24> list;
 		public:
 			template<int N>
-			void get_intersection_with(const ShortVector<Location, N> &other)
+			void get_intersection_with(const StackVector<Location, N> &other)
 			{
 				if (not_initialized)
 				{
@@ -91,7 +91,7 @@ namespace
 			{
 				return list.size() == 0;
 			}
-			const ShortVector<Location, 24>& get_list() const noexcept
+			const StackVector<Location, 24>& get_list() const noexcept
 			{
 				return list;
 			}
@@ -191,9 +191,9 @@ namespace ag
 		for (auto iter = begin; iter < end; iter++)
 			add_move<Mode>(*iter, s);
 	}
-	ShortVector<Location, 6> ThreatGenerator::get_defensive_moves(Location move, Direction dir)
+	StackVector<Location, 6> ThreatGenerator::get_defensive_moves(Location move, Direction dir)
 	{
-		ShortVector<Location, 6> result = pattern_calculator.getDefensiveMoves(get_own_sign(), move.row, move.col, dir);
+		StackVector<Location, 6> result = pattern_calculator.getDefensiveMoves(get_own_sign(), move.row, move.col, dir);
 		if (is_anything_forbidden_for(get_own_sign()))
 		{ // forbidden moves require special handling
 			int i = 0;
@@ -330,7 +330,7 @@ namespace ag
 		{ // loop over threats of five to find a set of moves that refute them all
 			const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
 			const Direction direction = group.findDirectionOf(PatternType::FIVE);
-			const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
+			const StackVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 
 			defensive_moves.get_intersection_with(tmp);
 			if (defensive_moves.is_empty())
@@ -475,7 +475,7 @@ namespace ag
 
 				if (is_winning)
 				{
-					const ShortVector<Location, 6> tmp = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move->row, move->col, dir); // we intentionally want to have all moves, including forbidden ones
+					const StackVector<Location, 6> tmp = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move->row, move->col, dir); // we intentionally want to have all moves, including forbidden ones
 					assert(tmp.size() == 2); // in renju rule, there should be exactly two defensive moves to half-open four
 					// one of them will be at the same spot where we have just created this threat, we want to check that other one
 					const Location original = (tmp[0] == *move) ? tmp[1] : tmp[0];
@@ -509,7 +509,7 @@ namespace ag
 				actions->must_defend = true;
 				const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
 				const Direction direction = group.findDirectionOf(PatternType::OPEN_4);
-				const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
+				const StackVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 
 				defensive_moves.get_intersection_with(tmp);
 				if (defensive_moves.is_empty() and not has_any_four)
@@ -520,7 +520,7 @@ namespace ag
 			}
 
 			const LocationList &opp_fork_4x4 = get_opponent_threats(ThreatType::FORK_4x4);
-			ShortVector<Location, 24> storage;
+			StackVector<Location, 24> storage;
 			for (auto move = opp_fork_4x4.begin(); move < opp_fork_4x4.end(); move++)
 			{
 				actions->must_defend = true;
@@ -564,7 +564,7 @@ namespace ag
 					actions->must_defend = true;
 					const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_opponent_sign(), move->row, move->col);
 					const Direction direction = group.findDirectionOf(PatternType::OPEN_4);
-					const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
+					const StackVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 					add_moves<EXCLUDE_DUPLICATE>(tmp.begin(), tmp.end());
 				}
 			}
@@ -582,7 +582,7 @@ namespace ag
 					{
 						actions->must_defend = true;
 						const Direction direction = group.findDirectionOf(PatternType::OPEN_4);
-						const ShortVector<Location, 6> tmp = get_defensive_moves(*move, direction);
+						const StackVector<Location, 6> tmp = get_defensive_moves(*move, direction);
 						add_moves<EXCLUDE_DUPLICATE>(tmp.begin(), tmp.end());
 					}
 				}
@@ -599,7 +599,7 @@ namespace ag
 					for (Direction dir = 0; dir < 4; dir++)
 						if (is_a_four(group[dir]))
 						{
-							const ShortVector<Location, 6> tmp = get_defensive_moves(*move, dir);
+							const StackVector<Location, 6> tmp = get_defensive_moves(*move, dir);
 							add_moves<EXCLUDE_DUPLICATE>(tmp.begin(), tmp.end());
 						}
 				}
@@ -690,7 +690,7 @@ namespace ag
 //		{
 //			const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move->row, move->col);
 //			const Direction dir = group.findDirectionOf(PatternType::HALF_OPEN_4);
-//			ShortVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move->row, move->col, dir);
+//			StackVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move->row, move->col, dir);
 //			defensive_moves.remove(*move); // excluding move at the spot that we occupied to create this threat
 //
 //			ThreatType best_opponent_threat = ThreatType::NONE;
@@ -726,7 +726,7 @@ namespace ag
 
 		const DirectionGroup<PatternType> group = pattern_calculator.getPatternTypeAt(get_own_sign(), move.row, move.col);
 		const Direction direction = group.findDirectionOf(PatternType::HALF_OPEN_4);
-		ShortVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move.row, move.col, direction);
+		StackVector<Location, 6> defensive_moves = pattern_calculator.getDefensiveMoves(get_opponent_sign(), move.row, move.col, direction);
 		defensive_moves.remove(move); // excluding move at the spot that we occupied to create this threat
 
 		ThreatType best_opponent_threat = ThreatType::NONE;

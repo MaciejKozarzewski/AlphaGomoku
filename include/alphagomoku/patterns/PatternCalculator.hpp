@@ -159,12 +159,12 @@ namespace ag
 				const ThreatEncoding te = threat_types.at(row, col);
 				return (sign == Sign::CROSS) ? te.forCross() : te.forCircle();
 			}
-			ShortVector<Location, 6> getDefensiveMoves(Sign defenderSign, int row, int col, Direction dir) const noexcept
+			StackVector<Location, 6> getDefensiveMoves(Sign defenderSign, int row, int col, Direction dir) const noexcept
 			{
 				const ExtendedPattern extended_pattern = getExtendedPatternAt(row, col, dir);
 				const PatternType threat_to_defend = getPatternTypeAt(invertSign(defenderSign), row, col, dir);
 				const BitMask1D<uint16_t> tmp = defensive_move_table->getMoves(extended_pattern, defenderSign, threat_to_defend);
-				ShortVector<Location, 6> result;
+				StackVector<Location, 6> result;
 				for (int i = -extended_padding; i <= extended_padding; i++)
 					if (tmp[extended_padding + i]) // the defensive move will not be outside the board
 						result.add(shiftInDirection(dir, i, Location(row, col)));

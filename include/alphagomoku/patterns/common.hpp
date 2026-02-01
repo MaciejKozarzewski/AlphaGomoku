@@ -147,13 +147,13 @@ namespace ag
 	};
 
 	template<typename T, int N>
-	class ShortVector
+	class StackVector
 	{
 			T m_data[N];
 			int m_size = 0;
 		public:
-			ShortVector() noexcept = default;
-			ShortVector(std::initializer_list<T> list) :
+			StackVector() noexcept = default;
+			StackVector(std::initializer_list<T> list) :
 					m_size(list.size())
 			{
 				for (int i = 0; i < m_size; i++)
@@ -183,7 +183,7 @@ namespace ag
 				m_data[m_size++] = value;
 			}
 			template<int M>
-			void add(const ShortVector<T, M> &other) noexcept
+			void add(const StackVector<T, M> &other) noexcept
 			{
 				assert(size() + M <= N);
 				for (int i = 0; i < other.size(); i++)

@@ -90,7 +90,7 @@ namespace ag
 			void add_moves(const LocationList &locations, Score s = Score()) noexcept;
 			template<AddMode Mode, typename T>
 			void add_moves(const T begin, const T end, Score s = Score()) noexcept;
-			ShortVector<Location, 6> get_defensive_moves(Location location, Direction dir);
+			StackVector<Location, 6> get_defensive_moves(Location location, Direction dir);
 			Result try_draw_in_1();
 			Result try_win_in_1();
 			Result defend_loss_in_2();
