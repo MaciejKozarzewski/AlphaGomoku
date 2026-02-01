@@ -60,7 +60,7 @@ namespace ag
 
 	inline int number_of_available_symmetries(MatrixShape shape) noexcept
 	{
-		return shape.is_square() ? 8 : 4;
+		return shape.isSquare() ? 8 : 4;
 	}
 
 	inline bool is_symmetry_allowed(Symmetry s, MatrixShape shape) noexcept

@@ -32,11 +32,11 @@ namespace ag
 				this->cols = cols;
 			}
 
-			bool is_inside(int row, int col) const noexcept
+			bool isInside(int row, int col) const noexcept
 			{
 				return 0 <= row and row < rows and 0 <= col and col < cols;
 			}
-			bool is_square() const noexcept
+			bool isSquare() const noexcept
 			{
 				return rows == cols;
 			}
@@ -111,7 +111,7 @@ namespace ag
 			{
 				return rows() * cols();
 			}
-			int sizeInBytes() const noexcept
+			size_t sizeInBytes() const noexcept
 			{
 				return sizeof(T) * size();
 			}
@@ -161,11 +161,11 @@ namespace ag
 			}
 			bool isSquare() const noexcept
 			{
-				return shape().is_square();
+				return shape().isSquare();
 			}
 			bool isInside(int row, int col) const noexcept
 			{
-				return shape().is_inside(row, col);
+				return shape().isInside(row, col);
 			}
 
 			friend bool operator==(const matrix<T> &lhs, const matrix<T> &rhs) noexcept
