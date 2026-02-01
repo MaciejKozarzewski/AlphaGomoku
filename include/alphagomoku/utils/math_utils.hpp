@@ -10,6 +10,9 @@
 
 #include <alphagomoku/utils/matrix.hpp>
 
+#include <algorithm>
+#include <cassert>
+#include <limits>
 #include <vector>
 #include <numeric>
 #include <cmath>
@@ -29,6 +32,7 @@ namespace ag
 	template<typename T>
 	constexpr bool isPowerOf2(T x) noexcept
 	{
+		static_assert(std::is_integral<T>::value);
 		return (x > 0) and not (x & (x - 1));
 	}
 	template<typename T>
@@ -47,24 +51,30 @@ namespace ag
 	template<typename T>
 	T roundToMultipleOf(T x, T mul) noexcept
 	{
+		static_assert(std::is_integral<T>::value);
 		const T remainder = x % mul;
 		return (remainder == 0) ? x : (x + mul - remainder);
 	}
 	template<typename T>
 	T popcount(T x) noexcept
 	{
+		static_assert(std::is_integral<T>::value);
 		return std::bitset<8 * sizeof(T)>(x).count();
 	}
 	template<typename T>
-	T safe_log(T x) noexcept
+	T log_eps(T x) noexcept
 	{
-		return std::log(static_cast<T>(1.0e-16) + x);
+		static_assert(std::is_floating_point<T>::value);
+		return std::log(std::numeric_limits<T>::epsilon() + x);
 	}
 
 	template<typename T>
 	T sigmoid(T x) noexcept
 	{
-		return static_cast<T>(1.0) / (static_cast<T>(1.0) + std::exp(-x));
+		static_assert(std::is_floating_point<T>::value);
+
+		const T c05 = static_cast<T>(0.5);
+		return c05 * (std::tanh(c05 * x) + static_cast<T>(1.0));
 	}
 
 	template<typename T>
@@ -79,7 +89,7 @@ namespace ag
 	{
 		assert(dst.size() == src.size());
 		for (int i = 0; i < dst.size(); i++)
-			dst.data()[i] += src.data()[i];
+			dst[i] += src[i];
 	}
 	template<typename T>
 	void scaleArray(matrix<T> &array, T scale)
@@ -90,7 +100,8 @@ namespace ag
 	template<typename T>
 	void normalize(matrix<T> &policy)
 	{
-		float r = std::accumulate(policy.begin(), policy.end(), static_cast<T>(0));
+		assert(policy.size() > 0);
+		T r = std::accumulate(policy.begin(), policy.end(), static_cast<T>(0));
 		if (r == static_cast<T>(0))
 			policy.fill(static_cast<T>(1) / policy.size());
 		else
@@ -103,6 +114,8 @@ namespace ag
 	template<typename T>
 	void softmax(std::vector<T> &x)
 	{
+		static_assert(std::is_floating_point<T>::value);
+
 		T max_value = std::numeric_limits<T>::lowest();
 		for (size_t i = 0; i < x.size(); i++)
 			max_value = std::max(max_value, x[i]);

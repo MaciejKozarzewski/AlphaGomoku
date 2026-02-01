@@ -247,13 +247,13 @@ namespace
 		private:
 			float fit_kl(float p, float T, float precision = 1.0e-3f) const noexcept
 			{
-				const float rhs = p * safe_log(p) + (1.0f - p) * safe_log(1.0f - p) - T;
+				const float rhs = p * log_eps(p) + (1.0f - p) * log_eps(1.0f - p) - T;
 //				std::cout << "p = " << p << ", T = " << T << '\n';
 
 				float q = 0.5f * (1.0f + p); // initial guess for q
 				for (int i = 0; i < 100; i++)
 				{
-					const float f = p * safe_log(q) + (1.0f - p) * safe_log(1.0f - q) - rhs;
+					const float f = p * log_eps(q) + (1.0f - p) * log_eps(1.0f - q) - rhs;
 					const float df = (p - q) / (q * (1 - q));
 					const float step_size = 0.9f * (1.0f - q);
 
@@ -601,7 +601,7 @@ namespace
 	{
 		std::vector<float> result = createGumbelNoise(rootNode->numberOfEdges());
 		for (size_t i = 0; i < result.size(); i++)
-			result[i] = safe_log(rootNode->getEdge(i).getPolicyPrior()) + noiseWeight * result[i];
+			result[i] = log_eps(rootNode->getEdge(i).getPolicyPrior()) + noiseWeight * result[i];
 		softmax(result);
 		return result;
 	}

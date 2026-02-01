@@ -178,7 +178,7 @@ namespace ag
 					result.action_values_target[i] = get_value(sample.action_values[i], score);
 					P = sample.policy_prior[i];
 				}
-				result.policy_target[i] = 50.0f * Q + safe_log(P);
+				result.policy_target[i] = 50.0f * Q + log_eps(P);
 				max_value = std::max(max_value, result.policy_target[i]);
 			}
 

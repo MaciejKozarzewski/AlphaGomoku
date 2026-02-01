@@ -118,7 +118,7 @@ namespace ag
 	{
 		std::vector<float> result(size);
 		for (size_t i = 0; i < result.size(); i++)
-			result[i] = -safe_log(-safe_log(randFloat()));
+			result[i] = -log_eps(-log_eps(randFloat()));
 		return result;
 	}
 
