@@ -11,6 +11,7 @@
 #include <minml/utils/json.hpp>
 #include <minml/utils/serialization.hpp>
 
+#include <vector>
 #include <cstddef>
 #include <fstream>
 #include <string>
@@ -47,7 +48,6 @@ namespace ag
 			FileSaver(const std::string &path);
 			std::string getPath() const;
 			void save(const Json &json, const SerializedObject &binary_data, int indent = -1, bool compress = false);
-			void close();
 	};
 
 	class FileLoader
@@ -66,6 +66,7 @@ namespace ag
 			void load_all_data();
 			size_t find_split_point() const noexcept;
 	};
-}
+
+} /* namespace ag */
 
 #endif /* ALPHAGOMOKU_UTILS_FILE_UTIL_HPP_ */

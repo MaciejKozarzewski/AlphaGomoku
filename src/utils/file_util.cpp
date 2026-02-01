@@ -50,10 +50,6 @@ namespace ag
 			to_save = ZipWrapper::compress(to_save);
 		stream.write(to_save.data(), to_save.size());
 	}
-	void FileSaver::close()
-	{
-		stream.close();
-	}
 
 	FileLoader::FileLoader(const std::string &path, bool uncompress)
 	{

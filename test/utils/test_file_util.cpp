@@ -20,9 +20,10 @@ namespace ag
 		Json json = { { "key0", 0.0 }, { "key1", "string" } };
 		so.save(data, sizeof(data));
 
-		FileSaver fs("test_file.bin");
-		fs.save(json, so);
-		fs.close();
+		{ /* artificial scope for closing the file */
+			FileSaver fs("test_file.bin");
+			fs.save(json, so);
+		}
 
 		FileLoader fl("test_file.bin");
 		float loaded_data[100];

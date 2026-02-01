@@ -109,7 +109,6 @@ namespace ag
 
 		FileSaver fs(path);
 		fs.save(json, so, -1, true);
-		fs.close();
 	}
 	void GameDataBuffer::load(const std::string &path)
 	{
