@@ -83,6 +83,7 @@ namespace ag
 
 	Search::Search(const GameConfig &gameOptions, const SearchConfig &searchOptions) :
 			ab_search(gameOptions),
+			vcf_solver(gameOptions),
 			game_config(gameOptions),
 			search_config(searchOptions)
 	{
@@ -113,6 +114,7 @@ namespace ag
 	void Search::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
 		ab_search.increaseGeneration();
+		vcf_solver.increaseGeneration();
 	}
 	void Search::select(Tree &tree, int maxSimulations)
 	{
