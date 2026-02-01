@@ -27,7 +27,7 @@ namespace ag
 		private:
 			T *m_block_start = nullptr; // non-owning
 			uint32_t m_block_size = 0;
-			uint32_t m_source_block_index = -1;
+			uint32_t m_source_block_index = UINT32_MAX;
 			BlockDescriptor(T *start, uint32_t size, uint32_t sourceIndex) noexcept :
 					m_block_start(start),
 					m_block_size(size),
@@ -132,7 +132,7 @@ namespace ag
 						assert(block.sourceIndex() == m_index);
 						assert(m_objects.data() <= block.get());
 						assert((block.get() + block.size()) <= (m_objects.data() + m_objects.size()));
-						return std::distance(static_cast<const T*>(m_objects.data()), block.get());
+						return block.get() - m_objects.data();
 					}
 				public:
 					OwningBlockOfObjects(size_t elements, size_t index) :
@@ -170,8 +170,7 @@ namespace ag
 							{
 								if (block_start == nullptr)
 									block_start = m_objects.data() + i; // if the element is free and there is no currently scanned block, it is a start of a new block
-								else
-									block_size++; // if the element is free and there is a currently scanned block, increase the size of it
+								block_size++;
 							}
 							else
 							{
@@ -184,16 +183,7 @@ namespace ag
 							}
 						}
 						if (block_start != nullptr)
-						{ // if the element is not free but there is a currently scanned block, it just ended so we can append it to the result and clear temporary variables
-							result.push_back(BlockDescriptor<T>(block_start, block_size + 1, m_index)); // adding one to make the block point to the end of array
-						}
-						return result;
-					}
-					size_t countUsed() const noexcept
-					{
-						size_t result = 0;
-						for (size_t i = 0; i < m_is_free.size(); i++)
-							result += static_cast<size_t>(m_is_free[i]);
+							result.push_back(BlockDescriptor<T>(block_start, block_size, m_index)); // closing last block when the storage ends
 						return result;
 					}
 			};
