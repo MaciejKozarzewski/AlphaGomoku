@@ -56,15 +56,13 @@ namespace ag
 	}
 	Sign signFromString(const std::string &str)
 	{
+		if (str == "NONE")
+			return Sign::NONE;
 		if (str == "CROSS")
 			return Sign::CROSS;
-		else
-		{
-			if (str == "CIRCLE")
-				return Sign::CIRCLE;
-			else
-				return Sign::NONE;
-		}
+		if (str == "CIRCLE")
+			return Sign::CIRCLE;
+		return Sign::ILLEGAL;
 	}
 	Sign signFromText(char c) noexcept
 	{
@@ -110,8 +108,8 @@ namespace ag
 	}
 
 	Location::Location(const std::string &str) :
-			row(extract_row("_" + str)),
-			col(extract_col("_" + str))
+			row(extract_row('_' + str)),
+			col(extract_col('_' + str))
 	{
 	}
 	std::string Location::toString() const
