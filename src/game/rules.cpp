@@ -169,10 +169,7 @@ namespace ag
 			threat_type = ThreatTable::get(GameRules::RENJU).getThreat<Sign::CROSS>(pattern_types); // recalculating threat as some open threes may have turned out to be fake ones
 		}
 
-		if (threat_type == ThreatType::OVERLINE or threat_type == ThreatType::FORK_4x4 or threat_type == ThreatType::FORK_3x3)
-			return true;
-		else
-			return false;
+		return (threat_type == ThreatType::OVERLINE) or (threat_type == ThreatType::FORK_4x4) or (threat_type == ThreatType::FORK_3x3);
 	}
 
 } /* namespace ag */
