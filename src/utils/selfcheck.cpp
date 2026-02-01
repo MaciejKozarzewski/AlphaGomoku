@@ -142,7 +142,7 @@ namespace
 			ml::checkDeviceDetection(devices[i]);
 			ml::checkMatrixMultiplication(devices[i]);
 			ml::checkWinogradTransforms(devices[i]);
-			ml::checkActivationFuncion(devices[i]);
+			ml::checkActivationFunction(devices[i]);
 			ml::checkPoolingAndScaling(devices[i]);
 			ml::checkDepthwiseConv2D(devices[i]);
 		}
