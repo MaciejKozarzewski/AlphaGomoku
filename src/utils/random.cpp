@@ -27,21 +27,21 @@ namespace ag
 {
 	float randFloat()
 	{
-		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+		thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 		return dist(int32_generator);
 	}
 	double randDouble()
 	{
-		std::uniform_real_distribution<double> dist(0.0f, 1.0f);
+		thread_local std::uniform_real_distribution<double> dist(0.0f, 1.0f);
 		return dist(int64_generator);
 	}
 	float randGaussian()
 	{
 		return randGaussian(0.0f, 1.0f);
 	}
-	float randGaussian(float mean, float variance)
+	float randGaussian(float mean, float stddev)
 	{
-		std::normal_distribution<float> dist(mean, variance);
+		thread_local std::normal_distribution<float> dist(mean, stddev);
 		return dist(int32_generator);
 	}
 	int32_t randInt()
@@ -51,13 +51,13 @@ namespace ag
 	int32_t randInt(int r)
 	{
 		assert(r != 0);
-		std::uniform_int_distribution<int32_t> dist(0, r - 1);
+		thread_local std::uniform_int_distribution<int32_t> dist(0, r - 1);
 		return dist(int32_generator);
 	}
 	int32_t randInt(int r0, int r1)
 	{
 		assert(r0 != r1);
-		std::uniform_int_distribution<int32_t> dist(r0, r1 - 1);
+		thread_local std::uniform_int_distribution<int32_t> dist(r0, r1 - 1);
 		return dist(int32_generator);
 	}
 	uint64_t randLong()
@@ -71,18 +71,18 @@ namespace ag
 
 	float randBeta(float alpha, float beta)
 	{
-		std::gamma_distribution<float> x_gamma(alpha);
-		std::gamma_distribution<float> y_gamma(beta);
+		thread_local std::gamma_distribution<float> x_gamma(alpha);
+		thread_local std::gamma_distribution<float> y_gamma(beta);
 		const float X = x_gamma(int32_generator);
 		const float Y = y_gamma(int32_generator);
-		return X / (X + Y);
+		return X / (X + Y + std::numeric_limits<float>::epsilon());
 	}
 
 	std::vector<int> permutation(int length)
 	{
 		std::vector<int> result(length);
 		std::iota(result.begin(), result.end(), 0);
-		std::random_shuffle(result.begin(), result.end());
+		std::shuffle(result.begin(), result.end(), int32_generator);
 		return result;
 	}
 
@@ -95,7 +95,7 @@ namespace ag
 			result[i] = pow(randFloat(), 4) * (1.0f - sum);
 			sum += result[i];
 		}
-		std::random_shuffle(result.begin(), result.end());
+		std::shuffle(result.begin(), result.end(), int32_generator);
 		return result;
 	}
 	std::vector<float> createDirichletNoise(size_t size, float scale)

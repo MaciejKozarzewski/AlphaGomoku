@@ -20,7 +20,7 @@ namespace ag
 	float randFloat();
 	double randDouble();
 	float randGaussian();
-	float randGaussian(float mean, float variance);
+	float randGaussian(float mean, float stddev);
 	int32_t randInt();
 	int32_t randInt(int r);
 	int32_t randInt(int r0, int r1);

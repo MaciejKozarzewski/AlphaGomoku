@@ -161,7 +161,7 @@ namespace
 //				std::cout << "using mean = " << mean << ", variance = " << variance << '\n';
 
 				const float U = externalPrior * parent_sqrt_visit / (1.0f + edge.getVisits() + edge.getVirtualLoss());
-				return randGaussian(mean + U, variance);
+				return randGaussian(mean + U, std::sqrt(variance));
 			}
 		private:
 			float get_dist_estimate(float P) const noexcept
