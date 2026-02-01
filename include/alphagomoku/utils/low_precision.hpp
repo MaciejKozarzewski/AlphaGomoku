@@ -11,6 +11,7 @@
 #include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/utils/bit_utils.hpp>
 
+#include <vector>
 #include <cinttypes>
 #include <algorithm>
 
@@ -24,7 +25,7 @@ namespace ag
 
 			static constexpr uint32_t ones(uint32_t n) noexcept
 			{
-				return (1u << n) - 1u;
+				return (n == 32) ? 0xFFFFFFFFu : ((n == 0) ? 0u : ((1u << n) - 1u));
 			}
 
 			static constexpr int max_exponent = (1 << E) - 1 + B;
@@ -39,7 +40,7 @@ namespace ag
 
 			static float get_scale(int e) noexcept
 			{
-				return (e < 0) ? static_cast<float>(1 << (-e)) : 1.0f / (1 << e);
+				return std::ldexp(1.0f, -e);
 			}
 		public:
 			LowFP() noexcept = default;
