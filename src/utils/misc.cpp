@@ -37,8 +37,7 @@ namespace ag
 
 	void maskIllegalMoves(const matrix<Sign> &board, matrix<float> &policy)
 	{
-		assert(board.rows() == policy.rows());
-		assert(board.cols() == policy.cols());
+		assert(equal_shape(board, policy));
 		int count = 0;
 		float sum = 0.0f;
 		for (int i = 0; i < board.size(); i++)
@@ -52,10 +51,13 @@ namespace ag
 
 		if (sum == 0.0f)
 		{
-			sum = 1.0f / count;
-			for (int i = 0; i < board.size(); i++)
-				if (board[i] == Sign::NONE)
-					policy[i] = sum;
+			if (count > 0)
+			{
+				sum = 1.0f / count;
+				for (int i = 0; i < board.size(); i++)
+					if (board[i] == Sign::NONE)
+						policy[i] = sum;
+			}
 		}
 		else
 		{
@@ -77,7 +79,7 @@ namespace ag
 	Move pickMove(const matrix<float> &policy)
 	{
 		auto idx = std::distance(policy.begin(), std::max_element(policy.begin(), policy.end()));
-		return Move(idx / policy.rows(), idx % policy.rows());
+		return Move(idx / policy.cols(), idx % policy.cols());
 	}
 	Move randomizeMove(const matrix<float> &policy)
 	{
@@ -85,7 +87,7 @@ namespace ag
 		if (r == 0.0f) // special case when policy is completely zero, assumes empty board
 		{
 			const int k = randInt(policy.size());
-			return Move(k / policy.rows(), k % policy.rows());
+			return Move(k / policy.cols(), k % policy.cols());
 		}
 		r *= randFloat();
 		float sum = 0.0f;
@@ -96,9 +98,9 @@ namespace ag
 			if (r < sum)
 				break;
 		}
-		return Move(i / policy.rows(), i % policy.cols());
+		return Move(i / policy.cols(), i % policy.cols());
 	}
-	float max(const matrix<float> &policy)
+	float max_value(const matrix<float> &policy)
 	{
 		return *std::max(policy.begin(), policy.end());
 	}

@@ -13,13 +13,16 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <cstdint>
 #include <string>
 #include <chrono>
 
 namespace ag
 {
-	enum class GameRules;
-	enum class GameOutcome;
+	enum class GameRules
+	;
+	enum class GameOutcome
+	;
 	struct GameConfig;
 }
 
@@ -33,7 +36,7 @@ namespace ag
 	template<typename T>
 	bool is_aligned(const void *ptr) noexcept
 	{
-		return (reinterpret_cast<std::uintptr_t>(ptr) % sizeof(T)) == 0;
+		return (reinterpret_cast<std::uintptr_t>(ptr) % alignof(T)) == 0;
 	}
 
 	/*
@@ -41,7 +44,7 @@ namespace ag
 	 */
 	inline double getTime()
 	{
-		return std::chrono::steady_clock::now().time_since_epoch().count() * 1.0e-9;
+		return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
 	}
 	std::string currentDateTime();
 
@@ -51,7 +54,7 @@ namespace ag
 
 	Move pickMove(const matrix<float> &policy);
 	Move randomizeMove(const matrix<float> &policy);
-	float max(const matrix<float> &policy);
+	float max_value(const matrix<float> &policy);
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
 	std::vector<Move> prepareOpening(const GameConfig &config, int minNumberOfMoves = 0);
