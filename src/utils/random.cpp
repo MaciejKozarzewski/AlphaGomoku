@@ -27,12 +27,12 @@ namespace ag
 {
 	float randFloat()
 	{
-		thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 		return dist(int32_generator);
 	}
 	double randDouble()
 	{
-		thread_local std::uniform_real_distribution<double> dist(0.0f, 1.0f);
+		std::uniform_real_distribution<double> dist(0.0f, 1.0f);
 		return dist(int64_generator);
 	}
 	float randGaussian()
@@ -41,7 +41,7 @@ namespace ag
 	}
 	float randGaussian(float mean, float stddev)
 	{
-		thread_local std::normal_distribution<float> dist(mean, stddev);
+		std::normal_distribution<float> dist(mean, stddev);
 		return dist(int32_generator);
 	}
 	int32_t randInt()
@@ -51,13 +51,13 @@ namespace ag
 	int32_t randInt(int r)
 	{
 		assert(r != 0);
-		thread_local std::uniform_int_distribution<int32_t> dist(0, r - 1);
+		std::uniform_int_distribution<int32_t> dist(0, r - 1);
 		return dist(int32_generator);
 	}
 	int32_t randInt(int r0, int r1)
 	{
 		assert(r0 != r1);
-		thread_local std::uniform_int_distribution<int32_t> dist(r0, r1 - 1);
+		std::uniform_int_distribution<int32_t> dist(r0, r1 - 1);
 		return dist(int32_generator);
 	}
 	uint64_t randLong()
@@ -71,8 +71,8 @@ namespace ag
 
 	float randBeta(float alpha, float beta)
 	{
-		thread_local std::gamma_distribution<float> x_gamma(alpha);
-		thread_local std::gamma_distribution<float> y_gamma(beta);
+		std::gamma_distribution<float> x_gamma(alpha);
+		std::gamma_distribution<float> y_gamma(beta);
 		const float X = x_gamma(int32_generator);
 		const float Y = y_gamma(int32_generator);
 		return X / (X + Y + std::numeric_limits<float>::epsilon());

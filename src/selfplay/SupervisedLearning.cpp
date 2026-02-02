@@ -37,11 +37,12 @@ namespace
 	void augment_data_pack(TrainingDataPack &pack)
 	{
 		const int num_symmetries = number_of_available_symmetries(pack.board.shape());
-		const Symmetry r = int_to_symmetry(randInt(num_symmetries));
-		apply_symmetry_in_place(pack.board, r);
-		apply_symmetry_in_place(pack.visit_count, r);
-		apply_symmetry_in_place(pack.policy_target, r);
-		apply_symmetry_in_place(pack.action_values_target, r);
+		const int r = randInt(num_symmetries);
+		const Symmetry s = int_to_symmetry(r);
+		apply_symmetry_in_place(pack.board, s);
+		apply_symmetry_in_place(pack.visit_count, s);
+		apply_symmetry_in_place(pack.policy_target, s);
+		apply_symmetry_in_place(pack.action_values_target, s);
 	}
 
 	std::array<NetworkDataPack, 2> create_data_packs(GameConfig cfg, int batch_size, ml::DataType dtype)
