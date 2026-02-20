@@ -12,7 +12,6 @@
 #include <alphagomoku/game/Game.hpp>
 #include <alphagomoku/search/monte_carlo/SearchTask.hpp>
 #include <alphagomoku/search/alpha_beta/AlphaBetaSearch.hpp>
-#include <alphagomoku/search/alpha_beta/VCFSolver.hpp>
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/statistics.hpp>
 #include <alphagomoku/utils/matrix.hpp>
@@ -60,7 +59,6 @@ namespace ag
 			SearchTaskList tasks_list_buffer[2];
 
 			AlphaBetaSearch ab_search;
-			VCFSolver vcf_solver;
 
 			GameConfig game_config;
 			SearchConfig search_config;
