@@ -138,7 +138,7 @@ namespace ag
 		graph.makeTrainable(false);
 		if (level >= 1)
 		{
-			ml::FoldBatchNorm().optimize(graph);
+//			ml::FoldBatchNorm().optimize(graph);
 //			ml::FoldAdd().optimize(graph);
 		}
 		if (level >= 2)
@@ -282,6 +282,7 @@ namespace ag
 		static const ConvNextPVraw convnext_pv_raw;
 		static const ConvNextPVQraw convnext_pvq_raw;
 		static const ConvNextPVQMraw convnext_pvqm_raw;
+		static const ConvNextMoE_PVQMraw convnext_moe_pvqm_raw;
 
 		static const FastNetwork fast_network;
 		static const FastPolicy fast_policy;
@@ -331,6 +332,8 @@ namespace ag
 			return std::make_unique<ConvNextPVQraw>();
 		if (architecture == convnext_pvqm_raw.name())
 			return std::make_unique<ConvNextPVQMraw>();
+		if (architecture == convnext_moe_pvqm_raw.name())
+			return std::make_unique<ConvNextMoE_PVQMraw>();
 
 		if (architecture == fast_network.name())
 			return std::make_unique<FastNetwork>();
