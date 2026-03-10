@@ -29,7 +29,6 @@
 #include <minml/layers/MixtureOfExperts.hpp>
 #include <minml/layers/MultiHeadAttention.hpp>
 #include <minml/layers/GlobalAveragePooling.hpp>
-#include <minml/layers/GatherTopK.hpp>
 #include <minml/layers/LearnableGlobalPooling.hpp>
 #include <minml/layers/Dense.hpp>
 #include <minml/layers/DepthToSpace.hpp>
@@ -37,13 +36,16 @@
 #include <minml/layers/Add.hpp>
 #include <minml/layers/Multiply.hpp>
 #include <minml/layers/BatchNormalization.hpp>
+#include <minml/layers/GatherTokens.hpp>
 #include <minml/layers/LayerNormalization.hpp>
+#include <minml/layers/LearnableScaling.hpp>
 #include <minml/layers/PositionalEncoding.hpp>
 #include <minml/layers/RMSNormalization.hpp>
 #include <minml/layers/Router.hpp>
-#include <minml/layers/ScatterTopK.hpp>
+#include <minml/layers/ScatterTokens.hpp>
 #include <minml/layers/SpaceToDepth.hpp>
 #include <minml/layers/Softmax.hpp>
+#include <minml/layers/StochasticDepth.hpp>
 #include <minml/layers/SpatialScaling.hpp>
 #include <minml/layers/WindowPartitioning.hpp>
 #include <minml/layers/WindowMerging.hpp>
@@ -1154,28 +1156,21 @@ namespace ag
 
 		auto x = graph.addInput(input_shape);
 		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
-		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
+		x = graph.add(ml::BatchNormalization("relu"), x);
 
 		for (int i = 0; i < blocks; i++)
 		{
 //			if ((i != 0) and i % 4 == 0)
 //				x = graph.add(ml::RMSNormalization(false), x);
 
-//			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
-//			y = graph.add(ml::BatchNormalization().useGamma(false), y);
-//
-//			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
-//			y = graph.add(ml::Conv2D(filters, 1), y);
-//			x = graph.add(ml::BatchNormalization().useGamma(false), { y, x });
-
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
-			x = graph.add(ml::BatchNormalization().useGamma(false), { y, x });
+			x = graph.add(ml::BatchNormalization(), { y, x });
 
 			y = graph.add(ml::Conv2D(filters, 1, "relu"), x);
-			y = graph.add(ml::Conv2D(filters, 1), y);
-			x = graph.add(ml::BatchNormalization().useGamma(false), { y, x });
+			y = graph.add(ml::Conv2D(filters, 1).useBias(false), y);
+			x = graph.add(ml::BatchNormalization(), { y, x });
 
-// squeeze-and-excitation module
+			// squeeze-and-excitation module
 			auto z = graph.add(ml::GlobalAveragePooling().quantizable(false), x);
 			z = graph.add(ml::Dense(filters, "relu").quantizable(false), z);
 			z = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), z);
@@ -1242,27 +1237,28 @@ namespace ag
 		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 8 });
 		const int blocks = trainingOptions.blocks;
 		const int filters = trainingOptions.filters;
-		const int tokens = game_config.rows * game_config.cols;
-		const int experts = 4;
-		const float capacity_factor = 2.0f;
-
-		const int top_k = capacity_factor * tokens / experts + 0.5f;
+		const int experts = 1;
+		const float capacity_factor = 1.0f;
 
 		auto x = graph.addInput(input_shape);
 		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
-		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
+		x = graph.add(ml::BatchNormalization("relu"), x);
 
 		for (int i = 0; i < blocks; i++)
 		{
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
-			x = graph.add(ml::BatchNormalization().useGamma(false), { y, x });
+			x = graph.add(ml::BatchNormalization(), { y, x });
 
-			auto r = graph.add(ml::Router(experts), x);
-			auto moe = graph.add(ml::GatherTopK(top_k), { x, r });
+			// router
+			auto r = graph.add(ml::Conv2D(experts, 1).useBias(false), x);
+			r = graph.add(ml::Router(ml::RoutingAlgorithm::HASH, capacity_factor), r);
+
+			// actual mixture of experts
+			auto moe = graph.add(ml::GatherTokens(), { x, r });
 			moe = graph.add(ml::MixtureOfExperts(experts, filters, "relu"), moe);
 			moe = graph.add(ml::MixtureOfExperts(experts, filters), moe);
-			moe = graph.add(ml::ScatterTopK(), { moe, r });
-			x = graph.add(ml::BatchNormalization().useGamma(false), { moe, x });
+			moe = graph.add(ml::ScatterTokens(game_config.rows, game_config.cols), { moe, r });
+			x = graph.add(ml::BatchNormalization(), { moe, x });
 
 			// squeeze-and-excitation module
 			auto z = graph.add(ml::GlobalAveragePooling().quantizable(false), x);

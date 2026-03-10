@@ -14,14 +14,18 @@
 #include <minml/layers/DepthwiseConv2D.hpp>
 #include <minml/layers/Add.hpp>
 #include <minml/layers/BatchNormalization.hpp>
+#include <minml/layers/GatherTokens.hpp>
 #include <minml/layers/GlobalAveragePooling.hpp>
 #include <minml/layers/LearnableGlobalPooling.hpp>
+#include <minml/layers/MixtureOfExperts.hpp>
 #include <minml/layers/Softmax.hpp>
 #include <minml/layers/SqueezeAndExcitation.hpp>
 #include <minml/layers/SpatialScaling.hpp>
 #include <minml/layers/PositionalEncoding.hpp>
 #include <minml/layers/RMSNormalization.hpp>
+#include <minml/layers/Router.hpp>
 #include <minml/layers/MultiHeadAttention.hpp>
+#include <minml/layers/ScatterTokens.hpp>
 
 namespace ag
 {
