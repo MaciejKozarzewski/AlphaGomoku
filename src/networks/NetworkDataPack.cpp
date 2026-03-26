@@ -117,6 +117,7 @@ namespace ag
 		const ml::Shape value_shape( { batchSize, 3 });
 		const ml::Shape action_values_shape( { batchSize, cfg.rows, cfg.cols, 3 });
 		const ml::Shape moves_left_shape( { batchSize, cfg.rows * cfg.cols });
+		const ml::Shape reward_shape( { batchSize, 1 });
 
 		input_on_cpu = ml::Tensor(input_shape, ml::DataType::INT32, ml::Device::cpu());
 
@@ -125,6 +126,7 @@ namespace ag
 		outputs_on_cpu.insert('q', ml::Tensor(action_values_shape, dtype, ml::Device::cpu()));
 		outputs_on_cpu.insert('m', ml::Tensor(moves_left_shape, dtype, ml::Device::cpu()));
 		outputs_on_cpu.insert('s', ml::Tensor(policy_shape, dtype, ml::Device::cpu())); // soft policy
+		outputs_on_cpu.insert('r', ml::Tensor(reward_shape, dtype, ml::Device::cpu())); // reward
 	}
 	void NetworkDataPack::packInputData(int index, const matrix<Sign> &board, Sign signToMove)
 	{
@@ -151,7 +153,7 @@ namespace ag
 		float sum_p = 0.0f;
 		for (int i = 0; i < target.size(); i++)
 		{
-			tmp[i] = std::exp(log_eps(target[i]) / 4.0f);
+			tmp[i] = std::pow(target[i], 1.0f / 4.0f);
 			sum_p += tmp[i];
 		}
 		for (int i = 0; i < target.size(); i++)
@@ -164,6 +166,11 @@ namespace ag
 		const float3 tmp = to_float3(target);
 		ml::Tensor &tensor = getTarget('v');
 		ml::convertType(context_on_cpu, get_pointer(tensor, { index, 0 }), tensor.dtype(), &tmp, ml::DataType::FLOAT32, 3);
+
+		// reward head
+		ml::Tensor &reward = getTarget('r');
+		const float r = 2.0f * target.getExpectation() - 1.0f;
+		ml::convertType(context_on_cpu, get_pointer(reward, { index, 0 }), reward.dtype(), &r, ml::DataType::FLOAT32, 1);
 	}
 	void NetworkDataPack::packActionValuesTarget(int index, const matrix<Value> &target, const matrix<float> &mask)
 	{

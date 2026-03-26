@@ -1224,7 +1224,7 @@ namespace ag
 	}
 	std::string ConvNextPVQMSraw::getOutputConfig() const
 	{
-		return "pvqms";
+		return "pvqmsr";
 	}
 	std::string ConvNextPVQMSraw::name() const
 	{
@@ -1266,13 +1266,13 @@ namespace ag
 		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
 		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
 		auto hp = graph.add(ml::Conv2D(1, 1), p);
-		hp = graph.add(ml::Softmax( { 1, 2, 3 }), hp); // hard policy loss (T=1)
+		hp = graph.add(ml::Softmax( { 1, 2, 3 }), hp); // hard policy (T=1)
 		graph.addOutput(hp);
 
 		// value head
-		auto v = graph.add(ml::Conv2D(filters, 1, "relu"), x);
-		v = graph.add(ml::GlobalAveragePooling(), v);
-		v = graph.add(ml::Dense(256).useBias(false), v);
+		auto common_v = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+		common_v = graph.add(ml::GlobalAveragePooling(), common_v);
+		auto v = graph.add(ml::Dense(256).useBias(false), common_v);
 		v = graph.add(ml::BatchNormalization("relu"), v);
 		v = graph.add(ml::Dense(3), v);
 		v = graph.add(ml::Softmax( { 1 }), v);
@@ -1296,7 +1296,13 @@ namespace ag
 
 		auto sp = graph.add(ml::Conv2D(1, 1), p);
 		sp = graph.add(ml::Softmax( { 1, 2, 3 }), sp);
-		graph.addOutput(sp, ml::CrossEntropyLoss(), 8.0f); // soft policy loss (T=4)
+		graph.addOutput(sp, ml::CrossEntropyLoss(), 8.0f); // soft policy (T=4)
+
+		auto r = graph.add(ml::Dense(256).useBias(false), common_v);
+		r = graph.add(ml::BatchNormalization("relu"), r);
+		r = graph.add(ml::Dense(1, "tanh"), r);
+		graph.addOutput(r, ml::MeanSquaredLoss(), 1.0f); // reward prediction
+
 
 		graph.init();
 		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));
