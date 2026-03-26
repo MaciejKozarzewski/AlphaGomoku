@@ -24,6 +24,7 @@
 #include <minml/layers/AbsolutePositionalEncoding.hpp>
 #include <minml/layers/AveragePooling.hpp>
 #include <minml/layers/ChannelScaling.hpp>
+#include <minml/layers/ChannelShuffle.hpp>
 #include <minml/layers/ChannelAveragePooling.hpp>
 #include <minml/layers/Conv2D.hpp>
 #include <minml/layers/MixtureOfExperts.hpp>
@@ -1160,9 +1161,6 @@ namespace ag
 
 		for (int i = 0; i < blocks; i++)
 		{
-//			if ((i != 0) and i % 4 == 0)
-//				x = graph.add(ml::RMSNormalization(false), x);
-
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
 			x = graph.add(ml::BatchNormalization(), { y, x });
 
@@ -1220,6 +1218,91 @@ namespace ag
 		graph.moveTo(trainingOptions.device_config.device);
 	}
 
+	ConvNextPVQMSraw::ConvNextPVQMSraw() noexcept :
+			AGNetwork()
+	{
+	}
+	std::string ConvNextPVQMSraw::getOutputConfig() const
+	{
+		return "pvqms";
+	}
+	std::string ConvNextPVQMSraw::name() const
+	{
+		return "ConvNextPVQMSraw";
+	}
+	void ConvNextPVQMSraw::create_network(const TrainingConfig &trainingOptions)
+	{
+		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 8 });
+		const int blocks = trainingOptions.blocks;
+		const int filters = trainingOptions.filters;
+
+		auto x = graph.addInput(input_shape);
+		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
+		x = graph.add(ml::BatchNormalization("relu"), x);
+
+		for (int i = 0; i < blocks; i++)
+		{
+			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
+			x = graph.add(ml::BatchNormalization(), { y, x });
+
+			y = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+			y = graph.add(ml::Conv2D(filters, 1).useBias(false), y);
+			x = graph.add(ml::BatchNormalization(), { y, x });
+
+			// squeeze-and-excitation module
+			auto z = graph.add(ml::GlobalAveragePooling().quantizable(false), x);
+			z = graph.add(ml::Dense(filters, "relu").quantizable(false), z);
+			z = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), z);
+			x = graph.add(ml::ChannelScaling(), { x, z });
+
+			// spatial scaling module
+//			auto t = graph.add(ml::ChannelAveragePooling().quantizable(false), x);
+//			t = graph.add(ml::Dense(filters, "relu").quantizable(false), t);
+//			t = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), t);
+//			x = graph.add(ml::SpatialScaling(), { x, t });
+		}
+
+		// policy head
+		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
+		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
+		auto hp = graph.add(ml::Conv2D(1, 1), p);
+		hp = graph.add(ml::Softmax( { 1, 2, 3 }), hp); // hard policy loss (T=1)
+		graph.addOutput(hp);
+
+		// value head
+		auto v = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+		v = graph.add(ml::GlobalAveragePooling(), v);
+		v = graph.add(ml::Dense(256).useBias(false), v);
+		v = graph.add(ml::BatchNormalization("relu"), v);
+		v = graph.add(ml::Dense(3), v);
+		v = graph.add(ml::Softmax( { 1 }), v);
+		graph.addOutput(v);
+
+		// action values head
+		auto q = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
+		q = graph.add(ml::BatchNormalization("relu").useGamma(false), q);
+		q = graph.add(ml::Conv2D(3, 1), q);
+		q = graph.add(ml::Softmax( { 3 }), q);
+		graph.addOutput(q);
+
+		// moves left head
+		auto mlh = graph.add(ml::Conv2D(32, 1, "relu"), x);
+		mlh = graph.add(ml::GlobalAveragePooling(), mlh);
+		mlh = graph.add(ml::Dense(128).useBias(false), mlh);
+		mlh = graph.add(ml::BatchNormalization("relu"), mlh);
+		mlh = graph.add(ml::Dense(game_config.rows * game_config.cols), mlh);
+		mlh = graph.add(ml::Softmax( { 1 }), mlh);
+		graph.addOutput(mlh, ml::CrossEntropyLoss(), 0.25f);
+
+		auto sp = graph.add(ml::Conv2D(1, 1), p);
+		sp = graph.add(ml::Softmax( { 1, 2, 3 }), sp);
+		graph.addOutput(sp, ml::CrossEntropyLoss(), 8.0f); // soft policy loss (T=4)
+
+		graph.init();
+		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));
+		graph.moveTo(trainingOptions.device_config.device);
+	}
+
 	ConvNextMoE_PVQMraw::ConvNextMoE_PVQMraw() noexcept :
 			AGNetwork()
 	{
@@ -1237,8 +1320,8 @@ namespace ag
 		const ml::Shape input_shape( { trainingOptions.device_config.batch_size, game_config.rows, game_config.cols, 8 });
 		const int blocks = trainingOptions.blocks;
 		const int filters = trainingOptions.filters;
-		const int experts = 1;
-		const float capacity_factor = 1.0f;
+		const int experts = trainingOptions.patch_size;
+		const float capacity_factor = 4.0f;
 
 		auto x = graph.addInput(input_shape);
 		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
@@ -1249,16 +1332,31 @@ namespace ag
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
 			x = graph.add(ml::BatchNormalization(), { y, x });
 
-			// router
-			auto r = graph.add(ml::Conv2D(experts, 1).useBias(false), x);
-			r = graph.add(ml::Router(ml::RoutingAlgorithm::HASH, capacity_factor), r);
+			if (i != (blocks - 1))
+			{
+				y = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+				y = graph.add(ml::Conv2D(filters, 1).useBias(false), y);
+				x = graph.add(ml::BatchNormalization(), { y, x });
+			}
+			else
+			{
+				const int hidden_dim = filters;
+				// shared expert
+//				auto s = graph.add(ml::Conv2D(hidden_dim, 1, "relu"), x);
+//				s = graph.add(ml::Conv2D(filters, 1), s);
 
-			// actual mixture of experts
-			auto moe = graph.add(ml::GatherTokens(), { x, r });
-			moe = graph.add(ml::MixtureOfExperts(experts, filters, "relu"), moe);
-			moe = graph.add(ml::MixtureOfExperts(experts, filters), moe);
-			moe = graph.add(ml::ScatterTokens(game_config.rows, game_config.cols), { moe, r });
-			x = graph.add(ml::BatchNormalization(), { moe, x });
+// router
+				auto r = graph.add(ml::Conv2D(experts, 1).useBias(false), x);
+				r = graph.add(ml::Router(ml::RoutingAlgorithm::TOKEN_CHOICE, capacity_factor, 0.1f), r);
+
+				auto moe = graph.add(ml::GatherTokens(), { x, r });
+				moe = graph.add(ml::MixtureOfExperts(experts, hidden_dim, "relu"), moe);
+				moe = graph.add(ml::MixtureOfExperts(experts, filters), moe);
+				moe = graph.add(ml::ScatterTokens(game_config.rows, game_config.cols), { moe, r });
+
+//				moe = graph.add(ml::Add(), { moe, s });
+				x = graph.add(ml::BatchNormalization(), { moe, x });
+			}
 
 			// squeeze-and-excitation module
 			auto z = graph.add(ml::GlobalAveragePooling().quantizable(false), x);

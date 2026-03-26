@@ -8,6 +8,7 @@
 #include <alphagomoku/networks/NetworkDataPack.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/search/Value.hpp>
 #include <alphagomoku/game/Board.hpp>
 #include <alphagomoku/patterns/PatternCalculator.hpp>
@@ -60,21 +61,70 @@ namespace
 
 namespace ag
 {
+	void TensorMap::clear()
+	{
+		m_data.clear();
+	}
+	bool TensorMap::is_empty() const noexcept
+	{
+		return size() == 0;
+	}
+	int TensorMap::size() const noexcept
+	{
+		return static_cast<int>(m_data.size());
+	}
+	ml::Tensor& TensorMap::operator[](int idx)
+	{
+		return m_data.at(idx).second;
+	}
+	char TensorMap::key(int idx) const
+	{
+		return m_data.at(idx).first;
+	}
+	bool TensorMap::contains_key(char key) const noexcept
+	{
+		for (size_t i = 0; i < m_data.size(); i++)
+			if (m_data[i].first == key)
+				return true;
+		return false;
+	}
+	void TensorMap::insert(char key, const ml::Tensor &t)
+	{
+		if (contains_key(key))
+			throw std::logic_error("key type '" + std::string(1, key) + "' already in map");
+		m_data.emplace_back(key, t);
+	}
+	const ml::Tensor& TensorMap::get(char key) const
+	{
+		for (size_t i = 0; i < m_data.size(); i++)
+			if (m_data[i].first == key)
+				return m_data[i].second;
+		throw std::logic_error("unknown key type '" + std::string(1, key) + "'");
+	}
+	ml::Tensor& TensorMap::get(char key)
+	{
+		for (size_t i = 0; i < m_data.size(); i++)
+			if (m_data[i].first == key)
+				return m_data[i].second;
+		throw std::logic_error("unknown key type '" + std::string(1, key) + "'");
+	}
+
 	NetworkDataPack::NetworkDataPack(const GameConfig &cfg, int batchSize, ml::DataType dtype) :
 			game_config(cfg)
 	{
 		const ml::Shape input_shape( { batchSize, cfg.rows, cfg.cols, 1 });
 		const ml::Shape policy_shape( { batchSize, cfg.rows * cfg.cols });
 		const ml::Shape value_shape( { batchSize, 3 });
-		const ml::Shape moves_left_shape( { batchSize, cfg.rows * cfg.cols });
 		const ml::Shape action_values_shape( { batchSize, cfg.rows, cfg.cols, 3 });
+		const ml::Shape moves_left_shape( { batchSize, cfg.rows * cfg.cols });
 
 		input_on_cpu = ml::Tensor(input_shape, ml::DataType::INT32, ml::Device::cpu());
 
-		outputs_on_cpu.emplace_back(policy_shape, dtype, ml::Device::cpu());
-		outputs_on_cpu.emplace_back(value_shape, dtype, ml::Device::cpu());
-		outputs_on_cpu.emplace_back(moves_left_shape, dtype, ml::Device::cpu());
-		outputs_on_cpu.emplace_back(action_values_shape, dtype, ml::Device::cpu());
+		outputs_on_cpu.insert('p', ml::Tensor(policy_shape, dtype, ml::Device::cpu()));
+		outputs_on_cpu.insert('v', ml::Tensor(value_shape, dtype, ml::Device::cpu()));
+		outputs_on_cpu.insert('q', ml::Tensor(action_values_shape, dtype, ml::Device::cpu()));
+		outputs_on_cpu.insert('m', ml::Tensor(moves_left_shape, dtype, ml::Device::cpu()));
+		outputs_on_cpu.insert('s', ml::Tensor(policy_shape, dtype, ml::Device::cpu())); // soft policy
 	}
 	void NetworkDataPack::packInputData(int index, const matrix<Sign> &board, Sign signToMove)
 	{
@@ -93,6 +143,20 @@ namespace ag
 		assert(0 <= index && index < getBatchSize());
 		ml::Tensor &tensor = getTarget('p');
 		ml::convertType(context_on_cpu, get_pointer(tensor, { index, 0 }), tensor.dtype(), target.data(), ml::DataType::FLOAT32, target.size());
+
+		// now pack soft policy target produced by setting T=4
+		ml::Tensor &soft_policy = getTarget('s');
+		workspace.resize(game_config.rows * game_config.cols);
+		float *tmp = reinterpret_cast<float*>(workspace.data());
+		float sum_p = 0.0f;
+		for (int i = 0; i < target.size(); i++)
+		{
+			tmp[i] = std::exp(log_eps(target[i]) / 4.0f);
+			sum_p += tmp[i];
+		}
+		for (int i = 0; i < target.size(); i++)
+			tmp[i] /= sum_p;
+		ml::convertType(context_on_cpu, get_pointer(soft_policy, { index, 0 }), soft_policy.dtype(), tmp, ml::DataType::FLOAT32, target.size());
 	}
 	void NetworkDataPack::packValueTarget(int index, Value target)
 	{
@@ -168,14 +232,14 @@ namespace ag
 		if (not input_on_cpu.isPageLocked())
 		{
 			input_on_cpu.pageLock();
-			for (size_t i = 0; i < outputs_on_cpu.size(); i++)
-				outputs_on_cpu.at(i).pageLock();
+			for (int i = 0; i < outputs_on_cpu.size(); i++)
+				outputs_on_cpu[i].pageLock();
 
-			for (size_t i = 0; i < targets_on_cpu.size(); i++)
-				targets_on_cpu.at(i).pageLock();
+			for (int i = 0; i < targets_on_cpu.size(); i++)
+				targets_on_cpu[i].pageLock();
 
-			for (size_t i = 0; i < masks_on_cpu.size(); i++)
-				masks_on_cpu.at(i).pageLock();
+			for (int i = 0; i < masks_on_cpu.size(); i++)
+				masks_on_cpu[i].pageLock();
 		}
 	}
 	ml::Tensor& NetworkDataPack::getInput()
@@ -188,103 +252,31 @@ namespace ag
 	}
 	ml::Tensor& NetworkDataPack::getOutput(char c)
 	{
-		switch (c)
-		{
-			case 'p':
-				return outputs_on_cpu.at(0);
-			case 'v':
-				return outputs_on_cpu.at(1);
-			case 'm':
-				return outputs_on_cpu.at(2);
-			case 'q':
-				return outputs_on_cpu.at(3);
-			default:
-				throw std::logic_error("unknown output type '" + std::string(1, c) + "'");
-		}
+		return outputs_on_cpu.get(c);
 	}
 	const ml::Tensor& NetworkDataPack::getOutput(char c) const
 	{
-		switch (c)
-		{
-			case 'p':
-				return outputs_on_cpu.at(0);
-			case 'v':
-				return outputs_on_cpu.at(1);
-			case 'm':
-				return outputs_on_cpu.at(2);
-			case 'q':
-				return outputs_on_cpu.at(3);
-			default:
-				throw std::logic_error("unknown output type '" + std::string(1, c) + "'");
-		}
+		return outputs_on_cpu.get(c);
 	}
 	ml::Tensor& NetworkDataPack::getTarget(char c)
 	{
-		if (targets_on_cpu.empty())
+		if (targets_on_cpu.is_empty())
 			allocate_target_tensors();
-		switch (c)
-		{
-			case 'p':
-				return targets_on_cpu.at(0);
-			case 'v':
-				return targets_on_cpu.at(1);
-			case 'm':
-				return targets_on_cpu.at(2);
-			case 'q':
-				return targets_on_cpu.at(3);
-			default:
-				throw std::logic_error("unknown target type '" + std::string(1, c) + "'");
-		}
+		return targets_on_cpu.get(c);
 	}
 	const ml::Tensor& NetworkDataPack::getTarget(char c) const
 	{
-		switch (c)
-		{
-			case 'p':
-				return targets_on_cpu.at(0);
-			case 'v':
-				return targets_on_cpu.at(1);
-			case 'm':
-				return targets_on_cpu.at(2);
-			case 'q':
-				return targets_on_cpu.at(3);
-			default:
-				throw std::logic_error("unknown target type '" + std::string(1, c) + "'");
-		}
+		return targets_on_cpu.get(c);
 	}
 	ml::Tensor& NetworkDataPack::getMask(char c)
 	{
-		if (masks_on_cpu.empty())
+		if (masks_on_cpu.is_empty())
 			allocate_mask_tensors();
-		switch (c)
-		{
-			case 'p':
-				return masks_on_cpu.at(0);
-			case 'v':
-				return masks_on_cpu.at(1);
-			case 'm':
-				return masks_on_cpu.at(2);
-			case 'q':
-				return masks_on_cpu.at(3);
-			default:
-				throw std::logic_error("unknown mask type '" + std::string(1, c) + "'");
-		}
+		return masks_on_cpu.get(c);
 	}
 	const ml::Tensor& NetworkDataPack::getMask(char c) const
 	{
-		switch (c)
-		{
-			case 'p':
-				return masks_on_cpu.at(0);
-			case 'v':
-				return masks_on_cpu.at(1);
-			case 'm':
-				return masks_on_cpu.at(2);
-			case 'q':
-				return masks_on_cpu.at(3);
-			default:
-				throw std::logic_error("unknown mask type '" + std::string(1, c) + "'");
-		}
+		return masks_on_cpu.get(c);
 	}
 	GameConfig NetworkDataPack::getGameConfig() const noexcept
 	{
@@ -309,14 +301,14 @@ namespace ag
 	void NetworkDataPack::allocate_target_tensors()
 	{
 		targets_on_cpu.clear();
-		for (size_t i = 0; i < outputs_on_cpu.size(); i++)
-			targets_on_cpu.push_back(ml::zeros_like(outputs_on_cpu.at(i)));
+		for (int i = 0; i < outputs_on_cpu.size(); i++)
+			targets_on_cpu.insert(outputs_on_cpu.key(i), ml::zeros_like(outputs_on_cpu[i]));
 	}
 	void NetworkDataPack::allocate_mask_tensors()
 	{
 		masks_on_cpu.clear();
-		for (size_t i = 0; i < outputs_on_cpu.size(); i++)
-			masks_on_cpu.push_back(ml::ones_like(outputs_on_cpu.at(i)));
+		for (int i = 0; i < outputs_on_cpu.size(); i++)
+			masks_on_cpu.insert(outputs_on_cpu.key(i), ml::ones_like(outputs_on_cpu[i]));
 	}
 
 	std::vector<float> getAccuracy(int batchSize, const NetworkDataPack &pack, int top_k)

@@ -22,8 +22,7 @@
 namespace ml
 {
 	class Tensor;
-	enum class DataType
-	;
+	enum class DataType;
 } /* namespace ml */
 
 namespace ag
@@ -34,15 +33,30 @@ namespace ag
 
 namespace ag
 {
+	class TensorMap
+	{
+			std::vector<std::pair<char, ml::Tensor>> m_data;
+		public:
+			void clear();
+			bool is_empty() const noexcept;
+			int size() const noexcept;
+			ml::Tensor& operator[](int idx);
+			char key(int idx) const;
+			bool contains_key(char key) const noexcept;
+			void insert(char key, const ml::Tensor &t);
+			const ml::Tensor& get(char key) const;
+			ml::Tensor& get(char key);
+	};
+
 	class NetworkDataPack
 	{
 			GameConfig game_config;
 			ml::Context context_on_cpu;
 
 			ml::Tensor input_on_cpu;
-			std::vector<ml::Tensor> outputs_on_cpu;
-			std::vector<ml::Tensor> targets_on_cpu;
-			std::vector<ml::Tensor> masks_on_cpu;
+			TensorMap outputs_on_cpu;
+			TensorMap targets_on_cpu;
+			TensorMap masks_on_cpu;
 
 			std::unique_ptr<PatternCalculator> pattern_calculator; // lazily allocated on first use
 			NNInputFeatures input_features; // same as above

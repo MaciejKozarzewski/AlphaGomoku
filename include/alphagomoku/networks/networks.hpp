@@ -209,6 +209,16 @@ namespace ag
 			void create_network(const TrainingConfig &trainingOptions);
 	};
 
+	class ConvNextPVQMSraw: public AGNetwork
+	{
+		public:
+			ConvNextPVQMSraw() noexcept;
+			std::string getOutputConfig() const;
+			std::string name() const;
+		protected:
+			void create_network(const TrainingConfig &trainingOptions);
+	};
+
 	class ConvNextMoE_PVQMraw: public AGNetwork
 	{
 		public:

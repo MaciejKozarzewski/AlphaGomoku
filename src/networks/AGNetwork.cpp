@@ -282,6 +282,7 @@ namespace ag
 		static const ConvNextPVraw convnext_pv_raw;
 		static const ConvNextPVQraw convnext_pvq_raw;
 		static const ConvNextPVQMraw convnext_pvqm_raw;
+		static const ConvNextPVQMSraw convnext_pvqms_raw;
 		static const ConvNextMoE_PVQMraw convnext_moe_pvqm_raw;
 
 		static const FastNetwork fast_network;
@@ -332,6 +333,8 @@ namespace ag
 			return std::make_unique<ConvNextPVQraw>();
 		if (architecture == convnext_pvqm_raw.name())
 			return std::make_unique<ConvNextPVQMraw>();
+		if (architecture == convnext_pvqms_raw.name())
+			return std::make_unique<ConvNextPVQMSraw>();
 		if (architecture == convnext_moe_pvqm_raw.name())
 			return std::make_unique<ConvNextMoE_PVQMraw>();
 
