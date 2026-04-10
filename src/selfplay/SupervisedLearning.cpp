@@ -70,9 +70,9 @@ namespace
 namespace ag
 {
 	SupervisedLearning::SupervisedLearning(const TrainingConfig &config) :
-			training_loss(6),
+			training_loss(10),
 			training_accuracy(5),
-			validation_loss(6),
+			validation_loss(10),
 			validation_accuracy(5),
 			config(config)
 	{

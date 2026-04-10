@@ -35,7 +35,6 @@ namespace ag
 			int moves_left = 0;
 			GameOutcome game_outcome = GameOutcome::UNKNOWN;
 			Move played_move;
-			Move last_move;
 			BitMask1D<uint16_t> flags;
 
 			SearchDataPack() noexcept = default;
