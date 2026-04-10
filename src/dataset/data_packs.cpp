@@ -36,6 +36,10 @@ namespace ag
 		}
 		minimax_value = rootNode.getValue();
 		minimax_score = rootNode.getScore();
+
+		flags[0] = rootNode.wasStaticallySolved();
+		flags[1] = rootNode.wasRecursivelySolved();
+		flags[2] = rootNode.mustDefend();
 	}
 	void SearchDataPack::clear()
 	{
@@ -49,13 +53,11 @@ namespace ag
 		moves_left = 0;
 		game_outcome = GameOutcome::UNKNOWN;
 		played_move = Move();
-		last_move = Move();
 		flags = BitMask1D<uint16_t>();
 	}
 	void SearchDataPack::print() const
 	{
 		std::cout << "Played move: " << played_move.toString() << '\n';
-		std::cout << "Last move: " << last_move.toString() << '\n';
 		std::cout << "Game outcome: " << toString(game_outcome) << '\n';
 		std::cout << "Minimax value: " << minimax_value.toString() << '\n';
 		std::cout << "Minimax score: " << minimax_score.toString() << '\n';

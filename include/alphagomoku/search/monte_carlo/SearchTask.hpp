@@ -57,6 +57,8 @@ namespace ag
 			GameConfig game_config;
 			Sign sign_to_move = Sign::NONE;
 			bool must_defend = false;
+			bool was_statically_solved = false;
+			bool was_recursively_solved = false;
 			bool was_processed_by_network = false; /**< flag indicating whether the task has been evaluated by neural network and can be used for edge generation */
 			bool was_processed_by_solver = false; /**< flag indicating whether the task has been evaluated by alpha-beta search and can be used for edge generation */
 			bool skip_edge_generation = false;
@@ -166,6 +168,14 @@ namespace ag
 			{
 				return must_defend;
 			}
+			bool wasStaticallySolved() const noexcept
+			{
+				return was_statically_solved;
+			}
+			bool wasRecursivelySolved() const noexcept
+			{
+				return was_recursively_solved;
+			}
 			const NNInputFeatures& getFeatures() const noexcept
 			{
 				return features;
@@ -227,6 +237,14 @@ namespace ag
 			void markAsDefensive() noexcept
 			{
 				must_defend = true;
+			}
+			void markAsStaticallySolved() noexcept
+			{
+				was_statically_solved = true;
+			}
+			void maskAsRecursivelySolved() noexcept
+			{
+				was_recursively_solved = true;
 			}
 
 			void setValue(Value v) noexcept

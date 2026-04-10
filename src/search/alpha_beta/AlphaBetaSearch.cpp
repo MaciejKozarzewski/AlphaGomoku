@@ -128,6 +128,10 @@ namespace ag
 		}
 		if (actions.must_defend)
 			task.markAsDefensive();
+		if (result.isProven())
+			task.maskAsRecursivelySolved();
+		if (node_counter <= 1)
+			task.markAsStaticallySolved();
 		task.markAsProcessedBySolver();
 
 //		if (result.score.getEval() ==  Score::min_value())

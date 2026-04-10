@@ -51,24 +51,42 @@ namespace ag
 		if (dataset == nullptr)
 			throw std::logic_error("Dataset is null. Most likely this Sampler was not initialized");
 		result.clear();
-		const int buffer_index = buffer_and_game_ordering.at(counter).first;
-		const int game_index = buffer_and_game_ordering.at(counter).second;
-		const int sample_index = randInt(dataset->getBuffer(buffer_index).getGameData(game_index).numberOfSamples());
+		bool found = false;
+		while (not found)
+		{
+			const int buffer_index = buffer_and_game_ordering.at(counter).first;
+			const int game_index = buffer_and_game_ordering.at(counter).second;
+			std::vector<int> move_order(dataset->getBuffer(buffer_index).getGameData(game_index).numberOfSamples());
+			std::iota(move_order.begin(), move_order.end(), 0);
+			std::random_shuffle(move_order.begin(), move_order.end());
+			for (size_t i = 0; i < move_order.size(); i++)
+			{
+				const int sample_index = move_order[i]; // randInt(dataset->getBuffer(buffer_index).getGameData(game_index).numberOfSamples());
 
-		const GameConfig cfg = dataset->getBuffer(buffer_index).getConfig();
-		search_data_pack = SearchDataPack(cfg.rows, cfg.cols);
-		dataset->getBuffer(buffer_index).getGameData(game_index).getSample(search_data_pack, sample_index);
-		prepare_training_data(result, search_data_pack);
+				const GameConfig cfg = dataset->getBuffer(buffer_index).getConfig();
+				search_data_pack = SearchDataPack(cfg.rows, cfg.cols);
+				dataset->getBuffer(buffer_index).getGameData(game_index).getSample(search_data_pack, sample_index);
+
+//				if (search_data_pack.flags[0] == false) // exclude statically provable positions
+//				if (search_data_pack.flags[1] == false) // exclude recursively provable positions
+				{
+					prepare_training_data(result, search_data_pack);
+					found = true;
+					break;
+				}
 
 //		buffer->getGameData(game_index)[sample_index].print();
 //		search_data_pack.print();
 //		result.print();
 
-		counter++;
-		if (counter >= buffer_and_game_ordering.size())
-		{
-			std::random_shuffle(buffer_and_game_ordering.begin(), buffer_and_game_ordering.end());
-			counter = 0;
+			}
+
+			counter++;
+			if (counter >= buffer_and_game_ordering.size())
+			{
+				std::random_shuffle(buffer_and_game_ordering.begin(), buffer_and_game_ordering.end());
+				counter = 0;
+			}
 		}
 	}
 

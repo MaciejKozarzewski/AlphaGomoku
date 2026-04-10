@@ -269,6 +269,7 @@ namespace ag
 
 			if (task.mustDefend() or (node_to_add->numberOfEdges() + node_to_add->getDepth()) == task.getBoard().size())
 				node_to_add->markAsFullyExpanded();
+			node_to_add->setAdditionaFlags(task.wasStaticallySolved(), task.wasRecursivelySolved(), task.mustDefend());
 			update_score(node_to_add);
 			task.setFinalNode(node_to_add);
 

@@ -36,6 +36,7 @@
 #include <minml/layers/DepthwiseConv2D.hpp>
 #include <minml/layers/Add.hpp>
 #include <minml/layers/Multiply.hpp>
+#include <minml/layers/Identity.hpp>
 #include <minml/layers/BatchNormalization.hpp>
 #include <minml/layers/GatherTokens.hpp>
 #include <minml/layers/LayerNormalization.hpp>
@@ -1162,9 +1163,8 @@ namespace ag
 		for (int i = 0; i < blocks; i++)
 		{
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
-			x = graph.add(ml::BatchNormalization(), { y, x });
-
-			y = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+			y = graph.add(ml::BatchNormalization(), y);
+			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
 			y = graph.add(ml::Conv2D(filters, 1).useBias(false), y);
 			x = graph.add(ml::BatchNormalization(), { y, x });
 
@@ -1224,7 +1224,7 @@ namespace ag
 	}
 	std::string ConvNextPVQMSraw::getOutputConfig() const
 	{
-		return "pvqmsr";
+		return "pvqms";
 	}
 	std::string ConvNextPVQMSraw::name() const
 	{
@@ -1243,9 +1243,8 @@ namespace ag
 		for (int i = 0; i < blocks; i++)
 		{
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
-			x = graph.add(ml::BatchNormalization(), { y, x });
-
-			y = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+			y = graph.add(ml::BatchNormalization(), y);
+			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
 			y = graph.add(ml::Conv2D(filters, 1).useBias(false), y);
 			x = graph.add(ml::BatchNormalization(), { y, x });
 
@@ -1255,7 +1254,7 @@ namespace ag
 			z = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), z);
 			x = graph.add(ml::ChannelScaling(), { x, z });
 
-			// spatial scaling module
+// spatial scaling module
 //			auto t = graph.add(ml::ChannelAveragePooling().quantizable(false), x);
 //			t = graph.add(ml::Dense(filters, "relu").quantizable(false), t);
 //			t = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), t);
@@ -1298,11 +1297,10 @@ namespace ag
 		sp = graph.add(ml::Softmax( { 1, 2, 3 }), sp);
 		graph.addOutput(sp, ml::CrossEntropyLoss(), 8.0f); // soft policy (T=4)
 
-		auto r = graph.add(ml::Dense(256).useBias(false), common_v);
-		r = graph.add(ml::BatchNormalization("relu"), r);
-		r = graph.add(ml::Dense(1, "tanh"), r);
-		graph.addOutput(r, ml::MeanSquaredLoss(), 1.0f); // reward prediction
-
+//		auto r = graph.add(ml::Dense(256).useBias(false), common_v);
+//		r = graph.add(ml::BatchNormalization("relu"), r);
+//		r = graph.add(ml::Dense(1, "tanh"), r);
+//		graph.addOutput(r, ml::MeanSquaredLoss(), 1.0f); // reward prediction
 
 		graph.init();
 		graph.setOptimizer(ml::RAdam(0.001f, 0.9f, 0.999f, trainingOptions.l2_regularization));

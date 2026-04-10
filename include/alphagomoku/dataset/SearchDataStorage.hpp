@@ -98,6 +98,13 @@ namespace ag
 			float visit_scale = 1.0f;
 			Score minimax_score;
 			uint16_t move_number = 0;
+
+			/*
+			 * bit	meaning
+			 * 0	was statically solved
+			 * 1	was recursively solved
+			 * 2	must defend
+			 */
 			BitMask1D<uint16_t> flags;
 		public:
 			SearchDataStorage_v201() noexcept = default;

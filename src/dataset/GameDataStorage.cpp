@@ -119,7 +119,6 @@ namespace ag
 				for (int i = 0; i < move_number; i++)
 					Board::putMove(result.board, played_moves.at(i));
 				result.moves_left = numberOfMoves() - move_number;
-				result.last_move = (move_number > 0) ? played_moves.at(move_number - 1) : Move();
 				break;
 			}
 			case 200:
@@ -130,7 +129,6 @@ namespace ag
 				for (int i = 0; i < move_number; i++)
 					Board::putMove(result.board, Move(played_moves_v2.at(i)));
 				result.moves_left = numberOfMoves() - move_number;
-				result.last_move = (move_number > 0) ? Move(played_moves_v2.at(move_number - 1)) : Move();
 				break;
 			}
 			case 201:
@@ -141,7 +139,6 @@ namespace ag
 				for (int i = 0; i < move_number; i++)
 					Board::putMove(result.board, Move(played_moves_v2.at(i)));
 				result.moves_left = numberOfMoves() - move_number;
-				result.last_move = (move_number > 0) ? Move(played_moves_v2.at(move_number - 1)) : Move();
 				break;
 			}
 			default:

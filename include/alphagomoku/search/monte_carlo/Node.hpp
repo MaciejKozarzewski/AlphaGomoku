@@ -16,15 +16,19 @@
 #include <string>
 #include <cinttypes>
 #include <cmath>
+#include <utility>
 #include <cassert>
 
 namespace ag
 {
 	class Node
 	{
-			static constexpr uint16_t is_owning = 0x0001u;
-			static constexpr uint16_t is_root = 0x0002u;
-			static constexpr uint16_t is_fully_expanded = 0x0004u;
+			static constexpr uint16_t is_owning = 1u << 0u;
+			static constexpr uint16_t is_root = 1u << 1u;
+			static constexpr uint16_t is_fully_expanded = 1u << 2u;
+			static constexpr uint16_t was_statically_solved = 1u << 3u;
+			static constexpr uint16_t was_recursively_solved = 1u << 4u;
+			static constexpr uint16_t must_defend = 1u << 5u;
 
 			Edge *edges = nullptr; // may be owning or not
 			Value value;
@@ -35,7 +39,7 @@ namespace ag
 			int16_t depth = 0;
 			int16_t virtual_loss = 0;
 			Sign sign_to_move = Sign::NONE;
-			uint16_t flags = 0; // from least significant bit: is_owning, is_root, is_fully_expanded
+			uint16_t flags = 0;
 
 			template<uint16_t F>
 			void set_flag(bool b) noexcept
@@ -302,6 +306,25 @@ namespace ag
 			void setSignToMove(Sign s) noexcept
 			{
 				sign_to_move = s;
+			}
+
+			void setAdditionaFlags(bool static_solve, bool recursive_solve, bool defensive) noexcept
+			{
+				set_flag<was_statically_solved>(static_solve);
+				set_flag<was_recursively_solved>(recursive_solve);
+				set_flag<must_defend>(defensive);
+			}
+			bool wasStaticallySolved() const noexcept
+			{
+				return get_flag<was_statically_solved>();
+			}
+			bool wasRecursivelySolved() const noexcept
+			{
+				return get_flag<was_recursively_solved>();
+			}
+			bool mustDefend() const noexcept
+			{
+				return get_flag<must_defend>();
 			}
 
 			void removeEdge(int index) noexcept

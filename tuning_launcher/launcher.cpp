@@ -8,7 +8,7 @@
 #include <alphagomoku/utils/configs.hpp>
 #include <alphagomoku/utils/ArgumentParser.hpp>
 #include <alphagomoku/utils/file_util.hpp>
-#include <alphagomoku/selfplay/EvaluationManager.hpp>
+#include <alphagomoku/evaluation/EvaluationManager.hpp>
 #include <alphagomoku/selfplay/NetworkLoader.hpp>
 
 #include <minml/utils/json.hpp>

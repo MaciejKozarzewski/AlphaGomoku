@@ -36,8 +36,8 @@ int main(int argc, char *argv[])
 	{	number_of_iterations = std::stoi(arg);});
 	ap.addArgument("path", [&](const std::string &arg)
 	{	path = arg;});
-	ap.addArgument("--data", [&](const std::string &arg)
-	{	data_path = arg;});
+//	ap.addArgument("--data", [&](const std::string &arg)
+//	{	data_path = arg;});
 	ap.parseArguments(argc, argv);
 
 	if (mode != "rl" and mode != "sl")
