@@ -48,6 +48,14 @@ namespace ag
 				unserializeVector(played_moves_v2, binary_data, offset);
 				break;
 			}
+			case 201:
+			{
+				search_data_v201.resize(number_of_states);
+				for (size_t i = 0; i < number_of_states; i++)
+					search_data_v201[i] = SearchDataStorage_v201(binary_data, offset);
+				unserializeVector(played_moves_v2, binary_data, offset);
+				break;
+			}
 			default:
 				throw std::logic_error("GameDataStorage() unsupported format " + std::to_string(format));
 		}
@@ -64,6 +72,7 @@ namespace ag
 	{
 		search_data.clear();
 		search_data_v2.clear();
+		search_data_v201.clear();
 		played_moves.clear();
 		played_moves_v2.clear();
 		game_outcome = GameOutcome::UNKNOWN;
@@ -76,6 +85,7 @@ namespace ag
 			case 100:
 				return played_moves.size();
 			case 200:
+			case 201:
 				return played_moves_v2.size();
 			default:
 				throw std::logic_error("GameDataStorage::numberOfMoves() unsupported format " + std::to_string(format));
@@ -89,6 +99,8 @@ namespace ag
 				return search_data.size();
 			case 200:
 				return search_data_v2.size();
+			case 201:
+				return search_data_v201.size();
 			default:
 				throw std::logic_error("GameDataStorage::numberOfSamples() unsupported format " + std::to_string(format));
 		}
@@ -107,6 +119,7 @@ namespace ag
 				for (int i = 0; i < move_number; i++)
 					Board::putMove(result.board, played_moves.at(i));
 				result.moves_left = numberOfMoves() - move_number;
+				result.last_move = (move_number > 0) ? played_moves.at(move_number - 1) : Move();
 				break;
 			}
 			case 200:
@@ -117,6 +130,18 @@ namespace ag
 				for (int i = 0; i < move_number; i++)
 					Board::putMove(result.board, Move(played_moves_v2.at(i)));
 				result.moves_left = numberOfMoves() - move_number;
+				result.last_move = (move_number > 0) ? Move(played_moves_v2.at(move_number - 1)) : Move();
+				break;
+			}
+			case 201:
+			{
+				search_data_v201.at(index).storeTo(result);
+				const int move_number = search_data_v201.at(index).getMoveNumber();
+				result.played_move = Move(played_moves_v2.at(move_number));
+				for (int i = 0; i < move_number; i++)
+					Board::putMove(result.board, Move(played_moves_v2.at(i)));
+				result.moves_left = numberOfMoves() - move_number;
+				result.last_move = (move_number > 0) ? Move(played_moves_v2.at(move_number - 1)) : Move();
 				break;
 			}
 			default:
@@ -131,6 +156,7 @@ namespace ag
 			case 100:
 				return played_moves.at(index);
 			case 200:
+			case 201:
 				return Move(played_moves_v2.at(index));
 			default:
 				throw std::logic_error("GameDataStorage::getMove() unsupported format " + std::to_string(format));
@@ -153,6 +179,10 @@ namespace ag
 				search_data_v2.push_back(SearchDataStorage_v2());
 				search_data_v2.back().loadFrom(sample);
 				break;
+			case 201:
+				search_data_v201.push_back(SearchDataStorage_v201());
+				search_data_v201.back().loadFrom(sample);
+				break;
 			default:
 				throw std::logic_error("GameDataStorage::addSample() unsupported format " + std::to_string(format));
 		}
@@ -169,6 +199,7 @@ namespace ag
 				played_moves.push_back(move);
 				break;
 			case 200:
+			case 201:
 				assert(std::find(played_moves_v2.begin(), played_moves_v2.end(), move.toShort()) == played_moves_v2.end()); // move must not be added twice
 				played_moves_v2.push_back(move.toShort());
 				break;
@@ -203,6 +234,14 @@ namespace ag
 				binary_data.save<uint32_t>(static_cast<uint32_t>(search_data_v2.size()));
 				for (size_t i = 0; i < search_data_v2.size(); i++)
 					search_data_v2[i].serialize(binary_data);
+				serializeVector(played_moves_v2, binary_data);
+				break;
+			}
+			case 201:
+			{
+				binary_data.save<uint32_t>(static_cast<uint32_t>(search_data_v201.size()));
+				for (size_t i = 0; i < search_data_v201.size(); i++)
+					search_data_v201[i].serialize(binary_data);
 				serializeVector(played_moves_v2, binary_data);
 				break;
 			}

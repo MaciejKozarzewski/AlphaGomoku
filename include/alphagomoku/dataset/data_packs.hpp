@@ -14,6 +14,7 @@
 #include <alphagomoku/search/Score.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 #include <alphagomoku/utils/configs.hpp>
+#include <alphagomoku/utils/BitMask.hpp>
 
 namespace ag
 {
@@ -34,6 +35,8 @@ namespace ag
 			int moves_left = 0;
 			GameOutcome game_outcome = GameOutcome::UNKNOWN;
 			Move played_move;
+			Move last_move;
+			BitMask1D<uint16_t> flags;
 
 			SearchDataPack() noexcept = default;
 			SearchDataPack(int rows, int cols);
@@ -53,6 +56,7 @@ namespace ag
 			Value minimax_target;
 			float moves_left = 0.0f;
 			Sign sign_to_move = Sign::NONE;
+			Move last_move;
 
 			TrainingDataPack() noexcept = default;
 			TrainingDataPack(int rows, int cols);

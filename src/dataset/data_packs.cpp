@@ -49,14 +49,18 @@ namespace ag
 		moves_left = 0;
 		game_outcome = GameOutcome::UNKNOWN;
 		played_move = Move();
+		last_move = Move();
+		flags = BitMask1D<uint16_t>();
 	}
 	void SearchDataPack::print() const
 	{
 		std::cout << "Played move: " << played_move.toString() << '\n';
+		std::cout << "Last move: " << last_move.toString() << '\n';
 		std::cout << "Game outcome: " << toString(game_outcome) << '\n';
 		std::cout << "Minimax value: " << minimax_value.toString() << '\n';
 		std::cout << "Minimax score: " << minimax_score.toString() << '\n';
 		std::cout << "Moves left: " << moves_left << '\n';
+		std::cout << "Flags: " << std::bitset<16>(flags.raw()).to_string() << '\n';
 		std::cout << "Board:\n" << Board::toString(board, true) << '\n';
 		std::cout << "Policy prior:\n" << Board::toString(board, policy_prior, true) << '\n';
 		std::cout << "Visit count:\n" << Board::toString(board, visit_count, true) << '\n';
@@ -105,10 +109,12 @@ namespace ag
 		minimax_target = Value();
 		moves_left = 0.0f;
 		sign_to_move = Sign::NONE;
+		last_move = Move();
 	}
 	void TrainingDataPack::print() const
 	{
 		std::cout << "Sign to move: " << toString(sign_to_move) << '\n';
+		std::cout << "Last move: " << last_move.toString() << '\n';
 		std::cout << "Value target: " << value_target.toString() << '\n';
 		std::cout << "Minimax target: " << minimax_target.toString() << '\n';
 		std::cout << "Moves left: " << moves_left << '\n';

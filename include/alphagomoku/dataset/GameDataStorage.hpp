@@ -28,10 +28,11 @@ namespace ag
 		private:
 			std::vector<SearchDataStorage> search_data;
 			std::vector<SearchDataStorage_v2> search_data_v2;
+			std::vector<SearchDataStorage_v201> search_data_v201;
 			std::vector<Move> played_moves;
 			std::vector<uint16_t> played_moves_v2;
 			GameOutcome game_outcome = GameOutcome::UNKNOWN;
-			int format = 200;
+			int format = 201;
 			int rows = 0;
 			int columns = 0;
 		public:

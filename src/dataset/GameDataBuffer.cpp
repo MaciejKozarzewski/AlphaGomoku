@@ -96,7 +96,7 @@ namespace ag
 	void GameDataBuffer::save(const std::string &path) const
 	{
 		Json json(JsonType::Object);
-		json["format"] = 200;
+		json["format"] = 201;
 		json["config"] = game_config.toJson();
 		json["offsets"] = Json(JsonType::Array);
 		SerializedObject so;
