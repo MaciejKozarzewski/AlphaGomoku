@@ -8,7 +8,7 @@
 #ifndef ALPHAGOMOKU_EVALUATION_EVALUATIONMANAGER_HPP_
 #define ALPHAGOMOKU_EVALUATION_EVALUATIONMANAGER_HPP_
 
-#include <alphagomoku/selfplay/EvaluationGame.hpp>
+#include <alphagomoku/evaluation/EvaluationThread.hpp>
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 
 #include <cinttypes>
@@ -25,31 +25,6 @@ namespace ag
 namespace ag
 {
 
-	class EvaluatorThread
-	{
-		private:
-			std::future<void> evaluator_future;
-			std::atomic<bool> is_running;
-			NNEvaluator first_nn_evaluator;
-			NNEvaluator second_nn_evaluator;
-			std::vector<std::unique_ptr<EvaluationGame>> evaluators;
-
-			std::mutex game_buffer_mutex;
-			std::vector<Game> game_buffer;
-			int games_to_play = 0;
-		public:
-			EvaluatorThread(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index);
-			void setFirstPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
-			void setSecondPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
-			void addToBuffer(const Game &game);
-			const std::vector<Game>& getGameBuffer() noexcept;
-			void generate(int numberOfGames);
-			void stop();
-			bool isFinished() const;
-		private:
-			void run();
-	};
-
 	class EvaluationManager
 	{
 		private:
@@ -57,7 +32,7 @@ namespace ag
 		public:
 			EvaluationManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions);
 
-			const std::vector<Game>& getGameBuffer(int threadIndex) const;
+			const std::vector<TwoMatch>& getGameBuffer(int threadIndex) const;
 			std::string getPGN() const;
 
 			void setFirstPlayer(int threadIndex, const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
@@ -68,8 +43,11 @@ namespace ag
 			int numberOfThreads() const noexcept;
 			int numberOfGames() const noexcept;
 			void generate(int numberOfGames);
+			void test(double eloDiff);
 		private:
+			bool are_all_evaluators_done() const;
 			void wait_for_finish() const;
+			void check_for_interruption();
 	};
 
 } /* namespace ag */

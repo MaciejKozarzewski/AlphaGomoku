@@ -118,7 +118,7 @@ namespace ag
 	{
 		return ag::getOutcome(game_config.rules, current_board, getLastMove(), game_config.draw_after);
 	}
-	void Game::setPlayers(const std::string &crossPlayerName, const std::string &circlePlayerName)
+	void Game::setPlayerNames(const std::string &crossPlayerName, const std::string &circlePlayerName)
 	{
 		cross_player_name = crossPlayerName;
 		circle_player_name = circlePlayerName;

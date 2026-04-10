@@ -9,7 +9,7 @@
 #define SELFPLAY_TRAININGMANAGER_HPP_
 
 #include <alphagomoku/dataset/Dataset.hpp>
-#include <alphagomoku/selfplay/EvaluationManager.hpp>
+#include <alphagomoku/evaluation/EvaluationManager.hpp>
 #include <alphagomoku/selfplay/GeneratorManager.hpp>
 #include <alphagomoku/selfplay/SupervisedLearning.hpp>
 

@@ -12,6 +12,8 @@
 #include <alphagomoku/game/Game.hpp>
 #include <alphagomoku/search/monte_carlo/Search.hpp>
 #include <alphagomoku/search/monte_carlo/Tree.hpp>
+#include <alphagomoku/evaluation/TwoMatch.hpp>
+#include <alphagomoku/evaluation/Player.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
 #include <alphagomoku/selfplay/OpeningGenerator.hpp>
 #include <alphagomoku/utils/matrix.hpp>
@@ -25,34 +27,6 @@ namespace ag
 namespace ag
 {
 
-	class Player
-	{
-		private:
-			NNEvaluator &nn_evaluator;
-			GameConfig game_config;
-			EdgeSelectorConfig final_move_selection_config;
-			Tree tree;
-			Search search;
-
-			std::string name;
-			Sign sign = Sign::NONE;
-			int simulations = 0;
-			int nn_evals = 0;
-		public:
-			Player(const GameConfig &gameOptions, const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
-			void setSign(Sign s) noexcept;
-			Sign getSign() const noexcept;
-			std::string getName() const;
-			void setBoard(const matrix<Sign> &board, Sign signToMove);
-			void selectSolveEvaluate();
-			void expandBackup();
-			bool isSearchOver();
-			AlphaBetaSearch& getSolver() noexcept;
-			NNEvaluator& getNNEvaluator() noexcept;
-			void scheduleSingleTask(SearchTask &task);
-			Move getMove() const noexcept;
-	};
-
 	class EvaluationGame
 	{
 		private:
@@ -64,17 +38,18 @@ namespace ag
 				GAMEPLAY_EXPAND_AND_BACKUP
 			};
 			EvaluatorThread &manager_thread;
-			Game game;
+			TwoMatch match;
 			OpeningGenerator opening_generator;
 
 			GameState state = GAME_NOT_STARTED;
 			bool use_opening = false;
 
 			std::vector<Move> opening;
-			bool has_stored_opening = false;
 
 			std::unique_ptr<Player> first_player;
 			std::unique_ptr<Player> second_player;
+			int currently_played_game = 0;
+
 		public:
 			EvaluationGame(GameConfig gameConfig, EvaluatorThread &manager, bool useOpening);
 			void clear();
@@ -83,7 +58,8 @@ namespace ag
 			bool prepareOpening();
 			void generate(int p = 3);
 		private:
-			Player& get_player() const noexcept;
+			Player& get_player() noexcept;
+			Game& get_game() noexcept;
 	};
 
 } /* namespace ag */
