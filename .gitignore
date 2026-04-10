@@ -21,6 +21,7 @@ extern/minml/*
 gmon.out
 test_file.*
 scripts/tmp_script.bat
+scripts/release*
 .project
 .cproject
 .settings/*

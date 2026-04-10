@@ -85,12 +85,12 @@ namespace
 		edges.erase(edges.begin() + idx, edges.end());
 	}
 
-	void initialize_edges(SearchTask &task) noexcept
+	void initialize_edges(SearchTask &task, float temperature = 1.0f) noexcept
 	{
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 		{
 			const Move m = edge->getMove();
-			edge->setPolicyPrior(task.getPolicy().at(m.row, m.col));
+			edge->setPolicyPrior(std::pow(task.getPolicy().at(m.row, m.col), 1.0 / temperature));
 			edge->setValue(task.getActionValues().at(m.row, m.col));
 			edge->setScore(task.getActionScores().at(m.row, m.col));
 		}
@@ -172,9 +172,10 @@ namespace
 
 namespace ag
 {
-	BaseGenerator::BaseGenerator(int maxEdges, float expansionThreshold, bool forceExpandRoot) :
+	BaseGenerator::BaseGenerator(int maxEdges, float expansionThreshold, float temperature, bool forceExpandRoot) :
 			max_edges(maxEdges),
 			expansion_threshold(expansionThreshold),
+			temperature(temperature),
 			force_expand_root(forceExpandRoot)
 	{
 	}
@@ -199,7 +200,7 @@ namespace ag
 					if (task.getBoard().at(row, col) == Sign::NONE)
 						task.addEdge(Move(row, col, task.getSignToMove()));
 		}
-		initialize_edges(task);
+		initialize_edges(task, temperature);
 		if (not task.wasProcessedBySolver())
 			check_terminal_conditions(task);
 		const bool expand_fully = (task.getRelativeDepth() == 0 and force_expand_root);
@@ -224,9 +225,10 @@ namespace ag
 		assert(task.getEdges().size() > 0);
 	}
 
-	UnifiedGenerator::UnifiedGenerator(int maxEdges, float expansionThreshold, bool forceExpandRoot) :
+	UnifiedGenerator::UnifiedGenerator(int maxEdges, float expansionThreshold, float temperature, bool forceExpandRoot) :
 			max_edges(maxEdges),
 			expansion_threshold(expansionThreshold),
+			temperature(temperature),
 			force_expand_root(forceExpandRoot)
 	{
 	}
@@ -245,7 +247,7 @@ namespace ag
 					if (task.getBoard().at(row, col) == Sign::NONE)
 						task.addEdge(Move(row, col, task.getSignToMove()));
 		}
-		initialize_edges(task);
+		initialize_edges(task, temperature);
 		if (not task.wasProcessedBySolver())
 			check_terminal_conditions(task);
 		const bool expand_fully = (task.getRelativeDepth() == 0 and force_expand_root);
@@ -283,7 +285,7 @@ namespace ag
 	{
 		assert(task.isReady());
 		if (task.getAbsoluteDepth() < balance_depth)
-			BaseGenerator(std::numeric_limits<int>::max(), 0.0f).generate(task);
+			BaseGenerator(std::numeric_limits<int>::max(), 0.0f, 1.0f).generate(task);
 		else
 			base_generator->generate(task);
 	}

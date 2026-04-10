@@ -57,7 +57,7 @@ namespace ag
 			bool isDraw() const;
 			GameOutcome getOutcome() const noexcept;
 
-			void setPlayers(const std::string &crossPlayerName, const std::string &circlePlayerName);
+			void setPlayerNames(const std::string &crossPlayerName, const std::string &circlePlayerName);
 			std::string generatePGN(bool fullGameHistory = false) const;
 
 			Json serialize(SerializedObject &binary_data) const;

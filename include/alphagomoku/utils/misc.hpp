@@ -19,10 +19,8 @@
 
 namespace ag
 {
-	enum class GameRules
-	;
-	enum class GameOutcome
-	;
+	enum class GameRules;
+	enum class GameOutcome;
 	struct GameConfig;
 }
 
@@ -37,6 +35,14 @@ namespace ag
 	bool is_aligned(const void *ptr) noexcept
 	{
 		return (reinterpret_cast<std::uintptr_t>(ptr) % alignof(T)) == 0;
+	}
+
+	template<typename T>
+	std::vector<T> join_vectors(const std::vector<T> &lhs, const std::vector<T> &rhs)
+	{
+		std::vector<int> result = lhs;
+		result.insert(result.end(), rhs.begin(), rhs.end());
+		return result;
 	}
 
 	/*

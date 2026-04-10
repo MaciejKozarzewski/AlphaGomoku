@@ -26,7 +26,7 @@ namespace
 	UnifiedGenerator get_base_generator(const EngineSettings &settings)
 	{
 		return UnifiedGenerator(settings.getSearchConfig().mcts_config.max_children,
-				settings.getSearchConfig().mcts_config.policy_expansion_threshold);
+				settings.getSearchConfig().mcts_config.policy_expansion_threshold, settings.getSearchConfig().mcts_config.policy_temperature);
 	}
 }
 

@@ -91,11 +91,13 @@ namespace ag
 			{
 					static constexpr int max_children = std::numeric_limits<int>::max();
 					static constexpr float policy_expansion_threshold = 1.0e-4f;
+					static constexpr float policy_temperature = 1.0f;
 			};
 		public:
 			EdgeSelectorConfig edge_selector_config;
 			int max_children = Defaults::max_children;
 			float policy_expansion_threshold = Defaults::policy_expansion_threshold;
+			float policy_temperature = Defaults::policy_temperature;
 
 			MCTSConfig() = default;
 			MCTSConfig(const Json &cfg);
@@ -157,17 +159,17 @@ namespace ag
 
 	struct TrainingConfig
 	{
-			std::string network_arch = "ResnetPV";
-			std::string sampler_type = "visits";
+			std::string network_arch = "ConvNextPVWM_raw";
+			std::string sampler_type = "values";
 			bool keep_loaded = true;
 			bool augment_training_data = true;
 			DeviceConfig device_config;
 			int steps_per_iteration = 1000;
-			int blocks = 2;
-			int filters = 32;
+			int blocks = 8;
+			int filters = 128;
 			int patch_size = 1;
-			double l2_regularization = 1.0e-4;
-			double validation_percent = 0.05;
+			double l2_regularization = 1.0e-5;
+			double validation_percent = 0.0;
 			Parameter<double> learning_rate = 1.0e-3;
 			Parameter<int> buffer_size = 10;
 			Parameter<int> swa_networks_num = 1;

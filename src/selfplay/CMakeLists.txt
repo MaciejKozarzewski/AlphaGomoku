@@ -1,6 +1,4 @@
-target_sources(${LibName} PRIVATE 	EvaluationGame.cpp
-									EvaluationManager.cpp
-									GameGenerator.cpp
+target_sources(${LibName} PRIVATE 	GameGenerator.cpp
 									GeneratorManager.cpp
 									NetworkLoader.cpp
 									OpeningGenerator.cpp

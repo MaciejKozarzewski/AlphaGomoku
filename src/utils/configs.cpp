@@ -83,13 +83,14 @@ namespace ag
 	MCTSConfig::MCTSConfig(const Json &cfg) :
 			edge_selector_config(get_value<EdgeSelectorConfig>(cfg, "edge_selector_config", EdgeSelectorConfig())),
 			max_children(get_value<int>(cfg, "max_children", Defaults::max_children)),
-			policy_expansion_threshold(get_value<float>(cfg, "policy_expansion_threshold", Defaults::policy_expansion_threshold))
+			policy_expansion_threshold(get_value<float>(cfg, "policy_expansion_threshold", Defaults::policy_expansion_threshold)),
+			policy_temperature(get_value<float>(cfg, "policy_temperature", Defaults::policy_temperature))
 	{
 	}
 	Json MCTSConfig::toJson() const
 	{
 		return Json( { { "edge_selector_config", edge_selector_config.toJson() }, { "max_children", max_children }, { "policy_expansion_threshold",
-				policy_expansion_threshold } });
+				policy_expansion_threshold }, { "policy_temperature", policy_temperature } });
 	}
 
 	TSSConfig::TSSConfig(const Json &cfg) :

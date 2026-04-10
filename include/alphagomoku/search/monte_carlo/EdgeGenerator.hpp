@@ -40,9 +40,10 @@ namespace ag
 		private:
 			const int max_edges;
 			const float expansion_threshold;
+			const float temperature;
 			const bool force_expand_root;
 		public:
-			BaseGenerator(int maxEdges, float expansionThreshold, bool forceExpandRoot = false);
+			BaseGenerator(int maxEdges, float expansionThreshold, float temperature, bool forceExpandRoot = false);
 			std::unique_ptr<EdgeGenerator> clone() const;
 			void generate(SearchTask &task) const;
 	};
@@ -52,9 +53,10 @@ namespace ag
 		private:
 			const int max_edges;
 			const float expansion_threshold;
+			const float temperature;
 			const bool force_expand_root;
 		public:
-			UnifiedGenerator(int maxEdges, float expansionThreshold, bool forceExpandRoot = false);
+			UnifiedGenerator(int maxEdges, float expansionThreshold, float temperature, bool forceExpandRoot = false);
 			std::unique_ptr<EdgeGenerator> clone() const;
 			void generate(SearchTask &task) const;
 	};
