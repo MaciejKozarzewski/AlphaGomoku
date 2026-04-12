@@ -138,8 +138,8 @@ namespace ag
 		graph.makeTrainable(false);
 		if (level >= 1)
 		{
-//			ml::FoldBatchNorm().optimize(graph);
-//			ml::FoldAdd().optimize(graph);
+			ml::FoldBatchNorm().optimize(graph);
+			ml::FoldAdd().optimize(graph);
 		}
 		if (level >= 2)
 		{

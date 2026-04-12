@@ -1165,8 +1165,7 @@ namespace ag
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
 			y = graph.add(ml::BatchNormalization(), y);
 			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
-			y = graph.add(ml::Conv2D(filters, 1).useBias(false), y);
-			x = graph.add(ml::BatchNormalization(), { y, x });
+			x = graph.add(ml::Conv2D(filters, 1).useBias(false), { y, x });
 
 			// squeeze-and-excitation module
 			auto z = graph.add(ml::GlobalAveragePooling().quantizable(false), x);

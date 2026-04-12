@@ -118,13 +118,14 @@ namespace ag
 				for (size_t i = 0; i < evaluators.size(); i++)
 					results = join_vectors(results, convert_match_results(evaluators[i]->getGameBuffer()));
 
-				GSPRT gsprt(eloDiff, 0.0);
+				GSPRT gsprt(eloDiff, 0.0, 0.01, 0.01);
 				for (size_t i = 0; i < results.size(); i++)
 				{
 					gsprt.add_result(results[i]);
 					if (gsprt.get_status() != -1)
 					{
-						std::cout << "GSPRT status = " << gsprt.get_status() << ", LLR = " << gsprt.get_LLR() << '\n';
+						std::cout << "GSPRT status = " << gsprt.get_status() << ", LLR = " << gsprt.get_LLR() << " after " << results.size() * 2
+								<< " games\n";
 						for (size_t i = 0; i < evaluators.size(); i++)
 							evaluators[i]->stop();
 						break;

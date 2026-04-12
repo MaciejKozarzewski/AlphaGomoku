@@ -10,6 +10,7 @@
 #include <alphagomoku/evaluation/TwoMatch.hpp>
 
 #include <cmath>
+#include <iostream>
 
 namespace
 {
@@ -85,7 +86,7 @@ namespace
 namespace ag
 {
 
-	GSPRT::GSPRT(double alpha, double beta, double elo0, double elo1) :
+	GSPRT::GSPRT(double elo0, double elo1, double alpha, double beta) :
 			elo0(elo0),
 			elo1(elo1),
 			LA(std::log(beta / (1.0 - alpha))),
@@ -109,6 +110,8 @@ namespace ag
 			min_LLR = LLR;
 			o0 = -sq0 / (2 * LLR);
 		}
+
+		std::cout << (LB - o1) << " < " << LLR << " < " << (LA + o0) << '\n';
 
 		if (LLR > LB - o1)
 			status = 1;
