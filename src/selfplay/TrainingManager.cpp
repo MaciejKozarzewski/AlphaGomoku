@@ -9,6 +9,7 @@
 #include <alphagomoku/dataset/GameDataBuffer.hpp>
 #include <alphagomoku/utils/file_util.hpp>
 #include <alphagomoku/utils/misc.hpp>
+#include <alphagomoku/tuning/GSPRT.hpp>
 
 #include <string>
 
@@ -65,6 +66,9 @@ namespace ag
 			std::cout << "Loading existing training run\n" << metadata.dump(2) << '\n';
 		else
 		{
+			metadata["last_checkpoint"] = 0;
+			metadata["best_checkpoint"] = 0;
+			metadata["learning_steps"] = 0;
 			std::cout << "Initializing new training run\n";
 			saveMetadata();
 			std::cout << "Saved metadata\n";
@@ -93,7 +97,7 @@ namespace ag
 
 		if (config.evaluation_config.use_evaluation)
 		{
-			if (config.evaluation_config.in_parallel)
+			if (config.evaluation_config.in_parallel and not config.evaluation_config.use_gating)
 			{
 				if (evaluation_future.valid())
 				{
@@ -120,7 +124,15 @@ namespace ag
 				});
 			}
 			else
-				evaluate();
+			{
+				if (config.evaluation_config.use_gating)
+				{
+					gating();
+					saveMetadata();
+				}
+				else
+					evaluate();
+			}
 		}
 	}
 	/*
@@ -168,7 +180,8 @@ namespace ag
 			return;
 		}
 
-		const NetworkLoader network_loader = get_network_loader(epoch, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
+		const int best_checkpoint = get_best_checkpoint();
+		const NetworkLoader network_loader = get_network_loader(best_checkpoint, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
 		const int training_games = config.generation_config.games_per_iteration;
 		const int validation_games = std::max(1.0, training_games * config.training_config.validation_percent);
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
@@ -221,10 +234,13 @@ namespace ag
 		// save metadata and training history
 		sl_manager.saveTrainingHistory(working_dir);
 		metadata["learning_steps"] = sl_manager.saveProgress()["learning_steps"];
-		metadata["last_checkpoint"] = get_last_checkpoint() + 1;
+		metadata["last_checkpoint"] = epoch + 1;
+		if (not config.evaluation_config.use_gating)
+			metadata["best_checkpoint"] = get_last_checkpoint();
 
 		// save most recent SWA network
 		const NetworkLoader loader = get_network_loader(std::max(0, get_last_checkpoint() - 10), get_last_checkpoint(), working_dir + "/checkpoint/");
+		std::cout << '\n';
 		loader.get()->saveToFile(working_dir + "/network_swa.bin");
 	}
 	void TrainingManager::evaluate()
@@ -261,6 +277,51 @@ namespace ag
 		file << to_save;
 		file.close();
 	}
+	void TrainingManager::gating()
+	{
+		const int last_checkpoint = get_last_checkpoint();
+		const int best_checkpoint = get_best_checkpoint();
+
+		EvaluationManager evaluator_manager(config.game_config, config.evaluation_config.selfplay_options);
+
+		const NetworkLoader loader_last = get_network_loader(last_checkpoint, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
+		const std::string first_name = "AG_" + zfill(last_checkpoint, 3);
+		evaluator_manager.setFirstPlayer(config.evaluation_config.selfplay_options, loader_last, first_name);
+
+		const NetworkLoader loader_best = get_network_loader(best_checkpoint, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
+		const std::string second_name = "AG_" + zfill(best_checkpoint, 3);
+		evaluator_manager.setSecondPlayer(config.evaluation_config.selfplay_options, loader_best, second_name);
+
+		std::cout << "Evaluating network " << last_checkpoint << " against " << best_checkpoint << '\n';
+		evaluator_manager.generate(config.evaluation_config.selfplay_options.games_per_iteration);
+
+		const std::string to_save = evaluator_manager.getPGN();
+		std::cout << "Evaluation finished\n";
+
+		std::lock_guard<std::mutex> lock(rating_mutex);
+		std::ofstream file(working_dir + "/rating.pgn", std::fstream::app);
+		file << to_save;
+		file.close();
+
+		std::array<int, 5> scores = { 0, 0, 0, 0, 0 };
+		for (int i = 0; i < evaluator_manager.numberOfThreads(); i++)
+		{
+			const std::vector<int> match_results = convert_match_results(evaluator_manager.getGameBuffer(i));
+			for (size_t j = 0; j < match_results.size(); j++)
+				scores[match_results[j]]++;
+		}
+
+		const double num_games = 2 * (scores[0] + scores[1] + scores[2] + scores[3] + scores[4]);
+		const double winrate = (0.0 * scores[0] + 0.5 * scores[1] + 1.0 * scores[2] + 1.5 * scores[3] + 2.0 * scores[4]) / num_games;
+		std::cout << "winrate = " << winrate << " (" << elo_from_winrate(winrate) << " elo)\n";
+		if (winrate > 0.5)
+		{
+			std::cout << "network " << last_checkpoint << " PASSED\n";
+			metadata["best_checkpoint"] = last_checkpoint;
+		}
+		else
+			std::cout << "network " << last_checkpoint << " REJECTED\n";
+	}
 	void TrainingManager::splitBuffer(GameDataBuffer &buffer, int training_games, int validation_games)
 	{
 		std::cout << "Saving validation buffer\n";
@@ -291,7 +352,11 @@ namespace ag
 
 	int TrainingManager::get_last_checkpoint() const
 	{
-		return static_cast<int>(metadata["last_checkpoint"]);
+		return metadata["last_checkpoint"].getInt();
+	}
+	int TrainingManager::get_best_checkpoint() const
+	{
+		return metadata["best_checkpoint"].getInt();
 	}
 	void TrainingManager::save_buffer_stats(const GameDataBuffer &buffer) const
 	{

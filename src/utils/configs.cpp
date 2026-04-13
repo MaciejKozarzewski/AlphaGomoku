@@ -199,6 +199,7 @@ namespace ag
 	EvaluationConfig::EvaluationConfig(const Json &options) :
 			use_evaluation(get_value<bool>(options, "use_evaluation")),
 			in_parallel(get_value<bool>(options, "in_parallel")),
+			use_gating(get_value<bool>(options, "use_gating", false)),
 			selfplay_options(options["selfplay_options"])
 	{
 		if (options.hasKey("opponents"))
@@ -210,6 +211,7 @@ namespace ag
 		Json result;
 		result["use_evaluation"] = use_evaluation;
 		result["in_parallel"] = in_parallel;
+		result["use_gating"] = use_gating;
 		result["opponents"] = Json(JsonType::Array);
 		for (size_t i = 0; i < opponents.size(); i++)
 			result["opponents"][i] = opponents[i];

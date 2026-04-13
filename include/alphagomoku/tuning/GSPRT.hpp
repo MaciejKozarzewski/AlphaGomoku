@@ -46,6 +46,7 @@ namespace ag
 	};
 
 	std::vector<int> convert_match_results(const std::vector<TwoMatch> &buffer);
+	double elo_from_winrate(double winrate);
 
 } /* namespace ag */
 

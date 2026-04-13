@@ -44,10 +44,12 @@ namespace ag
 
 			void train_and_validate();
 			void evaluate();
+			void gating();
 			void splitBuffer(GameDataBuffer &buffer, int training_games, int validation_games);
 			void loadDataset(Dataset &result, const std::string &path);
 
 			int get_last_checkpoint() const;
+			int get_best_checkpoint() const;
 			void save_buffer_stats(const GameDataBuffer &buffer) const;
 	};
 

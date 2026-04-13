@@ -118,7 +118,7 @@ namespace ag
 				for (size_t i = 0; i < evaluators.size(); i++)
 					results = join_vectors(results, convert_match_results(evaluators[i]->getGameBuffer()));
 
-				GSPRT gsprt(eloDiff, 0.0, 0.01, 0.01);
+				GSPRT gsprt(eloDiff, 0.0, 0.05, 0.05);
 				for (size_t i = 0; i < results.size(); i++)
 				{
 					gsprt.add_result(results[i]);

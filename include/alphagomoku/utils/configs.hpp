@@ -199,6 +199,7 @@ namespace ag
 	{
 			bool use_evaluation = true;
 			bool in_parallel = true;
+			bool use_gating = false;
 			std::vector<int> opponents;
 			SelfplayConfig selfplay_options;
 

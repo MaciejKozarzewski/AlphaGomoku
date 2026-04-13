@@ -133,6 +133,12 @@ namespace ag
 		}
 		return result;
 	}
+	double elo_from_winrate(double winrate)
+	{
+		const double eps = std::numeric_limits<double>::epsilon();
+		const double wr = std::max(eps, std::min(1.0 - eps, winrate));
+		return 400.0 * std::log10(wr / (1.0 - wr));
+	}
 
 } /* namespace ag */
 
