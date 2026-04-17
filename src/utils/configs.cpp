@@ -171,6 +171,7 @@ namespace ag
 	SelfplayConfig::SelfplayConfig(const Json &options) :
 			use_opening(get_value<bool>(options, "use_opening")),
 			use_symmetries(get_value<bool>(options, "use_symmetries")),
+			keep_loaded(get_value<bool>(options, "keep_loaded", false)),
 			games_per_iteration(get_value<int>(options, "games_per_iteration")),
 			games_per_thread(get_value<int>(options, "games_per_thread")),
 			simulations(get_value<int>(options, "simulations")),
@@ -186,6 +187,7 @@ namespace ag
 		Json result;
 		result["use_opening"] = use_opening;
 		result["use_symmetries"] = use_symmetries;
+		result["keep_loaded"] = keep_loaded;
 		result["games_per_iteration"] = games_per_iteration;
 		result["games_per_thread"] = games_per_thread;
 		result["simulations"] = simulations;

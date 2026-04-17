@@ -43,10 +43,6 @@ namespace ag
 	{
 		return search.getStats();
 	}
-	void GameGenerator::reset()
-	{
-		state = GAME_NOT_STARTED;
-	}
 	GameGenerator::Status GameGenerator::generate()
 	{
 		if (state == GAME_NOT_STARTED)

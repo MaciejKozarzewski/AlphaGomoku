@@ -57,7 +57,6 @@ namespace ag
 			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
 
-			void reset();
 			Status generate();
 			Json save(SerializedObject &binary_data);
 			void load(const Json &json, const SerializedObject &binary_data);

@@ -28,6 +28,7 @@ namespace ag
 			Dataset training_dataset;
 			Dataset validation_dataset;
 
+			std::unique_ptr<GeneratorManager> generator_manager;
 			std::future<void> evaluation_future;
 			std::mutex rating_mutex;
 		public:

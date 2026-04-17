@@ -83,12 +83,14 @@ namespace ag
 
 	void TrainingManager::runIterationRL()
 	{
+		const double t0 = getTime();
 		generateGames();
 		if (hasCapturedSignal(SignalType::INT))
 			exit(0);
 		runIterationSL();
 		if (hasCapturedSignal(SignalType::INT))
 			exit(0);
+		std::cout << "completed iteration in " << (getTime() - t0) << "s\n";
 	}
 	void TrainingManager::runIterationSL()
 	{
@@ -97,7 +99,7 @@ namespace ag
 
 		if (config.evaluation_config.use_evaluation)
 		{
-			if (config.evaluation_config.in_parallel and not config.evaluation_config.use_gating)
+			if (config.evaluation_config.in_parallel)
 			{
 				if (evaluation_future.valid())
 				{
@@ -124,15 +126,13 @@ namespace ag
 				});
 			}
 			else
-			{
-				if (config.evaluation_config.use_gating)
-				{
-					gating();
-					saveMetadata();
-				}
-				else
-					evaluate();
-			}
+				evaluate();
+		}
+
+		if (config.evaluation_config.use_gating)
+		{
+			gating();
+			saveMetadata();
 		}
 	}
 	/*
@@ -143,6 +143,7 @@ namespace ag
 		createDirectory(working_dir + "/checkpoint/"); // create folder for networks
 		createDirectory(working_dir + "/train_buffer/"); // create folder for buffers
 		createDirectory(working_dir + "/valid_buffer/"); // create folder for buffers
+		createDirectory(working_dir + "/saved_state/"); // create folder for game generators state
 	}
 	void TrainingManager::saveMetadata()
 	{
@@ -181,23 +182,51 @@ namespace ag
 		}
 
 		const int best_checkpoint = get_best_checkpoint();
-		const NetworkLoader network_loader = get_network_loader(best_checkpoint, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
+		const NetworkLoader network_loader = get_network_loader(best_checkpoint, config.training_config.swa_networks_num,
+				working_dir + "/checkpoint/");
 		const int training_games = config.generation_config.games_per_iteration;
 		const int validation_games = std::max(1.0, training_games * config.training_config.validation_percent);
 		std::cout << "Generating " << (training_games + validation_games) << " games\n";
 
-		GeneratorManager generator_manager(config.game_config, config.generation_config);
-		generator_manager.setWorkingDirectory(working_dir);
-		generator_manager.generate(network_loader, training_games + validation_games);
-		if (hasCapturedSignal(SignalType::INT))
-			return;
-		std::cout << "Finished generating games\n";
+		if (generator_manager == nullptr)
+		{
+			const double t0 = getTime();
+			generator_manager = std::make_unique<GeneratorManager>(config.game_config, config.generation_config);
+			generator_manager->setWorkingDirectory(working_dir);
+			generator_manager->loadState();
+			const double t1 = getTime();
+			std::cout << "created game generator in " << (t1 - t0) << "s\n";
+		}
 
-		save_buffer_stats(generator_manager.getGameBuffer());
-		splitBuffer(generator_manager.getGameBuffer(), training_games, validation_games);
+		const double start_time = getTime();
+		generator_manager->generate(network_loader, training_games + validation_games);
+		std::cout << "Finished generating games in " << (getTime() - start_time) << "s\n";
+
+		const bool was_interrupted = hasCapturedSignal(SignalType::INT);
+		const double t0 = getTime();
+		generator_manager->saveState(was_interrupted);
+		std::cout << "saved state in " << (getTime() - t0) << "s\n";
+		if (was_interrupted)
+			return;
+
+		const double t1 = getTime();
+		save_buffer_stats(generator_manager->getGameBuffer());
+		splitBuffer(generator_manager->getGameBuffer(), training_games, validation_games);
+		std::cout << "copied buffer in " << (getTime() - t1) << "s\n";
+
+		if (config.generation_config.keep_loaded)
+			generator_manager->getGameBuffer().clear();
+		else
+		{
+			const double t2 = getTime();
+			generator_manager = nullptr;
+			std::cout << "cleaned up generator in " << (getTime() - t2) << "s\n";
+		}
 	}
 	void TrainingManager::train_and_validate()
 	{
+		const double start_time = getTime();
+
 		const int epoch = get_last_checkpoint();
 
 		SupervisedLearning sl_manager(config.training_config);
@@ -215,14 +244,13 @@ namespace ag
 		std::cout << "Using learning rate " << learning_rate << '\n';
 		model->changeLearningRate(learning_rate);
 
-		const double start = getTime();
 		sl_manager.train(*model, training_dataset, config.training_config.steps_per_iteration);
 		if (not config.training_config.keep_loaded)
 			training_dataset.clear();
 
 		// save model
 		model->saveToFile(working_dir + "/checkpoint/network_" + std::to_string(epoch + 1) + ".bin");
-		std::cout << "Training finished in " << (getTime() - start) << "s\n";
+		std::cout << "Training finished in " << (getTime() - start_time) << "s\n";
 
 		// run validation
 //		loadDataset(validation_dataset, path_to_data + "/valid_buffer/");
@@ -245,6 +273,8 @@ namespace ag
 	}
 	void TrainingManager::evaluate()
 	{
+		const double start_time = getTime();
+
 		const int epoch = get_last_checkpoint();
 
 		const NetworkLoader loader_1st = get_network_loader(epoch, config.training_config.swa_networks_num, working_dir + "/checkpoint/");
@@ -270,7 +300,7 @@ namespace ag
 		evaluator_manager.generate(config.evaluation_config.selfplay_options.games_per_iteration);
 
 		const std::string to_save = evaluator_manager.getPGN();
-		std::cout << "Evaluation finished\n";
+		std::cout << "Evaluation finished in " << (getTime() - start_time) << "s\n";
 
 		std::lock_guard<std::mutex> lock(rating_mutex);
 		std::ofstream file(working_dir + "/rating.pgn", std::fstream::app);
@@ -279,6 +309,8 @@ namespace ag
 	}
 	void TrainingManager::gating()
 	{
+		const double start_time = getTime();
+
 		const int last_checkpoint = get_last_checkpoint();
 		const int best_checkpoint = get_best_checkpoint();
 
@@ -296,10 +328,10 @@ namespace ag
 		evaluator_manager.generate(config.evaluation_config.selfplay_options.games_per_iteration);
 
 		const std::string to_save = evaluator_manager.getPGN();
-		std::cout << "Evaluation finished\n";
+		std::cout << "Gating finished in " << (getTime() - start_time) << "s\n";
 
 		std::lock_guard<std::mutex> lock(rating_mutex);
-		std::ofstream file(working_dir + "/rating.pgn", std::fstream::app);
+		std::ofstream file(working_dir + "/gating.pgn", std::fstream::app);
 		file << to_save;
 		file.close();
 
@@ -314,7 +346,7 @@ namespace ag
 		const double num_games = 2 * (scores[0] + scores[1] + scores[2] + scores[3] + scores[4]);
 		const double winrate = (0.0 * scores[0] + 0.5 * scores[1] + 1.0 * scores[2] + 1.5 * scores[3] + 2.0 * scores[4]) / num_games;
 		std::cout << "winrate = " << winrate << " (" << elo_from_winrate(winrate) << " elo)\n";
-		if (winrate > 0.5)
+		if (winrate > 0.55)
 		{
 			std::cout << "network " << last_checkpoint << " PASSED\n";
 			metadata["best_checkpoint"] = last_checkpoint;

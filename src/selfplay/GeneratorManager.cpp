@@ -25,6 +25,7 @@
 
 namespace ag
 {
+
 	GeneratorThread::GeneratorThread(GeneratorManager &manager, const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index) :
 			is_running(true),
 			manager(manager),
@@ -65,16 +66,15 @@ namespace ag
 		else
 			return true;
 	}
-	void GeneratorThread::resetGames()
-	{
-		for (size_t i = 0; i < generators.size(); i++)
-			generators[i]->reset();
-	}
 	void GeneratorThread::clearStats() noexcept
 	{
 		nn_evaluator.clearStats();
 		for (size_t i = 0; i < generators.size(); i++)
 			generators[i]->clearStats();
+	}
+	void GeneratorThread::setWorkingDirectory(const std::string &path)
+	{
+		working_directory = path;
 	}
 	NNEvaluatorStats GeneratorThread::getEvaluatorStats() const noexcept
 	{
@@ -140,6 +140,9 @@ namespace ag
 		nn_evaluator.unloadGraph();
 	}
 
+	/*
+	 * GeneratorManager
+	 */
 	GeneratorManager::GeneratorManager(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions) :
 			generators(selfplayOptions.device_config.size()),
 			game_buffer(gameOptions)
@@ -151,6 +154,8 @@ namespace ag
 	void GeneratorManager::setWorkingDirectory(const std::string &path)
 	{
 		working_directory = path;
+		for (size_t i = 0; i < generators.size(); i++)
+			generators[i]->setWorkingDirectory(path);
 	}
 	void GeneratorManager::addToBuffer(const GameDataStorage &gameData)
 	{
@@ -174,16 +179,10 @@ namespace ag
 		std::lock_guard<std::mutex> lock(buffer_mutex);
 		return game_buffer.numberOfGames() >= games_to_generate;
 	}
-	void GeneratorManager::resetGames()
-	{
-		for (size_t i = 0; i < generators.size(); i++)
-			generators[i]->resetGames();
-	}
 	void GeneratorManager::generate(const NetworkLoader &loader, int numberOfGames)
 	{
 		games_to_generate = numberOfGames;
 		network_loader = loader;
-		load_state();
 
 		for (size_t i = 0; i < generators.size(); i++)
 		{
@@ -205,7 +204,6 @@ namespace ag
 				for (size_t i = 0; i < generators.size(); i++)
 					generators[i]->stop();
 				std::cout << "Generators stopped" << std::endl;
-				save_state(true);
 				return;
 			}
 
@@ -217,7 +215,6 @@ namespace ag
 		}
 		if (counter < 60)
 			printStats();
-		save_state(false);
 	}
 	void GeneratorManager::printStats()
 	{
@@ -240,10 +237,7 @@ namespace ag
 		std::cout << search_stats.toString();
 		std::cout << cache_stats.toString() << std::endl;
 	}
-	/*
-	 * private
-	 */
-	void GeneratorManager::save_state(bool saveBuffer)
+	void GeneratorManager::saveState(bool saveBuffer)
 	{
 		if (working_directory.empty())
 			return;
@@ -266,7 +260,7 @@ namespace ag
 			std::cout << "Saved " << tmp << std::endl;
 		}
 	}
-	void GeneratorManager::load_state()
+	void GeneratorManager::loadState()
 	{
 		if (working_directory.empty())
 			return;

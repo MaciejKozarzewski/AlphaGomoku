@@ -50,6 +50,7 @@ namespace ag
 	class GeneratorThread
 	{
 		private:
+			std::string working_directory;
 			std::future<void> generator_future;
 			std::atomic<bool> is_running;
 
@@ -62,7 +63,7 @@ namespace ag
 			void stop();
 			bool isFinished() const noexcept;
 			void clearStats() noexcept;
-			void resetGames();
+			void setWorkingDirectory(const std::string &path);
 			NNEvaluatorStats getEvaluatorStats() const noexcept;
 			NodeCacheStats getCacheStats() const noexcept;
 			SearchStats getSearchStats() const noexcept;
@@ -92,14 +93,13 @@ namespace ag
 			GameDataBuffer& getGameBuffer() noexcept;
 			const NetworkLoader& getNetworkLoader() const noexcept;
 
-			void resetGames();
 			void generate(const NetworkLoader &loader, int numberOfGames);
 			bool hasEnoughGames() const noexcept;
 
 			void printStats();
-		private:
-			void save_state(bool saveBuffer);
-			void load_state();
+
+			void saveState(bool saveBuffer);
+			void loadState();
 	};
 
 } /* namespace ag */
