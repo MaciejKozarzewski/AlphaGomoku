@@ -60,7 +60,7 @@ namespace ag
 
 	Move pickMove(const matrix<float> &policy);
 	Move randomizeMove(const matrix<float> &policy);
-	float max_value(const matrix<float> &policy);
+	float maxValue(const matrix<float> &policy);
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
 	std::vector<Move> prepareOpening(const GameConfig &config, int minNumberOfMoves = 0);

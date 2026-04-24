@@ -100,9 +100,9 @@ namespace ag
 		}
 		return Move(i / policy.cols(), i % policy.cols());
 	}
-	float max_value(const matrix<float> &policy)
+	float maxValue(const matrix<float> &policy)
 	{
-		return *std::max(policy.begin(), policy.end());
+		return *std::max_element(policy.begin(), policy.end());
 	}
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist)

@@ -12,7 +12,7 @@
 #include <alphagomoku/utils/augmentations.hpp>
 #include <alphagomoku/utils/misc.hpp>
 
-#include <algorithm>
+#include <type_traits>
 #include <cassert>
 #include <iostream>
 
@@ -87,10 +87,40 @@ namespace
 
 	void initialize_edges(SearchTask &task, float temperature = 1.0f) noexcept
 	{
+		if (temperature == 0.0f)
+		{
+			const float max_p = maxValue(task.getPolicy());
+			for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+			{
+				const Move m = edge->getMove();
+				if (task.getPolicy().at(m.row, m.col) == max_p)
+					edge->setPolicyPrior(1.0f);
+				else
+					edge->setPolicyPrior(0.0f);
+			}
+		}
+		else
+		{
+			if (temperature == 1.0f)
+			{
+				for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+				{
+					const Move m = edge->getMove();
+					edge->setPolicyPrior(task.getPolicy().at(m.row, m.col));
+				}
+			}
+			else
+			{
+				for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
+				{
+					const Move m = edge->getMove();
+					edge->setPolicyPrior(std::pow(task.getPolicy().at(m.row, m.col), 1.0f / temperature));
+				}
+			}
+		}
 		for (auto edge = task.getEdges().begin(); edge < task.getEdges().end(); edge++)
 		{
 			const Move m = edge->getMove();
-			edge->setPolicyPrior(std::pow(task.getPolicy().at(m.row, m.col), 1.0 / temperature));
 			edge->setValue(task.getActionValues().at(m.row, m.col));
 			edge->setScore(task.getActionScores().at(m.row, m.col));
 		}
@@ -181,7 +211,7 @@ namespace ag
 	}
 	std::unique_ptr<EdgeGenerator> BaseGenerator::clone() const
 	{
-		return std::make_unique<BaseGenerator>(max_edges, expansion_threshold, force_expand_root);
+		return std::make_unique<BaseGenerator>(max_edges, expansion_threshold, temperature, force_expand_root);
 	}
 	void BaseGenerator::generate(SearchTask &task) const
 	{
@@ -234,7 +264,7 @@ namespace ag
 	}
 	std::unique_ptr<EdgeGenerator> UnifiedGenerator::clone() const
 	{
-		return std::make_unique<UnifiedGenerator>(max_edges, expansion_threshold, force_expand_root);
+		return std::make_unique<UnifiedGenerator>(max_edges, expansion_threshold, temperature, force_expand_root);
 	}
 	void UnifiedGenerator::generate(SearchTask &task) const
 	{
