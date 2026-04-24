@@ -83,6 +83,9 @@ namespace ag
 		{
 			first_player->getSolver().clear();
 			second_player->getSolver().clear();
+
+			first_player->newGame();
+			second_player->newGame();
 			state = PREPARE_OPENING;
 		}
 

@@ -9,7 +9,50 @@
 #include <alphagomoku/search/monte_carlo/NNEvaluator.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeSelector.hpp>
 #include <alphagomoku/search/monte_carlo/EdgeGenerator.hpp>
+#include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/utils/misc.hpp>
+
+namespace
+{
+	using namespace ag;
+
+	MovesLeftEstimator get_20x20_estimator()
+	{
+		std::vector<std::pair<int, float>> c0;
+		c0.push_back( { 0, 60 });
+		c0.push_back( { 20, 53 });
+		c0.push_back( { 350, 50 });
+		c0.push_back( { 400, 0 });
+
+		std::vector<std::pair<int, float>> c2;
+		c2.push_back( { 0, 200 });
+		c2.push_back( { 20, 180 });
+		c2.push_back( { 349, 180 });
+		c2.push_back( { 350, 0 });
+
+		return ag::MovesLeftEstimator(c0, c2);
+	}
+	MovesLeftEstimator get_15x15_estimator()
+	{
+		std::vector<std::pair<int, float>> c0;
+		c0.push_back( { 0, 85 });
+		c0.push_back( { 15, 85 });
+		c0.push_back( { 65, 135 });
+		c0.push_back( { 80, 135 });
+		c0.push_back( { 100, 125 });
+		c0.push_back( { 225, 0 });
+
+		std::vector<std::pair<int, float>> c2;
+		c2.push_back( { 0, 320 });
+		c2.push_back( { 20, 320 });
+		c2.push_back( { 65, 525 });
+		c2.push_back( { 80, 525 });
+		c2.push_back( { 125, 375 });
+		c2.push_back( { 140, 0 });
+
+		return ag::MovesLeftEstimator(c0, c2);
+	}
+}
 
 namespace ag
 {
@@ -20,9 +63,16 @@ namespace ag
 			tree(options.search_config.tree_config),
 			search(gameOptions, options.search_config),
 			name(name),
-			simulations(options.simulations)
+			constraints(options.constraints)
 	{
 		search.setBatchSize(options.search_config.max_batch_size);
+		if (gameOptions.rows == 20)
+			moves_left_estimator = get_20x20_estimator();
+		else
+		{
+			assert(gameOptions.rows == 15);
+			moves_left_estimator = get_15x15_estimator();
+		}
 	}
 	void Player::setSign(Sign s) noexcept
 	{
@@ -35,6 +85,10 @@ namespace ag
 	std::string Player::getName() const
 	{
 		return name;
+	}
+	void Player::newGame()
+	{
+		time_controller.new_game();
 	}
 	void Player::setBoard(const matrix<Sign> &board, Sign signToMove)
 	{
@@ -49,17 +103,24 @@ namespace ag
 	}
 	void Player::selectSolveEvaluate()
 	{
-		search.select(tree, simulations);
+		const double t0 = getTime();
+		search.select(tree, constraints.max_simulations);
 		search.solve();
 		const int tmp = nn_evaluator.getQueueSize();
 		search.scheduleToNN(nn_evaluator);
-		nn_evals += nn_evaluator.getQueueSize() - tmp;
+		const int nn_evals = nn_evaluator.getQueueSize() - tmp;
+		const double t1 = getTime();
+		time_controller.add_time(t1 - t0);
+		time_controller.add_time(nn_evals / 430.211);
 	}
 	void Player::expandBackup()
 	{
+		const double t0 = getTime();
 		search.generateEdges(tree);
 		search.expand(tree);
 		search.backup(tree);
+		const double t1 = getTime();
+		time_controller.add_time(t1 - t0);
 	}
 	bool Player::isSearchOver()
 	{
@@ -86,18 +147,48 @@ namespace ag
 //				return false;
 //		}
 
-// if draw probability is higher than some level we proportionally reduce the number of simulations to save time (15-20% speedup)
-		const Value root_eval = tree.getInfo( { }).getValue();
-		const int sims = get_simulations_for_move(root_eval.draw_rate, simulations, 50);
-
-		if (tree.getSimulationCount() > sims or tree.isRootProven())
-		{
-			search.cleanup(tree);
-			nn_evals = 0;
+		if (tree.isRootProven())
 			return true;
+
+		if (constraints.type == Constraints::Type::SIMULATIONS)
+		{
+			// if draw probability is higher than some level we proportionally reduce the number of simulations to save time (15-20% speedup)
+			const Value root_eval = tree.getInfo( { }).getValue();
+			const int sims = get_simulations_for_move(root_eval.draw_rate, constraints.max_simulations, 50);
+			return tree.getSimulationCount() > sims;
 		}
-		else
-			return false;
+
+		if (constraints.type == Constraints::Type::TIME)
+		{
+			const double protocol_overhead = 0.1;
+			const double time_fraction = search.getConfig().time_fraction;
+			const double early_stopping = search.getConfig().early_stopping;
+
+			Node root_node = tree.getInfo( { });
+
+			if (root_node.getVisits() <= 1)
+				return false;
+
+			int most_visits = 0;
+			int total_visits = 0;
+			for (Edge *edge = root_node.begin(); edge < root_node.end(); edge++)
+			{
+				const int v = std::max(1, edge->getVisits());
+				total_visits += v;
+				most_visits = std::max(most_visits, v);
+			}
+			if (most_visits > early_stopping * total_visits)
+				return true; // early stopping
+
+			const double time_left = constraints.time_for_match - time_controller.time_match();
+			const double moves_left = moves_left_estimator.get(tree.getMoveNumber(), tree.getEvaluation());
+			const double sum = (1.0 - std::pow(time_fraction, moves_left)) / (1.0 - time_fraction);
+			const double search_time = std::min(constraints.time_for_turn, (time_left / sum)) - protocol_overhead;
+
+			return time_controller.time_turn() >= search_time;
+		}
+
+		return false;
 	}
 	AlphaBetaSearch& Player::getSolver() noexcept
 	{
@@ -111,21 +202,31 @@ namespace ag
 	{
 		nn_evaluator.addToQueue(task);
 	}
-	Move Player::getMove() const noexcept
+	Move Player::getMove()
 	{
+		search.cleanup(tree);
 		std::unique_ptr<EdgeSelector> selector = EdgeSelector::create(final_move_selection_config);
 		const Node root_node = tree.getInfo( { });
-		Edge *edge = selector->select(&root_node);
+		const Edge *edge = selector->select(&root_node);
+		const Move move = edge->getMove();
 
+//		std::cout << "\n\n";
+//		std::cout << "---------------------------------------------------------------------------------------------------\n";
 //		std::cout << "Player : " << getName() << '\n';
+//		std::cout << "turn  : " << time_controller.time_turn() << " / " << constraints.time_for_turn << '\n';
+//		std::cout << "match : " << time_controller.time_match() << " / " << constraints.time_for_match << '\n';
 //		std::cout << '\n' << "selected : " << edge->toString() << '\n';
 //		std::cout << Board::toString(tree.getBoard(), true) << '\n';
 //		std::cout << root_node.toString() << '\n';
 //		root_node.sortEdges();
-//		for (int i = 0; i < root_node.numberOfEdges(); i++)
+//		for (int i = 0; i < std::min(10, root_node.numberOfEdges()); i++)
 //			std::cout << "    " << root_node.getEdge(i).toString() << '\n';
+//		if (root_node.numberOfEdges() > 10)
+//			std::cout << "    ... (" << (root_node.numberOfEdges() - 10) << " edges omitted)\n";
+//		std::cout << "---------------------------------------------------------------------------------------------------\n";
 
-		return edge->getMove();
+		time_controller.new_turn();
+		return move;
 	}
 } /* namespace ag */
 

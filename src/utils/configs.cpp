@@ -106,6 +106,8 @@ namespace ag
 
 	SearchConfig::SearchConfig(const Json &cfg) :
 			max_batch_size(get_value<int>(cfg, "max_batch_size", Defaults::max_batch_size)),
+			early_stopping(get_value<double>(cfg, "early_stopping", Defaults::early_stopping)),
+			time_fraction(get_value<double>(cfg, "time_fraction", Defaults::time_fraction)),
 			tree_config(cfg["tree_config"]),
 			mcts_config(cfg["mcts_config"]),
 			tss_config(cfg["tss_config"])
@@ -115,6 +117,8 @@ namespace ag
 	{
 		Json result;
 		result["max_batch_size"] = max_batch_size;
+		result["early_stopping"] = early_stopping;
+		result["time_fraction"] = time_fraction;
 		result["tree_config"] = tree_config.toJson();
 		result["mcts_config"] = mcts_config.toJson();
 		result["tss_config"] = tss_config.toJson();
@@ -168,17 +172,73 @@ namespace ag
 		return result;
 	}
 
+	/*
+	 * Constraints
+	 */
+	Constraints::Constraints(const Json &options)
+	{
+		time_for_match = get_value<double>(options, "time_for_match", 0.0);
+		time_for_turn = get_value<double>(options, "time_for_turn", 0.0);
+		time_increment = get_value<double>(options, "time_increment", 0.0);
+		const std::string t = get_value<std::string>(options, "type");
+		if (t == "simulations")
+			type = Constraints::Type::SIMULATIONS;
+		else
+		{
+			assert(t == "time");
+			type = Constraints::Type::TIME;
+		}
+		max_simulations = get_value<int>(options, "max_simulations", std::numeric_limits<int>::max());
+	}
+	Json Constraints::toJson() const
+	{
+		Json result;
+		result["time_for_match"] = time_for_match;
+		result["time_for_turn"] = time_for_turn;
+		result["time_increment"] = time_increment;
+		result["type"] = (type == Constraints::Type::SIMULATIONS) ? std::string("simulations") : std::string("time");
+		result["max_simulations"] = max_simulations;
+		return result;
+	}
+	Constraints Constraints::time_controls(double match, double turn, double increment) noexcept
+	{
+		Constraints result;
+		result.time_for_match = match;
+		result.time_for_turn = turn;
+		result.time_increment = increment;
+		result.type = Constraints::Type::TIME;
+		result.max_simulations = std::numeric_limits<int>::max();
+		return result;
+	}
+	Constraints Constraints::simulations(int max_sim) noexcept
+	{
+		Constraints result;
+		result.time_for_match = 0.0;
+		result.time_for_turn = 0.0;
+		result.time_increment = 0.0;
+		result.type = Constraints::Type::SIMULATIONS;
+		result.max_simulations = max_sim;
+		return result;
+	}
+
+	/*
+	 * SelfplayConfig
+	 */
 	SelfplayConfig::SelfplayConfig(const Json &options) :
 			use_opening(get_value<bool>(options, "use_opening")),
 			use_symmetries(get_value<bool>(options, "use_symmetries")),
 			keep_loaded(get_value<bool>(options, "keep_loaded", false)),
 			games_per_iteration(get_value<int>(options, "games_per_iteration")),
 			games_per_thread(get_value<int>(options, "games_per_thread")),
-			simulations(get_value<int>(options, "simulations")),
 			final_selector(get_value<EdgeSelectorConfig>(options, "final_selector")),
 			device_config(),
 			search_config(options["search_config"])
 	{
+		if (options.hasKey("constraints"))
+			constraints = Constraints(options["constraints"]);
+		else
+			constraints = Constraints::simulations(get_value<int>(options, "simulations"));
+
 		for (int i = 0; i < options["device_config"].size(); i++)
 			device_config.push_back(DeviceConfig(options["device_config"][i]));
 	}
@@ -190,7 +250,7 @@ namespace ag
 		result["keep_loaded"] = keep_loaded;
 		result["games_per_iteration"] = games_per_iteration;
 		result["games_per_thread"] = games_per_thread;
-		result["simulations"] = simulations;
+		result["constraints"] = constraints.toJson();
 		result["final_selector"] = final_selector.toJson();
 		for (size_t i = 0; i < device_config.size(); i++)
 			result["device_config"][i] = device_config[i].toJson();

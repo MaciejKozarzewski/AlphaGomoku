@@ -20,6 +20,7 @@ namespace ag
 	class GameConfig;
 	class SelfplayConfig;
 	class NetworkLoader;
+	struct Constraints;
 } /* namespace ag */
 
 namespace ag

@@ -26,7 +26,7 @@ namespace ag
 			std::vector<std::pair<int, T>> m_schedule;
 			std::string m_interpolate = "none";
 		public:
-			Parameter() = default;
+			Parameter() noexcept = default;
 			Parameter(T value) noexcept :
 					m_value(value)
 			{

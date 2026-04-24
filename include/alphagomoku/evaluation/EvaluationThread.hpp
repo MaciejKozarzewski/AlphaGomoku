@@ -41,6 +41,7 @@ namespace ag
 			EvaluatorThread(const GameConfig &gameOptions, const SelfplayConfig &selfplayOptions, int index);
 			void setFirstPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
 			void setSecondPlayer(const SelfplayConfig &options, const NetworkLoader &loader, const std::string &name);
+
 			void addToBuffer(const TwoMatch &match);
 			const std::vector<TwoMatch>& getGameBuffer() noexcept;
 			void generate(int numberOfGames);

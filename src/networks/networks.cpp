@@ -1095,42 +1095,43 @@ namespace ag
 
 		auto x = graph.addInput(input_shape);
 		x = graph.add(ml::Conv2D(filters, 5).useBias(false), x);
-		x = graph.add(ml::BatchNormalization("relu").useGamma(false), x);
-
-		x = squeeze_and_excitation_block(graph, x, filters);
+		x = graph.add(ml::BatchNormalization("relu"), x);
 
 		for (int i = 0; i < blocks; i++)
 		{
 			auto y = graph.add(ml::DepthwiseConv2D(filters, 7).useBias(false), x);
-			y = graph.add(ml::BatchNormalization().useGamma(false), y);
+			y = graph.add(ml::BatchNormalization(), y);
 			y = graph.add(ml::Conv2D(filters, 1, "relu"), y);
 			x = graph.add(ml::Conv2D(filters, 1), { y, x });
 
-			x = squeeze_and_excitation_block(graph, x, filters);
+			// squeeze-and-excitation module
+			auto z = graph.add(ml::GlobalAveragePooling().quantizable(false), x);
+			z = graph.add(ml::Dense(filters, "relu").quantizable(false), z);
+			z = graph.add(ml::Dense(filters, "sigmoid").quantizable(false), z);
+			x = graph.add(ml::ChannelScaling(), { x, z });
 		}
 
 		// policy head
-		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false).quantizable(false), x);
+		auto p = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
 		p = graph.add(ml::BatchNormalization("relu").useGamma(false), p);
-		p = squeeze_and_excitation_block(graph, p, filters);
-		p = graph.add(ml::Conv2D(1, 1).quantizable(false), p);
-		p = graph.add(ml::Softmax( { 1, 2, 3 }).quantizable(false), p);
+		p = graph.add(ml::Conv2D(1, 1), p);
+		p = graph.add(ml::Softmax( { 1, 2, 3 }), p);
 		graph.addOutput(p);
 
 		// value head
-		auto v = graph.add(ml::Conv2D(filters, 1, "relu").quantizable(false), x);
-		v = graph.add(ml::GlobalAveragePooling().quantizable(false), v);
-		v = graph.add(ml::Dense(256).useBias(false).quantizable(false), v);
-		v = graph.add(ml::BatchNormalization("leaky_relu"), v);
-		v = graph.add(ml::Dense(3).quantizable(false), v);
-		v = graph.add(ml::Softmax( { 1 }).quantizable(false), v);
+		auto v = graph.add(ml::Conv2D(filters, 1, "relu"), x);
+		v = graph.add(ml::GlobalAveragePooling(), v);
+		v = graph.add(ml::Dense(256).useBias(false), v);
+		v = graph.add(ml::BatchNormalization("relu"), v);
+		v = graph.add(ml::Dense(3), v);
+		v = graph.add(ml::Softmax( { 1 }), v);
 		graph.addOutput(v);
 
-		auto q = graph.add(ml::Conv2D(filters, 1, "linear").useBias(false).quantizable(false), x);
+		// action values head
+		auto q = graph.add(ml::Conv2D(filters, 1).useBias(false), x);
 		q = graph.add(ml::BatchNormalization("relu").useGamma(false), q);
-		q = squeeze_and_excitation_block(graph, q, filters);
-		q = graph.add(ml::Conv2D(3, 1, "linear").quantizable(false), q);
-		q = graph.add(ml::Softmax( { 3 }).quantizable(false), q);
+		q = graph.add(ml::Conv2D(3, 1), q);
+		q = graph.add(ml::Softmax( { 3 }), q);
 		graph.addOutput(q);
 
 		graph.init();

@@ -129,9 +129,13 @@ namespace ag
 			struct Defaults
 			{
 					static constexpr int max_batch_size = 1;
+					static constexpr int early_stopping = 0.99;
+					static constexpr int time_fraction = 0.9;
 			};
 		public:
 			int max_batch_size = Defaults::max_batch_size;
+			double early_stopping = 0.99;
+			double time_fraction = 0.9;
 			TreeConfig tree_config;
 			MCTSConfig mcts_config;
 			TSSConfig tss_config;
@@ -179,6 +183,30 @@ namespace ag
 			Json toJson() const;
 	};
 
+	struct Constraints
+	{
+			enum Type
+			{
+				SIMULATIONS,
+				TIME
+			};
+
+			double time_for_match = 0.0;
+			double time_for_turn = 0.0;
+			double time_increment = 0.0;
+
+			int max_simulations = 0;
+
+			Type type = Type::SIMULATIONS;
+
+			Constraints() noexcept = default;
+			Constraints(const Json &options);
+			Json toJson() const;
+
+			static Constraints time_controls(double match, double turn, double increment = 0.0) noexcept;
+			static Constraints simulations(int max_sim) noexcept;
+	};
+
 	struct SelfplayConfig
 	{
 			bool use_opening = true;
@@ -186,7 +214,7 @@ namespace ag
 			bool keep_loaded = false;
 			int games_per_iteration = 100;
 			int games_per_thread = 8;
-			int simulations = 100;
+			Constraints constraints;
 			EdgeSelectorConfig final_selector;
 			std::vector<DeviceConfig> device_config = { DeviceConfig() };
 			SearchConfig search_config;

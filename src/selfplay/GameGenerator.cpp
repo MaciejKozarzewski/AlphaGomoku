@@ -78,7 +78,7 @@ namespace ag
 
 		if (state == GAMEPLAY_SELECT_SOLVE_EVALUATE)
 		{
-			search.select(tree, selfplay_config.simulations);
+			search.select(tree, selfplay_config.constraints.max_simulations);
 			search.solve();
 			search.scheduleToNN(nn_evaluator);
 			state = GAMEPLAY_EXPAND_AND_BACKUP;
@@ -96,7 +96,7 @@ namespace ag
 
 			// if draw probability is higher than some level we proportionally reduce the number of simulations to save time (15-20% speedup)
 			const Value root_eval = tree.getInfo( { }).getValue();
-			const int simulations = get_simulations_for_move(root_eval.draw_rate, selfplay_config.simulations, 50);
+			const int simulations = get_simulations_for_move(root_eval.draw_rate, selfplay_config.constraints.max_simulations, 50);
 
 			if (tree.getSimulationCount() > simulations or tree.isRootProven())
 			{

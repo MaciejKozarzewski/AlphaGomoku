@@ -13,6 +13,7 @@
 #include <alphagomoku/search/monte_carlo/Search.hpp>
 #include <alphagomoku/search/monte_carlo/Tree.hpp>
 #include <alphagomoku/selfplay/GameBuffer.hpp>
+#include <alphagomoku/player/TimeManager.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 
 namespace ag
@@ -23,24 +24,33 @@ namespace ag
 namespace ag
 {
 
-	enum class ConstrainType
+	class TimeController
 	{
-		SIMULATIONS,
-		TIME
-	};
-
-	struct Constraints
-	{
-			double time_for_turn = 0.0;
-			double time_for_match = 0.0;
-			double time_increment = 0.0;
-
-			int max_simulations = 0;
-
-			ConstrainType type = ConstrainType::SIMULATIONS;
-
-			static Constraints time_controls(double turn, double match, double incerement = 0.0) noexcept;
-			static Constraints simulations(int max_sim) noexcept;
+			double used_time_match = 0.0;
+			double used_time_turn = 0.0;
+		public:
+			void new_game() noexcept
+			{
+				used_time_match = 0.0;
+				used_time_turn = 0.0;
+			}
+			void new_turn() noexcept
+			{
+				used_time_turn = 0.0;
+			}
+			void add_time(double dt) noexcept
+			{
+				used_time_match += dt;
+				used_time_turn += dt;
+			}
+			double time_turn() const noexcept
+			{
+				return used_time_turn;
+			}
+			double time_match() const noexcept
+			{
+				return used_time_match;
+			}
 	};
 
 	class Player
@@ -54,13 +64,16 @@ namespace ag
 
 			std::string name;
 			Sign sign = Sign::NONE;
-			int simulations = 0;
-			int nn_evals = 0;
+
+			Constraints constraints;
+			TimeController time_controller;
+			MovesLeftEstimator moves_left_estimator;
 		public:
 			Player(const GameConfig &gameOptions, const SelfplayConfig &options, NNEvaluator &evaluator, const std::string &name);
 			void setSign(Sign s) noexcept;
 			Sign getSign() const noexcept;
 			std::string getName() const;
+			void newGame();
 			void setBoard(const matrix<Sign> &board, Sign signToMove);
 			void selectSolveEvaluate();
 			void expandBackup();
@@ -68,7 +81,7 @@ namespace ag
 			AlphaBetaSearch& getSolver() noexcept;
 			NNEvaluator& getNNEvaluator() noexcept;
 			void scheduleSingleTask(SearchTask &task);
-			Move getMove() const noexcept;
+			Move getMove();
 	};
 
 } /* namespace ag */

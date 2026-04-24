@@ -22,16 +22,13 @@ namespace ag
 
 namespace ag
 {
-	enum class OpeningType
-	{
-
-	};
 
 	class MovesLeftEstimator
 	{
 			Parameter<float> c0;
 			Parameter<float> c2;
 		public:
+			MovesLeftEstimator() noexcept = default;
 			MovesLeftEstimator(const std::vector<std::pair<int, float>> &c0, const std::vector<std::pair<int, float>> &c2);
 			double get(int moveNumber, Value eval) const noexcept;
 	};

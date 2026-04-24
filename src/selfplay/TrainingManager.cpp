@@ -346,7 +346,7 @@ namespace ag
 		const double num_games = 2 * (scores[0] + scores[1] + scores[2] + scores[3] + scores[4]);
 		const double winrate = (0.0 * scores[0] + 0.5 * scores[1] + 1.0 * scores[2] + 1.5 * scores[3] + 2.0 * scores[4]) / num_games;
 		std::cout << "winrate = " << winrate << " (" << elo_from_winrate(winrate) << " elo)\n";
-		if (winrate > 0.55)
+		if (winrate > 0.5)
 		{
 			std::cout << "network " << last_checkpoint << " PASSED\n";
 			metadata["best_checkpoint"] = last_checkpoint;

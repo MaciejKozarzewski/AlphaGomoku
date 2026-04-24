@@ -75,7 +75,7 @@ namespace ag
 	}
 	void EvaluationManager::generate(int numberOfGames)
 	{
-		const int progress_increment = numberOfGames / 4;
+		const int progress_increment = std::max(1, numberOfGames / 4);
 		int progress_counter = progress_increment;
 
 		for (size_t i = 0; i < evaluators.size(); i++)
