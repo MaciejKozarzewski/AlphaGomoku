@@ -64,25 +64,31 @@ namespace ag
 		std::cout << "theta_plus_delta =" << to_string(theta_plus_delta) << '\n';
 		std::cout << "theta_minus_delta =" << to_string(theta_minus_delta) << '\n';
 
-		const double fm = function_to_optimize(theta_minus_delta);
-		std::cout << "fm = " << fm << '\n';
-		const double fp = function_to_optimize(theta_plus_delta);
-		std::cout << "fp = " << fp << '\n';
-
-		best_value = std::max(best_value, std::max(fm, fp));
+		double grad;
+		if (gradient_function)
+			grad = gradient_function(theta_plus_delta, theta_minus_delta);
+		else
+		{
+			const double fm = function_to_optimize(theta_minus_delta);
+			std::cout << "fm = " << fm << '\n';
+			const double fp = function_to_optimize(theta_plus_delta);
+			std::cout << "fp = " << fp << '\n';
+			best_value = std::max(best_value, std::max(fm, fp));
+			grad = fp - fm;
+		}
 
 		std::vector<double> gradient(theta.size());
 		for (size_t i = 0; i < gradient.size(); i++)
-			gradient[i] = (fp - fm) / (2.0 * c_k * delta[i]);
+			gradient[i] = grad / (2.0 * c_k * delta[i]);
 		std::cout << "gradient =" << to_string(gradient) << '\n';
 
 		theta = constrain_to_01(linear_combination(1.0, theta, a_k, gradient));
 		std::cout << "new theta =" << to_string(theta) << '\n';
-		std::cout << "diff = " << fp - fm << '\n';
+		std::cout << "diff = " << grad << '\n';
 		std::cout << "best = " << best_value << '\n';
 		std::cout << '\n';
 
-		return (fp - fm);
+		return grad;
 	}
 	void SPSA::load_progress(const Json &json)
 	{

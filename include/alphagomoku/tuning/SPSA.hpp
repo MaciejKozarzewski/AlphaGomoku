@@ -20,8 +20,10 @@ namespace ag
 	class SPSA
 	{
 			using opt_func = std::function<double(const std::vector<double>&)>;
+			using grad_func = std::function<double(const std::vector<double>&, const std::vector<double>&)>;
 
 			opt_func function_to_optimize;
+			grad_func gradient_function;
 			std::vector<double> theta;
 			double a = 1.1;
 			double c = 0.1;
@@ -32,6 +34,11 @@ namespace ag
 		public:
 			SPSA(opt_func f, int dim) noexcept :
 					function_to_optimize(f),
+					theta(dim, 0.5)
+			{
+			}
+			SPSA(grad_func f, int dim) noexcept :
+					gradient_function(f),
 					theta(dim, 0.5)
 			{
 			}

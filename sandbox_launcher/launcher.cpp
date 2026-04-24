@@ -1082,27 +1082,34 @@ void test_move_generator()
 void test_proven_positions(int pos)
 {
 //	GameConfig game_config(GameRules::FREESTYLE, 20);
-	GameConfig game_config(GameRules::STANDARD, 15);
-//	GameConfig game_config(GameRules::RENJU, 15);
+//	GameConfig game_config(GameRules::FREESTYLE, 15);
+//	GameConfig game_config(GameRules::STANDARD, 15);
+	GameConfig game_config(GameRules::RENJU, 15);
 //	GameConfig game_config(GameRules::CARO5, 15);
-//	GameConfig game_config(GameRules::CARO6, 20);
+//	GameConfig game_config(GameRules::CARO6, 15);
 
 	PatternTable::get(game_config.rules);
 	ThreatTable::get(game_config.rules);
 	DefensiveMoveTable::get(game_config.rules);
 
-	GameDataBuffer buffer("/home/maciek/alphagomoku/proven_positions_big.bin");
-//	GameDataBuffer buffer;
-//#ifdef NDEBUG
-//	for (int i = 200; i <= 200; i++)
-//#else
-//	for (int i = 200; i <= 200; i++)
-//#endif
-//		buffer.load("/home/maciek/alphagomoku/new_runs/btl_pv_8x128s/train_buffer/buffer_" + std::to_string(i) + ".bin");
-	std::cout << buffer.getStats().toString() << '\n';
+//	GameDataBuffer buffer("/home/maciek/alphagomoku/proven_positions_big.bin");
+	GameDataBuffer buffer;
+#ifdef NDEBUG
+	for (int i = 350; i < 400; i++)
+#else
+	for (int i = 200; i <= 200; i++)
+#endif
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/freestyle_20x20/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/freestyle_15x15/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/standard_15x15/train_buffer/buffer_" + std::to_string(i) + ".bin");
+		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/renju_8x128/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/caro5/train_buffer/buffer_" + std::to_string(i) + ".bin");
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/caro6/train_buffer/buffer_" + std::to_string(i) + ".bin");
 
-//	AlphaBetaSearch ab_search(game_config);
-	VCFSolver ab_search(game_config);
+//	std::cout << buffer.getStats().toString() << '\n';
+
+	AlphaBetaSearch ab_search(game_config);
+//	VCFSolver ab_search(game_config);
 	ab_search.loadWeights(nnue::NNUEWeights("/home/maciek/Desktop/AlphaGomoku560/networks/standard_nnue_64x16x16x1.bin"));
 	ab_search.setNodeLimit(pos);
 
@@ -1119,6 +1126,8 @@ void test_proven_positions(int pos)
 
 	std::map<Score, std::pair<int, int>> score_stats;
 
+	std::vector<std::pair<int, double>> stats(pos);
+
 #ifndef NDEBUG
 	for (int i = 0; i < buffer.numberOfGames(); i += 100)
 #else
@@ -1126,12 +1135,12 @@ void test_proven_positions(int pos)
 #endif
 //	int i = 102600;
 	{
-		if (i % (buffer.numberOfGames() / 10) == 0)
-			std::cout << i << " / " << buffer.numberOfGames() << " " << ab_solved_count << "/" << total_samples << '\n';
+//		if (i % (buffer.numberOfGames() / 10) == 0)
+//			std::cout << i << " / " << buffer.numberOfGames() << " " << ab_solved_count << "/" << total_samples << '\n';
 
 		total_samples += buffer.getGameData(i).numberOfSamples();
-		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
-//		int j = 0;
+//		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+		const int j = randInt(buffer.getGameData(i).numberOfSamples());
 		{
 //			std::cout << i << " " << j << '\n';
 			buffer.getGameData(i).getSample(pack, j);
@@ -1142,7 +1151,13 @@ void test_proven_positions(int pos)
 
 			task.set(pack.board, pack.played_move.sign);
 
+			ab_search.setNodeLimit(randInt(50, pos));
+			const double t0 = getTime();
 			const int positions = ab_search.solve(task);
+			const double t1 = getTime();
+			stats.at(positions).first++;
+			stats.at(positions).second += (t1 - t0);
+
 //			vcf_search.setDepthLimit(4);
 //			vcf_search.setNodeLimit(pos);
 //			const int positions = vcf_search.solve(task);
@@ -1170,16 +1185,21 @@ void test_proven_positions(int pos)
 		}
 	}
 
-	for (auto iter = score_stats.begin(); iter != score_stats.end(); iter++)
-		std::cout << iter->first.toString() << " : " << iter->second.first << " (" << (100.0 * iter->second.first / total_samples)
-				<< "%), avg positions = " << (double) iter->second.second / iter->second.first << '\n';
+//	for (auto iter = score_stats.begin(); iter != score_stats.end(); iter++)
+//		std::cout << iter->first.toString() << " : " << iter->second.first << " (" << (100.0 * iter->second.first / total_samples)
+//				<< "%), avg positions = " << (double) iter->second.second / iter->second.first << '\n';
+//
+////	std::cout << "TSS\n";
+//	ab_search.print_stats();
+////	std::cout << "tss solved " << tss_solved_count << " samples (" << 100.0f * tss_solved_count / total_samples << "%)\n";
+//	std::cout << "a-b solved " << ab_solved_count << " samples (" << 100.0f * ab_solved_count / total_samples << "%)\n";
+////	ts_search.print_stats();
+//	std::cout << "total_positions = " << total_positions << ", avg = " << total_positions / total_samples << '\n';
 
-//	std::cout << "TSS\n";
-	ab_search.print_stats();
-//	std::cout << "tss solved " << tss_solved_count << " samples (" << 100.0f * tss_solved_count / total_samples << "%)\n";
-	std::cout << "a-b solved " << ab_solved_count << " samples (" << 100.0f * ab_solved_count / total_samples << "%)\n";
-//	ts_search.print_stats();
-	std::cout << "total_positions = " << total_positions << ", avg = " << total_positions / total_samples << '\n';
+	for (size_t i = 0; i < stats.size(); i++)
+		if (stats[i].first != 0)
+			std::cout << i << " " << 1.0e6 * (stats[i].second / stats[i].first) - 8.12497 << '\n';
+
 }
 
 void test_solver(int pos)
@@ -1442,7 +1462,9 @@ void test_search()
 	tree.setEdgeSelector(PUCTSelector(search_config.mcts_config.edge_selector_config));
 //	tree.setEdgeSelector(ThompsonSelector(search_config.mcts_config.edge_selector_config));
 //	tree.setEdgeSelector(KLUCBSelector(search_config.mcts_config.edge_selector_config));
-	tree.setEdgeGenerator(UnifiedGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold, false));
+	tree.setEdgeGenerator(
+			UnifiedGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold,
+					search_config.mcts_config.policy_temperature, false));
 //	tree.setEdgeGenerator(UnifiedGenerator(true));
 
 	int next_step = 1;
@@ -1776,6 +1798,7 @@ void first_vs_rest(const std::string &path, const std::vector<std::pair<std::str
 
 			const double start = getTime();
 			manager.generate(games_per_pair);
+//			manager.test(5);
 			const double stop = getTime();
 			std::cout << "finished in " << (stop - start) << '\n';
 
@@ -1856,7 +1879,7 @@ void evaluate_vs_old(const std::string &path, int idx)
 	MasterLearningConfig config(FileLoader(path + "/config.json").getJson());
 	EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
-	config.evaluation_config.selfplay_options.simulations = 400;
+	config.evaluation_config.selfplay_options.constraints = Constraints::simulations(400);
 	SelfplayConfig cfg(config.evaluation_config.selfplay_options);
 
 	std::vector<std::string> list;
@@ -1864,7 +1887,8 @@ void evaluate_vs_old(const std::string &path, int idx)
 		list.push_back(path + "checkpoint/network_" + std::to_string(idx) + ".bin");
 	manager.setSecondPlayer(cfg, list, "AG_" + zfill(idx, 3));
 
-	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/final_runs_2025/standard_15x15/network_swa.bin", "old");
+	manager.setFirstPlayer(cfg, "/home/maciek/Desktop/AlphaGomoku592/networks/freestyle_conv_8x128_15x15.bin", "old");
+//	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/runs_2026/testy_rl/gating_swa/network_swa.bin", "old");
 //	manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/runs_2026/standard_test/network_swa.bin", "old");
 
 	const double start = getTime();
@@ -1897,7 +1921,7 @@ void parameter_tuning()
 			EvaluationManager manager(config.game_config, config.evaluation_config.selfplay_options);
 
 			SelfplayConfig cfg(config.evaluation_config.selfplay_options);
-			cfg.simulations = 1000;
+			cfg.constraints = Constraints::simulations(1000);
 			cfg.search_config.tss_config.max_positions = 200;
 
 			manager.setFirstPlayer(cfg, "/home/maciek/alphagomoku/new_runs/test8_test/checkpoint/network_144_opt.bin", "base");
@@ -2065,26 +2089,32 @@ void prepare_proven_dataset()
 void test_proven_search(int mcts_nodes, int tss_nodes, bool fast)
 {
 //	GameConfig game_config(GameRules::FREESTYLE, 15);
-	GameConfig game_config(GameRules::STANDARD, 15);
-//	GameConfig game_config(GameRules::RENJU, 15);
+//	GameConfig game_config(GameRules::STANDARD, 15);
+	GameConfig game_config(GameRules::RENJU, 15);
 //	GameConfig game_config(GameRules::CARO5, 15);
 //	GameConfig game_config(GameRules::CARO6, 20);
 
-	GameDataBuffer buffer("/home/maciek/alphagomoku/proven_positions.bin");
-	std::cout << buffer.getStats().toString() << '\n';
+	GameDataBuffer buffer;
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/freestyle_20x20/train_buffer/buffer_399.bin");
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/freestyle_15x15/train_buffer/buffer_399.bin");
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/standard_15x15/train_buffer/buffer_399.bin");
+	buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/renju_8x128/train_buffer/buffer_399.bin");
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/caro5/train_buffer/buffer_399.bin");
+//		buffer.load("/media/maciek/Data Linux/alphagomoku/runs_2025/caro6/train_buffer/buffer_399.bin");
+//	std::cout << buffer.getStats().toString() << '\n';
 
 	SearchConfig search_config;
-	search_config.max_batch_size = 32;
+	search_config.max_batch_size = 12;
 	search_config.mcts_config.edge_selector_config.exploration_constant = 1.25f;
 	search_config.mcts_config.max_children = 32;
 	search_config.tss_config.mode = 2;
 	search_config.tss_config.max_positions = tss_nodes;
 
 	DeviceConfig device_config;
-	device_config.batch_size = 32;
+	device_config.batch_size = 12;
 	device_config.device = ml::Device::cpu();
 	NNEvaluator nn_evaluator(device_config);
-	nn_evaluator.useSymmetries(false);
+	nn_evaluator.useSymmetries(true);
 	nn_evaluator.loadGraph("/home/maciek/Desktop/AlphaGomoku560/networks/standard_conv_8x128.bin");
 //	nn_evaluator.loadGraph("./old_6x64s.bin");
 
@@ -2101,36 +2131,61 @@ void test_proven_search(int mcts_nodes, int tss_nodes, bool fast)
 	for (int i = 0; i < buffer.numberOfGames(); i += (buffer.numberOfGames() / count))
 //	int i = 0;
 	{
-		if (i % (count / 10) == 0)
-			std::cout << "processed " << i << " / " << count << ", solved " << solved_count << "/" << total_samples << ", visits " << total_visits
-					<< '\n';
+//		if (i % (count / 10) == 0)
+//			std::cout << "processed " << i << " / " << count << ", solved " << solved_count << "/" << total_samples << ", visits " << total_visits
+//					<< '\n';
 
 		total_samples += buffer.getGameData(i).numberOfSamples();
-		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+//		for (int j = 0; j < buffer.getGameData(i).numberOfSamples(); j++)
+		const int j = randInt(buffer.getGameData(i).numberOfSamples());
 		{
 			buffer.getGameData(i).getSample(pack, j);
 
+			const int max_nodes = randInt(50, mcts_nodes);
+			search.getSolver().setNodeLimit(randInt(50, tss_nodes));
+
+			int nodes = 0;
+			int positions = 0;
+			int nn_evals = 0;
+			double time_solve = 0.0;
+			double time_search = 0.0;
+			double time_nn = 0.0;
+
+			double start_time = getTime();
 			tree.setBoard(pack.board, pack.played_move.sign);
 			search.setBoard(pack.board, pack.played_move.sign);
 			tree.setEdgeSelector(PUCTSelector(search_config.mcts_config.edge_selector_config));
 			tree.setEdgeGenerator(
 					UnifiedGenerator(search_config.mcts_config.max_children, search_config.mcts_config.policy_expansion_threshold,
 							search_config.mcts_config.policy_temperature));
-
-			for (int k = 0; k <= mcts_nodes; k++)
+			for (int k = 0; k <= max_nodes; k++)
 			{
-				search.select(tree, mcts_nodes);
+				const double t0 = getTime();
+				search.select(tree, max_nodes);
+				const double t1 = getTime();
 				search.solve();
+				const double t2 = getTime();
 				search.scheduleToNN(nn_evaluator);
 				nn_evaluator.evaluateGraph();
+				const double t3 = getTime();
 
 				search.generateEdges(tree);
 				search.expand(tree);
 				search.backup(tree);
+				double t4 = getTime();
+
+				time_search += (t1 - t0) + (t4 - t3);
+				time_solve += (t2 - t1);
+				time_nn += (t3 - t2);
+
 				if (tree.isRootProven())
 					break;
 			}
 			search.cleanup(tree);
+			double stop_time = getTime();
+			std::cout << nodes << " " << positions << " " << nn_evals << " " << time_search << " " << time_solve << " " << time_nn << " "
+					<< (stop_time - start_time) << '\n';
+//			exit(0);
 
 			const Node info = tree.getInfo( { });
 			solved_count += info.getScore().isProven();
@@ -2146,14 +2201,13 @@ void test_proven_search(int mcts_nodes, int tss_nodes, bool fast)
 //				exit(0);
 //			}
 		}
-
 	}
 
 //	search.getSolver().print_stats();
-	std::cout << search.getStats().toString() << '\n';
-	std::cout << tree.getNodeCacheStats().toString() << '\n';
-	std::cout << '\n' << "solved " << solved_count << "/" << total_samples << " (" << 100.0f * solved_count / total_samples << "%)\n";
-	std::cout << "total visits = " << total_visits << '\n';
+//	std::cout << search.getStats().toString() << '\n';
+//	std::cout << tree.getNodeCacheStats().toString() << '\n';
+//	std::cout << '\n' << "solved " << solved_count << "/" << total_samples << " (" << 100.0f * solved_count / total_samples << "%)\n";
+//	std::cout << "total visits = " << total_visits << '\n';
 }
 
 template<typename T>
@@ -3619,12 +3673,35 @@ std::vector<DeviceConfig> create_device_config(int num, ml::Device base, int bat
 	return std::vector<DeviceConfig>(num, cfg);
 }
 
-double func_eval(const std::vector<double> &x)
+void replace_params(SelfplayConfig &cfg, const std::vector<double> &x)
+{
+	cfg.final_selector.exploration_constant = linear_interpolate(x[0], 0.0, 2.0);
+	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = linear_interpolate(x[1], 0.0, 2.0);
+	cfg.search_config.mcts_config.policy_temperature = std::pow(2.0, linear_interpolate(x[2], -2.0, 2.0));
+
+	std::cout << cfg.final_selector.exploration_constant << '\n';
+	std::cout << cfg.search_config.mcts_config.edge_selector_config.exploration_constant << '\n';
+	std::cout << cfg.search_config.mcts_config.policy_temperature << "\n\n";
+
+//	cfg.final_selector.exploration_constant = linear_interpolate(x[0], 0.0, 2.0);
+//
+//	cfg.search_config.mcts_config.max_children = linear_interpolate(x[1], 1, 225);
+//	cfg.search_config.mcts_config.policy_expansion_threshold = std::pow(10.0, linear_interpolate(x[2], -6.0, -1.0));
+//	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = linear_interpolate(x[3], 0.0, 2.0);
+//	cfg.search_config.mcts_config.policy_temperature = std::pow(2.0, linear_interpolate(x[4], -2.0, 2.0));
+//	cfg.search_config.tss_config.max_positions = std::pow(10.0, linear_interpolate(x[5], 1.0, 4.0));
+//
+//	cfg.search_config.early_stopping = 1.0 - std::pow(10.0, linear_interpolate(x[6], -3.0, 0.0));
+//	cfg.search_config.time_fraction = 1.0 - std::pow(10.0, linear_interpolate(x[7], -3.0, 0.0));
+}
+
+double func_eval(const std::vector<double> &xp, const std::vector<double> &xm)
 {
 	const GameConfig game_config(GameRules::STANDARD, 15);
 	SelfplayConfig cfg;
-	cfg.simulations = 100;
-	cfg.device_config = create_device_config(4, ml::Device::cuda(), 32);
+	cfg.games_per_thread = 32;
+	cfg.constraints = Constraints::simulations(100);
+	cfg.device_config = create_device_config(4, ml::Device::cuda(), 128);
 
 	cfg.final_selector.policy = "lcb";
 	cfg.final_selector.init_to = "zero";
@@ -3638,32 +3715,32 @@ double func_eval(const std::vector<double> &x)
 	cfg.search_config.mcts_config.edge_selector_config.noise_weight = 0.0;
 	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = 0.5;
 
-	cfg.search_config.mcts_config.max_children = 225;
-	cfg.search_config.mcts_config.policy_expansion_threshold = 0.0;
+	cfg.search_config.mcts_config.max_children = 32;
+	cfg.search_config.mcts_config.policy_expansion_threshold = 1.0e-4;
 	cfg.search_config.mcts_config.policy_temperature = 1.0;
 
 	cfg.search_config.tss_config.mode = 2;
 	cfg.search_config.tss_config.max_positions = 100;
 	cfg.search_config.tss_config.hash_table_size = 65536;
 
-	const std::string network_path = "/home/maciek/alphagomoku/runs_2026/test_gumbel_noise_10/network_swa.bin";
+	const std::string network_path = "/home/maciek/alphagomoku/runs_2026/final/standard_15x15/network_swa.bin";
 	EvaluationManager manager(game_config, cfg);
-	manager.setSecondPlayer(cfg, network_path, "baseline");
 
-	cfg.final_selector.exploration_constant = linear_interpolate(x[0], 0.0, 2.0);
-	cfg.search_config.mcts_config.edge_selector_config.exploration_constant = linear_interpolate(x[1], 0.0, 2.0);
-	cfg.search_config.mcts_config.policy_temperature = std::exp(linear_interpolate(x[2], -2.0, 2.0));
-	manager.setFirstPlayer(cfg, network_path, "tested");
+	replace_params(cfg, xp);
+	manager.setFirstPlayer(cfg, network_path, "theta_plus");
+
+	replace_params(cfg, xm);
+	manager.setSecondPlayer(cfg, network_path, "theta_minus");
 
 	const double start = getTime();
-	manager.generate(4000);
+	manager.generate(1000);
 	const double stop = getTime();
 	std::cout << "generated in " << (stop - start) << '\n';
 
-//	const std::string to_save = manager.getPGN();
-//	std::ofstream file("/home/maciek/alphagomoku/runs_2026/spsa.pgn", std::ios::out);
-//	file.write(to_save.data(), to_save.size());
-//	file.close();
+	const std::string to_save = manager.getPGN();
+	std::ofstream file("/home/maciek/alphagomoku/runs_2026/spsa.pgn", std::ios::out);
+	file.write(to_save.data(), to_save.size());
+	file.close();
 
 	std::array<int, 5> scores = { 0, 0, 0, 0, 0 };
 	for (int i = 0; i < manager.numberOfThreads(); i++)
@@ -3674,27 +3751,55 @@ double func_eval(const std::vector<double> &x)
 	}
 
 	const double num_games = 2 * (scores[0] + scores[1] + scores[2] + scores[3] + scores[4]);
-	const double winrate = (0.0 * scores[0] + 0.5 * scores[1] + 1.0 * scores[2] + 1.5 * scores[3] + 2.0 * scores[4]) / num_games;
-	const double elo_diff = 400.0 * std::log10(winrate / (1.0 - winrate));
+	const double winrate = (-scores[0] - 0.5 * scores[1] + 0.5 * scores[3] + scores[4]) / num_games;
 
 	for (int i = 0; i < 5; i++)
 		std::cout << "scores[" << i << "] = " << 2 * scores[i] / num_games << '\n';
 
-	std::cout << "result = " << winrate << " (" << elo_diff << " elo)\n";
+	std::cout << "result = " << winrate << "\n";
 	return winrate;
 }
 
 void test_optimize()
 {
-//	std::vector<double> params = { 0.022608, 0.007556, 0.176855 };
-//	const double result = func_eval(params);
-//	exit(0);
+	std::vector<double> baseline = { 0.2, 0.2, 0.5 };
+	std::vector<double> tested = { 0.07, 0.223, 0.711 };
+	const double result = func_eval(baseline, tested);
+	exit(0);
 
-	SPSA spsa(func_eval, 3);
-	spsa.set_initial_theta( { 0.2, 0.25, 0.5 });
+	SPSA spsa(func_eval, 3); // @suppress("Ambiguous problem")
+	spsa.set_initial_theta( { 0.2, 0.1384, 0.2, 0.25, 0.5, 0.3334, 0.3334, 0.6667 });
 
 	for (int i = 0; i < 100; i++)
 		spsa.do_one_step(100);
+}
+
+void test_rl()
+{
+	std::cout << ml::Device::hardwareInfo() << '\n';
+	setupSignalHandler(SignalType::INT, SignalHandlerMode::CUSTOM_HANDLER);
+
+	const int number_of_iterations = 200;
+	const std::string path = "/home/maciek/alphagomoku/runs_2026/final/test/";
+
+	if (pathExists(path + "/config.json"))
+	{
+		TrainingManager tm(path);
+		for (int i = 0; i < number_of_iterations; i++)
+			tm.runIterationRL();
+	}
+	else
+	{
+		if (not pathExists(path))
+		{
+			createDirectory(path);
+			std::cout << "Created working directory" << std::endl;
+		}
+		MasterLearningConfig cfg;
+		FileSaver fs(path + "/config.json");
+		fs.save(cfg.toJson(), SerializedObject(), 2, false);
+		std::cout << "Created default configuration file, exiting." << std::endl;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -3702,6 +3807,10 @@ int main(int argc, char *argv[])
 	ml::Device::flushDenormalsToZero(true);
 	std::cout << "BEGIN" << std::endl;
 	std::cout << ml::Device::hardwareInfo() << '\n';
+//	test_proven_search(10000, 1000, false);
+//	test_rl();
+//	return 0;
+
 	test_optimize();
 	return 0;
 //	preprocess_dataset();
@@ -3710,13 +3819,16 @@ int main(int argc, char *argv[])
 	if (true)
 	{
 		std::vector<std::pair<std::string, std::string>> models;
-		models.emplace_back("/home/maciek/alphagomoku/runs_2026/loss_weights/baseline_100_100_100_25/network_swa_opt.bin", "baseline");
-		models.emplace_back("/home/maciek/alphagomoku/runs_2026/loss_weights/200_100_100_25/network_swa_opt.bin", "policy_x2");
-		models.emplace_back("/home/maciek/alphagomoku/runs_2026/loss_weights/100_200_100_25/network_swa_opt.bin", "value_x2");
-		models.emplace_back("/home/maciek/alphagomoku/runs_2026/loss_weights/100_100_200_25/network_swa_opt.bin", "qhead_x2");
-		models.emplace_back("/home/maciek/alphagomoku/runs_2026/loss_weights/100_100_100_10/network_swa_opt.bin", "mlh_x0.4");
-		models.emplace_back("/home/maciek/alphagomoku/runs_2026/loss_weights/100_50_100_25/network_swa_opt.bin", "value_x0.5");
-		first_vs_rest("/home/maciek/alphagomoku/runs_2026/loss_weights/", models, 4000);
+//		models.emplace_back("/home/maciek/alphagomoku/runs_2026/testy_rl/baseline/network_swa.bin", "baseline");
+//		models.emplace_back("/home/maciek/alphagomoku/runs_2026/testy_rl/gating/network_swa.bin", "gating");
+//		models.emplace_back("/home/maciek/alphagomoku/runs_2026/testy_rl/gating_swa/network_swa.bin", "gating_swa");
+//		models.emplace_back("/home/maciek/alphagomoku/runs_2026/testy_rl/gating_swa_strict/network_swa.bin", "gating_swa_strict");
+//		models.emplace_back("/home/maciek/alphagomoku/runs_2026/testy_rl/gating_swa_small_buffer/network_swa.bin", "gating_swa_small_buffer");
+		models.emplace_back("/home/maciek/alphagomoku/runs_2026/exclude_samples/baseline/network_swa_opt.bin", "baseline");
+		models.emplace_back("/home/maciek/alphagomoku/runs_2026/exclude_samples/exclude_static/network_swa_opt.bin", "exclude_static");
+		models.emplace_back("/home/maciek/alphagomoku/runs_2026/exclude_samples/exclude_recursive/network_swa_opt.bin", "exclude_recursive");
+		round_robin("/home/maciek/alphagomoku/runs_2026/exclude_samples/", models, 3000);
+//		round_robin("/home/maciek/alphagomoku/runs_2026/testy_rl/", models, 4000);
 		return 0;
 	}
 
@@ -3870,8 +3982,8 @@ int main(int argc, char *argv[])
 //	return 0;
 
 //	generate_games();
-	run_training();
-	return 0;
+//	run_training();
+//	return 0;
 //	test_evaluate();
 //	test_activation_magnitudes();
 //	test_quantization();
@@ -3881,8 +3993,10 @@ int main(int argc, char *argv[])
 //	run_knowledge_distillation();
 //	return 0;
 
-//	evaluate_vs_old("/home/maciek/alphagomoku/final_runs_2025/caro6/", 400);
-//	return 0;
+	for (int i = 90;; i += 10)
+		evaluate_vs_old("/home/maciek/alphagomoku/runs_2026/final/freestyle_15x15/", i);
+	return 0;
+
 //
 //	{
 //		const std::string path = "/home/maciek/alphagomoku/new_runs_2025/size_tests/convnext_ls01_se2_8x128/";
@@ -3967,8 +4081,8 @@ int main(int argc, char *argv[])
 // @formatter:on
 		const Sign sign_to_move = Sign::CIRCLE;
 
-		const std::string path = "/home/maciek/alphagomoku/runs_2026/wide_test/baseline_8x256/";
-		std::unique_ptr<AGNetwork> network = NetworkLoader(path + "/network_swa_opt.bin").get();
+		const std::string path = "/home/maciek/alphagomoku/runs_2026/final/standard_15x15/";
+		std::unique_ptr<AGNetwork> network = NetworkLoader(path + "/network_swa.bin").get();
 
 //		for (int i = 0; i < network->get_graph().numberOfNodes(); i++)
 //		{
@@ -3985,14 +4099,14 @@ int main(int argc, char *argv[])
 //		}
 
 //		network->moveTo(ml::Device::opencl());
-		network->setBatchSize(12);
-		network->optimize(1);
-		network->moveTo(ml::Device::cpu());
+		network->setBatchSize(64);
+		network->optimize(2);
+		network->moveTo(ml::Device::cuda());
 
 		network->get_graph().print();
 
 		network->convertToHalfFloats();
-		network->forward(12);
+		network->forward(network->getBatchSize());
 
 		matrix<float> policy(board.rows(), board.cols());
 		matrix<Value> action_values(board.rows(), board.cols());
@@ -4000,7 +4114,7 @@ int main(int argc, char *argv[])
 		float moves_left = 0.0f;
 
 		network->packInputData(0, board, sign_to_move);
-		network->forward(12);
+		network->forward(network->getBatchSize());
 
 		network->unpackOutput(0, policy, action_values, value, moves_left);
 
