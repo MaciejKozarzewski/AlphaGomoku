@@ -48,6 +48,7 @@ namespace ag
 			FileSaver(const std::string &path);
 			std::string getPath() const;
 			void save(const Json &json, const SerializedObject &binary_data, int indent = -1, bool compress = false);
+			void save(const Json &json, int indent = -1);
 	};
 
 	class FileLoader

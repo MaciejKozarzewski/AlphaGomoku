@@ -50,6 +50,14 @@ namespace ag
 			to_save = ZipWrapper::compress(to_save);
 		stream.write(to_save.data(), to_save.size());
 	}
+	void FileSaver::save(const Json &json, int indent)
+	{
+		std::string json_string = json.dump(indent);
+
+		std::vector<char> to_save(json_string.begin(), json_string.end());
+		to_save.push_back('\n');
+		stream.write(to_save.data(), to_save.size());
+	}
 
 	FileLoader::FileLoader(const std::string &path, bool uncompress)
 	{

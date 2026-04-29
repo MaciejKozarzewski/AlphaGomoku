@@ -38,6 +38,22 @@ namespace
 			result += " " + std::to_string(x[i]);
 		return result;
 	}
+
+	Json vector_to_json(const std::vector<double> &x)
+	{
+		Json result = Json::array();
+		for (size_t i = 0; i < x.size(); i++)
+			result[i] = x[i];
+		return result;
+	}
+	std::vector<double> vector_from_json(const Json &json)
+	{
+		assert(json.isArray());
+		std::vector<double> result(json.size());
+		for (int i = 0; i < json.size(); i++)
+			result[i] = json[i].getDouble();
+		return result;
+	}
 }
 
 namespace ag
@@ -73,7 +89,6 @@ namespace ag
 			std::cout << "fm = " << fm << '\n';
 			const double fp = function_to_optimize(theta_plus_delta);
 			std::cout << "fp = " << fp << '\n';
-			best_value = std::max(best_value, std::max(fm, fp));
 			grad = fp - fm;
 		}
 
@@ -85,16 +100,29 @@ namespace ag
 		theta = constrain_to_01(linear_combination(1.0, theta, a_k, gradient));
 		std::cout << "new theta =" << to_string(theta) << '\n';
 		std::cout << "diff = " << grad << '\n';
-		std::cout << "best = " << best_value << '\n';
 		std::cout << '\n';
 
 		return grad;
 	}
 	void SPSA::load_progress(const Json &json)
 	{
+		a = json["a"].getDouble();
+		c = json["c"].getDouble();
+		alpha = json["alpha"].getDouble();
+		gamma = json["gamm"].getDouble();
+		step = json["step"].getInt();
+		theta = vector_from_json(json["theta"]);
 	}
 	Json SPSA::save_progress() const
 	{
+		Json result;
+		result["a"] = a;
+		result["c"] = c;
+		result["alpha"] = alpha;
+		result["gamma"] = gamma;
+		result["step"] = step;
+		result["theta"] = vector_to_json(theta);
+		return result;
 	}
 	/*
 	 * private

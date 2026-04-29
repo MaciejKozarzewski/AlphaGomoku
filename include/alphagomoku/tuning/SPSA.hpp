@@ -30,7 +30,6 @@ namespace ag
 			double alpha = 0.602;
 			double gamma = 0.101;
 			double step = 0; // k
-			double best_value = std::numeric_limits<double>::lowest();
 		public:
 			SPSA(opt_func f, int dim) noexcept :
 					function_to_optimize(f),
