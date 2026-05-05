@@ -109,7 +109,7 @@ namespace ag
 		a = json["a"].getDouble();
 		c = json["c"].getDouble();
 		alpha = json["alpha"].getDouble();
-		gamma = json["gamm"].getDouble();
+		gamma = json["gamma"].getDouble();
 		step = json["step"].getInt();
 		theta = vector_from_json(json["theta"]);
 	}
