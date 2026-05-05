@@ -62,13 +62,12 @@ namespace ag
 	double SPSA::do_one_step(int max_iterations)
 	{
 		const double A = max_iterations / 10.0;
-		step++;
 
 		std::cout << "step = " << step << '\n';
 		std::cout << "theta =" << to_string(theta) << '\n';
 
-		const double c_k = c / std::pow(step, gamma);
-		const double a_k = a / std::pow((step + A), alpha);
+		const double c_k = c / std::pow(step + 1, gamma);
+		const double a_k = a / std::pow((step + 1 + A), alpha);
 
 		std::cout << "c_k = " << c_k << ", a_k = " << a_k << '\n';
 
@@ -102,6 +101,7 @@ namespace ag
 		std::cout << "diff = " << grad << '\n';
 		std::cout << '\n';
 
+		step++;
 		return grad;
 	}
 	void SPSA::load_progress(const Json &json)

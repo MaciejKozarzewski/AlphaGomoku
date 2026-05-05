@@ -71,13 +71,14 @@ namespace ag
 			init_to(get_value<std::string>(cfg, "init_to", "parent")),
 			noise_type(get_value<std::string>(cfg, "noise_type", "none")),
 			noise_weight(get_value<float>(cfg, "noise_weight", Defaults::noise_weight)),
-			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant))
+			exploration_constant(get_value<float>(cfg, "exploration_constant", Defaults::exploration_constant)),
+			exploration_scaling(get_value<float>(cfg, "exploration_scaling", Defaults::exploration_scaling))
 	{
 	}
 	Json EdgeSelectorConfig::toJson() const
 	{
 		return Json( { { "policy", policy }, { "init_to", init_to }, { "noise_type", noise_type }, { "noise_weight", noise_weight }, {
-				"exploration_constant", exploration_constant } });
+				"exploration_constant", exploration_constant }, { "exploration_scaling", exploration_scaling } });
 	}
 
 	MCTSConfig::MCTSConfig(const Json &cfg) :

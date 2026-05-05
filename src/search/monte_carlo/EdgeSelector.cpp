@@ -888,7 +888,8 @@ namespace ag
 			init_to(config.init_to),
 			noise_type(config.noise_type),
 			noise_weight((config.noise_type == "none") ? 0.0f : config.noise_weight),
-			exploration_constant(config.exploration_constant)
+			exploration_constant(config.exploration_constant),
+			exploration_scaling(config.exploration_scaling)
 	{
 	}
 	std::unique_ptr<EdgeSelector> PUCTSelector::clone() const
@@ -916,8 +917,7 @@ namespace ag
 				noisy_policy = applyGumbelNoise(node, noise_weight);
 		}
 
-//		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
-		const float c_puct = exploration_constant;
+		const float c_puct = exploration_constant + exploration_scaling * std::log(node->getVisits() + node->getVirtualLoss());
 
 		if (init_to == "q_head")
 		{
@@ -980,8 +980,8 @@ namespace ag
 		}
 
 		const float c_fpu = 0.0f;
-		const float c_puct = 0.25f + 0.073f * std::log(node->getVisits() + node->getVirtualLoss());
-//		const float c_puct = exploration_constant;
+//		const float c_puct = 0.04738 + 0.08935f * std::log(std::max(1, node->getVisits() + node->getVirtualLoss()));
+		const float c_puct = exploration_constant;
 
 		if (init_to == "q_head")
 		{
@@ -1004,12 +1004,12 @@ namespace ag
 					initial_q = 0.0f;
 			}
 
-			float sum_of_visited_policy = 0.0f;
-			for (auto edge = node->begin(); edge < node->end(); edge++)
-				if (edge->getVisits() > 0)
-					sum_of_visited_policy += edge->getPolicyPrior();
-
-			initial_q -= c_fpu * std::sqrt(sum_of_visited_policy);
+//			float sum_of_visited_policy = 0.0f;
+//			for (auto edge = node->begin(); edge < node->end(); edge++)
+//				if (edge->getVisits() > 0)
+//					sum_of_visited_policy += edge->getPolicyPrior();
+//
+//			initial_q -= c_fpu * std::sqrt(sum_of_visited_policy);
 
 			const PUCT op(node, c_puct, initial_q);
 			if (use_noise)
