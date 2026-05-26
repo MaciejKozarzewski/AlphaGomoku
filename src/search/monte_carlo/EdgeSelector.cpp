@@ -11,6 +11,12 @@
 #include <alphagomoku/utils/math_utils.hpp>
 #include <alphagomoku/utils/random.hpp>
 #include <alphagomoku/utils/Logger.hpp>
+#include <alphagomoku/utils/file_util.hpp>
+#include <alphagomoku/utils/misc.hpp>
+
+#include <minml/core/Tensor.hpp>
+#include <minml/core/math.hpp>
+#include <minml/graph/Graph.hpp>
 
 #include <cassert>
 
@@ -547,6 +553,11 @@ namespace
 			}
 	};
 
+	bool is_unproven_or_draw(Score s) noexcept
+	{
+		return s.isUnproven() or s.isDraw();
+	}
+
 	template<class Op, bool UseNoise>
 	Edge* find_best_edge_impl(const Node *node, const Op &op, const std::vector<float> &noise) noexcept
 	{
@@ -559,12 +570,17 @@ namespace
 		{
 			const float policy_prior = UseNoise ? noise[std::distance(node->begin(), edge)] : edge->getPolicyPrior();
 			const float value = op(*edge, policy_prior);
+//			if (node->isRoot())
+//				std::cout << edge->toString() << "   " << value << '\n';
 			if (value > best_value)
 			{
 				best_value = value;
 				best_edge = edge;
 			}
 		}
+//		if (node->isRoot())
+//			std::cout << "Selected : " << best_edge->toString() << "\n\n";
+
 		assert(best_edge != nullptr);
 		return best_edge;
 	}
@@ -605,6 +621,58 @@ namespace
 		softmax(result);
 		return result;
 	}
+
+	struct PolicyWeights
+	{
+			ml::Tensor w1, b1;
+			ml::Tensor w2, b2;
+			ml::Tensor w3, b3;
+
+			PolicyWeights(const std::string &path)
+			{
+				ml::Graph graph;
+				FileLoader fl(path);
+				graph.load(fl.getJson(), fl.getBinaryData());
+				assert(graph.numberOfNodes() == 5);
+				w1 = graph.getNode(1).getLayer().getWeights().getParam().flatten( { 1, 2, 3 });
+				b1 = graph.getNode(1).getLayer().getBias().getParam();
+				w2 = graph.getNode(2).getLayer().getWeights().getParam().flatten( { 1, 2, 3 });
+				b2 = graph.getNode(2).getLayer().getBias().getParam();
+				w3 = graph.getNode(3).getLayer().getWeights().getParam().flatten( { 1, 2, 3 });
+				b3 = graph.getNode(3).getLayer().getBias().getParam();
+			}
+	};
+
+	struct ScopedTimer
+	{
+			std::string name;
+			double total_time = 0.0;
+			int total_count = 0;
+
+			ScopedTimer(const std::string &n) :
+					name(n)
+			{
+			}
+			~ScopedTimer()
+			{
+				std::cout << name << " : " << 1.0e6 * total_time / total_count << "us (" << total_time << "s / " << total_count << ")\n";
+			}
+			void add(double dt) noexcept
+			{
+				total_time += dt;
+				total_count++;
+			}
+	};
+
+	float fast_log10(float x)
+	{
+		uint32_t bx = *reinterpret_cast<uint32_t*>(&x);
+		const uint32_t ex = bx >> 23;
+		const int32_t t = static_cast<int32_t>(ex) - static_cast<int32_t>(127);
+		bx = 1065353216 | (bx & 8388607);
+		x = *reinterpret_cast<float*>(&bx);
+		return (-1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t) * 0.434294482;
+	}
 }
 
 namespace ag
@@ -617,6 +685,8 @@ namespace ag
 			return std::make_unique<BayesUCBSelector>(config);
 		if (config.policy == "kl_ucb")
 			return std::make_unique<KLUCBSelector>(config);
+		if (config.policy == "learnable")
+			return std::make_unique<LearnablePolicySelector>(config);
 		if (config.policy == "puct")
 			return std::make_unique<PUCTSelector>(config);
 		if (config.policy == "puct_fpu")
@@ -638,6 +708,154 @@ namespace ag
 		if (config.policy == "lcb")
 			return std::make_unique<LCBSelector>(config);
 		throw std::logic_error("Unknown selection policy '" + config.policy + "'");
+	}
+
+	LearnablePolicySelector::LearnablePolicySelector(const EdgeSelectorConfig &config) :
+			input( { 225, 8 }),
+			out1( { 225, 64 }),
+			out2( { 225, 64 }),
+			out3( { 225, 1 }),
+			indices(225),
+			noise_type(config.noise_type),
+			noise_weight((config.noise_type == "none") ? 0.0f : config.noise_weight),
+			exploration_constant(config.exploration_constant),
+			exploration_scaling(config.exploration_scaling)
+	{
+	}
+	std::unique_ptr<EdgeSelector> LearnablePolicySelector::clone() const
+	{
+		EdgeSelectorConfig config;
+		config.policy = "learnable";
+		config.noise_type = noise_type;
+		config.noise_weight = noise_weight;
+		config.exploration_constant = exploration_constant;
+		config.exploration_scaling = exploration_scaling;
+		return std::make_unique<LearnablePolicySelector>(config);
+	}
+	Edge* LearnablePolicySelector::select(const Node *node) noexcept
+	{
+		assert(node != nullptr);
+		assert(node->isLeaf() == false);
+		const bool use_noise = node->isRoot() and noise_weight > 0.0f;
+		if (use_noise and noisy_policy.empty())
+		{ // initialize noise
+			if (noise_type == "custom")
+				noisy_policy = applyCustomNoise(node, noise_weight);
+			if (noise_type == "dirichlet")
+				noisy_policy = applyDirichletNoise(node, noise_weight);
+			if (noise_type == "gumbel")
+				noisy_policy = applyGumbelNoise(node, noise_weight);
+		}
+
+		if (not node->isRoot())
+		{
+			const float c_puct = 0.4062 + 0.1585 * std::log(node->getVisits() + node->getVirtualLoss());
+			const PUCT_q_head op(node, c_puct);
+			return find_best_edge_impl<PUCT_q_head, false>(node, op, noisy_policy);
+		}
+
+		static const PolicyWeights weights("/home/maciek/alphagomoku/runs_2026/tree_policy_64x64.bin");
+
+//		static ScopedTimer timer_preprocessing("preprocessing");
+//		static ScopedTimer timer_packing("packing");
+//		static ScopedTimer timer_network("network");
+//		static ScopedTimer timer_postprocessing("postprocessing");
+//		static ScopedTimer counter_edges("avg edges count");
+
+//		const double t0 = getTime();
+
+		int unproven_edges_count = 0;
+		Edge *best_edge = nullptr;
+		Score best_score = Score::minus_infinity();
+		for (Edge *edge = node->begin(); edge < node->end(); edge++)
+		{
+			const Score s = edge->getScore();
+			unproven_edges_count += is_unproven_or_draw(s);
+			if (s > best_score)
+			{
+				best_edge = edge;
+				best_score = edge->getScore();
+			}
+		}
+		if (best_score.isWin() or best_score.isLoss())
+			return best_edge;
+
+		if (unproven_edges_count == 1)
+		{
+			for (Edge *edge = node->begin(); edge < node->end(); edge++)
+				if (is_unproven_or_draw(edge->getScore()))
+					return edge;
+		}
+
+//		const double t1 = getTime();
+//		timer_preprocessing.add(t1 - t0);
+
+		ml::Tensor in = input.view( { unproven_edges_count, 8 });
+		unproven_edges_count = 0;
+		float *input_ptr = reinterpret_cast<float*>(in.data());
+		for (Edge *edge = node->begin(); edge < node->end(); edge++)
+			if (is_unproven_or_draw(edge->getScore()))
+			{
+				input_ptr[8 * unproven_edges_count + 0] = fast_log10(node->getVisits());
+				input_ptr[8 * unproven_edges_count + 1] = node->getValue().win_rate;
+				input_ptr[8 * unproven_edges_count + 2] = node->getValue().draw_rate;
+				input_ptr[8 * unproven_edges_count + 3] = fast_log10(1.0f + edge->getVisits());
+				input_ptr[8 * unproven_edges_count + 4] = fast_log10(std::max(1.0e-6f, edge->getPolicyPrior()));
+				input_ptr[8 * unproven_edges_count + 5] = edge->getValue().win_rate;
+				input_ptr[8 * unproven_edges_count + 6] = edge->getValue().draw_rate;
+				input_ptr[8 * unproven_edges_count + 7] = 1.0f;
+				indices[unproven_edges_count] = std::distance(node->begin(), edge);
+				unproven_edges_count++;
+			}
+
+//		counter_edges.add(unproven_edges_count / 1.0e6);
+//		const double t2 = getTime();
+//		timer_packing.add(t2 - t1);
+
+		ml::Tensor o1 = out1.view( { unproven_edges_count, weights.b1.lastDim() });
+		ml::Tensor o2 = out2.view( { unproven_edges_count, weights.b2.lastDim() });
+		ml::Tensor o3 = out3.view( { unproven_edges_count, weights.b3.lastDim() });
+		ml::gemm_ex(context, o1, 1.0f, 'n', in, 't', weights.w1, 0.0f, o1, weights.b1, ml::ActivationType::RELU);
+		ml::gemm_ex(context, o2, 1.0f, 'n', o1, 't', weights.w2, 0.0f, o2, weights.b2, ml::ActivationType::RELU);
+		ml::gemm_ex(context, o3, 1.0f, 'n', o2, 't', weights.w3, 0.0f, o3, weights.b3, ml::ActivationType::LINEAR);
+//		const double t3 = getTime();
+//		timer_network.add(t3 - t2);
+
+		float *output = reinterpret_cast<float*>(o3.data());
+		float max_value = std::numeric_limits<float>::lowest();
+		for (int i = 0; i < o3.firstDim(); i++)
+			max_value = std::max(max_value, output[i]);
+
+		const float temperature = exploration_constant + exploration_scaling * std::log10(node->getVisits());
+
+		if (temperature == 0.0f)
+		{
+			for (int i = 0; i < o3.firstDim(); i++)
+				if (output[i] == max_value)
+					return node->begin() + indices[i];
+		}
+
+		float sum = 0.0f;
+		for (int i = 0; i < o3.firstDim(); i++)
+		{
+			output[i] = std::exp((output[i] - max_value) / temperature);
+			sum += output[i];
+		}
+
+		const float r = randFloat() * sum;
+		sum = 0.0f;
+		for (int i = 0; i < o3.firstDim(); i++)
+		{
+			sum += output[i];
+			if (r <= sum)
+			{
+//				timer_postprocessing.add(getTime() - t3);
+				return node->begin() + indices[i];
+			}
+		}
+
+//		timer_postprocessing.add(getTime() - t3);
+		return node->end() - 1;
 	}
 
 	ThompsonSelector::ThompsonSelector(const EdgeSelectorConfig &config) :

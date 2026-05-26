@@ -75,7 +75,7 @@ namespace ag
 			};
 		public:
 			std::string policy = "puct"; // allowed values are: 'puct', 'uct', 'max_value', 'max_policy', 'max_visit', 'min_visit,' 'best'
-			std::string init_to = "parent"; // allowed values are: 'parent', 'loss', 'draw', 'q_head'
+			std::string init_to = "q_head"; // allowed values are: 'parent', 'loss', 'draw', 'q_head'
 			std::string noise_type = "none"; // allowed values are: 'none', 'custom', 'dirichlet', 'gumbel'
 			float noise_weight = Defaults::noise_weight; // only relevant if noise_type != 'none'
 			float exploration_constant = Defaults::exploration_constant;
@@ -131,13 +131,13 @@ namespace ag
 			struct Defaults
 			{
 					static constexpr int max_batch_size = 1;
-					static constexpr int early_stopping = 0.99;
-					static constexpr int time_fraction = 0.9;
+					static constexpr double early_stopping = 0.99;
+					static constexpr double time_fraction = 0.9;
 			};
 		public:
 			int max_batch_size = Defaults::max_batch_size;
-			double early_stopping = 0.99;
-			double time_fraction = 0.9;
+			double early_stopping = Defaults::early_stopping;
+			double time_fraction = Defaults::time_fraction;
 			TreeConfig tree_config;
 			MCTSConfig mcts_config;
 			TSSConfig tss_config;

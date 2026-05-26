@@ -136,7 +136,7 @@ namespace ag
 			most_visits = std::max(most_visits, v);
 		}
 
-		return most_visits > 0.99 * total_visits; // early stopping
+		return most_visits > engine_settings.getSearchConfig().early_stopping * total_visits; // early stopping
 	}
 	void EngineController::start_best_move_search()
 	{

@@ -114,7 +114,16 @@ namespace ag
 	double TimeManager::getTimeForTurn(const EngineSettings &settings, int moveNumber, float moves_left)
 	{
 		std::lock_guard lock(mutex);
-		const double fraction = 0.9;
+		const double fraction = settings.getSearchConfig().time_fraction;
+		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
+
+		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
+	}
+	double TimeManager::getTimeForTurn(const EngineSettings &settings, int moveNumber, Value evaluation)
+	{
+		std::lock_guard lock(mutex);
+		const double moves_left = moves_left_estimators.find(settings.getGameConfig().rules)->second.get(moveNumber, evaluation);
+		const double fraction = settings.getSearchConfig().time_fraction;
 		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();

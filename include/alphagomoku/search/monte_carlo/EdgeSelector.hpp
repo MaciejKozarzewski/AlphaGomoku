@@ -8,6 +8,9 @@
 #ifndef ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGESELECTOR_HPP_
 #define ALPHAGOMOKU_SEARCH_MONTE_CARLO_EDGESELECTOR_HPP_
 
+#include <minml/core/Tensor.hpp>
+#include <minml/core/Context.hpp>
+
 #include <memory>
 #include <vector>
 #include <random>
@@ -39,6 +42,26 @@ namespace ag
 			virtual Edge* select(const Node *node) noexcept = 0;
 
 			static std::unique_ptr<EdgeSelector> create(const EdgeSelectorConfig &config);
+	};
+
+	/**
+	 * @brief edge selector that uses neural network as tree policy
+	 */
+	class LearnablePolicySelector: public EdgeSelector
+	{
+		private:
+			ml::Context context;
+			ml::Tensor input, out1, out2, out3;
+			std::vector<int> indices;
+			std::vector<float> noisy_policy;
+			const std::string noise_type;
+			const float noise_weight;
+			const float exploration_constant;
+			const float exploration_scaling;
+		public:
+			LearnablePolicySelector(const EdgeSelectorConfig &config);
+			std::unique_ptr<EdgeSelector> clone() const;
+			Edge* select(const Node *node) noexcept;
 	};
 
 	/**

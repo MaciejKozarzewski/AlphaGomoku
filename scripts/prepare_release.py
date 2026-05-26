@@ -67,8 +67,8 @@ if __name__ == '__main__':
 		conv_network_paths = {
 			'freestyle_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/freestyle_20x20/network_swa.bin',
 			'freestyle_conv_8x128_15x15': '/home/maciek/alphagomoku/final_runs_2025/freestyle_15x15/network_swa.bin',
-			'standard_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/standard_15x15/network_swa.bin',
-			'renju_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/renju_15x15/network_swa.bin',
+			'standard_conv_8x128': '/home/maciek/alphagomoku/runs_2026/final/standard_15x15/network_swa.bin',
+			'renju_conv_8x128': '/home/maciek/alphagomoku/runs_2026/final/renju_15x15/network_swa.bin',
 			'caro5_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/caro5/network_swa.bin',
 			'caro6_conv_8x128': '/home/maciek/alphagomoku/final_runs_2025/caro6/network_swa.bin'
 		}

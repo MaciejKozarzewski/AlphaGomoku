@@ -181,7 +181,8 @@ namespace ag
 				return true; // early stopping
 
 			const double time_left = constraints.time_for_match - time_controller.time_match();
-			const double moves_left = moves_left_estimator.get(tree.getMoveNumber(), tree.getEvaluation());
+//			const double moves_left = moves_left_estimator.get(tree.getMoveNumber(), tree.getEvaluation());
+			const double moves_left = tree.getMovesLeft();
 			const double sum = (1.0 - std::pow(time_fraction, moves_left)) / (1.0 - time_fraction);
 			const double search_time = std::min(constraints.time_for_turn, (time_left / sum)) - protocol_overhead;
 

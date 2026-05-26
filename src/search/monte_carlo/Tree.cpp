@@ -139,7 +139,7 @@ namespace ag
 
 		base_board = newBoard;
 		move_number = Board::numberOfMoves(newBoard);
-		evaluation = 0.0f;
+		evaluation = Value();
 		sign_to_move = signToMove;
 
 		if (forceRemoveRootNode and node_cache.seek(newBoard, signToMove) != nullptr)
@@ -162,9 +162,13 @@ namespace ag
 	{
 		return move_number;
 	}
-	float Tree::getEvaluation() const noexcept
+	Value Tree::getEvaluation() const noexcept
 	{
 		return evaluation;
+	}
+	float Tree::getExpectation() const noexcept
+	{
+		return getEvaluation().getExpectation();
 	}
 	float Tree::getMovesLeft() const noexcept
 	{
@@ -342,7 +346,7 @@ namespace ag
 			pair.edge->clearFlags();
 		}
 
-		this->evaluation = root_node->getExpectation();
+		this->evaluation = root_node->getValue();
 		this->moves_left = root_node->getMovesLeft();
 	}
 	void Tree::correctInformationLeak(const SearchTask &task)

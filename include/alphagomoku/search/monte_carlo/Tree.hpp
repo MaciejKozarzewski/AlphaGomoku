@@ -58,7 +58,7 @@ namespace ag
 			std::unique_ptr<EdgeGenerator> edge_generator;
 			matrix<Sign> base_board;
 			int move_number = 0;
-			float evaluation = 0.0f;
+			Value evaluation;
 			float moves_left = 0.0f;
 			int max_depth = 0;
 			Sign sign_to_move = Sign::NONE;
@@ -74,7 +74,8 @@ namespace ag
 			void setEdgeGenerator(const EdgeGenerator &generator);
 
 			int getMoveNumber() const noexcept;
-			float getEvaluation() const noexcept;
+			Value getEvaluation() const noexcept;
+			float getExpectation() const noexcept;
 			float getMovesLeft() const noexcept;
 			int getNodeCount() const noexcept;
 			int getSimulationCount() const noexcept;

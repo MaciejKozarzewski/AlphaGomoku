@@ -58,6 +58,7 @@ namespace ag
 			double getLastSearchTime() const noexcept;
 
 			double getTimeForTurn(const EngineSettings &settings, int moveNumber, float moves_left);
+			double getTimeForTurn(const EngineSettings &settings, int moveNumber, Value evaluation);
 			double getTimeForOpening(const EngineSettings &settings);
 	};
 

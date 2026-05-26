@@ -36,6 +36,7 @@ namespace ag
 		{
 			const int move_number = search_engine.getTree().getMoveNumber();
 			const float moves_left = search_engine.getTree().getMovesLeft();
+			const Value evaluation = search_engine.getTree().getEvaluation();
 			const double time_for_turn = time_manager.getTimeForTurn(engine_settings, move_number, moves_left);
 			if (is_search_completed(time_for_turn))
 			{

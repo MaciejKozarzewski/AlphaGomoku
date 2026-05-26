@@ -120,7 +120,6 @@ namespace ag
 	 */
 	void SearchThread::serial_run(NNEvaluator &evaluator)
 	{
-		double time_per_sample = 0.01;
 		while (true)
 		{
 			{ /* artificial scope for lock */
@@ -129,9 +128,9 @@ namespace ag
 				search.setBatchSize(batch_size);
 				search.select(tree);
 			}
-			search.solve(getTime() + 0.1 * search.getBatchSize() * time_per_sample);
+			search.solve();
 			search.scheduleToNN(evaluator);
-			time_per_sample = evaluator.evaluateGraph();
+			evaluator.evaluateGraph();
 
 			search.generateEdges(tree); // this step doesn't require locking the tree
 			{ /* artificial scope for lock */

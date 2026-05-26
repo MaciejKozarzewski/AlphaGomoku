@@ -11,6 +11,7 @@
 #include <alphagomoku/game/Move.hpp>
 #include <alphagomoku/utils/matrix.hpp>
 
+#include <numeric>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
@@ -61,6 +62,23 @@ namespace ag
 	Move pickMove(const matrix<float> &policy);
 	Move randomizeMove(const matrix<float> &policy);
 	float maxValue(const matrix<float> &policy);
+
+	template<typename T>
+	std::vector<size_t> argsort(const std::vector<T> &array, size_t top_k = -1)
+	{
+		std::vector<size_t> indices(array.size());
+		std::iota(indices.begin(), indices.end(), 0);
+		std::sort(indices.begin(), indices.end(), [&array](int left, int right)
+		{	return array[left] > array[right];});
+
+		if (top_k >= indices.size())
+			return indices;
+		else
+		{
+			indices.erase(indices.begin() + top_k, indices.end());
+			return indices;
+		}
+	}
 
 	void generateOpeningMap(const matrix<Sign> &board, matrix<float> &dist);
 	std::vector<Move> prepareOpening(const GameConfig &config, int minNumberOfMoves = 0);
