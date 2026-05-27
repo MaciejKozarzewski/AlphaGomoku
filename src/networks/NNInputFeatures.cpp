@@ -103,7 +103,7 @@ namespace ag
 				tmp |= encode_patterns(calc.getPatternsAt(row, col), own_sign);
 				this->at(row, col) = tmp;
 			}
-		if (calc.getConfig().rules == GameRules::RENJU)
+		if (calc.getConfig().rules == GameRules::RENJU and own_sign == Sign::CROSS)
 		{
 			for (int row = 0; row < rows(); row++)
 				for (int col = 0; col < cols(); col++)
