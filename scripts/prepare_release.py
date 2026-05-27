@@ -74,12 +74,12 @@ if __name__ == '__main__':
 		}
 	if platform == 'windows':
 		conv_network_paths = {
-			'freestyle_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128.bin',
-			'freestyle_conv_8x128_15x15': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\freestyle_conv_8x128_15x15.bin',
-			'standard_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\standard_conv_8x128.bin',
-			'renju_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\renju_conv_8x128.bin',
-			'caro5_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\caro5_conv_8x128.bin',
-			'caro6_conv_8x128': 'C:\\Users\\mk\\Desktop\\AlphaGomoku592\\networks\\caro6_conv_8x128.bin',
+			'freestyle_conv_8x128': 'C:\\Users\\mk\\Desktop\\release5100\\AlphaGomoku_linux\\networks\\freestyle_conv_8x128.bin',
+			'freestyle_conv_8x128_15x15': 'C:\\Users\\mk\\Desktop\\release5100\\AlphaGomoku_linux\\networks\\freestyle_conv_8x128_15x15.bin',
+			'standard_conv_8x128': 'C:\\Users\\mk\\Desktop\\release5100\\AlphaGomoku_linux\\networks\\standard_conv_8x128.bin',
+			'renju_conv_8x128': 'C:\\Users\\mk\\Desktop\\release5100\\AlphaGomoku_linux\\networks\\renju_conv_8x128.bin',
+			'caro5_conv_8x128': 'C:\\Users\\mk\\Desktop\\release5100\\AlphaGomoku_linux\\networks\\caro5_conv_8x128.bin',
+			'caro6_conv_8x128': 'C:\\Users\\mk\\Desktop\\release5100\\AlphaGomoku_linux\\networks\\caro6_conv_8x128.bin',
 		}
 
 	swap2_openings = [

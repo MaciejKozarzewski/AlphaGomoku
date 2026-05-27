@@ -112,7 +112,7 @@ namespace ag
 #ifdef _WIN64
 		OSVERSIONINFO vi;
 			vi.dwOSVersionInfoSize = sizeof(vi);
-		if (GetVersionEx(&vi) == 0) throw SystemException("Cannot get OS version information");
+		if (GetVersionEx(&vi) == 0) throw std::runtime_error("Cannot get OS version information");
 		switch (vi.dwPlatformId)
 		{
 		case VER_PLATFORM_WIN32s:
