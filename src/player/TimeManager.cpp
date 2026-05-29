@@ -53,7 +53,7 @@ namespace
 		return ag::MovesLeftEstimator(c0, c2);
 	}
 
-	int get_time_fraction_based_on_board_size(const ag::EngineSettings &settings)
+	double get_time_fraction_based_on_board_size(const ag::EngineSettings &settings)
 	{
 		return (settings.getGameConfig().rows == 15) ? settings.getSearchConfig().time_fraction_15x15 : settings.getSearchConfig().time_fraction_20x20;
 	}
