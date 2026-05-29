@@ -52,6 +52,11 @@ namespace
 
 		return ag::MovesLeftEstimator(c0, c2);
 	}
+
+	int get_time_fraction_based_on_board_size(const GameConfig &game_config, const SearchConfig &search_config)
+	{
+		return (game_config.rows == 15) ? search_config.time_fraction_15x15 : search_config.time_fraction_20x20;
+	}
 }
 
 namespace ag
@@ -161,7 +166,7 @@ namespace ag
 		if (constraints.type == Constraints::Type::TIME)
 		{
 			const double protocol_overhead = 0.1;
-			const double time_fraction = search.getConfig().time_fraction;
+			const double time_fraction = get_time_fraction_based_on_board_size(game_config, search.getConfig());
 			const double early_stopping = search.getConfig().early_stopping;
 
 			Node root_node = tree.getInfo( { });

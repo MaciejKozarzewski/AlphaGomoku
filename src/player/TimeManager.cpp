@@ -52,6 +52,11 @@ namespace
 
 		return ag::MovesLeftEstimator(c0, c2);
 	}
+
+	int get_time_fraction_based_on_board_size(const ag::EngineSettings &settings)
+	{
+		return (settings.getGameConfig().rows == 15) ? settings.getSearchConfig().time_fraction_15x15 : settings.getSearchConfig().time_fraction_20x20;
+	}
 }
 
 namespace ag
@@ -114,7 +119,7 @@ namespace ag
 	double TimeManager::getTimeForTurn(const EngineSettings &settings, int moveNumber, float moves_left)
 	{
 		std::lock_guard lock(mutex);
-		const double fraction = settings.getSearchConfig().time_fraction;
+		const double fraction = get_time_fraction_based_on_board_size(settings);
 		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();
@@ -123,7 +128,7 @@ namespace ag
 	{
 		std::lock_guard lock(mutex);
 		const double moves_left = moves_left_estimators.find(settings.getGameConfig().rules)->second.get(moveNumber, evaluation);
-		const double fraction = settings.getSearchConfig().time_fraction;
+		const double fraction = get_time_fraction_based_on_board_size(settings);
 		const double sum = (1.0 - std::pow(fraction, moves_left)) / (1.0 - fraction);
 
 		return std::min(settings.getTimeForTurn(), (settings.getTimeLeft() / sum)) - settings.getProtocolLag();

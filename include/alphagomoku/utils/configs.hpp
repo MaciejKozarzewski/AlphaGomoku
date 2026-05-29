@@ -137,7 +137,8 @@ namespace ag
 		public:
 			int max_batch_size = Defaults::max_batch_size;
 			double early_stopping = Defaults::early_stopping;
-			double time_fraction = Defaults::time_fraction;
+			double time_fraction_15x15 = Defaults::time_fraction;
+			double time_fraction_20x20 = Defaults::time_fraction;
 			TreeConfig tree_config;
 			MCTSConfig mcts_config;
 			TSSConfig tss_config;

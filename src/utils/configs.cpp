@@ -108,7 +108,8 @@ namespace ag
 	SearchConfig::SearchConfig(const Json &cfg) :
 			max_batch_size(get_value<int>(cfg, "max_batch_size", Defaults::max_batch_size)),
 			early_stopping(get_value<double>(cfg, "early_stopping", Defaults::early_stopping)),
-			time_fraction(get_value<double>(cfg, "time_fraction", Defaults::time_fraction)),
+			time_fraction_15x15(get_value<double>(cfg, "time_fraction_15x15", Defaults::time_fraction)),
+			time_fraction_20x20(get_value<double>(cfg, "time_fraction_20x20", Defaults::time_fraction)),
 			tree_config(cfg["tree_config"]),
 			mcts_config(cfg["mcts_config"]),
 			tss_config(cfg["tss_config"])
@@ -119,7 +120,8 @@ namespace ag
 		Json result;
 		result["max_batch_size"] = max_batch_size;
 		result["early_stopping"] = early_stopping;
-		result["time_fraction"] = time_fraction;
+		result["time_fraction_15x15"] = time_fraction_15x15;
+		result["time_fraction_20x20"] = time_fraction_20x20;
 		result["tree_config"] = tree_config.toJson();
 		result["mcts_config"] = mcts_config.toJson();
 		result["tss_config"] = tss_config.toJson();
