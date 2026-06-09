@@ -95,6 +95,11 @@ namespace
 			}
 	};
 
+	Value get_value(Value value, Score score)
+	{
+		return score.isProven() ? score.convertToValue() : value;
+	}
+
 	BaseSampler& get_sampler()
 	{
 		static BaseSampler sampler;
@@ -161,7 +166,7 @@ namespace ag
 	}
 
 	void get_tensor_shapes(int batch_size, const Sample_t *samples, TensorSize_t *input, TensorSize_t *policy_target, TensorSize_t *value_target,
-			TensorSize_t *moves_left_target, TensorSize_t *action_values_target)
+			TensorSize_t *action_values_target, TensorSize_t *action_values_mask, TensorSize_t *moves_left_target)
 	{
 		if (batch_size <= 0)
 			return;
@@ -179,18 +184,20 @@ namespace ag
 		fill_tensor_size(input, { batch_size, rows, columns, 32 });
 		fill_tensor_size(policy_target, { batch_size, rows, columns, 1 });
 		fill_tensor_size(value_target, { batch_size, 3 });
-		fill_tensor_size(moves_left_target, { batch_size, 1 });
 		fill_tensor_size(action_values_target, { batch_size, rows, columns, 3 });
+		fill_tensor_size(action_values_mask, { batch_size, rows, columns, 1 });
+		fill_tensor_size(moves_left_target, { batch_size, rows * columns });
 	}
-	void load_batch(int batch_size, const Sample_t *samples, float *input, float *policy_target, float *value_target, float *moves_left_target,
-			float *action_values_target)
+	void load_batch(int batch_size, const Sample_t *samples, float *input, float *policy_target, float *value_target, float *action_values_target,
+			float *action_values_mask, float *moves_left_target)
 	{
 		assert(samples != nullptr);
 		assert(input != nullptr);
 		assert(policy_target != nullptr);
 		assert(value_target != nullptr);
-		assert(moves_left_target != nullptr);
 		assert(action_values_target != nullptr);
+		assert(action_values_mask != nullptr);
+		assert(moves_left_target != nullptr);
 
 		if (batch_size <= 0)
 			return;
@@ -230,9 +237,31 @@ namespace ag
 			value_target[1] = qt.draw_rate;
 			value_target[2] = qt.loss_rate();
 
-			moves_left_target[0] = pack.moves_left;
+			int unvisited_actions_count = 0;
+			int max_N = 0;
+			int sum_N = 0;
+			float sum_PxQ = 0.0f;
+			float sum_P = 0.0f;
+			for (int i = 0; i < rows * columns; i++)
+				if (pack.board[i] == Sign::NONE)
+				{
+					if (pack.visit_count[i] > 0 or pack.action_scores[i].isProven())
+					{
+						const Value q = get_value(pack.action_values[i], pack.action_scores[i]);
+						sum_PxQ += pack.policy_prior[i] * q.getExpectation();
+						sum_P += pack.policy_prior[i];
+						max_N = std::max(max_N, pack.visit_count[i]);
+						pack.visit_count[i] = std::max(1, pack.visit_count[i]); // proven moves can have 0 visits if they were proven by the solver
+						sum_N += pack.visit_count[i];
+					}
+					else
+						unvisited_actions_count++;
+				}
 
-			float policy_sum = 0.0f;
+			const float minimax_V = get_value(pack.minimax_value, pack.minimax_score).getExpectation();
+			sum_PxQ = sum_P * sum_PxQ + (1.0f - sum_P) * minimax_V;
+
+			float max_value = std::numeric_limits<float>::lowest();
 			for (int i = 0; i < rows * columns; i++)
 			{
 				uint32_t f = features[i];
@@ -242,39 +271,67 @@ namespace ag
 					f = (f >> 1u);
 				}
 
-				const Score score = pack.action_scores[i];
-				const Value value = score.isProven() ? score.convertToValue() : pack.action_values[i];
-
-				action_values_target[i * 3 + 0] = value.win_rate;
-				action_values_target[i * 3 + 1] = value.draw_rate;
-				action_values_target[i * 3 + 2] = value.loss_rate();
-
-				switch (score.getProvenValue())
+				if (pack.board[i] == Sign::NONE)
 				{
-					case ProvenValue::LOSS:
-						policy_target[i] = 1.0e-6f;
-						break;
-					case ProvenValue::DRAW:
-						policy_target[i] = std::max(1, pack.visit_count[i]);
-						break;
-					default:
-					case ProvenValue::UNKNOWN:
-						policy_target[i] = pack.visit_count[i];
-						break;
-					case ProvenValue::WIN:
-						policy_target[i] = 1.0e+6f;
-						break;
+					float Q = sum_PxQ;
+					float P = std::max(0.0f, (1.0f - sum_P) / unvisited_actions_count);
+					if (pack.visit_count[i] > 0)
+					{
+						const Score score = pack.action_scores[i];
+
+						switch (score.getProvenValue())
+						{
+							case ProvenValue::LOSS:
+								Q = -1.0f / (1.0f + score.getDistance());
+								break;
+							case ProvenValue::DRAW:
+								Q = Value::draw().getExpectation();
+								break;
+							default:
+							case ProvenValue::UNKNOWN:
+								Q = pack.action_values[i].getExpectation();
+								break;
+							case ProvenValue::WIN:
+								Q = 1.0f + 2.0f / (1.0f + score.getDistance());
+								break;
+						}
+
+						P = pack.policy_prior[i];
+					}
+					policy_target[i] = 50.0f * Q + log_eps(P);
+					max_value = std::max(max_value, policy_target[i]);
+
+					moves_left_target[i] = 0.0f;
+
+					const Value q = get_value(pack.action_values[i], pack.action_scores[i]);
+					action_values_target[i * 3 + 0] = q.win_rate;
+					action_values_target[i * 3 + 1] = q.draw_rate;
+					action_values_target[i * 3 + 2] = q.loss_rate();
+
+					action_values_mask[i] = static_cast<float>(pack.visit_count[i]) / static_cast<float>(sum_N);
 				}
-				policy_sum += policy_target[i];
 			}
-			const float tmp = 1.0f / policy_sum;
+
+			float sum_policy = 0.0f;
 			for (int i = 0; i < rows * columns; i++)
-				policy_target[i] *= tmp;
+				if (pack.board[i] == Sign::NONE)
+				{
+					policy_target[i] = std::exp(std::max(-20.0f, policy_target[i] - max_value));
+					sum_policy += policy_target[i];
+				}
+
+			for (int i = 0; i < rows * columns; i++)
+				if (pack.board[i] == Sign::NONE)
+					policy_target[i] /= sum_policy;
+
+			moves_left_target[pack.moves_left] = 1.0f;
 
 			input += 32 * rows * columns;
 			policy_target += rows * columns;
 			value_target += 3;
-			moves_left_target += 1;
+			action_values_target += 3 * rows * columns;
+			action_values_mask += rows * columns;
+			moves_left_target += rows * columns;
 		}
 	}
 
